@@ -222,9 +222,8 @@
   body > div, /* The root div rendered by Next.js body */
   body div.group\/sidebar-wrapper, /* SidebarProvider's wrapper */
   body div.group\/sidebar-wrapper > div.flex, /* The main flex container in DashboardLayout */
-  body [class*="SidebarInset"], /* SidebarInset component */
-  body main, /* The actual main element */
-  body div[id="main-content-wrapper"] /* The child wrapper */
+  body main[class*="SidebarInset"], /* SidebarInset component */
+  body main[class*="SidebarInset"] > div /* The div DashboardLayout wraps children with */
   {
     display: block !important;
     width: 100% !important;
