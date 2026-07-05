@@ -177,7 +177,7 @@ export default function SelectionNoticePrintPage() {
                     }
                 }
             `}} />
-            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[14px] print:leading-relaxed">
+            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed">
               <div className="text-center">
                   <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
               </div>
@@ -204,8 +204,8 @@ export default function SelectionNoticePrintPage() {
               <div className="pt-2 print:pt-1">
                   <p>സ്വീകർത്താവ്</p>
                   <div className="ml-8 whitespace-pre-wrap min-h-[6rem] print:min-h-0">
-                      <p className="text-[16px] print:text-sm font-semibold">{l1Bidder?.name || '____________________'}</p>
-                      <p className="text-[16px] print:text-sm">{l1Bidder?.address || '____________________'}</p>
+                      <p className="text-lg print:text-sm font-semibold">{l1Bidder?.name || '____________________'}</p>
+                      <p className="text-lg print:text-sm">{l1Bidder?.address || '____________________'}</p>
                   </div>
               </div>
               
@@ -230,7 +230,7 @@ export default function SelectionNoticePrintPage() {
               
               <div className="pt-10 print:pt-4 text-right">
                   <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16 print:h-[3.6em]" />
+                  <div className="h-16 print:h-8" />
                   <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
               </div>
           </div>
