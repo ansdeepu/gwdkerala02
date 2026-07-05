@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenderData } from '@/components/e-tender/TenderDataContext';
 import { formatDateSafe, formatTenderNoForFilename } from '@/components/e-tender/utils';
 import { useDataStore } from '@/hooks/use-data-store';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 
 export default function SupplyOrderPrintPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { tender } = useTenderData();
     const { officeAddress, allStaffMembers } = useDataStore();
 
@@ -190,9 +191,11 @@ export default function SupplyOrderPrintPage() {
                         if (window.opener) {
                             window.close();
                         } else if (tender.id) {
-                            router.push(`/dashboard/e-tender/${tender.id}`);
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender/${tender.id}${query ? `?${query}` : ''}#pdf-reports-section`);
                         } else {
-                            router.push('/dashboard/e-tender');
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender${query ? `?${query}` : ''}`);
                         }
                     }}
                 >

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenderData } from '@/components/e-tender/TenderDataContext';
 import { formatDateSafe, formatTenderNoForFilename, toDateOrNull } from '@/components/e-tender/utils';
 import { useDataStore, defaultRateDescriptions } from '@/hooks/use-data-store';
@@ -45,6 +45,7 @@ const parseAdditionalPerformanceGuaranteeLogic = (description: string) => {
 
 export default function SelectionNoticePrintPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { tender } = useTenderData();
     const { officeAddress, allRateDescriptions } = useDataStore();
     const { setHeader } = usePageHeader();
@@ -224,9 +225,11 @@ export default function SelectionNoticePrintPage() {
                         if (window.opener) {
                             window.close();
                         } else if (tender.id) {
-                            router.push(`/dashboard/e-tender/${tender.id}`);
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender/${tender.id}${query ? `?${query}` : ''}#pdf-reports-section`);
                         } else {
-                            router.push('/dashboard/e-tender');
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender${query ? `?${query}` : ''}`);
                         }
                     }}
                 >

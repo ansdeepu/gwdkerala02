@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenderData } from '@/components/e-tender/TenderDataContext';
 import { formatDateSafe, formatTenderNoForFilename } from '@/components/e-tender/utils';
 import { useDataStore } from '@/hooks/use-data-store';
@@ -13,6 +13,7 @@ const capitalize = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).to
 
 export default function WorkAgreementPrintPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { tender } = useTenderData();
     const { officeAddress } = useDataStore();
     const [lang, setLang] = useState<'en' | 'ml'>('ml');
@@ -982,9 +983,11 @@ export default function WorkAgreementPrintPage() {
                         if (window.opener) {
                             window.close();
                         } else if (tender.id) {
-                            router.push(`/dashboard/e-tender/${tender.id}`);
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender/${tender.id}${query ? `?${query}` : ''}#pdf-reports-section`);
                         } else {
-                            router.push('/dashboard/e-tender');
+                            const query = searchParams?.toString();
+                            router.push(`/dashboard/e-tender${query ? `?${query}` : ''}`);
                         }
                     }}
                 >

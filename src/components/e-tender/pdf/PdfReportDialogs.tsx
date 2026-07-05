@@ -9,6 +9,7 @@ import { useTenderData } from '../TenderDataContext';
 import download from 'downloadjs';
 import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import type { OfficeAddress } from '@/lib/schemas';
 import {
@@ -176,6 +177,12 @@ const CorrigendumReportButton = ({ corrigendum, index }: { corrigendum: Corrigen
 export default function PdfReportDialogs() {
     const { tender } = useTenderData();
     const { allStaffMembers, officeAddress } = useDataStore();
+    const searchParams = useSearchParams();
+
+    const withCurrentParams = (url: string) => {
+        const query = searchParams?.toString();
+        return query ? `${url}?${query}` : url;
+    };
 
     const handleGeneratePdf = useCallback(async (
         generator: (tender: E_tender, officeAddress: OfficeAddress | null, staff?: StaffMember[]) => Promise<Uint8Array>,
@@ -216,7 +223,7 @@ export default function PdfReportDialogs() {
     const formattedTenderNo = formatTenderNoForFilename(tender.eTenderNo);
 
     return (
-        <Card>
+        <Card id="pdf-reports-section">
             <CardHeader>
                 <CardTitle>PDF Reports Generation</CardTitle>
                 <CardDescription>Generate and download PDF documents for this tender.</CardDescription>
@@ -304,21 +311,21 @@ export default function PdfReportDialogs() {
                             />
                             <ReportButton 
                                 label="Selection Notice"
-                                href={tender.id ? `/dashboard/e-tender/${tender.id}/selection-notice` : '#'}
+                                href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/selection-notice`) : '#'}
                                 targetSelf
                                 disabled={!isTenderSaved || !hasSelectionNotice}
                                 tooltipContent={!isTenderSaved ? "Save the tender first." : "Add Selection Notice Details first."}
                             />
                             <ReportButton 
                                 label="Work Agreement"
-                                href={tender.id ? `/dashboard/e-tender/${tender.id}/work-agreement` : '#'}
+                                href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/work-agreement`) : '#'}
                                 targetSelf
                                 disabled={!isTenderSaved || !hasSelectionNotice}
                                 tooltipContent={!isTenderSaved ? "Save the tender first." : "Add Selection Notice Details first."}
                             />
                             <ReportButton 
                                 label={workOrderButtonLabel}
-                                href={tender.id && tender.tenderType ? `/dashboard/e-tender/${tender.id}/${tender.tenderType === 'Work' ? 'work-order' : 'supply-order'}` : '#'}
+                                href={tender.id && tender.tenderType ? withCurrentParams(`/dashboard/e-tender/${tender.id}/${tender.tenderType === 'Work' ? 'work-order' : 'supply-order'}`) : '#'}
                                 targetSelf
                                 disabled={!isTenderSaved || !hasWorkOrder || !tender.tenderType}
                                 tooltipContent={!isTenderSaved ? "Save the tender first." : !hasWorkOrder ? "Add Work Order Details first." : "Select a 'Type of Tender' in Basic Details."}

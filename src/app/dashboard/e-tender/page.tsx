@@ -1228,7 +1228,19 @@ export default function ETenderListPage() {
                         </div>
                     </div>
                     
-                    <Tabs defaultValue="process" value={activeTab} onValueChange={(val) => { setActiveTab(val); setCurrentPage(1); }} className="mt-6">
+                    <Tabs 
+                        defaultValue="process" 
+                        value={activeTab} 
+                        onValueChange={(val) => { 
+                            setActiveTab(val); 
+                            setCurrentPage(1); 
+                            const params = new URLSearchParams(searchParams?.toString());
+                            params.set('tab', val);
+                            params.set('page', '1');
+                            router.push(`?${params.toString()}`, { scroll: false });
+                        }} 
+                        className="mt-6"
+                    >
                         <TabsList className="grid w-full grid-cols-6 h-auto p-1.5 bg-muted/60 border rounded-lg shadow-sm">
                             <TabsTrigger 
                                 value="prep" 
