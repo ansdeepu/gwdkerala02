@@ -160,13 +160,29 @@ export default function SelectionNoticePrintPage() {
     };
 
     return (
-        <div className="-m-6 bg-white min-h-screen">
-          <div className="max-w-4xl mx-auto p-12 space-y-4 font-serif text-base">
+        <div className="-m-6 bg-white min-h-screen print:min-h-0 print:bg-transparent print:m-0">
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 10mm 15mm;
+                    }
+                    body {
+                        background: white !important;
+                        color: black !important;
+                        -webkit-print-color-adjust: exact;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                }
+            `}} />
+            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed">
               <div className="text-center">
                   <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
               </div>
               
-              <div className="flex justify-between pt-2">
+              <div className="flex justify-between pt-2 print:pt-1">
                   <div>
                       <p>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
                       <p>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
@@ -180,24 +196,24 @@ export default function SelectionNoticePrintPage() {
                   </div>
               </div>
 
-              <div className="pt-6">
+              <div className="pt-6 print:pt-2">
                   <p>പ്രേഷകൻ</p>
                   <p className="ml-8">ജില്ലാ ആഫീസർ</p>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 print:pt-1">
                   <p>സ്വീകർത്താവ്</p>
-                  <div className="ml-8 whitespace-pre-wrap min-h-[6rem]">
-                      <p className="text-lg font-semibold">{l1Bidder?.name || '____________________'}</p>
-                      <p className="text-lg">{l1Bidder?.address || '____________________'}</p>
+                  <div className="ml-8 whitespace-pre-wrap min-h-[6rem] print:min-h-0">
+                      <p className="text-lg print:text-sm font-semibold">{l1Bidder?.name || '____________________'}</p>
+                      <p className="text-lg print:text-sm">{l1Bidder?.address || '____________________'}</p>
                   </div>
               </div>
               
-              <div className="pt-2">
+              <div className="pt-2 print:pt-1">
                   <p>സർ,</p>
               </div>
 
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 print:space-y-1 pt-2 print:pt-1">
                   <div className="grid grid-cols-[auto,1fr] gap-x-2">
                       <span>വിഷയം:</span>
                       <span className="text-justify">{tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.</span>
@@ -208,13 +224,13 @@ export default function SelectionNoticePrintPage() {
                   </div>
               </div>
               
-              <div className="pt-2">
+              <div className="pt-2 print:pt-1">
                   <MainContent />
               </div>
               
-              <div className="pt-10 text-right">
+              <div className="pt-10 print:pt-4 text-right">
                   <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16" />
+                  <div className="h-16 print:h-8" />
                   <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
               </div>
           </div>
