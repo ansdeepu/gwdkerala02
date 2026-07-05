@@ -204,8 +204,8 @@ export default function SelectionNoticePrintPage() {
               <div className="pt-2 print:pt-1">
                   <p>സ്വീകർത്താവ്</p>
                   <div className="ml-8 whitespace-pre-wrap min-h-[6rem] print:min-h-0">
-                      <p className="text-lg print:text-sm font-semibold">{l1Bidder?.name || '____________________'}</p>
-                      <p className="text-lg print:text-sm">{l1Bidder?.address || '____________________'}</p>
+                      <p className="text-2xl print:text-lg font-semibold">{l1Bidder?.name || '____________________'}</p>
+                      <p className="text-2xl print:text-lg">{l1Bidder?.address || '____________________'}</p>
                   </div>
               </div>
               
@@ -230,7 +230,7 @@ export default function SelectionNoticePrintPage() {
               
               <div className="pt-10 print:pt-4 text-right">
                   <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16 print:h-8" />
+                  <div className="h-16 print:h-20" />
                   <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
               </div>
           </div>
