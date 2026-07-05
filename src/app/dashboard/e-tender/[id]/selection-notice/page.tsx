@@ -177,7 +177,7 @@ export default function SelectionNoticePrintPage() {
                     }
                 }
             `}} />
-            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed">
+            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[14px] print:leading-relaxed">
               <div className="text-center">
                   <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
               </div>
@@ -230,7 +230,7 @@ export default function SelectionNoticePrintPage() {
               
               <div className="pt-10 print:pt-4 text-right">
                   <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16 print:h-8" />
+                  <div className="h-16 print:h-[3.6em]" />
                   <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
               </div>
           </div>
