@@ -192,7 +192,7 @@ export default function WorkOrderPrintPage() {
             >
                 Close
             </Button>
-            <Button onClick={() => window.print()}>Print</Button>
+            <Button onClick={() => { window.focus(); window.print(); }}>Print</Button>
           </div>
         </div>
     );

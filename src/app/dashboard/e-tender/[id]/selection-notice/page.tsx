@@ -129,7 +129,6 @@ export default function SelectionNoticePrintPage() {
         return excessPercentage.toFixed(2);
     }, [isApgRequired, tender.estimateAmount, contractAmount, apgThreshold]);
 
-
     const MainContent = () => {
         const workName = tender.nameOfWorkMalayalam || tender.nameOfWork;
         
@@ -159,64 +158,87 @@ export default function SelectionNoticePrintPage() {
     };
 
     return (
-        <div className="-m-6 bg-white min-h-screen">
-          <div className="max-w-4xl mx-auto p-12 space-y-4 font-serif text-base">
-              <div className="text-center">
-                  <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
-              </div>
-              
-              <div className="flex justify-between pt-2">
-                  <div>
-                      <p>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
-                      <p>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
-                  </div>
-                  <div className="text-right">
-                      <p className="whitespace-pre-wrap">{(officeAddress?.officeNameMalayalam || '').replace('ഭൂജലവകുപ്പ്', '').replace(',', '').trim()}</p>
-                      <p className="whitespace-pre-wrap">{officeAddress?.addressMalayalam || ''}</p>
-                      <p>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
-                      <p>ഇമെയിൽ: {officeAddress?.email || ''}</p>
-                      <p>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
-                  </div>
-              </div>
+        <div className="-m-6 bg-white min-h-screen print:min-h-0 print:bg-transparent print:m-0">
+            <style dangerouslySetInnerHTML={{ __html: `
+                @page {
+                    size: A4 portrait;
+                    margin: 15mm 15mm 15mm 15mm !important;
+                }
+                @media print {
+                    html, body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        height: auto !important;
+                        min-height: 0 !important;
+                        background-color: #fff !important;
+                        font-family: inherit !important;
+                    }
+                    .print-container {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        background: transparent !important;
+                        page-break-inside: avoid !important;
+                    }
+                }
+            `}} />
+            <div className="print-container max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-3 font-serif text-base print:text-[10.5pt] print:leading-relaxed">
+                <div className="text-center">
+                    <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
+                </div>
+                
+                <div className="flex justify-between pt-2 print:pt-0">
+                    <div>
+                        <p>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
+                        <p>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="whitespace-pre-wrap">{(officeAddress?.officeNameMalayalam || '').replace('ഭൂജലവകുപ്പ്', '').replace(',', '').trim()}</p>
+                        <p className="whitespace-pre-wrap">{officeAddress?.addressMalayalam || ''}</p>
+                        <p>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
+                        <p>ഇമെയിൽ: {officeAddress?.email || ''}</p>
+                        <p>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
+                    </div>
+                </div>
 
-              <div className="pt-6">
-                  <p>പ്രേഷകൻ</p>
-                  <p className="ml-8">ജില്ലാ ആഫീസർ</p>
-              </div>
+                <div className="pt-6 print:pt-2">
+                    <p>പ്രേഷകൻ</p>
+                    <p className="ml-8">ജില്ലാ ആഫീസർ</p>
+                </div>
 
-              <div className="pt-2">
-                  <p>സ്വീകർത്താവ്</p>
-                  <div className="ml-8 whitespace-pre-wrap min-h-[6rem]">
-                      <p className="text-lg font-semibold">{l1Bidder?.name || '____________________'}</p>
-                      <p className="text-lg">{l1Bidder?.address || '____________________'}</p>
-                  </div>
-              </div>
-              
-              <div className="pt-2">
-                  <p>സർ,</p>
-              </div>
+                <div className="pt-2 print:pt-1">
+                    <p>സ്വീകർത്താവ്</p>
+                    <div className="ml-8 whitespace-pre-wrap min-h-[6rem] print:min-h-0">
+                        <p className="text-lg print:text-[10.5pt] font-semibold">{l1Bidder?.name || '____________________'}</p>
+                        <p className="text-lg print:text-[10.5pt]">{l1Bidder?.address || '____________________'}</p>
+                    </div>
+                </div>
+                
+                <div className="pt-2 print:pt-1">
+                    <p>സർ,</p>
+                </div>
 
-              <div className="space-y-2 pt-2">
-                  <div className="grid grid-cols-[auto,1fr] gap-x-2">
-                      <span>വിഷയം:</span>
-                      <span className="text-justify">{tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.</span>
-                  </div>
-                  <div className="grid grid-cols-[auto,1fr] gap-x-2">
-                      <span>സൂചന:</span>
-                      <span>ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}</span>
-                  </div>
-              </div>
-              
-              <div className="pt-2">
-                  <MainContent />
-              </div>
-              
-              <div className="pt-10 text-right">
-                  <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16" />
-                  <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
-              </div>
-          </div>
+                <div className="space-y-2 print:space-y-1 pt-2 print:pt-1">
+                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                        <span>വിഷയം:</span>
+                        <span className="text-justify">{tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.</span>
+                    </div>
+                    <div className="grid grid-cols-[auto,1fr] gap-x-2">
+                        <span>സൂചന:</span>
+                        <span>ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}</span>
+                    </div>
+                </div>
+                
+                <div className="pt-2 print:pt-1">
+                    <MainContent />
+                </div>
+                
+                <div className="pt-10 print:pt-6 text-right">
+                    <p>വിശ്വസ്തതയോടെ</p>
+                    <div className="h-16 print:h-8" />
+                    <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
+                </div>
+            </div>
             <div className="fixed bottom-4 right-4 no-print flex gap-2">
                 <Button 
                     variant="outline" 
@@ -232,7 +254,7 @@ export default function SelectionNoticePrintPage() {
                 >
                     Close
                 </Button>
-                <Button onClick={() => window.print()}>Print</Button>
+                <Button onClick={() => { window.focus(); window.print(); }}>Print</Button>
             </div>
         </div>
     );
