@@ -17,6 +17,7 @@ import { useStaffMembers } from "@/hooks/useStaffMembers";
 import type { StaffMember, StaffMemberFormData, StaffStatusType, BloodGroup } from "@/lib/schemas";
 import { designationOptions, bloodGroupOptions } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Dialog,
@@ -479,8 +480,16 @@ export default function EstablishmentPage() {
 
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
         <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90vw]">
-          <div className="flex justify-center items-center max-h-[90vh] overflow-hidden">
-            {imageForModal && <img src={imageForModal} alt="Enlarged staff photo" className="max-w-full max-h-full object-contain rounded-lg"/>}
+          <div className="relative flex justify-center items-center w-[80vw] h-[80vh] overflow-hidden">
+            {imageForModal && (
+              <Image 
+                src={imageForModal} 
+                alt="Enlarged staff photo" 
+                fill 
+                className="object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

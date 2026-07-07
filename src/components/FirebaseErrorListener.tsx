@@ -26,7 +26,7 @@ export default function FirebaseErrorListener() {
       // However, to prevent unintended page crashes during transient auth states (e.g. opening multiple tabs),
       // we now just log it and show a toast if it persists.
       if (process.env.NODE_ENV === 'development') {
-        console.warn("Firestore Permission Error (Dev Mode):", error.message, error.path);
+        console.warn("Firestore Permission Error (Dev Mode):", error.message, error.context.path);
       }
       
       toast({

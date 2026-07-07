@@ -204,13 +204,13 @@ export default function BiddersListPage() {
                                             <TableRow key={bidder.id}>
                                                 <TableCell>{index + 1}</TableCell>
                                                 <TableCell className="font-medium">{bidder.name}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="max-w-[300px]">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <p className="text-sm text-muted-foreground line-clamp-2 max-w-[200px]">{bidder.address}</p>
+                                                            <p className="text-sm text-muted-foreground whitespace-normal break-words leading-tight">{bidder.address}</p>
                                                         </TooltipTrigger>
-                                                        <TooltipContent className="max-w-xs">
-                                                            <p className="whitespace-pre-wrap">{bidder.address}</p>
+                                                        <TooltipContent className="max-w-md">
+                                                            <p className="whitespace-pre-wrap font-medium">{bidder.address}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TableCell>

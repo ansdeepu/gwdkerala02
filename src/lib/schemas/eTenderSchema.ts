@@ -279,6 +279,7 @@ export const E_tenderSchema = z.object({
     additionalPerformanceGuaranteeAmount: optionalNumberSchema,
     stampPaperAmount: optionalNumberSchema,
     amountType: z.enum(['Tender Amount', 'Contract Amount']).optional().nullable(),
+    agreedAmount: optionalNumberSchema,
     
     agreementDate: z.any().optional().nullable(),
     dateWorkOrder: z.any().optional().nullable(),

@@ -17,6 +17,7 @@ import { useStaffMembers } from "@/hooks/useStaffMembers";
 import type { StaffMember, StaffMemberFormData, StaffStatusType, Designation } from "@/lib/schemas";
 import { designationOptions, bloodGroupOptions } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Dialog,
@@ -465,8 +466,16 @@ export default function SuperAdminEstablishmentPage() {
 
       <Dialog open={!!imageForModal} onOpenChange={(open) => !open && setImageForModal(null)}>
         <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="p-0 border-0 bg-transparent shadow-none w-auto max-w-[90vw]">
-          <div className="flex justify-center items-center max-h-[90vh] overflow-hidden">
-            {imageForModal && <img src={imageForModal} alt="Staff photo enlarged" className="max-w-full max-h-full object-contain rounded-md shadow-2xl"/>}
+          <div className="relative flex justify-center items-center w-[80vw] h-[80vh] overflow-hidden">
+            {imageForModal && (
+              <Image 
+                src={imageForModal} 
+                alt="Staff photo enlarged" 
+                fill 
+                className="object-contain rounded-md shadow-2xl"
+                referrerPolicy="no-referrer"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

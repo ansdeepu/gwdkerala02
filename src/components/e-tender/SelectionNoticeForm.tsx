@@ -95,7 +95,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         return tender?.additionalPerformanceGuaranteeDescription || additionalPerformanceGuaranteeDetail?.description || defaultRateDescriptions.additionalPerformanceGuarantee;
     }, [tender?.additionalPerformanceGuaranteeDescription, additionalPerformanceGuaranteeDetail]);
 
-    const calculateStampPaperValue = useCallback((amount?: number): number => {
+    const calculateStampPaperValue = useCallback((amount?: number | null): number => {
         const logic = parseStampPaperLogic(stampPaperDescription);
         const { rate, basis, min, max } = logic;
         if (amount === undefined || amount === null || amount <= 0) return min ?? 0;
@@ -105,7 +105,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         return Math.max(min ?? 0, Math.min(roundedDuty, max ?? Infinity));
     }, [stampPaperDescription]);
 
-    const calculateAdditionalPG = useCallback((estimateAmount?: number, tenderAmount?: number): number => {
+    const calculateAdditionalPG = useCallback((estimateAmount?: number | null, tenderAmount?: number | null): number => {
         if (!estimateAmount || !tenderAmount || tenderAmount >= estimateAmount) return 0;
         
         const logic = parseAdditionalPerformanceGuaranteeLogic(additionalPerformanceGuaranteeDescription);
@@ -136,7 +136,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
     const watchAmountType = watch('amountType');
 
     useEffect(() => {
-        const contractAmount: number | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? undefined);
+        const contractAmount: number | null | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? undefined);
 
         // Performance Guarantee logic extraction
         const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
