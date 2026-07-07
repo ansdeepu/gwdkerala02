@@ -786,7 +786,7 @@ export default function TenderDetails() {
                                 Close
                             </Button>
                             {!isReadOnly && 
-                              <Button type="button" size="lg" onClick={handleFinalSave} disabled={isSubmitting || !isDirty}>
+                              <Button type="button" size="lg" onClick={handleFinalSave} disabled={isSubmitting}>
                                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                   Save
                               </Button>
