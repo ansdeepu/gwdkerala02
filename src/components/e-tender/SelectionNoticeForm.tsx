@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Save, X, Info } from 'lucide-react';
 import { SelectionNoticeDetailsSchema, type E_tenderFormData, type SelectionNoticeDetailsFormData } from '@/lib/schemas/eTenderSchema';
@@ -126,25 +127,16 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
             performanceGuaranteeAmount: tender?.performanceGuaranteeAmount,
             additionalPerformanceGuaranteeAmount: tender?.additionalPerformanceGuaranteeAmount,
             stampPaperAmount: tender?.stampPaperAmount,
-            agreedPercentage: tender?.agreedPercentage,
-            agreedAmount: tender?.agreedAmount,
+            amountType: tender?.amountType || 'Contract Amount',
         }
     });
     
     const { handleSubmit, setValue, getValues, watch } = form;
 
-    const watchAgreedPercentage = watch('agreedPercentage');
-    const watchAgreedAmount = watch('agreedAmount');
+    const watchAmountType = watch('amountType');
 
     useEffect(() => {
-        if (watchAgreedPercentage !== undefined && watchAgreedPercentage !== null && tender.estimateAmount) {
-            const calculatedAmount = Math.round(tender.estimateAmount * (1 + watchAgreedPercentage / 100));
-            setValue('agreedAmount', calculatedAmount, { shouldDirty: true });
-        }
-    }, [watchAgreedPercentage, tender.estimateAmount, setValue]);
-
-    useEffect(() => {
-        const contractAmount: number | undefined = watchAgreedAmount ?? l1Amount ?? undefined;
+        const contractAmount: number | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? undefined);
 
         // Performance Guarantee logic extraction
         const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
@@ -162,7 +154,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         setValue('additionalPerformanceGuaranteeAmount', additionalPg, { shouldValidate: true, shouldDirty: true });
         setValue('stampPaperAmount', stamp, { shouldValidate: true, shouldDirty: true });
 
-    }, [tender.estimateAmount, tender.selectionNoticeDate, l1Amount, watchAgreedAmount, calculateStampPaperValue, calculateAdditionalPG, performanceGuaranteeDescription, setValue, getValues]);
+    }, [tender.estimateAmount, tender.selectionNoticeDate, l1Amount, watchAmountType, calculateStampPaperValue, calculateAdditionalPG, performanceGuaranteeDescription, setValue, getValues]);
 
 
     const handleFormSubmit = (data: SelectionNoticeDetailsFormData) => {
@@ -197,46 +189,44 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                                     <FormMessage />
                                 </FormItem> 
                             )}/>
+                            <FormField name="amountType" control={form.control} render={({ field }) => ( 
+                                <FormItem>
+                                    <FormLabel>Basis for Calculation</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select basis" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Tender Amount">Tender Amount</SelectItem>
+                                            <SelectItem value="Contract Amount">Contract Amount</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem> 
+                            )}/>
                             {hasRejectedBids && (
-                                <div className="p-3 bg-muted/30 border rounded-md flex items-center gap-3">
+                                <div className="p-3 bg-muted/30 border rounded-md flex items-center col-span-2 gap-3">
                                     <Info className="h-5 w-5 text-primary shrink-0" />
                                     <p className="text-[10px] text-muted-foreground leading-tight">Rejected bids found. You can manually override the agreed amount below if negotiations occurred.</p>
                                 </div>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField name="agreedPercentage" control={form.control} render={({ field }) => ( 
-                                <FormItem>
-                                    <FormLabel>Agreed Percentage (%)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} placeholder="Override % if needed" /></FormControl>
-                                    <FormDescription className="text-[10px]">Percentage relative to estimate.</FormDescription>
-                                    <FormMessage />
-                                </FormItem> 
-                            )}/>
-                            <FormField name="agreedAmount" control={form.control} render={({ field }) => ( 
-                                <FormItem>
-                                    <FormLabel>Agreed Amount (₹)</FormLabel>
-                                    <FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} placeholder={l1Amount ? `L1: ${l1Amount.toLocaleString('en-IN')}` : "Override amount"} /></FormControl>
-                                    <FormDescription className="text-[10px]">Overrides L1 amount for calculations.</FormDescription>
-                                    <FormMessage />
-                                </FormItem> 
-                            )}/>
-                        </div>
-
                         <Separator />
 
                         <div className="space-y-6">
-                            <FormField name="performanceGuaranteeAmount" control={form.control} render={({ field }) => ( 
-                                <FormItem>
-                                    <FormLabel>Performance Guarantee (PG) (₹)</FormLabel>
-                                    <FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly className="bg-muted/50 font-bold" /></FormControl>
-                                    <FormDescription className="text-[10px] leading-tight">Based on 5% of the contract value (rounded up).</FormDescription>
-                                    <FormMessage />
-                                </FormItem> 
-                            )}/>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                                <FormField name="performanceGuaranteeAmount" control={form.control} render={({ field }) => ( 
+                                    <FormItem>
+                                        <FormLabel>Performance Guarantee (PG) (₹)</FormLabel>
+                                        <FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly className="bg-muted/50 font-bold" /></FormControl>
+                                        <FormDescription className="text-[10px] leading-tight">Based on 5% of the contract value (rounded up).</FormDescription>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )}/>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                                 <FormField name="additionalPerformanceGuaranteeAmount" control={form.control} render={({ field }) => ( 
                                     <FormItem>
                                         <FormLabel>Additional PG (₹)</FormLabel>

@@ -234,8 +234,7 @@ export const SelectionNoticeDetailsSchema = z.object({
     performanceGuaranteeAmount: optionalNumberSchema,
     additionalPerformanceGuaranteeAmount: optionalNumberSchema,
     stampPaperAmount: optionalNumberSchema,
-    agreedPercentage: optionalNumberSchema,
-    agreedAmount: optionalNumberSchema,
+    amountType: z.enum(['Tender Amount', 'Contract Amount']).optional().nullable(),
     // Descriptions for historical context
     performanceGuaranteeDescription: optionalStringSchema,
     additionalPerformanceGuaranteeDescription: optionalStringSchema,
@@ -279,8 +278,7 @@ export const E_tenderSchema = z.object({
     performanceGuaranteeAmount: optionalNumberSchema,
     additionalPerformanceGuaranteeAmount: optionalNumberSchema,
     stampPaperAmount: optionalNumberSchema,
-    agreedPercentage: optionalNumberSchema,
-    agreedAmount: optionalNumberSchema,
+    amountType: z.enum(['Tender Amount', 'Contract Amount']).optional().nullable(),
     
     agreementDate: z.any().optional().nullable(),
     dateWorkOrder: z.any().optional().nullable(),

@@ -46,8 +46,7 @@ const SELECTION_NOTICE_CLEAR_DATA: Partial<E_tenderFormData> = {
   performanceGuaranteeAmount: null,
   additionalPerformanceGuaranteeAmount: null,
   stampPaperAmount: null,
-  agreedPercentage: null,
-  agreedAmount: null,
+  amountType: null,
   performanceGuaranteeDescription: null,
   additionalPerformanceGuaranteeDescription: null,
   stampPaperDescription: null,
@@ -383,7 +382,7 @@ export default function TenderDetails() {
         return bidderFields.some(b => b.status === 'Rejected');
     }, [bidderFields]);
 
-    const watchedSelectionNoticeFields = watch(['selectionNoticeDate', 'performanceGuaranteeAmount', 'additionalPerformanceGuaranteeAmount', 'stampPaperAmount', 'agreedPercentage', 'agreedAmount']);
+    const watchedSelectionNoticeFields = watch(['selectionNoticeDate', 'performanceGuaranteeAmount', 'additionalPerformanceGuaranteeAmount', 'stampPaperAmount', 'amountType']);
     const hasAnySelectionNoticeData = useMemo(() => {
         return watchedSelectionNoticeFields.some(v => v);
     }, [watchedSelectionNoticeFields]);
@@ -673,11 +672,10 @@ export default function TenderDetails() {
                                     <CardContent className="p-6 pt-0">
                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
                                             <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
-                                            {hasRejectedBids && <DetailRow label="Agreed Percentage" value={watch('agreedPercentage') ? `${watch('agreedPercentage')}%` : null} />}
-                                            {hasRejectedBids && <DetailRow label="Agreed Amount" value={watch('agreedAmount')} isCurrency />}
                                             <DetailRow label="Performance Guarantee Amount" value={watch('performanceGuaranteeAmount')} isCurrency />
                                             <DetailRow label="Additional Performance Guarantee Amount" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency />
                                             <DetailRow label="Stamp Paper required" value={watch('stampPaperAmount')} isCurrency />
+                                            <DetailRow label="Basis for Calculation" value={watch('amountType')} />
                                         </dl>
                                     </CardContent>
                                 ) : (
