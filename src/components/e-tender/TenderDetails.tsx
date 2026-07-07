@@ -179,6 +179,8 @@ export default function TenderDetails() {
             Object.entries(data).forEach(([key, value]) => {
                 setValue(key as keyof E_tenderFormData, value, { shouldDirty: true, shouldValidate: true });
             });
+            // Update context so child components (like reports) see the new data immediately
+            updateTender(data);
             setActiveModal(null);
             return;
         }
