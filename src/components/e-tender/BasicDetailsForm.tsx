@@ -135,7 +135,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
         }
     });
     
-    const { control, setValue, handleSubmit, watch } = form;
+    const { control, setValue, handleSubmit, watch, formState: { isDirty } } = form;
 
     const [estimateAmount, tenderType, tenderDate] = watch([
         'estimateAmount',
@@ -398,7 +398,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || (tender.id !== 'new' && !isDirty)}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
                     </Button>
                 </DialogFooter>

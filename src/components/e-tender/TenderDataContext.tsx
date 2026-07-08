@@ -6,6 +6,7 @@ import type { E_tender } from '@/hooks/useE_tenders';
 
 interface TenderDataContextType {
     tender: E_tender;
+    initialTender: E_tender;
     updateTender: (updatedData: Partial<E_tender>) => void;
 }
 
@@ -22,7 +23,7 @@ export function TenderDataProvider({ initialTender, children }: { initialTender:
         setTender(prevTender => ({ ...prevTender, ...updatedData }));
     }, []);
 
-    const value = useMemo(() => ({ tender, updateTender }), [tender, updateTender]);
+    const value = useMemo(() => ({ tender, initialTender, updateTender }), [tender, initialTender, updateTender]);
 
     return (
         <TenderDataContext.Provider value={value}>

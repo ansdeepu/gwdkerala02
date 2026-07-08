@@ -130,6 +130,8 @@ export default function RetenderDetailsForm({ onSubmit, onCancel, isSubmitting, 
         defaultValues: createDefaultRetender(),
     });
 
+    const { formState: { isDirty } } = form;
+
     useEffect(() => {
         const defaultValues = createDefaultRetender();
         const valuesToSet = {
@@ -184,7 +186,7 @@ export default function RetenderDetailsForm({ onSubmit, onCancel, isSubmitting, 
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
                     </Button>
                 </DialogFooter>

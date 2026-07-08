@@ -66,6 +66,8 @@ export default function TenderOpeningDetailsForm({ initialData, onSubmit, onCanc
         },
     });
 
+    const { formState: { isDirty } } = form;
+
      useEffect(() => {
         const defaultValues = {
             dateOfOpeningBid: null,
@@ -98,8 +100,10 @@ export default function TenderOpeningDetailsForm({ initialData, onSubmit, onCanc
                 <div className="flex-1 min-h-0">
                     <ScrollArea className="h-full px-6 py-4">
                         <div className="space-y-4">
-                            <FormField name="dateOfOpeningBid" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Date of Opening Bid</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl><FormMessage /></FormItem> )}/>
-                            <FormField name="dateOfTechnicalAndFinancialBidOpening" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Date of Technical and Financial Bid Opening</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl><FormMessage /></FormItem> )}/>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField name="dateOfOpeningBid" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Date of Opening Bid</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField name="dateOfTechnicalAndFinancialBidOpening" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Date of Technical and Financial Bid Opening</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || null)} /></FormControl><FormMessage /></FormItem> )}/>
+                            </div>
                             
                             {committeeMemberFields.map((fieldName, index) => (
                                 <FormField
@@ -127,7 +131,7 @@ export default function TenderOpeningDetailsForm({ initialData, onSubmit, onCanc
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
                     </Button>
                 </DialogFooter>

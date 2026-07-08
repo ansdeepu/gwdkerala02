@@ -133,7 +133,7 @@ export default function CorrigendumForm({ onSubmit, onCancel, isSubmitting, init
         defaultValues: createDefaultCorrigendum(),
     });
 
-    const { reset, control, watch } = form;
+    const { reset, control, watch, formState: { isDirty } } = form;
     const watchedType = watch("corrigendumType");
 
     useEffect(() => {
@@ -212,7 +212,7 @@ export default function CorrigendumForm({ onSubmit, onCancel, isSubmitting, init
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
                     </Button>
                 </DialogFooter>

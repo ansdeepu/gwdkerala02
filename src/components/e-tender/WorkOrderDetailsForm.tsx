@@ -65,7 +65,7 @@ export default function WorkOrderDetailsForm({ initialData, onSubmit, onCancel, 
         }
     });
     
-    const { setValue, reset, handleSubmit, control } = form;
+    const { setValue, reset, handleSubmit, control, formState: { isDirty } } = form;
 
     useEffect(() => {
         reset({
@@ -259,7 +259,7 @@ export default function WorkOrderDetailsForm({ initialData, onSubmit, onCancel, 
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Update Details
                     </Button>
                 </DialogFooter>

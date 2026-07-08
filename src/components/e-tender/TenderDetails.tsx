@@ -137,7 +137,7 @@ export default function TenderDetails() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isLoading: isAuthLoading } = useAuth();
-    const { tender, updateTender } = useTenderData();
+    const { tender, initialTender, updateTender } = useTenderData();
     const { addTender, updateTender: saveTenderToDb } = useE_tenders();
     const { allStaffMembers, officeAddress } = useDataStore();
     const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -159,6 +159,15 @@ export default function TenderDetails() {
     const { fields: bidderFields, append: appendBidder, update: updateBidder, remove: removeBidder } = useFieldArray({ control, name: "bidders" });
     const { fields: corrigendumFields, append: appendCorrigendum, update: updateCorrigendum, remove: removeCorrigendum } = useFieldArray({ control, name: "corrigendums" });
     const { fields: retenderFields, append: appendRetender, update: updateRetender, remove: removeRetender } = useFieldArray({ control, name: "retenders" });
+
+    const watchedPresentStatus = watch('presentStatus');
+    const watchedRemarks = watch('remarks');
+
+    const isFormDirty = useMemo(() => {
+        if (watchedPresentStatus !== initialTender.presentStatus) return true;
+        if ((watchedRemarks || '') !== (initialTender.remarks || '')) return true;
+        return JSON.stringify(tender) !== JSON.stringify(initialTender);
+    }, [watchedPresentStatus, watchedRemarks, tender, initialTender]);
 
 
     const handleFinalSave = async () => {
@@ -786,7 +795,17 @@ export default function TenderDetails() {
                                 Close
                             </Button>
                             {!isReadOnly && 
-                              <Button type="button" size="lg" onClick={handleFinalSave} disabled={isSubmitting}>
+                              <Button 
+                                  type="button" 
+                                  size="lg" 
+                                  onClick={handleFinalSave} 
+                                  disabled={
+                                      isSubmitting || 
+                                      (tender.id === 'new' 
+                                          ? (!watch('eTenderNo') || !watch('tenderDate')) 
+                                          : !isFormDirty)
+                                  }
+                              >
                                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                   Save
                               </Button>

@@ -43,7 +43,7 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
         defaultValues: initialData ?? createDefaultBidder(),
     });
 
-    const { control, setValue, watch, reset } = form;
+    const { control, setValue, watch, reset, formState: { isDirty } } = form;
     const [quotedPercentage, aboveBelow, selectedBidderName, status] = watch(['quotedPercentage', 'aboveBelow', 'name', 'status']);
 
 
@@ -93,7 +93,7 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
                     <ScrollArea className="h-full px-6 py-4">
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               <FormField
+                                <FormField
                                   name="name"
                                   control={form.control}
                                   render={({ field }) => (
@@ -110,7 +110,7 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
                                     </FormItem>
                                   )}
                                 />
-                               <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[40px]" readOnly disabled={!!selectedBidderName} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[100px]" readOnly disabled={!!selectedBidderName} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                             </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField name="quotedPercentage" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Quoted Percentage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem> )}/>
@@ -138,7 +138,7 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Bidder
                     </Button>
                 </DialogFooter>

@@ -131,7 +131,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         }
     });
     
-    const { handleSubmit, setValue, getValues, watch } = form;
+    const { handleSubmit, setValue, getValues, watch, formState: { isDirty } } = form;
 
     const watchAmountType = watch('amountType');
 
@@ -251,7 +251,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button type="submit" disabled={isSubmitting || !isDirty}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Update Details
                     </Button>
                 </DialogFooter>

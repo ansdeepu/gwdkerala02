@@ -66,7 +66,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField name="name" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Bidder Name</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
-                            <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[60px]" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                            <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[100px]" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField name="phoneNo" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Phone No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>

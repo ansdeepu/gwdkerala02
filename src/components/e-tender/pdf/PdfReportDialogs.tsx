@@ -69,7 +69,7 @@ const ReportButton = ({
   );
 
   const renderButton = () => {
-    if (href) {
+    if (href && !disabled) {
         return (
             <Button 
                 variant="outline" 
@@ -291,52 +291,45 @@ export default function PdfReportDialogs() {
                     <div className="pt-4 mt-4 border-t">
                         <h4 className="text-sm font-semibold mb-2 text-primary">Bid Opening PDF Reports</h4>
                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {hasOpeningDetails && hasBidders && (
-                                <>
-                                    <ReportButton 
-                                        label="Bid Opening Summary"
-                                        onClick={() => handleGeneratePdf(generateBidOpeningSummary, `aBidOpening${formattedTenderNo}.pdf`, 'Your Bid Opening Summary has been downloaded.')}
-                                    />
-                                    <ReportButton
-                                        label="Technical Summary"
-                                        onClick={() => handleGeneratePdf(generateTechnicalSummary, `bTechEvaluation${formattedTenderNo}.pdf`, 'Your Technical Summary has been downloaded.')}
-                                    />
-                                    <ReportButton
-                                        label="Financial Summary"
-                                        onClick={() => handleGeneratePdf(generateFinancialSummary, `cFinEvaluation${formattedTenderNo}.pdf`, 'Your Financial Summary has been downloaded.')}
-                                    />
-                                </>
-                            )}
-                            {hasSelectionNotice && (
-                                <>
-                                    <ReportButton 
-                                        label="Selection Notice"
-                                        href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/selection-notice`) : '#'}
-                                        targetSelf
-                                        disabled={!isTenderSaved}
-                                        tooltipContent="Save the tender first to enable."
-                                    />
-                                    <ReportButton 
-                                        label="Work Agreement"
-                                        href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/work-agreement`) : '#'}
-                                        targetSelf
-                                        disabled={!isTenderSaved}
-                                        tooltipContent="Save the tender first to enable."
-                                    />
-                                </>
-                            )}
-                            {hasWorkOrder && (
-                                <ReportButton 
-                                    label={workOrderButtonLabel}
-                                    href={tender.id && tender.tenderType ? withCurrentParams(`/dashboard/e-tender/${tender.id}/${tender.tenderType === 'Work' ? 'work-order' : 'supply-order'}`) : '#'}
-                                    targetSelf
-                                    disabled={!isTenderSaved || !tender.tenderType}
-                                    tooltipContent={!isTenderSaved ? "Save the tender first to enable." : "Select a 'Type of Tender' in Basic Details."}
-                                />
-                            )}
-                            {!hasOpeningDetails && !hasSelectionNotice && !hasWorkOrder && (
-                                <p className="text-xs text-muted-foreground italic col-span-full">Fill Tender Opening, Selection Notice, or Work Order sections to enable these reports.</p>
-                            )}
+                            <ReportButton 
+                                label="Bid Opening Summary"
+                                onClick={() => handleGeneratePdf(generateBidOpeningSummary, `aBidOpening${formattedTenderNo}.pdf`, 'Your Bid Opening Summary has been downloaded.')}
+                                disabled={!isTenderSaved || !hasOpeningDetails || !hasBidders}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : !hasOpeningDetails ? "Enter Tender Opening details in Bid Opening first." : "Add at least one bidder first."}
+                            />
+                            <ReportButton
+                                label="Technical Summary"
+                                onClick={() => handleGeneratePdf(generateTechnicalSummary, `bTechEvaluation${formattedTenderNo}.pdf`, 'Your Technical Summary has been downloaded.')}
+                                disabled={!isTenderSaved || !hasOpeningDetails || !hasBidders}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : !hasOpeningDetails ? "Enter Tender Opening details in Bid Opening first." : "Add at least one bidder first."}
+                            />
+                            <ReportButton
+                                label="Financial Summary"
+                                onClick={() => handleGeneratePdf(generateFinancialSummary, `cFinEvaluation${formattedTenderNo}.pdf`, 'Your Financial Summary has been downloaded.')}
+                                disabled={!isTenderSaved || !hasOpeningDetails || !hasBidders}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : !hasOpeningDetails ? "Enter Tender Opening details in Bid Opening first." : "Add at least one bidder first."}
+                            />
+                            <ReportButton 
+                                label="Selection Notice"
+                                href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/selection-notice`) : '#'}
+                                targetSelf
+                                disabled={!isTenderSaved || !hasSelectionNotice}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : "Enter Selection Notice details first."}
+                            />
+                            <ReportButton 
+                                label="Work Agreement"
+                                href={tender.id ? withCurrentParams(`/dashboard/e-tender/${tender.id}/work-agreement`) : '#'}
+                                targetSelf
+                                disabled={!isTenderSaved || !hasSelectionNotice}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : "Enter Selection Notice details first."}
+                            />
+                            <ReportButton 
+                                label={workOrderButtonLabel}
+                                href={tender.id && tender.tenderType ? withCurrentParams(`/dashboard/e-tender/${tender.id}/${tender.tenderType === 'Work' ? 'work-order' : 'supply-order'}`) : '#'}
+                                targetSelf
+                                disabled={!isTenderSaved || !tender.tenderType || !hasWorkOrder}
+                                tooltipContent={!isTenderSaved ? "Save the tender first to enable." : !tender.tenderType ? "Select a 'Type of Tender' in Basic Details." : "Enter Work Order details first."}
+                            />
                         </div>
                     </div>
 
