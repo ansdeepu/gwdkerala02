@@ -20,7 +20,6 @@ import type { E_tenderStatus, Bidder, ArsEntryFormData, SiteWorkStatus, ArsStatu
 import { eTenderStatusOptions } from '@/lib/schemas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfDay, endOfDay, isWithinInterval, parse, isBefore, isAfter, addDays, isValid } from 'date-fns';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PaginationControls from '@/components/shared/PaginationControls';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -60,27 +59,22 @@ const getStatusRowClass = (status?: E_tenderStatus | null): string => {
     }
 };
 
-const StatCard = ({ title, count, onClick, colorClass, icon: Icon, tooltip }: { title: string, count: number, onClick: () => void, colorClass: string, icon?: React.ElementType, tooltip?: string }) => (
-    <Tooltip>
-        <TooltipTrigger asChild>
-            <button
-                onClick={onClick}
-                disabled={count === 0}
-                className={cn(
-                    "p-2 border rounded-lg text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between shadow-sm h-full w-full",
-                    colorClass,
-                    "hover:bg-opacity-20"
-                )}
-            >
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                    <p className="text-[10px] md:text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">{title}</p>
-                </div>
-                <p className="text-base md:text-lg font-bold shrink-0 ml-1.5">{count}</p>
-            </button>
-        </TooltipTrigger>
-        {tooltip && <TooltipContent><p className="max-w-xs">{tooltip}</p></TooltipContent>}
-    </Tooltip>
+const StatCard = ({ title, count, onClick, colorClass, icon: Icon }: { title: string, count: number, onClick: () => void, colorClass: string, icon?: React.ElementType }) => (
+    <button
+        onClick={onClick}
+        disabled={count === 0}
+        className={cn(
+            "p-2 border rounded-lg text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between shadow-sm h-full w-full",
+            colorClass,
+            "hover:bg-opacity-20"
+        )}
+    >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+            <p className="text-[10px] md:text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">{title}</p>
+        </div>
+        <p className="text-base md:text-lg font-bold shrink-0 ml-1.5">{count}</p>
+    </button>
 );
 
 const getL1Bidder = (tender: E_tender) => {
@@ -1380,8 +1374,7 @@ export default function ETenderListPage() {
             <Card>
                 <CardContent className="p-0">
                     <div className="max-h-[70vh] overflow-auto">
-                        <TooltipProvider>
-                            <Table>
+                        <Table>
                                 <TableHeader className="sticky top-0 bg-secondary z-10">
                                     <TableRow>
                                         <TableHead className="w-[4%] px-2 py-3 text-sm">Sl. No.</TableHead>
@@ -1411,12 +1404,18 @@ export default function ETenderListPage() {
                                                     <TableCell className="align-top py-2 px-3">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
                                                     <TableCell className="font-bold align-top py-2 px-3">
                                                         <div className="flex flex-col">
-                                                            <button
-                                                                onClick={() => handleViewAndEdit(tender.id)}
-                                                                className="text-left hover:underline transition-all"
+                                                            <Link
+                                                                href={`/dashboard/e-tender/${tender.id}${(() => {
+                                                                    const params = new URLSearchParams();
+                                                                    if (currentPage > 1) params.set('page', String(currentPage));
+                                                                    if (activeTab) params.set('tab', activeTab);
+                                                                    const qs = params.toString();
+                                                                    return qs ? `?${qs}` : '';
+                                                                })()}`}
+                                                                className="text-left hover:underline transition-all block"
                                                             >
                                                                 <span className="whitespace-normal break-words">{`${officeAddress?.officeCode || 'GKT'}/${tender.fileNo}/${tender.eTenderNo}`}</span>
-                                                            </button>
+                                                            </Link>
                                                             <span className="text-xs font-normal">Dated: {formatDateSafe(tender.tenderDate)}</span>
                                                             {(tender.retenders?.length || 0) > 0 && <Badge variant="secondary" className="mt-1 w-fit bg-yellow-200 text-yellow-800">Re-tender</Badge>}
                                                         </div>
@@ -1497,20 +1496,11 @@ export default function ETenderListPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center align-top py-2 px-3">
                                                         <div className="flex items-center justify-center space-x-1">
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewAndEdit(tender.id)}><Eye className="h-4 w-4" /></Button></TooltipTrigger>
-                                                                <TooltipContent><p>{canEdit ? "View / Edit" : "View Details"}</p></TooltipContent>
-                                                            </Tooltip>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewAndEdit(tender.id)} title={canEdit ? "View / Edit" : "View Details"}><Eye className="h-4 w-4" /></Button>
                                                             {canEdit && (
                                                                 <>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyClick(tender)}><Copy className="h-4 w-4" /></Button></TooltipTrigger>
-                                                                        <TooltipContent><p>Copy Tender</p></TooltipContent>
-                                                                    </Tooltip>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleDeleteClick(tender)}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger>
-                                                                        <TooltipContent><p>Delete Tender</p></TooltipContent>
-                                                                    </Tooltip>
+                                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyClick(tender)} title="Copy Tender"><Copy className="h-4 w-4" /></Button>
+                                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleDeleteClick(tender)} title="Delete Tender"><Trash2 className="h-4 w-4" /></Button>
                                                                 </>
                                                             )}
                                                         </div>
@@ -1527,7 +1517,6 @@ export default function ETenderListPage() {
                                     )}
                                 </TableBody>
                             </Table>
-                        </TooltipProvider>
                     </div>
                 </CardContent>
                 {totalPages > 1 && (

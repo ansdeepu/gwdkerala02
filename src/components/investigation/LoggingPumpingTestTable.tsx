@@ -237,10 +237,6 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                     <Link
                         href={detailUrl}
                         className="font-mono text-sm text-primary font-bold hover:underline"
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            window.open(detailUrl, '_blank');
-                        }}
                     >
                         {entry.fileNo}
                     </Link>

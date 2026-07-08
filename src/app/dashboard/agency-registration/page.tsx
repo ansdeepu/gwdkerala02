@@ -276,10 +276,6 @@ const RegistrationTable = ({
                   <Link
                       href={detailUrl}
                       className="font-mono text-sm text-primary font-bold hover:underline"
-                      onContextMenu={(e) => {
-                          e.preventDefault();
-                          window.open(detailUrl, '_blank');
-                      }}
                   >
                       {app.fileNo || 'N/A'}
                   </Link>
