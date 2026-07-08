@@ -238,7 +238,7 @@ export default function ETenderNoticeBoard() {
             <Hammer className="h-5 w-5 text-primary" />e-Tender Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 p-4 pt-0">
+      <CardContent className="flex-1 p-4 pt-0 flex flex-col min-h-0">
         <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedTender(null)}>
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full overflow-hidden">
             <TabsList className="grid grid-cols-5 gap-1 h-auto shrink-0">
