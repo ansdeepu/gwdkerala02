@@ -219,8 +219,12 @@ export default function PlanFundWorksPage() {
           return 0;
       };
 
-      const closedPending = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && !isZero(getBalance(e)));
-      const completelyClosed = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && isZero(getBalance(e)));
+      const isFileCancelled = (e: any) => {
+          return e.siteDetails && e.siteDetails.length > 0 && e.siteDetails.every((s: any) => s.workStatus === 'Work Cancelled');
+      };
+
+      const closedPending = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && !isZero(getBalance(e)) && !isFileCancelled(e));
+      const completelyClosed = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && (isZero(getBalance(e)) || isFileCancelled(e)));
 
       return {
           groups: {

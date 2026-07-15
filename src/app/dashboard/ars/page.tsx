@@ -291,7 +291,7 @@ export default function ArsPage() {
   }, [arsEntries, searchTerm, startDate, endDate, schemeTypeFilter, constituencyFilter, sortConfig]);
 
   const { groups, counts } = useMemo(() => {
-    const isClosed = (s: ArsEntry) => (s.arsStatus === 'Work Completed' || s.arsStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0;
+    const isClosed = (s: ArsEntry) => s.arsStatus === 'Work Cancelled' || ((s.arsStatus === 'Work Completed' || s.arsStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0);
     
     const pre = filteredSites.filter(s => ["Proposal Submitted", "AS & TS Issued"].includes(s.arsStatus as string));
     const tender = filteredSites.filter(s => ["Tendered", "Selection Notice Issued", "Work Order Issued"].includes(s.arsStatus as string));
