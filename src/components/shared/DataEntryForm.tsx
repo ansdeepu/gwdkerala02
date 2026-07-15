@@ -688,16 +688,22 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const allStatuses = watchedSiteDetails.map(s => s.workStatus).filter(Boolean);
     if (allStatuses.length === 0) return;
 
-    const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending"];
-    const tenderingGroup = ["Tendered", "Selection Notice Issued", "Work Order Issued"];
-    const executionGroup = ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
+    const isSpecialWorkType = workTypeContext === 'public' || workTypeContext === 'collector' || workTypeContext === 'private' || workTypeContext === 'planFund';
+
+    const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Pending", "VES Pending"];
+    const tenderingGroup = isSpecialWorkType 
+      ? ["Tendered", "Selection Notice Issued", "Work Order Issued", "Department Rig Allotted"]
+      : ["Tendered", "Selection Notice Issued", "Work Order Issued"];
+    const executionGroup = isSpecialWorkType
+      ? ["Work in Progress", "Work Initiated"]
+      : ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
     const completionGroup = ["Work Failed", "Work Completed", "Completed"];
     const disputeGroup = ["Work Cancelled", "Refund Pending", "To be Refunded"];
     
     const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
     
     const allFinalGroup = [...completionGroup, ...disputeGroup];
-    const partialIndicators = [...allFinalGroup, "Work in Progress"];
+    const partialIndicators = [...allFinalGroup, "Work in Progress", "Work Initiated"];
 
     const allIn = (list: any[], group: string[]) => list.length > 0 && list.every(s => group.includes(s));
     const hasAny = (list: any[], group: string[]) => list.some(s => group.includes(s));
@@ -724,23 +730,28 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             calculatedStatus = "Fully Disputed";
         }
     } 
-    // 3. Ongoing States
-    else if (allIn(allStatuses, processingGroup)) {
-        calculatedStatus = "File Under Process";
-    } else if (allIn(allStatuses, tenderingGroup)) {
-        calculatedStatus = "Tender Process";
-    } else if (allIn(allStatuses, executionGroup)) {
-        calculatedStatus = "Work Initiated";
-    } 
-    // 4. Mixed Ongoing/Final States
-    else if (hasAny(allStatuses, partialIndicators)) {
+    // 3. Priority-based status mapping for mixed ongoing states:
+    // A. Mixed Completed and Ongoing -> Partially Completed
+    else if (hasAny(allStatuses, allFinalGroup)) {
         calculatedStatus = "Partially Completed";
+    }
+    // B. Execution Stage (any site in executionGroup) -> Work Initiated
+    else if (hasAny(allStatuses, executionGroup)) {
+        calculatedStatus = "Work Initiated";
+    }
+    // C. Tender Stage (any site in tenderingGroup) -> Tender Process
+    else if (hasAny(allStatuses, tenderingGroup)) {
+        calculatedStatus = "Tender Process";
+    }
+    // D. Pre-execution / Processing (any site in processingGroup) -> File Under Process
+    else if (hasAny(allStatuses, processingGroup)) {
+        calculatedStatus = "File Under Process";
     }
 
     if (calculatedStatus !== getValues('fileStatus')) {
         setValue('fileStatus', calculatedStatus, { shouldDirty: true });
     }
-  }, [watchedSiteDetails, setValue, getValues, watch]);
+  }, [watchedSiteDetails, setValue, getValues, watch, workTypeContext]);
 
   const autoCredits = useMemo(() => {
     if (!currentFileNo) return [];
