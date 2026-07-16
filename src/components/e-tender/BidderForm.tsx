@@ -72,9 +72,15 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
         if (selected) {
             setValue('name', selected.name, { shouldValidate: true });
             setValue('address', selected.address, { shouldValidate: true });
+            setValue('phoneNo', selected.phoneNo || '', { shouldValidate: true });
+            setValue('secondaryPhoneNo', selected.secondaryPhoneNo || '', { shouldValidate: true });
+            setValue('email', selected.email || '', { shouldValidate: true });
         } else {
             setValue('name', '', { shouldValidate: true });
             setValue('address', '', { shouldValidate: true });
+            setValue('phoneNo', '', { shouldValidate: true });
+            setValue('secondaryPhoneNo', '', { shouldValidate: true });
+            setValue('email', '', { shouldValidate: true });
         }
     };
 

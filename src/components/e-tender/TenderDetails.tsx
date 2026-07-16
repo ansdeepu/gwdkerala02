@@ -139,7 +139,7 @@ export default function TenderDetails() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const { tender, initialTender, updateTender } = useTenderData();
     const { addTender, updateTender: saveTenderToDb } = useE_tenders();
-    const { allStaffMembers, officeAddress } = useDataStore();
+    const { allStaffMembers, officeAddress, allBidders } = useDataStore();
     const [activeModal, setActiveModal] = useState<ModalType>(null);
     const [modalData, setModalData] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -638,12 +638,15 @@ export default function TenderDetails() {
                                         <div className="mt-4 pt-4 border-t space-y-2">
                                             {sortedBidderFields.map((bidder, index) => {
                                                 const originalIndex = bidderFields.findIndex(field => field.id === bidder.id);
+                                                const isL1 = bidder.status === 'Accepted' && bidder.id === l1Bidder?.id;
+                                                const masterBidder = allBidders?.find(b => b.name === bidder.name);
+                                                const bidderEmail = bidder.email || masterBidder?.email;
                                                 return (
                                                     <div key={bidder.id} className="p-3 border rounded-md bg-secondary/30 relative">
                                                         <div className="flex items-start justify-between mb-2">
                                                             <div className="flex items-center gap-2">
                                                                 <h5 className="font-bold text-sm">Bidder #{index + 1}: {bidder.name}</h5>
-                                                                {bidder.status === 'Accepted' && bidder.id === l1Bidder?.id && <Badge className="bg-green-600 text-white">L1</Badge>}
+                                                                {isL1 && <Badge className="bg-green-600 text-white">L1</Badge>}
                                                                 {bidder.status && <Badge variant={bidder.status === 'Accepted' ? 'default' : 'destructive'} className="mt-1">{bidder.status}</Badge>}
                                                             </div>
                                                             <div className="flex items-center gap-1">
@@ -655,6 +658,9 @@ export default function TenderDetails() {
                                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
                                                             <DetailRow label="Quoted Amount" value={bidder.quotedAmount} isCurrency/>
                                                             <DetailRow label="Quoted Percentage" value={bidder.quotedPercentage ? `${bidder.quotedPercentage}% ${bidder.aboveBelow || ''}`: ''} />
+                                                            {isL1 && bidderEmail && (
+                                                                <DetailRow label="L1 Bidder Email-ID" value={bidderEmail} />
+                                                            )}
                                                         </dl>
                                                     </div>
                                                 )

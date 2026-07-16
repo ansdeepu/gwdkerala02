@@ -70,9 +70,15 @@ export default function BiddersForm({ onSubmit, onCancel, isSubmitting, initialB
         if (selected) {
             setValue(`bidders.${index}.name`, selected.name, { shouldValidate: true });
             setValue(`bidders.${index}.address`, selected.address, { shouldValidate: true });
+            setValue(`bidders.${index}.phoneNo`, selected.phoneNo || '', { shouldValidate: true });
+            setValue(`bidders.${index}.secondaryPhoneNo`, selected.secondaryPhoneNo || '', { shouldValidate: true });
+            setValue(`bidders.${index}.email`, selected.email || '', { shouldValidate: true });
         } else {
             setValue(`bidders.${index}.name`, '', { shouldValidate: true });
             setValue(`bidders.${index}.address`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.phoneNo`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.secondaryPhoneNo`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.email`, '', { shouldValidate: true });
         }
     };
 
