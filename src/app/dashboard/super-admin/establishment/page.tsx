@@ -45,7 +45,7 @@ import {
 import { CheckCircle, Search, FileDown, UserPlus, Loader2, Expand, Edit, XCircle, Clock } from "lucide-react";
 import PaginationControls from "@/components/shared/PaginationControls";
 
-export const dynamic = 'force-dynamic';
+
 
 const capitalize = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 

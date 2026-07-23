@@ -26,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Search, PlusCircle } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;

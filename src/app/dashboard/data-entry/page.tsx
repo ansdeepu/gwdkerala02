@@ -26,7 +26,7 @@ import {
 } from '@/lib/schemas';
 import { Timestamp } from "firebase/firestore";
 
-export const dynamic = 'force-dynamic';
+
 
 const toDateOrNull = (value: any): Date | null => {
     if (value === null || value === undefined || value === '') return null;

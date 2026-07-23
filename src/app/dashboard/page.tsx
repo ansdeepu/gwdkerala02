@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { PRIVATE_APPLICATION_TYPES, LOGGING_PUMPING_TEST_PURPOSE_OPTIONS, PUBLIC_DEPOSIT_APPLICATION_TYPES, COLLECTOR_APPLICATION_TYPES, PLAN_FUND_APPLICATION_TYPES } from '@/lib/schemas';
 import { Loader2, ArrowUp } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+
 
 const navLinks = [
     { id: 'updates', label: 'Updates' },

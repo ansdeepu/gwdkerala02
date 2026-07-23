@@ -133,6 +133,21 @@ function BreadcrumbNav() {
     const tabName = searchParams?.get('tab');
     const workType = searchParams?.get('workType');
 
+    if (pathname === '/dashboard/agency-registration' && detailIdFromUrl) {
+        let detailLabel = title;
+        const prefixes = [
+          /^Edit: /, /^View: /, /^New Rig Registration/
+        ];
+        prefixes.forEach(p => detailLabel = detailLabel.replace(p, ''));
+        if (!detailLabel || detailLabel.includes('Loading')) {
+            detailLabel = detailIdFromUrl === 'new' ? 'New' : detailIdFromUrl;
+        }
+        return [
+            { href: '/dashboard/agency-registration', label: 'Rig Registration', isLast: false },
+            { href: '#', label: detailLabel, isLast: true },
+        ];
+    }
+
     // Helper to append current navigation context to a return link
     const withContext = (url: string, currentDetailId?: string) => {
         const p = new URLSearchParams();

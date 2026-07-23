@@ -19,7 +19,7 @@ import PaginationControls from '@/components/shared/PaginationControls';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Search, FilePlus2, Clock } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;

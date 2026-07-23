@@ -45,7 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export const dynamic = 'force-dynamic';
+
 
 const isPlaceholderUrl = (url?: string | null): boolean => {
   if (!url) return false;

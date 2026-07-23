@@ -12,7 +12,7 @@ import { useEffect } from "react";
 import { cn } from '@/lib/utils';
 import { getInitials } from "@/lib/utils";
 
-export const dynamic = 'force-dynamic';
+
 
 // Inline SVG components
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (

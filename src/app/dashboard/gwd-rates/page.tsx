@@ -70,7 +70,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 
 
-export const dynamic = 'force-dynamic';
+
 
 const db = getFirestore(app);
 const RATES_COLLECTION = 'gwdRates';

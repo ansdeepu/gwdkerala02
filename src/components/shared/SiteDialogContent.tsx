@@ -70,7 +70,7 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Work Completed"
 ] as const;
 
-export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext }: {
+export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType }: {
     initialData: Partial<SiteDetailFormData>;
     onConfirm: (data: SiteDetailFormData) => void;
     onCancel: () => void;
@@ -83,6 +83,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     allBidders: Bidder[];
     allRigCompressors: RigCompressor[];
     workTypeContext: 'public' | 'private' | 'collector' | 'planFund' | 'gwInvestigation' | 'loggingPumpingTest' | null;
+    applicationType?: string | null;
 }) {
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
@@ -109,6 +110,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedSiteConditions = watch('siteConditions');
 
     const isPrivateWork = workTypeContext === 'private';
+    const isPrivateIrrigation = applicationType === 'Private_Irrigation' || applicationType === 'Private Irrigation';
     const isDeptRigWork = watchedSiteConditions === 'Accessible to Dept. Rig';
     const isQuotation = watchedTenderNo === 'Quotation';
 
@@ -391,6 +393,15 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             {watchedPurpose === 'FPW' && (
                                                                 <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                             )}
+                                                            <FormField name="plotArea" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Plot Area (in Cents)</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)}/>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <FormField name="surveyLocation" control={control} render={({ field }) => (
@@ -739,6 +750,17 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         )} />
                                                         <FormField name="dateOfCompletion" control={control} render={({ field }) => <FormItem><FormLabel>Completion Date {isCompletionDateRequired && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="totalExpenditure" control={control} render={({ field }) => <FormItem><FormLabel>Total Expenditure (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                        {isPrivateIrrigation && (
+                                                            <FormField name="subsidyAmount" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Subsidy Amount (₹)</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        )}
                                                         <FormField name="workRemarks" control={control} render={({ field }) => (
                                                             <FormItem className="md:col-span-3">
                                                                 <FormLabel>Work Remarks</FormLabel>

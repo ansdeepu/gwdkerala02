@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ShieldAlert } from "lucide-react";
 
 
-export const dynamic = 'force-dynamic';
+
 
 export default function AdminRegisterPage() {
   const router = useRouter();

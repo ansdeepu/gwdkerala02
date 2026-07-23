@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { type AgencyApplication, type RigRegistration as RigRegistrationType, type OwnerInfo } from "@/hooks/useAgencyApplications";
 import { useForm, useFieldArray, FormProvider, useWatch, Controller, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AgencyApplicationSchema, RigRegistrationSchema, RigRenewalSchema, type RigRenewal as RigRenewalFormData, applicationFeeTypes, ApplicationFeeSchema, ApplicationFeeType, type ApplicationFee, OwnerInfoSchema, agencyRigTypeOptions as rigTypeOptions, type AgencyRigType as RigType } from "@/lib/schemas";
+import { AgencyApplicationSchema, RigRegistrationSchema, RigRenewalSchema, type RigRenewal as RigRenewalFormData, applicationFeeTypes, ApplicationFeeSchema, ApplicationFeeType, type ApplicationFee, OwnerInfoSchema, agencyRigTypeOptions as rigTypeOptions, agencyRigTypeMalayalamOptions, type AgencyRigType as RigType, designationOptions, designationMalayalamOptions } from "@/lib/schemas";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -35,7 +36,7 @@ import ExcelJS from "exceljs";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAgencyApplications } from '@/hooks/useAgencyApplications';
 import { useDataStore } from '@/hooks/use-data-store';
-import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer } from 'lucide-react';
+import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
@@ -45,7 +46,7 @@ import MediaManager from '@/components/shared/MediaManager';
 
 const db = getFirestore(app);
 
-export const dynamic = 'force-dynamic';
+
 
 const createDefaultRig = (): RigRegistrationType => ({
     id: uuidv4(),
@@ -400,26 +401,99 @@ const RigAccordionItem = ({
     
   return (
     <AccordionItem value={`rig-${field.id}`} className="border bg-background rounded-lg shadow-sm">
-      <AccordionTrigger className={cn("flex-1 text-base font-semibold px-4 text-primary group", field.status === 'Cancelled' && "text-destructive line-through", field.status === 'Active' && isExpired && "text-amber-600")}>
-            <div className="flex justify-between items-center w-full">
-                <div className="flex items-center gap-2">
-                    Rig #{displayIndex + 1} - {rigTypeValue} ({field.status === 'Active' && isExpired ? <span className="text-destructive">Expired</span> : field.status})
-                </div>
-                 <div className="flex items-center space-x-1 mr-2">
-                    {!isReadOnly && (
-                        <>
-                            <Tooltip><TooltipTrigger asChild>
-                                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('editRigDetails', { rigIndex: index }); }}><Eye className="h-4 w-4" /></Button>
-                            </TooltipTrigger><TooltipContent><p>View/Edit Rig Details</p></TooltipContent></Tooltip>
-                            {field.status === 'Active' && <Tooltip><TooltipTrigger asChild><Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('renew', { rigIndex: index }); }}><RefreshCw className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Renew Rig</p></TooltipContent></Tooltip>}
-                            {field.status === 'Active' && <Tooltip><TooltipTrigger asChild><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('cancel', { rigIndex: index }); }}><Ban className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Cancel Rig Registration</p></TooltipContent></Tooltip>}
-                            {field.status === 'Cancelled' && <Tooltip><TooltipTrigger asChild><Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('activate', { rigIndex: index }); }}><CheckCircle className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Re-activate Rig</p></TooltipContent></Tooltip>}
-                            <Tooltip><TooltipTrigger asChild><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('deleteRig', { rigIndex: index }); }}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Remove Rig from Application</p></TooltipContent></Tooltip>
-                        </>
-                    )}
-                 </div>
+      <div className="flex items-center justify-between pr-4 border-b">
+        <AccordionPrimitive.Header className="flex flex-1">
+          <AccordionPrimitive.Trigger
+            className={cn(
+              "flex flex-1 items-center justify-between p-4 text-base font-semibold text-primary transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
+              field.status === 'Cancelled' && "text-destructive line-through",
+              field.status === 'Active' && isExpired && "text-amber-600"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              Rig #{displayIndex + 1} - {rigTypeValue} ({field.status === 'Active' && isExpired ? <span className="text-destructive">Expired</span> : field.status})
             </div>
-        </AccordionTrigger>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+
+        <div className="flex items-center space-x-2 no-print" onClick={(e) => e.stopPropagation()}>
+          <Button 
+            type="button" 
+            size="sm" 
+            variant="outline" 
+            className="h-7 text-xs flex items-center gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50" 
+            onClick={() => window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${field.id}&type=registration`, '_blank')}
+          >
+            <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Reg. Checklist (ML)
+          </Button>
+
+          {!isReadOnly && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog('editRigDetails', { rigIndex: index })}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View/Edit Rig Details</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {field.status === 'Active' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog('renew', { rigIndex: index })}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Renew Rig</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {field.status === 'Active' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => openDialog('cancel', { rigIndex: index })}>
+                      <Ban className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Cancel Rig Registration</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {field.status === 'Cancelled' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog('activate', { rigIndex: index })}>
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Re-activate Rig</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => openDialog('deleteRig', { rigIndex: index })}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove Rig from Application</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
+        </div>
+      </div>
       <AccordionContent className="p-6 pt-0">
         <div className="border-t pt-6 space-y-4">
           
@@ -443,10 +517,12 @@ const RigAccordionItem = ({
                 <DetailRow label="Reg. Fee" value={field.registrationFee} />
                 <DetailRow label="Payment Date" value={field.paymentDate} />
                 <DetailRow label="Challan No." value={field.challanNo} />
+                {field.challanAmount !== undefined && field.challanAmount !== null && <DetailRow label="Challan Amount" value={`₹ ${field.challanAmount}`} />}
                 <div className="col-span-full border-t pt-4 mt-2"></div>
                 <DetailRow label="Additional Reg. Fee" value={field.additionalRegistrationFee} />
                 <DetailRow label="Additional Payment Date" value={field.additionalPaymentDate} />
                 <DetailRow label="Additional Challan No." value={field.additionalChallanNo} />
+                {field.additionalChallanAmount !== undefined && field.additionalChallanAmount !== null && <DetailRow label="Additional Challan Amount" value={`₹ ${field.additionalChallanAmount}`} />}
                 
                 <div className="col-span-full border-t pt-4 mt-2"></div>
                 
@@ -523,62 +599,98 @@ const RigAccordionItem = ({
                     </div>
                 )}
               </div>
-              <ScrollArea className="h-72 w-full rounded-md border">
-                <Table>
-                    <TableHeader className="sticky top-0 bg-secondary">
-                    <TableRow>
-                        <TableHead>Renewal No.</TableHead>
-                        <TableHead>Renewal Date</TableHead>
-                        <TableHead>Validity Upto</TableHead>
-                        <TableHead>Fee (₹)</TableHead>
-                        <TableHead>Payment Date</TableHead>
-                        <TableHead>Challan No.</TableHead>
-                        {!isReadOnly && <TableHead className="text-center">Actions</TableHead>}
+              <div className="max-h-72 overflow-y-auto overflow-x-hidden rounded-md border w-full">
+                <Table className="table-fixed w-full text-xs sm:text-sm">
+                    <TableHeader className="sticky top-0 bg-secondary z-10">
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[10%]" : "w-[12%]")}>Renewal No.</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[11%]" : "w-[14%]")}>Renewal Date</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[11%]" : "w-[14%]")}>Validity Upto</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[10%]" : "w-[12%]")}>Fee (₹)</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[11%]" : "w-[14%]")}>Payment Date</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold", !isReadOnly ? "w-[13%]" : "w-[16%]")}>Challan No.</TableHead>
+                        <TableHead className={cn("px-2 py-2 text-xs font-semibold text-right pr-3", !isReadOnly ? "w-[12%]" : "w-[18%]")}>Total Fee (₹)</TableHead>
+                        {!isReadOnly && <TableHead className="w-[22%] px-2 py-2 text-xs font-semibold text-center">Actions</TableHead>}
                     </TableRow>
                     </TableHeader>
                     <TableBody>
                     {field.renewals && field.renewals.length > 0 ? (
-                        field.renewals.map((renewal, renewalIndex) => {
-                        const renewalNum = renewalIndex + 1;
-                        const renewalDate = renewal.renewalDate ? toDateOrNull(renewal.renewalDate) : null;
-                        const paymentDate = renewal.paymentDate ? toDateOrNull(renewal.paymentDate) : null;
-                        const validityUpto = renewalDate ? new Date(addYears(renewalDate, 1).getTime() - (24 * 60 * 60 * 1000)) : null;
-                        return (
-                            <TableRow key={renewal.id}>
-                            <TableCell className="font-medium">{`${renewalNum}${getOrdinalSuffix(renewalNum)}`}</TableCell>
-                            <TableCell>{renewalDate ? format(renewalDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                            <TableCell>{validityUpto ? format(validityUpto, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                            <TableCell>{renewal.renewalFee?.toLocaleString() ?? 'N/A'}</TableCell>
-                            <TableCell>{paymentDate ? format(paymentDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                            <TableCell>{renewal.challanNo || 'N/A'}</TableCell>
-                            {!isReadOnly && (
-                                <TableCell className="text-center">
-                                    <div className="flex justify-center space-x-1">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button type="button" variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditRenewal(index, renewal); }}><Eye className="h-4 w-4"/></Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Edit Renewal</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteRenewal(index, renewal.id); }}><Trash2 className="h-4 w-4"/></Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Delete Renewal</p></TooltipContent>
-                                    </Tooltip>
-                                    </div>
+                        field.renewals
+                            .map((renewal, originalIndex) => ({ renewal, originalIndex }))
+                            .slice()
+                            .reverse()
+                            .map(({ renewal, originalIndex }) => {
+                            const renewalNum = originalIndex + 1;
+                            const renewalDate = renewal.renewalDate ? toDateOrNull(renewal.renewalDate) : null;
+                            const paymentDate = renewal.paymentDate ? toDateOrNull(renewal.paymentDate) : null;
+                            const validityUpto = renewalDate ? new Date(addYears(renewalDate, 1).getTime() - (24 * 60 * 60 * 1000)) : null;
+                            const isMultiYear = renewal.renewalPeriodYears && renewal.renewalPeriodYears > 1;
+                            const isMultiYearEnd = renewal.isMultiYearEnd !== false;
+                            
+                            const showTotalFee = renewal.totalRenewalFee !== undefined && renewal.totalRenewalFee !== null 
+                                ? renewal.totalRenewalFee 
+                                : (isMultiYear && !isMultiYearEnd ? null : renewal.renewalFee);
+
+                            const hasTotalFee = showTotalFee !== null && showTotalFee !== undefined;
+
+                            return (
+                                <TableRow key={renewal.id}>
+                                <TableCell className="px-2 py-2 text-xs font-medium">{`${renewalNum}${getOrdinalSuffix(renewalNum)}`}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs whitespace-nowrap">{renewalDate ? format(renewalDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs whitespace-nowrap">{validityUpto ? format(validityUpto, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs">{renewal.renewalFee?.toLocaleString() ?? 'N/A'}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs whitespace-nowrap">{paymentDate ? format(paymentDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs truncate" title={renewal.challanNo || 'N/A'}>{renewal.challanNo || 'N/A'}</TableCell>
+                                <TableCell className="px-2 py-2 text-xs text-right pr-3 font-semibold text-slate-800">
+                                    {hasTotalFee ? `₹ ${Number(showTotalFee).toLocaleString()}` : '-'}
                                 </TableCell>
-                            )}
-                            </TableRow>
-                        );
-                        })
+                                {!isReadOnly && (
+                                    <TableCell className="px-2 py-2 text-xs text-center">
+                                        <div className="flex items-center justify-center gap-1 flex-nowrap">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEditRenewal(index, renewal); }}><Eye className="h-4 w-4"/></Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Edit Renewal</p></TooltipContent>
+                                        </Tooltip>
+
+                                        {hasTotalFee && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        className="h-7 text-xs flex items-center gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50 px-2 shrink-0"
+                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${field.id}&type=renewal&renewalId=${renewal.id}`, '_blank'); }}
+                                                    >
+                                                        <Printer className="h-3.5 w-3.5 text-emerald-600"/>
+                                                        <span>Checklist</span>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Print Renewal Checklist (ML)</p></TooltipContent>
+                                            </Tooltip>
+                                        )}
+
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteRenewal(index, renewal.id); }}><Trash2 className="h-4 w-4"/></Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent><p>Delete Renewal</p></TooltipContent>
+                                        </Tooltip>
+                                        </div>
+                                    </TableCell>
+                                )}
+                                </TableRow>
+                            );
+                            })
                     ) : (
-                        <TableRow><TableCell colSpan={!isReadOnly ? 7 : 6} className="h-24 text-center text-muted-foreground bg-background/50">No renewal history for this rig.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={!isReadOnly ? 8 : 7} className="h-24 text-center text-muted-foreground bg-background/50">No renewal history for this rig.</TableCell></TableRow>
                     )}
                     </TableBody>
                 </Table>
-              </ScrollArea>
-          </div>
+              </div>
+           </div>
 
           <div className="mt-6 pt-6 border-t space-y-6">
               <h4 className="text-lg font-semibold text-primary">Media Gallery</h4>
@@ -694,7 +806,7 @@ export default function AgencyRegistrationPage() {
     setHeader(title, 'Manage agency and rig registrations.');
   }, [selectedApplicationId, isReadOnly, setHeader, allAgencyApplications]);
 
-  const createDefaultOwner = (): OwnerInfo => ({ name: '', address: '', mobile: '', secondaryMobile: '' });
+  const createDefaultOwner = (): OwnerInfo => ({ name: '', address: '', mobile: '', secondaryMobile: '', email: '' });
   const createDefaultFee = (): ApplicationFee => ({ id: uuidv4() });
   
   const form = useForm<AgencyApplication>({
@@ -1057,7 +1169,25 @@ export default function AgencyRegistrationPage() {
     };
 
     const handleEditRenewalInternal = (rigIndex: number, renewal: RigRenewalFormData) => {
-        openDialog('editRenewal', { rigIndex, renewal: { ...renewal } });
+        const rigToUpdate = rigFields[rigIndex];
+        let preparedRenewal = { ...renewal };
+
+        if (rigToUpdate?.renewals && (renewal.batchId || (renewal.renewalPeriodYears && renewal.renewalPeriodYears > 1))) {
+            const batchId = renewal.batchId;
+            const matchingRenewals = batchId
+                ? rigToUpdate.renewals.filter(r => r.batchId === batchId).sort((a, b) => (a.yearIndex || 0) - (b.yearIndex || 0))
+                : [];
+
+            if (matchingRenewals.length > 0) {
+                const batchFees = matchingRenewals.map(r => Number(r.renewalFee) || 0);
+                preparedRenewal.yearlyFees = batchFees;
+                if (preparedRenewal.isMultiYearEnd !== false && matchingRenewals.length > 1) {
+                    preparedRenewal.renewalPeriodYears = matchingRenewals.length;
+                }
+            }
+        }
+
+        openDialog('editRenewal', { rigIndex, renewal: preparedRenewal });
     };
     
     const handleDeleteRenewal = (rigIndex: number, renewalId: string) => {
@@ -1129,7 +1259,37 @@ export default function AgencyRegistrationPage() {
       if (dialogState.type === 'editRenewal') {
         const { rigIndex, renewal } = dialogState.data;
         const rigToUpdate = rigFields[rigIndex];
-        const updatedRenewals = rigToUpdate.renewals?.map(r => r.id === renewal.id ? renewalData : r) || [];
+        let updatedRenewals = [...(rigToUpdate.renewals || [])];
+
+        if (renewal.batchId) {
+          const newYearlyFees: number[] = renewalData.yearlyFees || [Number(renewalData.renewalFee) || 0];
+          const period = newYearlyFees.length;
+          const totalFee = renewalData.totalFee ?? newYearlyFees.reduce((a, b) => a + Number(b), 0);
+
+          updatedRenewals = updatedRenewals.map(r => {
+            if (r.batchId === renewal.batchId) {
+              const yearIdx = r.yearIndex || 1;
+              const feeForThisYear = newYearlyFees[yearIdx - 1] !== undefined ? Number(newYearlyFees[yearIdx - 1]) : r.renewalFee;
+              const isLast = r.isMultiYearEnd;
+              return {
+                ...r,
+                paymentDate: renewalData.paymentDate ?? r.paymentDate,
+                challanNo: renewalData.challanNo ?? r.challanNo,
+                challanAmount: renewalData.challanAmount !== undefined ? renewalData.challanAmount : r.challanAmount,
+                inspectingOfficer: renewalData.inspectingOfficer ?? r.inspectingOfficer,
+                inspectingOfficerName: renewalData.inspectingOfficerName ?? r.inspectingOfficerName,
+                inspectingOfficerDesig: renewalData.inspectingOfficerDesig ?? r.inspectingOfficerDesig,
+                renewalFee: feeForThisYear,
+                yearlyFees: newYearlyFees,
+                totalRenewalFee: isLast ? (period > 1 ? totalFee : feeForThisYear) : null,
+              };
+            }
+            return r;
+          });
+        } else {
+          updatedRenewals = updatedRenewals.map(r => r.id === renewal.id ? { ...r, ...renewalData } : r);
+        }
+
         updateRig(rigIndex, { ...rigToUpdate, renewals: updatedRenewals });
         toast({ title: "Renewal Updated", description: "Renewal details have been updated." });
       } else if (dialogState.type === 'renew') {
@@ -1141,21 +1301,56 @@ export default function AgencyRegistrationPage() {
             return;
         }
 
-        const newRenewal: RigRenewalFormData = {
-            id: uuidv4(),
-            renewalDate: renewalData.renewalDate ?? "",
-            renewalFee: renewalData.renewalFee,
-            paymentDate: renewalData.paymentDate ?? "",
-            challanNo: renewalData.challanNo ?? "",
-            validTill: addYears(renewalDateObj, 1),
-        };
+        const period = Number(renewalData.renewalPeriodYears) || 1;
+        const yearlyFees: number[] = renewalData.yearlyFees || [Number(renewalData.renewalFee) || 0];
+        const batchId = uuidv4();
+        const totalFee = renewalData.totalFee ?? yearlyFees.reduce((a: number, b: number) => a + (Number(b) || 0), 0);
+
+        const generatedRenewals: RigRenewalFormData[] = [];
+        let curDate = renewalDateObj;
+
+        for (let k = 0; k < period; k++) {
+            const feeForYear = yearlyFees[k] !== undefined ? Number(yearlyFees[k]) : Number(renewalData.renewalFee || 0);
+            const validTill = addYears(curDate, 1);
+            const isLast = k === period - 1;
+
+            generatedRenewals.push({
+                id: uuidv4(),
+                batchId,
+                renewalDate: format(curDate, 'yyyy-MM-dd'),
+                paymentDate: renewalData.paymentDate ?? "",
+                renewalFee: feeForYear,
+                yearlyFees,
+                challanNo: renewalData.challanNo ?? "",
+                challanAmount: renewalData.challanAmount !== undefined && renewalData.challanAmount !== null && renewalData.challanAmount !== '' ? Number(renewalData.challanAmount) : null,
+                inspectingOfficer: renewalData.inspectingOfficer ?? renewalData.inspectingOfficerName ?? "",
+                inspectingOfficerName: renewalData.inspectingOfficerName ?? renewalData.inspectingOfficer ?? "",
+                inspectingOfficerDesig: renewalData.inspectingOfficerDesig ?? "",
+                validTill,
+                renewalPeriodYears: isLast ? period : 1,
+                yearIndex: k + 1,
+                totalRenewalFee: isLast ? (period > 1 ? totalFee : feeForYear) : null,
+                isMultiYearEnd: isLast,
+            });
+
+            curDate = validTill;
+        }
+
+        const updatedRenewals = [...(rigToUpdate.renewals || []), ...generatedRenewals];
+        const lastRenewal = generatedRenewals[generatedRenewals.length - 1];
+
         updateRig(rigIndex, {
             ...rigToUpdate,
-            registrationDate: newRenewal.renewalDate,
+            registrationDate: lastRenewal.renewalDate,
             status: 'Active',
-            renewals: [...(rigToUpdate.renewals || []), newRenewal],
+            renewals: updatedRenewals,
         });
-        toast({ title: "Rig Renewed", description: "Renewal details added." });
+        toast({ 
+            title: "Rig Renewed", 
+            description: period > 1 
+                ? `${period} years renewal details added successfully.` 
+                : "Renewal details added." 
+        });
     }
     
     closeDialog();
@@ -1435,9 +1630,9 @@ export default function AgencyRegistrationPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            <div className="grid md:grid-cols-3 gap-4">
+                            <div className="grid md:grid-cols-2 gap-4">
                                 <FormField name="fileNo" render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="md:col-span-2">
                                         <FormLabel>File No.</FormLabel>
                                         <FormControl>
                                             <Input 
@@ -1456,12 +1651,13 @@ export default function AgencyRegistrationPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField name="agencyName" render={({ field }) => <FormItem className="md:col-span-2"><FormLabel>Agency Name &amp; Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField name="agencyName" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField name="agencyNameMalayalam" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address in Malayalam (മലയാളത്തിൽ)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                             </div>
                             <Separator />
                             <div className="space-y-2">
                                 <h4 className="font-medium">Owner Details</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 border rounded-md items-end">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 border rounded-md items-end">
                                     <FormItem className="md:col-span-1">
                                         <FormLabel>Name &amp; Address of Owner</FormLabel>
                                         <FormControl>
@@ -1469,8 +1665,16 @@ export default function AgencyRegistrationPage() {
                                         </FormControl>
                                         <FormMessage>{form.formState.errors.owner?.name?.message}</FormMessage>
                                     </FormItem>
+                                    <FormItem className="md:col-span-1">
+                                        <FormLabel>Name &amp; Address of Owner in Malayalam (മലയാളത്തിൽ)</FormLabel>
+                                        <FormControl>
+                                        <Textarea {...form.register("owner.nameMalayalam")} className="min-h-[40px]" readOnly={isReadOnly} />
+                                        </FormControl>
+                                        <FormMessage>{form.formState.errors.owner?.nameMalayalam?.message}</FormMessage>
+                                    </FormItem>
                                     <FormField name="owner.mobile" render={({ field }) => <FormItem><FormLabel>Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                                     <FormField name="owner.secondaryMobile" render={({ field }) => <FormItem><FormLabel>Secondary Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="owner.email" render={({ field }) => <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                                 </div>
                             </div>
                             <div className="space-y-2">
@@ -1600,12 +1804,24 @@ export default function AgencyRegistrationPage() {
                         <div className="flex items-center gap-2">
                              {selectedApplicationId !== 'new' && (
                                 <>
-                                    <Tooltip><TooltipTrigger asChild>
-                                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank'); }}><Printer className="h-4 w-4 text-blue-600" /></Button>
-                                    </TooltipTrigger><TooltipContent><p>Print Letter (EN)</p></TooltipContent></Tooltip>
-                                    <Tooltip><TooltipTrigger asChild>
-                                        <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank'); }}><Languages className="h-4 w-4 text-green-600" /></Button>
-                                    </TooltipTrigger><TooltipContent><p>Print Letter (ML)</p></TooltipContent></Tooltip>
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="h-8 text-xs flex items-center gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50" 
+                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank'); }}
+                                    >
+                                        <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Letter (EN)
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="h-8 text-xs flex items-center gap-1.5 border-green-200 text-green-700 hover:bg-green-50" 
+                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank'); }}
+                                    >
+                                        <Languages className="h-3.5 w-3.5 text-green-600" /> Print Letter (ML)
+                                    </Button>
                                 </>
                             )}
                             {!isReadOnly && (
@@ -1712,18 +1928,18 @@ export default function AgencyRegistrationPage() {
                     </DialogContent>
                 </Dialog>
                 <Dialog open={dialogState.type === 'renew' || dialogState.type === 'editRenewal'} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
-                    <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="flex flex-col p-0">
-                    <DialogHeader className="p-6 pb-0">
+                    <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-lg max-h-[90vh] flex flex-col p-0">
+                        <DialogHeader className="p-6 pb-2 shrink-0">
                             <DialogTitle>{dialogState.type === 'editRenewal' ? 'Edit Renewal' : 'Renew Rig Registration'}</DialogTitle>
                             <DialogDescription>Enter renewal details for the rig.</DialogDescription>
                         </DialogHeader>
-                    <div className="p-6">
-                        <RenewalDialogContent
-                            initialData={dialogState.data?.renewal ?? { renewalDate: format(new Date(), 'yyyy-MM-dd') }}
-                            onConfirm={handleConfirmRenewal}
-                            onCancel={closeDialog}
-                        />
-                    </div>
+                        <div className="p-6 pt-0 overflow-y-auto flex-1 min-h-0">
+                            <RenewalDialogContent
+                                initialData={dialogState.data?.renewal ?? { renewalDate: format(new Date(), 'yyyy-MM-dd') }}
+                                onConfirm={handleConfirmRenewal}
+                                onCancel={closeDialog}
+                            />
+                        </div>
                     </DialogContent>
                 </Dialog>
                 <Dialog open={dialogState.type === 'editFee' || dialogState.type === 'addFee'} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
@@ -2123,44 +2339,333 @@ function ApplicationFeeDialogContent({ initialData, onConfirm, onCancel }: { ini
     );
 }
 
+function getMalayalamDesignation(designation?: string | null, designationMalayalam?: string | null): string {
+    if (designationMalayalam && designationMalayalam.trim()) {
+        return designationMalayalam.trim();
+    }
+    if (!designation) return '';
+    const idx = designationOptions.indexOf(designation as any);
+    if (idx !== -1 && designationMalayalamOptions[idx]) {
+        return designationMalayalamOptions[idx];
+    }
+    return designation;
+}
+
+function getMalayalamName(name?: string | null, nameMalayalam?: string | null): string {
+    if (nameMalayalam && nameMalayalam.trim()) {
+        return nameMalayalam.trim();
+    }
+    return name || '';
+}
+
+interface InspectionOfficerOption {
+    id: string;
+    nameMalayalam: string;
+    designationMalayalam: string;
+    nameEnglish: string;
+    designationEnglish: string;
+    displayLabel: string;
+}
+
 function RenewalDialogContent({ initialData, onConfirm, onCancel }: { initialData: Partial<RigRenewalFormData>, onConfirm: (data: any) => void, onCancel: () => void }) {
+  const { allStaffMembers } = useDataStore();
+  
+  const officerOptions = useMemo<InspectionOfficerOption[]>(() => {
+    const staffList = (allStaffMembers || []).filter(s => s.status === 'Active');
+
+    const mappedStaff: InspectionOfficerOption[] = staffList.map(s => {
+        const nameMal = getMalayalamName(s.name, s.nameMalayalam);
+        const desigMal = getMalayalamDesignation(s.designation, s.designationMalayalam);
+        
+        let label = `${nameMal} - ${desigMal}`;
+        if (s.name && s.name !== nameMal) {
+            label += ` (${s.name})`;
+        }
+
+        return {
+            id: s.id || s.name,
+            nameMalayalam: nameMal,
+            designationMalayalam: desigMal,
+            nameEnglish: s.name,
+            designationEnglish: s.designation,
+            displayLabel: label,
+        };
+    });
+
+    const defaultList: InspectionOfficerOption[] = [
+        {
+            id: 'def-aee',
+            nameMalayalam: 'ശ്രീ. ബിനി ഹെൻറിക്സ്',
+            designationMalayalam: 'അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ',
+            nameEnglish: 'Bini Henricks',
+            designationEnglish: 'Assistant Executive Engineer',
+            displayLabel: 'ശ്രീ. ബിനി ഹെൻറിക്സ് - അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ (Bini Henricks)',
+        },
+        {
+            id: 'def-ae',
+            nameMalayalam: 'ശ്രീ. റിയാസ് കെ. പി',
+            designationMalayalam: 'അസിസ്റ്റന്റ് എഞ്ചിനീയർ',
+            nameEnglish: 'Riyas K P',
+            designationEnglish: 'Assistant Engineer',
+            displayLabel: 'ശ്രീ. റിയാസ് കെ. പി - അസിസ്റ്റന്റ് എഞ്ചിനീയർ (Riyas K P)',
+        }
+    ];
+
+    const combined = [...mappedStaff];
+    for (const def of defaultList) {
+        if (!combined.some(r => r.nameMalayalam === def.nameMalayalam || r.nameEnglish === def.nameEnglish)) {
+            combined.push(def);
+        }
+    }
+    return combined;
+  }, [allStaffMembers]);
+
+  const calcInitialPeriod = (init: any) => {
+    if (!init) return 1;
+    if (init.isMultiYearEnd === false) return 1;
+    if (init.yearIndex && init.renewalPeriodYears && init.yearIndex < init.renewalPeriodYears) return 1;
+    if (init.id && (init.totalRenewalFee === null || init.totalRenewalFee === undefined)) return 1;
+    return init.renewalPeriodYears || 1;
+  };
+
+  const calcInitialYearlyFees = (init: any, period: number) => {
+    if (init?.yearlyFees && Array.isArray(init.yearlyFees) && init.yearlyFees.length > 0) {
+      const fees = [...init.yearlyFees];
+      while (fees.length < period) {
+        fees.push(init.renewalFee ?? 10000);
+      }
+      return fees.slice(0, period);
+    }
+    const initialFee = init?.renewalFee ?? 10000;
+    return new Array(period).fill(initialFee);
+  };
+
+  const [renewalPeriodYears, setRenewalPeriodYears] = useState<number>(() => calcInitialPeriod(initialData));
   const [data, setData] = useState({
     renewalDate: formatDateForInput(toDateOrNull(initialData.renewalDate)),
     paymentDate: formatDateForInput(toDateOrNull(initialData.paymentDate)),
-    renewalFee: initialData.renewalFee,
+    renewalFee: initialData.renewalFee ?? 10000,
     challanNo: initialData.challanNo,
+    challanAmount: initialData.challanAmount ?? undefined,
+    inspectingOfficer: initialData.inspectingOfficer || initialData.inspectingOfficerName || '',
+    inspectingOfficerName: initialData.inspectingOfficerName || initialData.inspectingOfficer || '',
+    inspectingOfficerDesig: initialData.inspectingOfficerDesig || '',
   });
 
+  const [yearlyFees, setYearlyFees] = useState<number[]>(() => {
+    const period = calcInitialPeriod(initialData);
+    return calcInitialYearlyFees(initialData, period);
+  });
+
+  useEffect(() => {
+    const period = calcInitialPeriod(initialData);
+    setRenewalPeriodYears(period);
+    setData({
+      renewalDate: formatDateForInput(toDateOrNull(initialData.renewalDate)),
+      paymentDate: formatDateForInput(toDateOrNull(initialData.paymentDate)),
+      renewalFee: initialData.renewalFee ?? 10000,
+      challanNo: initialData.challanNo || '',
+      challanAmount: initialData.challanAmount ?? undefined,
+      inspectingOfficer: initialData.inspectingOfficer || initialData.inspectingOfficerName || '',
+      inspectingOfficerName: initialData.inspectingOfficerName || initialData.inspectingOfficer || '',
+      inspectingOfficerDesig: initialData.inspectingOfficerDesig || '',
+    });
+    setYearlyFees(calcInitialYearlyFees(initialData, period));
+  }, [initialData]);
+
+  const handlePeriodChange = (valStr: string) => {
+    const period = Math.max(1, Math.min(10, parseInt(valStr, 10) || 1));
+    setRenewalPeriodYears(period);
+    setYearlyFees(prev => {
+      const defaultFee = data.renewalFee ?? prev[0] ?? 10000;
+      const nextArr = [...prev];
+      if (nextArr.length < period) {
+        for (let i = nextArr.length; i < period; i++) {
+          nextArr[i] = defaultFee;
+        }
+      } else {
+        nextArr.length = period;
+      }
+      return nextArr;
+    });
+  };
+
+  const handleYearlyFeeChange = (index: number, val: string) => {
+    const num = val === '' ? 0 : Number(val);
+    setYearlyFees(prev => {
+      const next = [...prev];
+      next[index] = num;
+      return next;
+    });
+    if (index === 0) {
+      setData(prev => ({ ...prev, renewalFee: num }));
+    }
+  };
+
+  const totalFeeSum = useMemo(() => {
+    if (renewalPeriodYears === 1) {
+      return Number(data.renewalFee || 0);
+    }
+    return yearlyFees.slice(0, renewalPeriodYears).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+  }, [renewalPeriodYears, data.renewalFee, yearlyFees]);
+
+  const selectedOption = officerOptions.find(o => 
+      o.id === data.inspectingOfficerName ||
+      o.nameMalayalam === data.inspectingOfficerName ||
+      o.nameEnglish === data.inspectingOfficerName ||
+      o.nameMalayalam === data.inspectingOfficer ||
+      o.nameEnglish === data.inspectingOfficer
+  );
+
   const handleConfirm = () => {
-    onConfirm({ ...initialData, ...data });
+    const firstYearFee = renewalPeriodYears === 1 ? data.renewalFee : yearlyFees[0];
+    onConfirm({ 
+      ...initialData, 
+      ...data, 
+      renewalFee: firstYearFee,
+      renewalPeriodYears, 
+      yearlyFees: yearlyFees.slice(0, renewalPeriodYears),
+      totalFee: totalFeeSum 
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target as HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement;
+    const numVal = value === '' ? undefined : +value;
     setData(prev => ({
       ...prev,
-      [id]: type === 'number' ? (value === '' ? undefined : +value) : value,
+      [id]: type === 'number' ? numVal : value,
     }));
+    if (id === 'renewalFee' && type === 'number') {
+      const num = value === '' ? 0 : +value;
+      setYearlyFees(prev => {
+        const next = [...prev];
+        next[0] = num;
+        return next;
+      });
+    }
   };
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 text-xs sm:text-sm">
+        <div className="space-y-1.5">
           <Label htmlFor="renewalDate">Renewal Date</Label>
           <Input id="renewalDate" type="date" value={data.renewalDate} onChange={handleChange} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="renewalFee">Renewal Fee</Label>
-          <Input id="renewalFee" type="number" value={data.renewalFee ?? ''} onChange={handleChange} />
+
+        <div className="space-y-1.5">
+          <Label htmlFor="renewalPeriodYears">Renewal Period (Years)</Label>
+          <Select 
+            value={String(renewalPeriodYears)} 
+            onValueChange={handlePeriodChange}
+          >
+            <SelectTrigger id="renewalPeriodYears">
+              <SelectValue placeholder="Select Period" />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(yr => (
+                <SelectItem key={yr} value={String(yr)}>
+                  {yr} {yr === 1 ? 'Year' : 'Years'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="space-y-2">
+
+        {renewalPeriodYears === 1 ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="renewalFee">Renewal Fee (₹)</Label>
+            <Input id="renewalFee" type="number" value={data.renewalFee ?? ''} onChange={handleChange} />
+          </div>
+        ) : (
+          <div className="sm:col-span-2 space-y-3 p-3 bg-slate-50 border rounded-md">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <Label className="font-semibold text-slate-800 text-xs sm:text-sm">
+                Yearly Renewal Fee Breakdown ({renewalPeriodYears} Years)
+              </Label>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                Total Fee: ₹{totalFeeSum.toLocaleString()}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {Array.from({ length: renewalPeriodYears }).map((_, idx) => (
+                <div key={idx} className="space-y-1">
+                  <Label htmlFor={`yearFee_${idx}`} className="text-[11px] text-slate-600 font-medium">
+                    Renewal Fee - Year {idx + 1} (₹)
+                  </Label>
+                  <Input 
+                    id={`yearFee_${idx}`}
+                    type="number"
+                    className="h-8 text-xs bg-white"
+                    value={yearlyFees[idx] ?? ''}
+                    onChange={(e) => handleYearlyFeeChange(idx, e.target.value)}
+                    placeholder={`Year ${idx + 1} Fee`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
           <Label htmlFor="paymentDate">Payment Date</Label>
           <Input id="paymentDate" type="date" value={data.paymentDate} onChange={handleChange} />
         </div>
-        <div className="space-y-2">
+
+        <div className="space-y-1.5">
           <Label htmlFor="challanNo">Challan No.</Label>
           <Input id="challanNo" value={data.challanNo ?? ''} onChange={handleChange} />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="challanAmount">Challan Amount (₹)</Label>
+          <Input id="challanAmount" type="number" value={data.challanAmount ?? ''} onChange={handleChange} placeholder="Enter Challan Amount" />
+        </div>
+
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="inspectingOfficer">Officer Assigned for Inspection</Label>
+          <Select 
+            value={selectedOption ? selectedOption.id : (data.inspectingOfficerName || data.inspectingOfficer || 'none_selected')} 
+            onValueChange={(val) => {
+              if (val === 'none_selected') {
+                setData(prev => ({
+                  ...prev,
+                  inspectingOfficer: '',
+                  inspectingOfficerName: '',
+                  inspectingOfficerDesig: ''
+                }));
+                return;
+              }
+              const selected = officerOptions.find(s => s.id === val || s.nameMalayalam === val || s.nameEnglish === val);
+              if (selected) {
+                setData(prev => ({
+                  ...prev,
+                  inspectingOfficer: selected.nameMalayalam,
+                  inspectingOfficerName: selected.nameMalayalam,
+                  inspectingOfficerDesig: selected.designationMalayalam
+                }));
+              } else {
+                setData(prev => ({
+                  ...prev,
+                  inspectingOfficer: val,
+                  inspectingOfficerName: val
+                }));
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Officer Assigned for Inspection" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none_selected">-- None / Leave Blank --</SelectItem>
+              {officerOptions.map(staff => (
+                <SelectItem key={staff.id} value={staff.id}>
+                  {staff.displayLabel}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <DialogFooter>
@@ -2198,8 +2703,66 @@ function CancellationDialogContent({ initialData, onConfirm, onCancel }: { initi
 }
 
 function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isReadOnly }: { form: UseFormReturn<any>, rigIndex?: number, onConfirm: (data: any) => void, onCancel: () => void, isAdding?: boolean, isReadOnly: boolean }) {
+    const { allStaffMembers } = useDataStore();
     const currentRigData = rigIndex !== undefined ? form.getValues(`rigs.${rigIndex}`) : createDefaultRig();
     const [localRigData, setLocalRigData] = useState<RigRegistrationType>(currentRigData);
+
+    const officerOptions = useMemo<InspectionOfficerOption[]>(() => {
+        const staffList = (allStaffMembers || []).filter(s => s.status === 'Active');
+
+        const mappedStaff: InspectionOfficerOption[] = staffList.map(s => {
+            const nameMal = getMalayalamName(s.name, s.nameMalayalam);
+            const desigMal = getMalayalamDesignation(s.designation, s.designationMalayalam);
+            
+            let label = `${nameMal} - ${desigMal}`;
+            if (s.name && s.name !== nameMal) {
+                label += ` (${s.name})`;
+            }
+
+            return {
+                id: s.id || s.name,
+                nameMalayalam: nameMal,
+                designationMalayalam: desigMal,
+                nameEnglish: s.name,
+                designationEnglish: s.designation,
+                displayLabel: label,
+            };
+        });
+
+        const defaultList: InspectionOfficerOption[] = [
+            {
+                id: 'def-aee',
+                nameMalayalam: 'ശ്രീ. ബിനി ഹെൻറിക്സ്',
+                designationMalayalam: 'അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ',
+                nameEnglish: 'Bini Henricks',
+                designationEnglish: 'Assistant Executive Engineer',
+                displayLabel: 'ശ്രീ. ബിനി ഹെൻറിക്സ് - അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ (Bini Henricks)',
+            },
+            {
+                id: 'def-ae',
+                nameMalayalam: 'ശ്രീ. റിയാസ് കെ. പി',
+                designationMalayalam: 'അസിസ്റ്റന്റ് എഞ്ചിനീയർ',
+                nameEnglish: 'Riyas K P',
+                designationEnglish: 'Assistant Engineer',
+                displayLabel: 'ശ്രീ. റിയാസ് കെ. പി - അസിസ്റ്റന്റ് എഞ്ചിനീയർ (Riyas K P)',
+            }
+        ];
+
+        const combined = [...mappedStaff];
+        for (const def of defaultList) {
+            if (!combined.some(r => r.nameMalayalam === def.nameMalayalam || r.nameEnglish === def.nameEnglish)) {
+                combined.push(def);
+            }
+        }
+        return combined;
+    }, [allStaffMembers]);
+
+    const currentOfficerVal = localRigData.inspectingOfficerName || localRigData.inspectingOfficer || '';
+    const selectedRigOption = officerOptions.find(o => 
+        o.id === currentOfficerVal ||
+        o.nameMalayalam === currentOfficerVal ||
+        o.nameEnglish === currentOfficerVal
+    );
 
     const handleConfirm = () => {
         onConfirm(localRigData);
@@ -2219,7 +2782,7 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
                         <Card>
                             <CardHeader><CardTitle>Registration Details</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid md:grid-cols-3 gap-4">
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <FormItem><FormLabel>Rig Reg. No.</FormLabel><Input value={localRigData.rigRegistrationNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, rigRegistrationNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
                                     <FormItem>
                                         <FormLabel>Type of Rig</FormLabel>
@@ -2228,18 +2791,76 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
                                             <SelectContent>{rigTypeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Type of Rig in Malayalam</FormLabel>
+                                        <Select onValueChange={(value) => setLocalRigData(d => ({ ...d, typeOfRigMalayalam: value === 'none' ? null : value }))} value={localRigData.typeOfRigMalayalam ?? ''} disabled={isReadOnly}>
+                                            <SelectTrigger><SelectValue placeholder="Select Type (Malayalam)" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">-- Select --</SelectItem>
+                                                {agencyRigTypeMalayalamOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
                                     <FormItem><FormLabel>Last Reg/Renewal Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.registrationDate)} onChange={e => setLocalRigData(d => ({ ...d, registrationDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
                                 </div>
-                                <div className="grid md:grid-cols-3 gap-4">
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <FormItem><FormLabel>Reg. Fee</FormLabel><Input type="number" value={localRigData.registrationFee ?? ""} onChange={e => setLocalRigData(d => ({ ...d, registrationFee: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Payment Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.paymentDate)} onChange={e => setLocalRigData(d => ({ ...d, registrationDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
+                                    <FormItem><FormLabel>Payment Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.paymentDate)} onChange={e => setLocalRigData(d => ({ ...d, paymentDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
                                     <FormItem><FormLabel>Challan No.</FormLabel><Input value={localRigData.challanNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, challanNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
+                                    <FormItem><FormLabel>Challan Amount</FormLabel><Input type="number" value={localRigData.challanAmount ?? ""} onChange={e => setLocalRigData(d => ({ ...d, challanAmount: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
                                 </div>
                                 <Separator />
-                                <div className="grid md:grid-cols-3 gap-4">
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <FormItem><FormLabel>Additional Reg. Fee</FormLabel><Input type="number" value={localRigData.additionalRegistrationFee ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalRegistrationFee: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
                                     <FormItem><FormLabel>Payment Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.additionalPaymentDate)} onChange={e => setLocalRigData(d => ({ ...d, additionalPaymentDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
                                     <FormItem><FormLabel>Challan No.</FormLabel><Input value={localRigData.additionalChallanNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalChallanNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
+                                    <FormItem><FormLabel>Challan Amount</FormLabel><Input type="number" value={localRigData.additionalChallanAmount ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
+                                </div>
+                                <Separator />
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <FormItem className="md:col-span-2">
+                                        <FormLabel>Officer Assigned for Inspection</FormLabel>
+                                        <Select 
+                                            value={selectedRigOption ? selectedRigOption.id : (currentOfficerVal || 'none_selected')} 
+                                            onValueChange={(val) => {
+                                                if (val === 'none_selected') {
+                                                    setLocalRigData(d => ({ 
+                                                        ...d, 
+                                                        inspectingOfficer: '',
+                                                        inspectingOfficerName: '',
+                                                        inspectingOfficerDesig: ''
+                                                    }));
+                                                    return;
+                                                }
+                                                const selected = officerOptions.find(s => s.id === val || s.nameMalayalam === val || s.nameEnglish === val);
+                                                if (selected) {
+                                                    setLocalRigData(d => ({ 
+                                                        ...d, 
+                                                        inspectingOfficer: selected.nameMalayalam,
+                                                        inspectingOfficerName: selected.nameMalayalam,
+                                                        inspectingOfficerDesig: selected.designationMalayalam
+                                                    }));
+                                                } else {
+                                                    setLocalRigData(d => ({ 
+                                                        ...d, 
+                                                        inspectingOfficer: val,
+                                                        inspectingOfficerName: val
+                                                    }));
+                                                }
+                                            }}
+                                            disabled={isReadOnly}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select Officer Assigned for Inspection" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none_selected">-- None / Leave Blank --</SelectItem>
+                                                {officerOptions.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>
+                                                        {s.displayLabel}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
                                 </div>
                             </CardContent>
                         </Card>
@@ -2302,7 +2923,7 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
 function PartnerDialogContent({ initialData, onConfirm, onCancel }: { initialData: OwnerInfo, onConfirm: (data: OwnerInfo) => void, onCancel: () => void }) {
     const form = useForm<OwnerInfo>({
         resolver: zodResolver(OwnerInfoSchema),
-        defaultValues: initialData || { name: '', address: '', mobile: '', secondaryMobile: '' }
+        defaultValues: initialData || { name: '', address: '', mobile: '', secondaryMobile: '', email: '' }
     });
 
     const handleConfirm = (data: OwnerInfo) => {
@@ -2324,6 +2945,13 @@ function PartnerDialogContent({ initialData, onConfirm, onCancel }: { initialDat
                                 <FormMessage />
                             </FormItem>
                         )}/>
+                        <FormField name="nameMalayalam" control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Partner Name & Address in Malayalam (മലയാളത്തിൽ)</FormLabel>
+                                <FormControl><Textarea placeholder="Enter name and address in Malayalam" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
                         <div className="grid grid-cols-2 gap-4">
                             <FormField name="mobile" control={form.control} render={({ field }) => (
                                 <FormItem>
@@ -2336,6 +2964,13 @@ function PartnerDialogContent({ initialData, onConfirm, onCancel }: { initialDat
                                 <FormItem>
                                     <FormLabel>Secondary Mobile No.</FormLabel>
                                     <FormControl><Input placeholder="Enter secondary mobile" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                            <FormField name="email" control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email ID</FormLabel>
+                                    <FormControl><Input type="email" placeholder="Enter email ID" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}/>

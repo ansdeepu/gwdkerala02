@@ -29,7 +29,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 import { Loader2, Search, Eye, XCircle, Clock, FileDown } from 'lucide-react';
 
 
-export const dynamic = 'force-dynamic';
+
 
 const ITEMS_PER_PAGE = 50;
 

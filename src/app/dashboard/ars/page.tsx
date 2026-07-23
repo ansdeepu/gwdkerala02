@@ -32,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+
 
 const ITEMS_PER_PAGE = 50;
 

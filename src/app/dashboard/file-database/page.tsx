@@ -11,7 +11,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import PaginationControls from "@/components/shared/PaginationControls";
 import { useAuth } from "@/hooks/useAuth";
 
-export const dynamic = 'force-dynamic';
+
 
 const ITEMS_PER_PAGE = 50;
 

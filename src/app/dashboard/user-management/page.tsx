@@ -11,7 +11,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { useDataStore } from "@/hooks/use-data-store";
 
-export const dynamic = 'force-dynamic';
+
 
 export default function UserManagementPage() {
   const { setHeader } = usePageHeader();

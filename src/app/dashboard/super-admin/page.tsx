@@ -28,7 +28,7 @@ import { Loader2, ArrowUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 
-export const dynamic = 'force-dynamic';
+
 
 const navLinks = [
     { id: 'updates', label: 'Updates' },

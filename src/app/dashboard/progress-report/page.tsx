@@ -41,7 +41,7 @@ import { Play, XCircle, FileDown, Loader2, Landmark, CheckCircle } from 'lucide-
 import { useAuth } from '@/hooks/useAuth';
 
 
-export const dynamic = 'force-dynamic';
+
 
 interface SiteDetailWithFileContext extends SiteDetailFormData {
   fileNo: string;

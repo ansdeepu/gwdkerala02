@@ -16,7 +16,7 @@ import { Loader2, Search, Eye, FileText } from 'lucide-react';
 import type { DataEntryFormData, SiteDetailFormData, ArsStatus, SiteWorkStatus } from '@/lib/schemas';
 import { usePageHeader } from "@/hooks/usePageHeader";
 
-export const dynamic = 'force-dynamic';
+
 
 const ITEMS_PER_PAGE = 50;
 

@@ -70,6 +70,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                     groups[groupKey].push({
                         id: entry.id,
                         fileNo: entry.fileNo,
+                        applicantName: entry.applicantName || "N/A",
                         siteId: site.id,
                         nameOfWork: site.nameOfSite,
                         contractor: site.contractorName || "N/A",
@@ -87,6 +88,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                 groups.ars.push({
                     id: ars.id,
                     fileNo: ars.fileNo,
+                    applicantName: ars.localSelfGovt || "N/A",
                     nameOfWork: ars.nameOfSite,
                     contractor: ars.arsContractorName || "N/A",
                     supervisor: ars.supervisorName || "N/A",
@@ -111,6 +113,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
         const lowerTerm = searchTerm.toLowerCase();
         return list.filter(w => 
             w.nameOfWork.toLowerCase().includes(lowerTerm) ||
+            w.applicantName.toLowerCase().includes(lowerTerm) ||
             w.contractor.toLowerCase().includes(lowerTerm) ||
             w.supervisor.toLowerCase().includes(lowerTerm) ||
             w.fileNo.toLowerCase().includes(lowerTerm)
@@ -175,10 +178,11 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                             <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                                 <TableRow>
                                     <TableHead className="w-[50px] text-center">#</TableHead>
-                                    <TableHead className="min-w-[200px]">Work Name</TableHead>
+                                    <TableHead className="min-w-[180px]">Work Name</TableHead>
+                                    <TableHead className="min-w-[150px]">Name of Applicant</TableHead>
                                     <TableHead>Contractor</TableHead>
                                     <TableHead>Supervisor</TableHead>
-                                    <TableHead className="w-[150px]">Status</TableHead>
+                                    <TableHead className="w-[140px]">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -198,6 +202,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                                                     <span className="text-[10px] text-muted-foreground font-mono">{work.fileNo}</span>
                                                 </div>
                                             </TableCell>
+                                            <TableCell className="text-sm font-medium text-foreground/90">{work.applicantName}</TableCell>
                                             <TableCell className="text-sm font-medium text-muted-foreground">{work.contractor}</TableCell>
                                             <TableCell className="text-sm font-medium text-muted-foreground">{work.supervisor}</TableCell>
                                             <TableCell>
@@ -209,7 +214,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
+                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
                                             {searchTerm ? "No matching results found in this category." : "No active projects found in this category."}
                                         </TableCell>
                                     </TableRow>

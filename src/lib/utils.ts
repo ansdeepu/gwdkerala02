@@ -43,3 +43,47 @@ export const formatCase = (str: string | null | undefined): string | null | unde
   
   return str;
 };
+
+export const DISTRICT_MALAYALAM_MAP: Record<string, string> = {
+  'thiruvananthapuram': 'തിരുവനന്തപുരം',
+  'tvm': 'തിരുവനന്തപുരം',
+  'kollam': 'കൊല്ലം',
+  'klm': 'കൊല്ലം',
+  'pathanamthitta': 'പത്തനംതിട്ട',
+  'pta': 'പത്തനംതിട്ട',
+  'alappuzha': 'ആലപ്പുഴ',
+  'alp': 'ആലപ്പുഴ',
+  'kottayam': 'കോട്ടയം',
+  'ktm': 'കോട്ടയം',
+  'idukki': 'ഇടുക്കി',
+  'idk': 'ഇടുക്കി',
+  'ernakulam': 'എറണാകുളം',
+  'ekm': 'എറണാകുളം',
+  'thrissur': 'തൃശ്ശൂർ',
+  'tsr': 'തൃശ്ശൂർ',
+  'palakkad': 'പാലക്കാട്',
+  'pkd': 'പാലക്കാട്',
+  'malappuram': 'മലപ്പുറം',
+  'mpm': 'മലപ്പുറം',
+  'kozhikode': 'കോഴിക്കോട്',
+  'kkd': 'കോഴിക്കോട്',
+  'wayanad': 'വയനാട്',
+  'wyd': 'വയനാട്',
+  'kannur': 'കണ്ണൂർ',
+  'knr': 'കണ്ണൂർ',
+  'kasaragod': 'കാസർഗോഡ്',
+  'ksg': 'കാസർഗോഡ്',
+  'directorate tvm': 'തിരുവനന്തപുരം',
+  'lab tvm': 'തിരുവനന്തപുരം',
+  'lab ekm': 'എറണാകുളം',
+  'lab kkd': 'കോഴിക്കോട്'
+};
+
+export function getDistrictMalayalam(location?: string | null): string {
+  if (!location) return 'കൊല്ലം';
+  const locLower = location.trim().toLowerCase();
+  if (DISTRICT_MALAYALAM_MAP[locLower]) {
+    return DISTRICT_MALAYALAM_MAP[locLower];
+  }
+  return location;
+}

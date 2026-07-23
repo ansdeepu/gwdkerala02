@@ -19,7 +19,7 @@ import { LOGGING_PUMPING_TEST_PURPOSE_OPTIONS, DataEntryFormData } from '@/lib/s
 import PaginationControls from '@/components/shared/PaginationControls';
 import { Search, FilePlus2, Clock } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;

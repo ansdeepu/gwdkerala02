@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 
-export const dynamic = 'force-dynamic';
+
 
 export default function VehiclesSuperAdminPage() {
     const { setHeader } = usePageHeader();

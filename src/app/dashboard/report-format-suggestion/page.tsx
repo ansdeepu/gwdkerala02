@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { usePageHeader } from '@/hooks/usePageHeader';
 import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 
-export const dynamic = 'force-dynamic';
+
 
 export default function ReportBuilderPage() {
   const { setHeader } = usePageHeader();

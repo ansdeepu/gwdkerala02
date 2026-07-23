@@ -21,9 +21,11 @@ export type MediaItem = z.infer<typeof MediaItemSchema>;
 
 export const OwnerInfoSchema = z.object({
     name: z.string().min(1, "Owner Name & Address is required."),
+    nameMalayalam: optionalStringSchema,
     address: optionalStringSchema,
     mobile: optionalStringSchema,
     secondaryMobile: optionalStringSchema,
+    email: optionalStringSchema,
 });
 export type OwnerInfo = z.infer<typeof OwnerInfoSchema>;
 
@@ -43,13 +45,34 @@ export const agencyRigTypeOptions = ["Hand Bore", "Filter Point Rig", "Calyx Rig
 export type AgencyRigType = typeof agencyRigTypeOptions[number];
 export type RigType = AgencyRigType;
 
+export const agencyRigTypeMalayalamOptions = [
+    "ഹാൻഡ് ബോർ",
+    "ഫിൽട്ടർ പോയിന്റ് റിഗ്",
+    "കാലിക്സ് റിഗ്",
+    "റോട്ടറി റിഗ്",
+    "ഡി.ടി.എച്ച് റിഗ്",
+    "റോട്ടറി കം ഡി.ടി.എച്ച് റിഗ്"
+] as const;
+export type AgencyRigTypeMalayalam = typeof agencyRigTypeMalayalamOptions[number];
+
 export const RigRenewalSchema = z.object({
     id: z.string(),
     renewalDate: z.any().optional().nullable(),
     renewalFee: optionalNumberSchema,
     paymentDate: z.any().optional().nullable(),
     challanNo: optionalStringSchema,
+    challanAmount: optionalNumberSchema,
+    inspectingOfficer: optionalStringSchema,
+    inspectingOfficerName: optionalStringSchema,
+    inspectingOfficerDesig: optionalStringSchema,
     validTill: z.any().optional().nullable(),
+    checklistOverrides: z.any().optional().nullable(),
+    renewalPeriodYears: optionalNumberSchema,
+    yearIndex: optionalNumberSchema,
+    totalRenewalFee: optionalNumberSchema,
+    isMultiYearEnd: z.boolean().optional().nullable(),
+    batchId: optionalStringSchema,
+    yearlyFees: z.array(z.number()).optional().nullable(),
 });
 export type RigRenewal = z.infer<typeof RigRenewalSchema>;
 
@@ -73,18 +96,25 @@ export const RigRegistrationSchema = z.object({
     id: z.string(),
     rigRegistrationNo: optionalStringSchema,
     typeOfRig: z.enum(agencyRigTypeOptions).optional().nullable(),
+    typeOfRigMalayalam: optionalStringSchema,
     registrationDate: z.any().optional().nullable(),
     registrationFee: optionalNumberSchema,
     paymentDate: z.any().optional().nullable(),
     challanNo: optionalStringSchema,
+    challanAmount: optionalNumberSchema,
     additionalRegistrationFee: optionalNumberSchema,
     additionalPaymentDate: z.any().optional().nullable(),
     additionalChallanNo: optionalStringSchema,
+    additionalChallanAmount: optionalNumberSchema,
+    inspectingOfficer: optionalStringSchema,
+    inspectingOfficerName: optionalStringSchema,
+    inspectingOfficerDesig: optionalStringSchema,
     status: z.enum(['Active', 'Cancelled']).default('Active'),
     cancellationDate: z.any().optional().nullable(),
     cancellationReason: optionalStringSchema,
     renewals: z.array(RigRenewalSchema).optional(),
     history: z.array(z.string()).optional(),
+    checklistOverrides: z.any().optional().nullable(),
 
     // Optional details
     rigVehicle: VehicleDetailsSchema.optional().nullable(),

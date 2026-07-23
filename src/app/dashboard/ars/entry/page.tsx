@@ -39,7 +39,7 @@ import { useFieldArray } from 'react-hook-form';
 import { Separator } from '@/components/ui/separator';
 
 
-export const dynamic = 'force-dynamic';
+
 
 // Helper function to format date for input fields
 const formatDateForInput = (date: any): string => {

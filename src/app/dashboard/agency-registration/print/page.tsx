@@ -2,21 +2,30 @@
 // src/app/dashboard/agency-registration/print/page.tsx
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { format, addYears, isValid, parseISO, isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getFirestore, collectionGroup, query, getDocs } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
+import type { AgencyApplication } from '@/hooks/useAgencyApplications';
 
 const toDateOrNull = (value: any): Date | null => {
     if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value === 'object' && value.seconds) return new Date(value.seconds * 1000);
+    if (value instanceof Date) return isValid(value) ? value : null;
+    if (typeof value === 'object' && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+    if (typeof value === 'number') {
+        const d = new Date(value);
+        return isValid(d) ? d : null;
+    }
     if (typeof value === 'string') {
         const d = parseISO(value);
-        return isValid(d) ? d : null;
+        if (isValid(d)) return d;
+        const parsed = new Date(value);
+        if (isValid(parsed)) return parsed;
     }
     return null;
 };
@@ -26,10 +35,47 @@ export default function AgencyExpiryPrintPage() {
     const id = searchParams.get('id');
     const lang = searchParams.get('lang') || 'en';
 
-    const { allAgencyApplications, officeAddress } = useDataStore();
+    const { allAgencyApplications, officeAddress, isLoading } = useDataStore();
+    const [fetchedApp, setFetchedApp] = useState<AgencyApplication | null>(null);
+    const [isFetchingDoc, setIsFetchingDoc] = useState<boolean>(true);
+
+    useEffect(() => {
+        if (!id || id === 'new') {
+            setIsFetchingDoc(false);
+            return;
+        }
+
+        const existing = allAgencyApplications.find(a => a.id === id);
+        if (existing) {
+            setFetchedApp(existing);
+            setIsFetchingDoc(false);
+            return;
+        }
+
+        let isMounted = true;
+        const fetchDirectly = async () => {
+            try {
+                const db = getFirestore(app);
+                const q = query(collectionGroup(db, 'agencyApplications'));
+                const querySnapshot = await getDocs(q);
+                const foundDoc = querySnapshot.docs.find(d => d.id === id);
+                if (foundDoc && isMounted) {
+                    setFetchedApp({ ...foundDoc.data(), id: foundDoc.id } as AgencyApplication);
+                }
+            } catch (err) {
+                console.error('Error fetching agency application directly:', err);
+            } finally {
+                if (isMounted) setIsFetchingDoc(false);
+            }
+        };
+
+        fetchDirectly();
+
+        return () => { isMounted = false; };
+    }, [id, allAgencyApplications]);
 
     const data = useMemo(() => {
-        const application = allAgencyApplications.find(a => a.id === id);
+        const application = allAgencyApplications.find(a => a.id === id) || fetchedApp;
         if (!application) return null;
 
         const today = new Date();
@@ -62,11 +108,22 @@ export default function AgencyExpiryPrintPage() {
         return {
             application,
             expiredRigs,
-            ownerName: application.owner.name,
-            ownerAddress: application.owner.address,
-            agencyName: application.agencyName,
+            ownerName: application.owner?.name || '',
+            ownerNameMalayalam: application.owner?.nameMalayalam || '',
+            ownerAddress: application.owner?.address || '',
+            agencyName: application.agencyName || '',
+            agencyNameMalayalam: application.agencyNameMalayalam || '',
         };
-    }, [allAgencyApplications, id]);
+    }, [allAgencyApplications, fetchedApp, id]);
+
+    if ((isLoading || isFetchingDoc) && !data) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-sm font-medium text-slate-600">Loading letter details...</p>
+            </div>
+        );
+    }
 
     if (!data) return (
         <div className="p-10 text-center space-y-4">
@@ -106,11 +163,13 @@ export default function AgencyExpiryPrintPage() {
                         <p className="font-bold text-xs uppercase text-muted-foreground mb-1">To:</p>
                         <div className="space-y-4">
                             <div>
-                                <p className="font-bold whitespace-pre-wrap text-sm">{data.ownerName}</p>
+                                {data.ownerNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm">{data.ownerNameMalayalam}</p>}
+                                <p className={data.ownerNameMalayalam ? "text-xs whitespace-pre-wrap text-muted-foreground" : "font-bold whitespace-pre-wrap text-sm"}>{data.ownerName}</p>
                                 {data.ownerAddress && <p className="text-sm whitespace-pre-wrap">{data.ownerAddress}</p>}
                             </div>
                             <div>
-                                <p className="font-bold whitespace-pre-wrap text-sm">{data.agencyName}</p>
+                                {data.agencyNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm">{data.agencyNameMalayalam}</p>}
+                                <p className={data.agencyNameMalayalam ? "text-xs whitespace-pre-wrap text-muted-foreground" : "font-bold whitespace-pre-wrap text-sm"}>{data.agencyName}</p>
                             </div>
                         </div>
                     </div>

@@ -23,7 +23,7 @@ import { Loader2, Search, Eye, FileDown, Clock, Building } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
 
-export const dynamic = 'force-dynamic';
+
 
 const ITEMS_PER_PAGE = 50;
 
