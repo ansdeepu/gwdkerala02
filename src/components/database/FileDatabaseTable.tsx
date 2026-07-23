@@ -273,7 +273,7 @@ export default function FileDatabaseTable({
 
   return (
     <>
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="max-h-[70vh] overflow-y-auto overflow-x-hidden">
         <Table>
           <TableHeader className="sticky top-0 bg-secondary z-10">
             <TableRow>

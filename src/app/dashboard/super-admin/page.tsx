@@ -64,7 +64,7 @@ const scrollTo = (id: string) => {
 
 const DashboardNav = () => (
     <div className="dashboard-nav-sticky sticky top-0 z-20 bg-background/95 backdrop-blur-sm print:hidden">
-        <div className="flex items-center overflow-x-auto no-scrollbar border-b px-2">
+        <div className="flex flex-wrap items-center border-b px-2 py-1 gap-1">
             {navLinks.map(link => (
                 <button
                     key={link.id}

@@ -314,7 +314,7 @@ export default function PlanFundWorksPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="flex flex-nowrap overflow-x-auto w-full h-auto p-1 bg-muted/50 justify-start no-scrollbar">
+                <TabsList className="flex flex-wrap w-full h-auto p-1 bg-muted/50 justify-start gap-1">
                     <TabsTrigger value="pre-execution" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
                         Pre-Execution <Badge variant="secondary" className="ml-1">{counts.pre || 0}</Badge>
                     </TabsTrigger>

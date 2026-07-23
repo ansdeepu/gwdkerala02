@@ -370,8 +370,8 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
     };
 
     const renderTable = (data: WorkOrderRow[], isPurchaseTab: boolean = false) => (
-        <div className="overflow-x-auto min-w-full">
-            <Table className="min-w-[1000px]">
+        <div className="w-full overflow-x-hidden">
+            <Table className="w-full">
                 <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                         <TableHead className="w-[50px] text-center">Sl.</TableHead>

@@ -594,7 +594,7 @@ export default function ArsPage() {
                         onChange={(e) => setSearchTerm(e.target.value)} 
                     />
                 </div>
-                <div className="flex items-center gap-2 shrink-0 whitespace-nowrap overflow-x-auto no-scrollbar py-1">
+                <div className="flex flex-wrap items-center gap-2 py-1">
                   {canEdit && <Button size="sm" onClick={handleAddNewClick} className="shrink-0"> <PlusCircle className="mr-2 h-4 w-4" /> Add New ARS </Button>}
                   <Button variant="outline" onClick={() => setIsExportDialogOpen(true)} size="sm" className="shrink-0"> <FileDown className="mr-2 h-4 w-4" /> Export Excel </Button>
                   {canEdit && ( <> 
@@ -668,7 +668,7 @@ export default function ArsPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full pt-4">
-                <TabsList className="flex flex-nowrap overflow-x-auto w-full h-auto p-1 bg-muted/50 justify-start no-scrollbar">
+                <TabsList className="flex flex-wrap w-full h-auto p-1 bg-muted/50 justify-start gap-1">
                     <TabsTrigger value="pre-execution" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
                         Pre-Execution <Badge variant="secondary" className="ml-1">{counts.pre || 0}</Badge>
                     </TabsTrigger>

@@ -161,13 +161,13 @@ const ReportDetailsTable = ({
     }
 
     return (
-        <div className="relative overflow-x-auto">
+        <div className="relative w-full overflow-x-hidden">
             <Table className="min-w-full border-collapse">
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="border p-2 align-middle text-left min-w-[200px] font-semibold">Category</TableHead>
+                        <TableHead className="border p-2 align-middle text-left font-semibold">Category</TableHead>
                         {activeMetrics.map(metric => (
-                            <TableHead key={metric.key} className="border p-2 text-center font-semibold min-w-[100px] whitespace-normal break-words">{metric.label}</TableHead>
+                            <TableHead key={metric.key} className="border p-2 text-center font-semibold whitespace-normal break-words">{metric.label}</TableHead>
                         ))}
                     </TableRow>
                 </TableHeader>
@@ -940,7 +940,7 @@ export default function ProgressReportPage() {
                 <Card className="shadow-lg">
                     <CardHeader><CardTitle>Progress Summary (Aggregate)</CardTitle></CardHeader>
                     <CardContent>
-                        <div className="relative overflow-x-auto">
+                        <div className="relative w-full overflow-x-hidden">
                             <Table className="min-w-full border-collapse">
                             <TableHeader><TableRow><TableHead className="border p-2 align-middle text-center font-semibold">Service Type</TableHead><TableHead className="border p-2 text-center font-semibold">Previous Balance</TableHead><TableHead className="border p-2 text-center font-semibold">Current Application</TableHead><TableHead className="border p-2 text-center font-semibold">To be refunded</TableHead><TableHead className="border p-2 text-center font-bold">Total Application</TableHead><TableHead className="border p-2 text-center font-semibold">Completed</TableHead><TableHead className="border p-2 text-center font-bold">Balance</TableHead></TableRow></TableHeader>
                             <TableBody>

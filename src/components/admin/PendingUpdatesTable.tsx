@@ -50,7 +50,7 @@ export const UpdateTable = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-hidden">
           <Table>
             <TableHeader>
               <TableRow>

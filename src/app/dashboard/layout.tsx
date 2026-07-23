@@ -21,13 +21,14 @@ import { useAuth, type UserProfile, updateUserLastActive } from '@/hooks/useAuth
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FirebaseErrorListener from '@/components/FirebaseErrorListener';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
-import { Loader2, Clock, Building, ChevronRight, Home } from 'lucide-react';
+import { Loader2, Clock, Building, ChevronRight, Home, Search } from 'lucide-react';
 import OfficeSwitcher from '@/components/layout/OfficeSwitcher';
+import { GlobalSearchCommand } from '@/components/layout/GlobalSearchCommand';
 
 const IDLE_TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 const LAST_ACTIVE_UPDATE_INTERVAL = 5 * 60 * 1000; // Update Firestore lastActiveAt at most once per 5 minutes
 
-function HeaderContent({ user }: { user: UserProfile | null }) {
+function HeaderContent({ user, onSearchClick }: { user: UserProfile | null; onSearchClick: () => void }) {
   const { title, description } = usePageHeader();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   
@@ -58,6 +59,18 @@ function HeaderContent({ user }: { user: UserProfile | null }) {
           {description && <p className="text-[10px] text-muted-foreground truncate hidden lg:block">{description}</p>}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={onSearchClick}
+        className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/70 text-xs text-muted-foreground hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-foreground transition-all cursor-pointer shadow-xs max-w-xs md:max-w-sm lg:w-72 shrink-0"
+      >
+        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="truncate flex-1 text-left">Search File No, Applicant, Rig, Challan...</span>
+        <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-slate-200 dark:border-slate-700 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
+          <span>⌘</span>K
+        </kbd>
+      </button>
       
       <div className="flex items-center gap-4 shrink-0">
          {isSuperAdmin ? (
@@ -266,8 +279,21 @@ function InnerDashboardLayout({ children }: { children: React.ReactNode }) {
   const lastActivityFirestoreUpdateRef = React.useRef<number>(0); 
   const { toast } = useToast();
   const { isNavigating, setIsNavigating } = usePageNavigation();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/super-admin';
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -360,9 +386,10 @@ function InnerDashboardLayout({ children }: { children: React.ReactNode }) {
           <AppSidebar />
           <SidebarInset className="flex flex-col flex-1 overflow-hidden">
             <FirebaseErrorListener />
-            <header className="sticky top-0 z-30 flex items-center border-b bg-background/95 backdrop-blur-sm w-full min-h-[64px]">
-                  <HeaderContent user={user} />
-              </header>
+            <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+            <header className="sticky top-0 z-30 flex items-center border-b border-slate-200 dark:border-slate-800 bg-background/95 backdrop-blur-sm w-full min-h-[64px]">
+              <HeaderContent user={user} onSearchClick={() => setSearchOpen(true)} />
+            </header>
             <main className={cn(
               "flex-1 overflow-x-hidden overflow-y-auto bg-background",
               !isDashboardPage ? "p-6 pt-4" : "p-0"

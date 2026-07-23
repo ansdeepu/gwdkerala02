@@ -134,6 +134,14 @@ export default function HelpPage() {
                     <h4 className="font-semibold flex items-center gap-2 text-sm"><Palette className="h-4 w-4 text-primary"/>Status Color Coding</h4>
                     <p className="text-xs text-muted-foreground">Site names in tables are now color-coded: <span className="text-green-600 font-bold">Green</span> for Ongoing, <span className="text-amber-600 font-bold">Yellow</span> for Refunds, and <span className="text-red-600 font-bold">Red</span> for Completed/Failed.</p>
                 </div>
+                <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2 text-sm"><RefreshCw className="h-4 w-4 text-primary"/>No Horizontal Scrollbars</h4>
+                    <p className="text-xs text-muted-foreground">Eliminated unwanted horizontal scrollbars across all pages. Tab lists and table containers now use fluid wrapping and constrained widths for pristine desktop and mobile viewing.</p>
+                </div>
+                <div className="space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2 text-sm"><FileStack className="h-4 w-4 text-primary"/>Fluid Table Wrapping</h4>
+                    <p className="text-xs text-muted-foreground">Table headers and cells now automatically wrap text and break long words (`break-words`), ensuring records fit neatly within the viewport without horizontal overflow.</p>
+                </div>
             </div>
         </CardContent>
       </Card>
