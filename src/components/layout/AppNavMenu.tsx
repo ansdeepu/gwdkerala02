@@ -109,7 +109,11 @@ export default function AppNavMenu() {
       });
   }, [user, isSuperAdmin]);
 
-  const handleNavigation = (href: string) => {
+  const handleNavigation = (e: React.MouseEvent, href: string) => {
+    // If opening in a new tab or window (middle click, Ctrl, Cmd, Shift), do not affect the current page
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+      return;
+    }
     const targetPath = href.split('?')[0];
     if (targetPath !== pathname) {
       setIsNavigating(true);
@@ -160,7 +164,7 @@ export default function AppNavMenu() {
         return (
           <SidebarMenuItem key={item.href}>
               <div className="flex items-center w-full group">
-                <Link href={item.href} passHref onClick={() => handleNavigation(item.href)} className="flex-grow">
+                <Link href={item.href} passHref onClick={(e) => handleNavigation(e, item.href)} className="flex-grow">
                   <SidebarMenuButton
                     asChild
                     size="compact"
@@ -187,14 +191,20 @@ export default function AppNavMenu() {
                  <TooltipProvider>
                   <Tooltip>
                       <TooltipTrigger asChild>
-                          <Link 
+                          <a 
                             href={item.href} 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden z-10"
                           >
                               <ArrowUpRight className="h-4 w-4" />
-                          </Link>
+                          </a>
                       </TooltipTrigger>
                       <TooltipContent side="right"><p>Open in New Window</p></TooltipContent>
                   </Tooltip>

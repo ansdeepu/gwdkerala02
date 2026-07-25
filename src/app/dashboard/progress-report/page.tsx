@@ -851,7 +851,7 @@ export default function ProgressReportPage() {
 
     // Check if it's an ARS Scheme (from module)
     if (row.applicantName === 'ARS Scheme' && row.id) {
-      window.open(`/dashboard/ars/entry?id=${row.id}`, '_blank');
+      window.open(`/dashboard/ars/entry?id=${row.id}`, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -883,7 +883,7 @@ export default function ProgressReportPage() {
       const queryParams = new URLSearchParams({ id: entry.id });
       if (workType) queryParams.set('workType', workType);
       
-      window.open(`/dashboard/data-entry?${queryParams.toString()}`, '_blank');
+      window.open(`/dashboard/data-entry?${queryParams.toString()}`, '_blank', 'noopener,noreferrer');
       return;
     }
 

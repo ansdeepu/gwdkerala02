@@ -426,7 +426,7 @@ const RigAccordionItem = ({
             onClick={() => {
               const rigs = form.getValues('rigs') || [];
               const realId = rigs[index]?.id || field.id;
-              window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=registration`, '_blank');
+              window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=registration`, '_blank', 'noopener,noreferrer');
             }}
           >
             <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Reg. Checklist (ML)
@@ -671,7 +671,7 @@ const RigAccordionItem = ({
                                                             e.stopPropagation(); 
                                                             const rigs = form.getValues('rigs') || [];
                                                             const realId = rigs[index]?.id || field.id;
-                                                            window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=renewal&renewalId=${renewal.id}`, '_blank'); 
+                                                            window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=renewal&renewalId=${renewal.id}`, '_blank', 'noopener,noreferrer'); 
                                                         }}
                                                     >
                                                         <Printer className="h-3.5 w-3.5 text-emerald-600"/>
@@ -1820,7 +1820,7 @@ export default function AgencyRegistrationPage() {
                                         size="sm" 
                                         variant="outline" 
                                         className="h-8 text-xs flex items-center gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50" 
-                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank'); }}
+                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank', 'noopener,noreferrer'); }}
                                     >
                                         <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Letter (EN)
                                     </Button>
@@ -1829,7 +1829,7 @@ export default function AgencyRegistrationPage() {
                                         size="sm" 
                                         variant="outline" 
                                         className="h-8 text-xs flex items-center gap-1.5 border-green-200 text-green-700 hover:bg-green-50" 
-                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank'); }}
+                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank', 'noopener,noreferrer'); }}
                                     >
                                         <Languages className="h-3.5 w-3.5 text-green-600" /> Print Letter (ML)
                                     </Button>

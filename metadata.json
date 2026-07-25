@@ -1,4 +1,7 @@
 {
   "name": "GWD Kerala New_17.06.26_1",
-  "description": ""
+  "description": "Ground Water Department Kerala Portal",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -303,6 +303,8 @@ function InnerDashboardLayout({ children }: { children: React.ReactNode }) {
         return;
     } 
 
+    if (!user.role) return;
+
     const isSuperAdmin = user.role === 'superAdmin';
 
     if (isSuperAdmin && pathname === '/dashboard') {

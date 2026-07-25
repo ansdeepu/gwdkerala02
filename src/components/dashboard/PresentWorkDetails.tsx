@@ -120,11 +120,13 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
         );
     }, [categorizedWorks, activeTab, searchTerm]);
 
-    const handleWorkClick = (work: any) => {
+    const handleWorkClick = (e: React.MouseEvent, work: any) => {
+        e.preventDefault();
+        e.stopPropagation();
         const url = work.type === 'ars' 
             ? `/dashboard/ars/entry?id=${work.id}` 
             : `/dashboard/data-entry?id=${work.id}`;
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     return (
@@ -193,7 +195,7 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                                             <TableCell>
                                                 <div className="flex flex-col gap-0.5">
                                                     <button 
-                                                        onClick={() => handleWorkClick(work)}
+                                                        onClick={(e) => handleWorkClick(e, work)}
                                                         className="font-bold text-sm text-left hover:text-primary transition-colors flex items-center gap-1.5"
                                                     >
                                                         {work.nameOfWork}

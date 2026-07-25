@@ -218,7 +218,7 @@ export default function DashboardDialogs({ dialogState, setDialogState, allFileE
                                     onContextMenu={(e) => {
                                       if (isFileNoClickable && detailUrl !== '#') {
                                         e.preventDefault();
-                                        window.open(detailUrl, '_blank');
+                                        window.open(detailUrl, '_blank', 'noopener,noreferrer');
                                       }
                                     }}
                                 >

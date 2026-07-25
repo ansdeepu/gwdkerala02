@@ -109,7 +109,7 @@ export default function ReportTable({ data, onViewDetailsClick, currentPage, ite
                           className="font-mono text-sm text-primary font-bold hover:underline"
                           onContextMenu={(e) => {
                               e.preventDefault();
-                              window.open(detailUrl, '_blank');
+                              window.open(detailUrl, '_blank', 'noopener,noreferrer');
                           }}
                       >
                           {row.fileNo}
