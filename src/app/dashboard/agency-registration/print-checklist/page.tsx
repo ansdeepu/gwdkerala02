@@ -68,6 +68,26 @@ function getRigMalayalam(typeOfRig?: string | null, typeOfRigMalayalam?: string 
     return map[typeOfRig] || typeOfRig;
 }
 
+const extractTextFromNode = (node: any): string => {
+    if (node === null || node === undefined) return '';
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return String(node);
+    if (typeof node === 'boolean') return '';
+    if (Array.isArray(node)) {
+        return node.map(extractTextFromNode).filter(Boolean).join('\n');
+    }
+    if (node.props) {
+        const children = node.props.children;
+        if (children !== undefined && children !== null) {
+            if (Array.isArray(children)) {
+                return children.map(extractTextFromNode).filter(Boolean).join('\n');
+            }
+            return extractTextFromNode(children);
+        }
+    }
+    return '';
+};
+
 export default function RigChecklistPrintPage() {
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
@@ -87,8 +107,8 @@ export default function RigChecklistPrintPage() {
     const [customDate, setCustomDate] = useState(format(new Date(), 'dd/MM/yyyy'));
 
     // Row-level manual edit states
-    const [rowOverrides, setRowOverrides] = useState<Record<number, string>>({});
-    const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+    const [rowOverrides, setRowOverrides] = useState<Record<string | number, string>>({});
+    const [editingRowIndex, setEditingRowIndex] = useState<number | string | null>(null);
     const [tempRowValue, setTempRowValue] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -172,7 +192,8 @@ export default function RigChecklistPrintPage() {
                 ? selectedRenewal?.inspectingOfficerDesig 
                 : data.rig.inspectingOfficerDesig;
 
-            setInspectingOfficer(safeString(savedChecklist?.inspectingOfficer ?? savedOfficer ?? ''));
+            const officerVal = safeString(savedChecklist?.inspectingOfficer ?? savedOfficer ?? '');
+            setInspectingOfficer(officerVal);
             setInspectingOfficerDesig(safeString(savedChecklist?.inspectingOfficerDesig ?? savedDesig ?? ''));
             setCustomFileNo(safeString(savedChecklist?.customFileNo ?? data.fileNo ?? ''));
             setCustomDate(
@@ -181,6 +202,10 @@ export default function RigChecklistPrintPage() {
                     : format(new Date(), 'dd/MM/yyyy')
             );
             setRowOverrides(savedChecklist?.rowOverrides ?? {});
+
+            if (!officerVal) {
+                setShowSettings(true);
+            }
         }
     }, [data, type, renewalId]);
 
@@ -283,15 +308,11 @@ export default function RigChecklistPrintPage() {
 
     // Format inspecting officer for declaration statement
     const formattedOfficerDisplay = useMemo(() => {
-        const officerName = (inspectingOfficer || '').trim();
-        const officerDesig = (inspectingOfficerDesig || '').trim();
+        const officerName = (inspectingOfficer || data?.rig?.inspectingOfficerName || data?.rig?.inspectingOfficer || '').trim();
+        const officerDesig = (inspectingOfficerDesig || data?.rig?.inspectingOfficerDesig || '').trim();
 
         if (!officerName) {
-            return (
-                <span className="inline-block border-b border-black min-w-[200px] text-center font-bold px-2 mx-1">
-                    &nbsp;
-                </span>
-            );
+            return <span className="font-bold text-slate-500">[പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ / Officer Assigned]</span>;
         }
 
         let label = officerName;
@@ -299,8 +320,8 @@ export default function RigChecklistPrintPage() {
             label = `${officerName} (${officerDesig})`;
         }
 
-        return <span className="font-bold underline">{label}</span>;
-    }, [inspectingOfficer, inspectingOfficerDesig]);
+        return <span className="font-bold">{label}</span>;
+    }, [inspectingOfficer, inspectingOfficerDesig, data]);
 
     if ((isLoading || isFetchingDoc) && !data) {
         return (
@@ -444,7 +465,7 @@ export default function RigChecklistPrintPage() {
         {
             num: "3",
             label: "ഇ മെയിൽ വിലാസം",
-            value: "thanimaborewell@gmail.com"
+            value: application.owner?.email || application.owner?.emailId || application.email || (application as any).emailId || (application as any).email || "രേഖപ്പെടുത്തിയിട്ടില്ല"
         },
         {
             num: "4",
@@ -683,7 +704,7 @@ export default function RigChecklistPrintPage() {
                     <p className="font-semibold">റിഗ് & സപ്പോർട്ടിങ് വാഹനം വാടകയ്ക്ക് എടുത്തിട്ടുള്ളതാണോ :</p>
                     <p className="pl-3">a. റിഗ് (ട്രക്ക്)</p>
                     <p className="pl-3">b. സപ്പോർട്ടിങ് വാഹനം</p>
-                    <p className="pl-3">c. ഉടമസനുമായി ഉണ്ടാക്കിയ കരാറിന്റെ പകർപ്പ്</p>
+                    <p className="pl-3">c. ഉടമസ്ഥനുമായി ഉണ്ടാക്കിയ കരാറിന്റെ പകർപ്പ്</p>
                 </div>
             ),
             value: (
@@ -713,55 +734,89 @@ export default function RigChecklistPrintPage() {
         {
             num: "30",
             label: (
-                <div className="space-y-2">
-                    <p className="font-semibold">ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :</p>
+                <div className="space-y-1">
+                    <p className="font-semibold h-6 leading-6">ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :</p>
                     {!isRenewal ? (
-                        <>
-                            <p className="pl-3 text-[11px]">a. അപേക്ഷ ഫീസ് - ഏജൻസി രജിസ്ട്രേഷൻ</p>
-                            <p className="pl-3 text-[11px]">b. അപേക്ഷ ഫീസ് - റിഗ് രജിസ്ട്രേഷൻ</p>
-                            <p className="pl-3 text-[11px]">c. ഏജൻസി രജിസ്ട്രേഷൻ</p>
-                            <p className="pl-3 text-[11px]">d. റിഗ് രജിസ്ട്രേഷൻ</p>
-                        </>
+                        <div className="space-y-1">
+                            <p className="pl-3 text-xs">a. അപേക്ഷ ഫീസ് - ഏജൻസി രജിസ്ട്രേഷൻ</p>
+                            <p className="pl-3 text-xs">b. അപേക്ഷ ഫീസ് - റിഗ് രജിസ്ട്രേഷൻ</p>
+                            <p className="pl-3 text-xs">c. ഏജൻസി രജിസ്ട്രേഷൻ</p>
+                            <p className="pl-3 text-xs">d. റിഗ് രജിസ്ട്രേഷൻ</p>
+                        </div>
                     ) : (
-                        <>
-                            <p className="pl-3 text-[11px]">a. അപേക്ഷ ഫീസ്</p>
-                            <p className="pl-3 text-[11px]">b. രജിസ്ട്രേഷൻ പുതുക്കൽ</p>
-                        </>
+                        <div className="space-y-1">
+                            <p className="pl-3 text-xs">a. അപേക്ഷ ഫീസ്</p>
+                            <p className="pl-3 text-xs">b. രജിസ്ട്രേഷൻ പുതുക്കൽ</p>
+                        </div>
                     )}
                 </div>
             ),
             value: (
-                <div className="space-y-2 text-xs">
-                    <p className="h-4"></p>
+                <div className="space-y-1 text-xs">
+                    <p className="font-semibold h-6 leading-6 opacity-0">ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :</p>
                     {!isRenewal ? (
-                        <>
-                            <p className="pl-1">
-                                {application.agencyRegistrationFee 
-                                    ? `Rs. ${application.agencyRegistrationFee}/- dtd. ${formatDateSafe(application.agencyPaymentDate)}, Challan No. ${application.agencyChallanNo || ''}${application.agencyChallanAmount ? `, Rs. ${application.agencyChallanAmount}/-` : ''}`
-                                    : '-'
-                                }
-                            </p>
-                            <p className="pl-1">
-                                {rig.registrationFee 
-                                    ? `Rs. ${rig.registrationFee}/- dtd. ${formatDateSafe(rig.paymentDate)}, Challan: ${rig.challanNo || ''}${rig.challanAmount ? `, Rs. ${rig.challanAmount}/-` : ''}`
-                                    : '-'
-                                }
-                            </p>
-                            <p className="pl-1">
-                                {application.agencyAdditionalRegFee 
-                                    ? `Rs. ${application.agencyAdditionalRegFee}/- dtd. ${formatDateSafe(application.agencyAdditionalPaymentDate)}, Challan No. ${application.agencyAdditionalChallanNo || ''}${application.agencyAdditionalChallanAmount ? `, Rs. ${application.agencyAdditionalChallanAmount}/-` : ''}`
-                                    : '-'
-                                }
-                            </p>
-                            <p className="pl-1 font-semibold text-green-700">
-                                {rig.additionalRegistrationFee 
-                                    ? `Rs. ${rig.additionalRegistrationFee}/- dtd. ${formatDateSafe(rig.additionalPaymentDate)}, Challan: ${rig.additionalChallanNo || ''}${rig.additionalChallanAmount ? `, Rs. ${rig.additionalChallanAmount}/-` : ''}`
-                                    : '-'
-                                }
-                            </p>
-                        </>
+                        (() => {
+                            const agencyTotalRegFee = (application.agencyRegistrationFee || 0) + (application.agencyAdditionalRegFee || 0);
+                            const agencyRegFee = (application.applicationFees || []).find(f => f.applicationFeeType === "Agency Registration");
+                            const agencyRegFeeText = agencyRegFee 
+                                ? `Rs. ${agencyRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(agencyRegFee.applicationFeePaymentDate)}, Challan No. ${agencyRegFee.applicationFeeChallanNo || ''}`
+                                : (application.agencyRegistrationFee 
+                                    ? `Rs. ${application.agencyRegistrationFee}/- dtd. ${formatDateSafe(application.agencyPaymentDate)}, Challan No. ${application.agencyChallanNo || ''}`
+                                    : '-');
+
+                            const activeRigsList = (application.rigs || []).filter(r => r.status !== 'Cancelled');
+                            const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
+                            const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
+
+                            const rigRegFee = (application.applicationFees || []).find(
+                                f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
+                            ) || (application.applicationFees || []).find(
+                                f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
+                            );
+                            const rigRegFeeText = rigRegFee
+                                ? `Rs. ${rigRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(rigRegFee.applicationFeePaymentDate)}, Challan: ${rigRegFee.applicationFeeChallanNo || ''}`
+                                : (rig.registrationFee 
+                                    ? `Rs. ${rig.registrationFee}/- dtd. ${formatDateSafe(rig.paymentDate)}, Challan: ${rig.challanNo || ''}`
+                                    : '-');
+
+                            let agencyRegValueText = '-';
+                            if (application.agencyRegistrationFee || application.agencyAdditionalRegFee) {
+                                const primaryPart = application.agencyRegistrationFee 
+                                    ? `Challan No. ${application.agencyChallanNo || ''} dtd. ${formatDateSafe(application.agencyPaymentDate)} (Rs. ${application.agencyRegistrationFee}/-)`
+                                    : '';
+                                    
+                                const additionalPart = application.agencyAdditionalRegFee 
+                                    ? `Additional Challan No. ${application.agencyAdditionalChallanNo || ''} dtd. ${formatDateSafe(application.agencyAdditionalPaymentDate)} (Rs. ${application.agencyAdditionalRegFee}/-)`
+                                    : '';
+                                    
+                                agencyRegValueText = `Rs. ${agencyTotalRegFee}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                            }
+
+                            const rigTotalRegFee = (rig.registrationFee || 0) + (rig.additionalRegistrationFee || 0);
+                            let rigRegValueText = '-';
+                            if (rig.registrationFee || rig.additionalRegistrationFee) {
+                                const primaryPart = rig.registrationFee
+                                    ? `Challan: ${rig.challanNo || ''} dtd. ${formatDateSafe(rig.paymentDate)} (Rs. ${rig.registrationFee}/-)`
+                                    : '';
+                                    
+                                const additionalPart = rig.additionalRegistrationFee
+                                    ? `Additional Challan: ${rig.additionalChallanNo || ''} dtd. ${formatDateSafe(rig.additionalPaymentDate)} (Rs. ${rig.additionalRegistrationFee}/-)`
+                                    : '';
+                                    
+                                rigRegValueText = `Rs. ${rigTotalRegFee}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                            }
+
+                            return (
+                                <div className="space-y-1">
+                                    <p className="pl-1">{agencyRegFeeText}</p>
+                                    <p className="pl-1">{rigRegFeeText}</p>
+                                    <p className="pl-1">{agencyRegValueText}</p>
+                                    <p className="pl-1 font-semibold text-green-700">{rigRegValueText}</p>
+                                </div>
+                            );
+                        })()
                     ) : (
-                        <>
+                        <div className="space-y-1">
                             <p className="pl-1">ബാധകമല്ല</p>
                             <p className="pl-1 font-semibold text-green-700">
                                 {(selectedRenewal?.totalRenewalFee ?? selectedRenewal?.renewalFee) 
@@ -769,7 +824,7 @@ export default function RigChecklistPrintPage() {
                                     : '-'
                                 }
                             </p>
-                        </>
+                        </div>
                     )}
                 </div>
             )
@@ -886,7 +941,11 @@ export default function RigChecklistPrintPage() {
                 <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8">
                     <h1 className="text-2xl font-bold tracking-wide">ഭൂജലവകുപ്പ്</h1>
                     <p className="text-base font-semibold">
-                        {officeAddress?.officeNameMalayalam || `ജില്ലാ ഓഫീസ് : ${getDistrictMalayalam(officeAddress?.officeLocation)}`}
+                        {(officeAddress?.officeNameMalayalam && officeAddress.officeNameMalayalam !== 'ഭൂജലവകുപ്പ്')
+                            ? (officeAddress.officeNameMalayalam.startsWith('ജില്ലാ ഓഫീസ്')
+                                ? officeAddress.officeNameMalayalam
+                                : `ജില്ലാ ഓഫീസ്: ${officeAddress.officeNameMalayalam.replace(/^ജില്ലാ ഓഫീസ്\s*[:,-]?\s*/, '')}`)
+                            : `ജില്ലാ ഓഫീസ്: ${getDistrictMalayalam(officeAddress?.officeLocation)}`}
                     </p>
                     <h2 className="text-lg font-bold underline mt-4">
                         {isRenewal 
@@ -922,6 +981,177 @@ export default function RigChecklistPrintPage() {
                 <table className="w-full border-collapse border border-black text-xs leading-normal">
                     <tbody>
                         {checklistItems.map((item, index) => {
+                            if (item.num === "30") {
+                                const subRows = !isRenewal ? [
+                                    { 
+                                        key: "30_a", 
+                                        label: "a. അപേക്ഷ ഫീസ് - ഏജൻസി രജിസ്ട്രേഷൻ", 
+                                        defaultValue: (() => {
+                                            const agencyRegFee = (application.applicationFees || []).find(f => f.applicationFeeType === "Agency Registration");
+                                            if (agencyRegFee) {
+                                                return `Rs. ${agencyRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(agencyRegFee.applicationFeePaymentDate)}, Challan No. ${agencyRegFee.applicationFeeChallanNo || ''}`;
+                                            }
+                                            return application.agencyRegistrationFee 
+                                                ? `Rs. ${application.agencyRegistrationFee}/- dtd. ${formatDateSafe(application.agencyPaymentDate)}, Challan No. ${application.agencyChallanNo || ''}`
+                                                : '-';
+                                        })()
+                                    },
+                                    { 
+                                        key: "30_b", 
+                                        label: "b. അപേക്ഷ ഫീസ് - റിഗ് രജിസ്ട്രേഷൻ", 
+                                        defaultValue: (() => {
+                                            const activeRigsList = (application.rigs || []).filter(r => r.status !== 'Cancelled');
+                                            const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
+                                            const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
+
+                                            const rigRegFee = (application.applicationFees || []).find(
+                                                f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
+                                            ) || (application.applicationFees || []).find(
+                                                f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
+                                            );
+                                            
+                                            if (rigRegFee) {
+                                                return `Rs. ${rigRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(rigRegFee.applicationFeePaymentDate)}, Challan: ${rigRegFee.applicationFeeChallanNo || ''}`;
+                                            }
+                                            
+                                            return rig.registrationFee 
+                                                ? `Rs. ${rig.registrationFee}/- dtd. ${formatDateSafe(rig.paymentDate)}, Challan: ${rig.challanNo || ''}${rig.challanAmount ? `, Rs. ${rig.challanAmount}/-` : ''}`
+                                                : '-';
+                                        })()
+                                    },
+                                    { 
+                                        key: "30_c", 
+                                        label: "c. ഏജൻസി രജിസ്ട്രേഷൻ", 
+                                        defaultValue: (() => {
+                                            const total = (application.agencyRegistrationFee || 0) + (application.agencyAdditionalRegFee || 0);
+                                            if (!total) return '-';
+                                            const primaryPart = application.agencyRegistrationFee 
+                                                ? `Challan No. ${application.agencyChallanNo || ''} dtd. ${formatDateSafe(application.agencyPaymentDate)} (Rs. ${application.agencyRegistrationFee}/-)`
+                                                : '';
+                                            const additionalPart = application.agencyAdditionalRegFee 
+                                                ? `Additional Challan No. ${application.agencyAdditionalChallanNo || ''} dtd. ${formatDateSafe(application.agencyAdditionalPaymentDate)} (Rs. ${application.agencyAdditionalRegFee}/-)`
+                                                : '';
+                                            return `Rs. ${total}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                                        })()
+                                    },
+                                    { 
+                                        key: "30_d", 
+                                        label: "d. റിഗ് രജിസ്ട്രേഷൻ", 
+                                        defaultValue: (() => {
+                                            const total = (rig.registrationFee || 0) + (rig.additionalRegistrationFee || 0);
+                                            if (!total) return '-';
+                                            const primaryPart = rig.registrationFee 
+                                                ? `Challan No. ${rig.challanNo || ''} dtd. ${formatDateSafe(rig.paymentDate)} (Rs. ${rig.registrationFee}/-)`
+                                                : '';
+                                            const additionalPart = rig.additionalRegistrationFee 
+                                                ? `Additional Challan No. ${rig.additionalChallanNo || ''} dtd. ${formatDateSafe(rig.additionalPaymentDate)} (Rs. ${rig.additionalRegistrationFee}/-)`
+                                                : '';
+                                            return `Rs. ${total}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                                        })()
+                                    }
+                                ] : [
+                                    { key: "30_a", label: "a. അപേക്ഷ ഫീസ്", defaultValue: "ബാധകമല്ല" },
+                                    { key: "30_b", label: "b. രജിസ്ട്രേഷൻ പുതുക്കൽ", defaultValue: (selectedRenewal?.totalRenewalFee ?? selectedRenewal?.renewalFee) ? `Rs. ${(selectedRenewal?.totalRenewalFee ?? selectedRenewal?.renewalFee)}/- dtd. ${formatDateSafe(selectedRenewal?.paymentDate)}, e-Chalan: ${selectedRenewal?.challanNo || ''}${selectedRenewal?.challanAmount ? `, Rs. ${selectedRenewal.challanAmount}/-` : ''}` : '-' }
+                                ];
+
+                                return (
+                                    <React.Fragment key={index}>
+                                        <tr className="hover:bg-slate-50/50 print:hover:bg-transparent">
+                                            <td rowSpan={subRows.length + 1} className="border border-black p-3 text-center font-bold font-mono align-top">30</td>
+                                            <td className="border border-black p-3 font-semibold align-top whitespace-pre-wrap" colSpan={2}>
+                                                ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :
+                                            </td>
+                                        </tr>
+                                        {subRows.map((sub) => {
+                                            const isSubEditing = editingRowIndex === sub.key;
+                                            const hasSubOverride = (rowOverrides as any)[sub.key] !== undefined;
+                                            const subVal = hasSubOverride ? (rowOverrides as any)[sub.key] : sub.defaultValue;
+
+                                            return (
+                                                <tr key={sub.key} className="hover:bg-slate-50/50 print:hover:bg-transparent group">
+                                                    <td className="border border-black p-3 font-semibold align-top pl-6 text-xs">{sub.label}</td>
+                                                    <td className="border border-black p-3 align-top whitespace-pre-wrap relative text-xs">
+                                                        {isSubEditing ? (
+                                                            <div className="space-y-2 no-print">
+                                                                <textarea
+                                                                    className="w-full text-xs p-2 border rounded bg-white font-sans"
+                                                                    rows={3}
+                                                                    value={tempRowValue}
+                                                                    onChange={(e) => setTempRowValue(e.target.value)}
+                                                                    placeholder="Enter manual data..."
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        disabled={isSaving}
+                                                                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white" 
+                                                                        onClick={() => {
+                                                                            const newOverrides = { ...rowOverrides, [sub.key]: tempRowValue };
+                                                                            setRowOverrides(newOverrides);
+                                                                            setEditingRowIndex(null);
+                                                                            handleSaveChecklist(newOverrides);
+                                                                        }}
+                                                                    >
+                                                                        {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Check className="h-3 w-3 mr-1" />} Save
+                                                                    </Button>
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        variant="outline" 
+                                                                        className="h-7 text-xs" 
+                                                                        onClick={() => setEditingRowIndex(null)}
+                                                                    >
+                                                                        <X className="h-3 w-3 mr-1" /> Cancel
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex justify-between items-start gap-3">
+                                                                <div className="flex-1">
+                                                                    <p className="whitespace-pre-wrap">{subVal}</p>
+                                                                    {hasSubOverride && (
+                                                                        <span className="text-[10px] text-blue-600 italic no-print block mt-1">(Manually edited & saved)</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="no-print opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                                        title="Edit data manually"
+                                                                        onClick={() => {
+                                                                            setEditingRowIndex(sub.key);
+                                                                            setTempRowValue(String(subVal));
+                                                                        }}
+                                                                    >
+                                                                        <Edit2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                    {hasSubOverride && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                                            title="Reset to default"
+                                                                            onClick={() => {
+                                                                                const newOverrides = { ...rowOverrides };
+                                                                                delete (newOverrides as any)[sub.key];
+                                                                                setRowOverrides(newOverrides);
+                                                                                handleSaveChecklist(newOverrides);
+                                                                            }}
+                                                                        >
+                                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                );
+                            }
+
                             const isEditing = editingRowIndex === index;
                             const hasOverride = rowOverrides[index] !== undefined || (rowOverrides as any)[String(index)] !== undefined;
                             const currentVal = rowOverrides[index] !== undefined 
@@ -994,14 +1224,7 @@ export default function RigChecklistPrintPage() {
                                                         title="Edit data manually"
                                                         onClick={() => {
                                                             setEditingRowIndex(index);
-                                                            let initialStr = '';
-                                                            if (hasOverride) {
-                                                                initialStr = typeof currentVal === 'string' ? currentVal : '';
-                                                            } else if (typeof item.value === 'string') {
-                                                                initialStr = item.value;
-                                                            } else {
-                                                                initialStr = '';
-                                                            }
+                                                            const initialStr = extractTextFromNode(currentVal);
                                                             setTempRowValue(initialStr);
                                                         }}
                                                     >
@@ -1036,9 +1259,9 @@ export default function RigChecklistPrintPage() {
 
                 {/* Declaration Statement (സത്യപ്രസ്താവന) */}
                 <div className="mt-10 border border-slate-300 p-4 rounded bg-slate-50/30 text-xs leading-relaxed print:bg-transparent print:border-black print:p-4">
-                    <h3 className="font-bold text-sm mb-2 underline">സത്യപ്രസ്താവന (Declaration)</h3>
+                    <h3 className="font-bold text-sm mb-2">സത്യപ്രസ്താവന (Declaration)</h3>
                     <p className="indent-8 text-justify">
-                        ഈ ഓഫീസിലെ <span className="font-bold underline">{formattedOfficerDisplay}</span>, 
+                        ഈ ഓഫീസിലെ <span className="font-bold">{formattedOfficerDisplay}</span>, 
                         ജില്ലാ ഓഫീസ്, <span className="font-bold">{getDistrictMalayalam(officeAddress?.officeLocation)},</span> മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <span className="font-bold">{safeString(application.owner?.nameMalayalam || application.owner?.name)}</span> എന്നവരുടെ <span className="font-bold">{safeString(application.agencyNameMalayalam || application.agencyName)}</span> എന്ന ഏജൻസിയുടെ <span className="font-bold">{getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</span> {rig.rigVehicle?.regNo || rig.supportingVehicle?.regNo ? `(രജി. നമ്പർ: ${rig.rigVehicle?.regNo || rig.supportingVehicle?.regNo})` : ''} ന് {isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
                     </p>
                 </div>

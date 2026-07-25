@@ -38,6 +38,7 @@ export const ApplicationFeeSchema = z.object({
   applicationFeeAmount: optionalNumberSchema,
   applicationFeePaymentDate: z.any().optional().nullable(),
   applicationFeeChallanNo: optionalStringSchema,
+  rigNumber: optionalStringSchema,
 });
 export type ApplicationFee = z.infer<typeof ApplicationFeeSchema>;
 

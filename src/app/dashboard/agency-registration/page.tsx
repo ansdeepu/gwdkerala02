@@ -423,7 +423,11 @@ const RigAccordionItem = ({
             size="sm" 
             variant="outline" 
             className="h-7 text-xs flex items-center gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50" 
-            onClick={() => window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${field.id}&type=registration`, '_blank')}
+            onClick={() => {
+              const rigs = form.getValues('rigs') || [];
+              const realId = rigs[index]?.id || field.id;
+              window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=registration`, '_blank');
+            }}
           >
             <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Reg. Checklist (ML)
           </Button>
@@ -662,7 +666,13 @@ const RigAccordionItem = ({
                                                         variant="outline" 
                                                         size="sm" 
                                                         className="h-7 text-xs flex items-center gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50 px-2 shrink-0"
-                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${field.id}&type=renewal&renewalId=${renewal.id}`, '_blank'); }}
+                                                        onClick={(e) => { 
+                                                            e.preventDefault(); 
+                                                            e.stopPropagation(); 
+                                                            const rigs = form.getValues('rigs') || [];
+                                                            const realId = rigs[index]?.id || field.id;
+                                                            window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=renewal&renewalId=${renewal.id}`, '_blank'); 
+                                                        }}
                                                     >
                                                         <Printer className="h-3.5 w-3.5 text-emerald-600"/>
                                                         <span>Checklist</span>
@@ -1758,7 +1768,8 @@ export default function AgencyRegistrationPage() {
                                     <DetailRow label="Type of Application" value={field.applicationFeeType} />
                                     <DetailRow label="Fees Amount" value={field.applicationFeeAmount} />
                                     <DetailRow label="Payment Date" value={field.applicationFeePaymentDate} />
-                                    <div className="md:col-span-3"><DetailRow label="Challan No." value={field.applicationFeeChallanNo} /></div>
+                                    <DetailRow label="Challan No." value={field.applicationFeeChallanNo} />
+                                    <DetailRow label="Purpose" value={field.rigNumber || 'Agency'} />
                                     </dl>
                                 </div>
                             )) : (
@@ -1948,6 +1959,7 @@ export default function AgencyRegistrationPage() {
                             initialData={dialogState.type === 'editFee' ? dialogState.data?.fee : createDefaultFee()}
                             onConfirm={handleConfirmFeeChange}
                             onCancel={closeDialog}
+                            rigOptions={activeRigs.map((_, i) => `Rig #${i + 1}`)}
                         />
                     </DialogContent>
                 </Dialog>
@@ -2286,7 +2298,7 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
     );
 }
 
-function ApplicationFeeDialogContent({ initialData, onConfirm, onCancel }: { initialData?: Partial<ApplicationFee>, onConfirm: (data: any) => void, onCancel: () => void }) {
+function ApplicationFeeDialogContent({ initialData, onConfirm, onCancel, rigOptions = [] }: { initialData?: Partial<ApplicationFee>, onConfirm: (data: any) => void, onCancel: () => void, rigOptions?: string[] }) {
     const { toast } = useToast();
     const [data, setData] = useState({
         ...initialData,
@@ -2330,6 +2342,18 @@ function ApplicationFeeDialogContent({ initialData, onConfirm, onCancel }: { ini
                         <Input value={data.applicationFeeChallanNo ?? ''} onChange={(e) => setData(d => ({ ...d, applicationFeeChallanNo: e.target.value }))} />
                     </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Purpose</Label>
+                        <Select onValueChange={(value) => setData(d => ({ ...d, rigNumber: value === 'none' ? null : value }))} value={data.rigNumber ?? 'none'}>
+                            <SelectTrigger><SelectValue placeholder="Select Purpose" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Agency</SelectItem>
+                                {rigOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </div>
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
@@ -2371,7 +2395,21 @@ function RenewalDialogContent({ initialData, onConfirm, onCancel }: { initialDat
   const { allStaffMembers } = useDataStore();
   
   const officerOptions = useMemo<InspectionOfficerOption[]>(() => {
-    const staffList = (allStaffMembers || []).filter(s => s.status === 'Active');
+    const allowedDesignations = [
+        "Executive Engineer",
+        "Assistant Executive Engineer",
+        "Assistant Engineer",
+        "Master Driller",
+        "Senior Driller",
+        "Driller",
+        "Driller Mechanic",
+        "Drilling Assistant"
+    ];
+    const staffList = (allStaffMembers || []).filter(s => 
+        s.status === 'Active' && 
+        s.designation && 
+        allowedDesignations.includes(s.designation)
+    );
 
     const mappedStaff: InspectionOfficerOption[] = staffList.map(s => {
         const nameMal = getMalayalamName(s.name, s.nameMalayalam);
@@ -2392,32 +2430,7 @@ function RenewalDialogContent({ initialData, onConfirm, onCancel }: { initialDat
         };
     });
 
-    const defaultList: InspectionOfficerOption[] = [
-        {
-            id: 'def-aee',
-            nameMalayalam: 'ശ്രീ. ബിനി ഹെൻറിക്സ്',
-            designationMalayalam: 'അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ',
-            nameEnglish: 'Bini Henricks',
-            designationEnglish: 'Assistant Executive Engineer',
-            displayLabel: 'ശ്രീ. ബിനി ഹെൻറിക്സ് - അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ (Bini Henricks)',
-        },
-        {
-            id: 'def-ae',
-            nameMalayalam: 'ശ്രീ. റിയാസ് കെ. പി',
-            designationMalayalam: 'അസിസ്റ്റന്റ് എഞ്ചിനീയർ',
-            nameEnglish: 'Riyas K P',
-            designationEnglish: 'Assistant Engineer',
-            displayLabel: 'ശ്രീ. റിയാസ് കെ. പി - അസിസ്റ്റന്റ് എഞ്ചിനീയർ (Riyas K P)',
-        }
-    ];
-
-    const combined = [...mappedStaff];
-    for (const def of defaultList) {
-        if (!combined.some(r => r.nameMalayalam === def.nameMalayalam || r.nameEnglish === def.nameEnglish)) {
-            combined.push(def);
-        }
-    }
-    return combined;
+    return mappedStaff;
   }, [allStaffMembers]);
 
   const calcInitialPeriod = (init: any) => {
@@ -2708,7 +2721,21 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
     const [localRigData, setLocalRigData] = useState<RigRegistrationType>(currentRigData);
 
     const officerOptions = useMemo<InspectionOfficerOption[]>(() => {
-        const staffList = (allStaffMembers || []).filter(s => s.status === 'Active');
+        const allowedDesignations = [
+            "Executive Engineer",
+            "Assistant Executive Engineer",
+            "Assistant Engineer",
+            "Master Driller",
+            "Senior Driller",
+            "Driller",
+            "Driller Mechanic",
+            "Drilling Assistant"
+        ];
+        const staffList = (allStaffMembers || []).filter(s => 
+            s.status === 'Active' && 
+            s.designation && 
+            allowedDesignations.includes(s.designation)
+        );
 
         const mappedStaff: InspectionOfficerOption[] = staffList.map(s => {
             const nameMal = getMalayalamName(s.name, s.nameMalayalam);
@@ -2729,32 +2756,7 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
             };
         });
 
-        const defaultList: InspectionOfficerOption[] = [
-            {
-                id: 'def-aee',
-                nameMalayalam: 'ശ്രീ. ബിനി ഹെൻറിക്സ്',
-                designationMalayalam: 'അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ',
-                nameEnglish: 'Bini Henricks',
-                designationEnglish: 'Assistant Executive Engineer',
-                displayLabel: 'ശ്രീ. ബിനി ഹെൻറിക്സ് - അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ (Bini Henricks)',
-            },
-            {
-                id: 'def-ae',
-                nameMalayalam: 'ശ്രീ. റിയാസ് കെ. പി',
-                designationMalayalam: 'അസിസ്റ്റന്റ് എഞ്ചിനീയർ',
-                nameEnglish: 'Riyas K P',
-                designationEnglish: 'Assistant Engineer',
-                displayLabel: 'ശ്രീ. റിയാസ് കെ. പി - അസിസ്റ്റന്റ് എഞ്ചിനീയർ (Riyas K P)',
-            }
-        ];
-
-        const combined = [...mappedStaff];
-        for (const def of defaultList) {
-            if (!combined.some(r => r.nameMalayalam === def.nameMalayalam || r.nameEnglish === def.nameEnglish)) {
-                combined.push(def);
-            }
-        }
-        return combined;
+        return mappedStaff;
     }, [allStaffMembers]);
 
     const currentOfficerVal = localRigData.inspectingOfficerName || localRigData.inspectingOfficer || '';

@@ -64,11 +64,11 @@ const scrollTo = (id: string) => {
 
 const DashboardNav = () => (
     <div className="dashboard-nav-sticky sticky top-0 z-20 bg-background/95 backdrop-blur-sm print:hidden">
-        <div className="flex flex-wrap items-center border-b px-2 py-1 gap-1">
+        <div className="flex flex-nowrap items-center border-b px-1 py-0.5 gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {navLinks.map(link => (
                 <button
                     key={link.id}
-                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-3 py-2 shrink-0"
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-1.5 py-1.5 shrink-0"
                     onClick={() => scrollTo(link.id)}
                 >
                     {link.label}
