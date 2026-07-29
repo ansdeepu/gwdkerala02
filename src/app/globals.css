@@ -203,6 +203,7 @@
 @media print {
   /* Hide known app layout components that are not part of the report itself */
   .no-print,
+  .print\:hidden,
   header.sticky, /* AppHeader */
   div[data-sidebar="sidebar"], /* AppSidebar on desktop */
   div[data-sidebar="sidebar"][data-mobile="true"], /* AppSidebar on mobile */
@@ -210,9 +211,32 @@
   /* Hide Toasts during print */
   div[data-radix-toast-viewport], 
   div[class*="z-[100]"][class*="fixed"][class*="flex-col-reverse"], /* Mobile-first toast viewport */
-  div[class*="z-[100]"][class*="fixed"][class*="sm:flex-col"] /* Desktop toast viewport */
+  div[class*="z-[100]"][class*="fixed"][class*="sm:flex-col"], /* Desktop toast viewport */
+  /* Hide modal overlay backdrops during print */
+  div[data-state="open"][class*="fixed"][class*="inset-0"],
+  [data-radix-portal] > div.fixed
   {
     display: none !important;
+  }
+
+  /* Reset Radix Dialog modal containers for continuous full-page printing */
+  [data-radix-portal],
+  div[role="dialog"],
+  div[data-state="open"][role="dialog"] {
+    position: static !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
   }
 
   /* Base HTML and BODY setup for print */

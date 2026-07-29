@@ -60,6 +60,38 @@ const statusIcons: { [key: string]: React.ElementType } = {
   "Work Completed": CheckCircle2,
 };
 
+const safeParseDate = (dateValue: any): Date | null => {
+  if (!dateValue) return null;
+  if (dateValue instanceof Date) return isValid(dateValue) ? dateValue : null;
+  if (typeof dateValue === 'object' && dateValue !== null) {
+    if (typeof (dateValue as any).toDate === 'function') {
+      try {
+        const d = (dateValue as any).toDate();
+        if (isValid(d)) return d;
+      } catch {}
+    }
+    if (typeof (dateValue as any).seconds === 'number') {
+      const d = new Date((dateValue as any).seconds * 1000);
+      if (isValid(d)) return d;
+    }
+  }
+  if (typeof dateValue === 'string') {
+    const trimmed = dateValue.trim();
+    if (!trimmed) return null;
+    let parsed = parseISO(trimmed);
+    if (isValid(parsed)) return parsed;
+    parsed = parse(trimmed, 'yyyy-MM-dd', new Date());
+    if (isValid(parsed)) return parsed;
+    const d = new Date(trimmed);
+    if (isValid(d)) return d;
+  }
+  if (typeof dateValue === 'number') {
+    const d = new Date(dateValue);
+    if (isValid(d)) return d;
+  }
+  return null;
+};
+
 export default function ArsStatusOverview({ onOpenDialog, dates, onSetDates }: ArsStatusOverviewProps) {
   const { arsEntries, isLoading } = useArsEntries();
   const [schemeTypeFilter, setSchemeTypeFilter] = useState<string>('all');
@@ -79,7 +111,7 @@ export default function ArsStatusOverview({ onOpenDialog, dates, onSetDates }: A
     if (sDate || eDate) {
         filteredSites = filteredSites.filter(site => {
             if (!site.dateOfCompletion) return false;
-            const completionDate = site.dateOfCompletion ? parseISO(site.dateOfCompletion as unknown as string) : null;
+            const completionDate = safeParseDate(site.dateOfCompletion);
             if (!completionDate || !isValid(completionDate)) return false;
 
             if (sDate && eDate) return isWithinInterval(completionDate, { start: sDate, end: eDate });
@@ -168,7 +200,7 @@ export default function ArsStatusOverview({ onOpenDialog, dates, onSetDates }: A
                         id="ars-overview-start-date"
                         name="arsOverviewStartDate"
                         className="w-[240px]"
-                        value={dates.start ? format(dates.start, 'yyyy-MM-dd') : ''}
+                        value={dates.start && isValid(dates.start) ? format(dates.start, 'yyyy-MM-dd') : ''}
                         onChange={(e) => onSetDates({ ...dates, start: e.target.value ? parse(e.target.value, 'yyyy-MM-dd', new Date()) : undefined })}
                     />
                     <Input
@@ -176,7 +208,7 @@ export default function ArsStatusOverview({ onOpenDialog, dates, onSetDates }: A
                         id="ars-overview-end-date"
                         name="arsOverviewEndDate"
                         className="w-[240px]"
-                        value={dates.end ? format(dates.end, 'yyyy-MM-dd') : ''}
+                        value={dates.end && isValid(dates.end) ? format(dates.end, 'yyyy-MM-dd') : ''}
                         onChange={(e) => onSetDates({ ...dates, end: e.target.value ? parse(e.target.value, 'yyyy-MM-dd', new Date()) : undefined })}
                     />
                   <Button onClick={() => { onSetDates({ start: undefined, end: undefined }); setSchemeTypeFilter('all'); }} variant="ghost" className="h-9 px-3"><XCircle className="mr-2 h-4 w-4" />Clear Filters</Button>

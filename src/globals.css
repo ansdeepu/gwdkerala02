@@ -203,6 +203,32 @@
     display: none !important;
   }
 
+  /* Radix Dialog & Modal Print Overrides */
+  div[role="dialog"],
+  [data-radix-portal] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
+  }
+
+  /* Hide backdrop during print */
+  div[data-state][class*="fixed"][class*="inset-0"],
+  div[class*="fixed"][class*="inset-0"][class*="bg-black"] {
+    display: none !important;
+    background: transparent !important;
+  }
+
   /* Base HTML and BODY setup for print */
   html, body {
     width: 100% !important;

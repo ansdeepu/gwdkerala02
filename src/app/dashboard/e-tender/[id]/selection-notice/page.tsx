@@ -32,15 +32,19 @@ const parseStampPaperLogic = (description: string) => {
 };
 
 const parseAdditionalPerformanceGuaranteeLogic = (description: string) => {
-    const moreThanMatch = description.match(/more than ([\d.]+)%/);
-    const apgRequiredThresholdMatch = description.match(/between\s+([\d.]+)%\s+and\s*([\d.]+)%/);
-    const noApgThresholdMatch = description.match(/up to ([\d.]+)%/);
+    const betweenMatch = description.match(/between\s+([\d.]+)%\s*(?:to|and)\s*([\d.]+)%/i);
+    const upToMatch = description.match(/up\s*to\s*([\d.]+)%/i);
+    const moreThanMatch = description.match(/more\s+than\s+([\d.]+)%/i);
 
+    if (betweenMatch) {
+        const lower = parseFloat(betweenMatch[1]);
+        const threshold = lower > 10 ? 0.10 : lower / 100;
+        return { threshold };
+    }
+    if (upToMatch) return { threshold: parseFloat(upToMatch[1]) / 100 };
     if (moreThanMatch) return { threshold: parseFloat(moreThanMatch[1]) / 100 };
-    if (apgRequiredThresholdMatch) return { threshold: parseFloat(apgRequiredThresholdMatch[1]) / 100 };
-    if (noApgThresholdMatch) return { threshold: parseFloat(noApgThresholdMatch[1]) / 100 };
     
-    return { threshold: 0.15 }; 
+    return { threshold: 0.10 }; 
 };
 
 export default function SelectionNoticePrintPage() {

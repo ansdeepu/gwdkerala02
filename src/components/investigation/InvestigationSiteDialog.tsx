@@ -51,10 +51,18 @@ interface InvestigationSiteDialogProps {
 }
 
 export default function InvestigationSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, workTypeContext, userDesignation }: InvestigationSiteDialogProps) {
+    const initialCasingValue = initialData?.surveyRecommendedCasingPipe || initialData?.casing6kgPipe || initialData?.casingPipeUsed || "";
+    const initialObValue = initialData?.surveyRecommendedOB || initialData?.surveyOB || "";
+
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
             ...initialData,
+            surveyRecommendedCasingPipe: initialCasingValue,
+            casing6kgPipe: initialData?.casing6kgPipe || initialCasingValue,
+            casingPipeUsed: initialData?.casingPipeUsed || initialCasingValue,
+            surveyRecommendedOB: initialObValue,
+            surveyOB: initialData?.surveyOB || initialObValue,
             purpose: "GW Investigation",
             dateOfInvestigation: formatDateForInput(initialData?.dateOfInvestigation),
             vesDate: formatDateForInput(initialData?.vesDate),

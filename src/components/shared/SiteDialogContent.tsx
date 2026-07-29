@@ -85,10 +85,18 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     workTypeContext: 'public' | 'private' | 'collector' | 'planFund' | 'gwInvestigation' | 'loggingPumpingTest' | null;
     applicationType?: string | null;
 }) {
+    const initialCasingValue = initialData?.casing6kgPipe || initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "";
+    const initialObValue = initialData?.surveyOB || initialData?.surveyRecommendedOB || "";
+
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
             ...initialData,
+            casing6kgPipe: initialCasingValue,
+            casingPipeUsed: initialData?.casingPipeUsed || initialCasingValue,
+            surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe || initialCasingValue,
+            surveyOB: initialObValue,
+            surveyRecommendedOB: initialData?.surveyRecommendedOB || initialObValue,
             dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
             arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
             workImages: initialData?.workImages || [],
@@ -162,6 +170,48 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             }
         }
     }, [watchedLsg, allLsgConstituencyMaps, setValue, getValues]);
+
+    const watchedCasing10kg = watch('casing10kgPipe');
+    const watchedCasing6kg = watch('casing6kgPipe');
+    const watchedInner6kg = watch('innerCasing6kgPipe');
+    const watchedInner4kg = watch('innerCasing4kgPipe');
+    const watchedDiameter = watch('diameter');
+
+    const casingDiameterHint = useMemo(() => {
+        if (!watchedDiameter) return "";
+        if (watchedDiameter.includes("110") || watchedDiameter.includes("4.5")) {
+            return "ø140 mm";
+        }
+        if (watchedDiameter.includes("150") || watchedDiameter.includes("6")) {
+            return "ø180 mm";
+        }
+        return "";
+    }, [watchedDiameter]);
+
+    const endCapHint = useMemo(() => {
+        if (!watchedDiameter) return "";
+        if (watchedDiameter.includes("110") || watchedDiameter.includes("4.5")) {
+            return "1 No. and ø140 mm";
+        }
+        if (watchedDiameter.includes("150") || watchedDiameter.includes("6")) {
+            return "1 No. and ø180 mm";
+        }
+        return "";
+    }, [watchedDiameter]);
+
+    useEffect(() => {
+        const v10 = parseFloat(watchedCasing10kg || '0') || 0;
+        const v6 = parseFloat(watchedCasing6kg || '0') || 0;
+        const totalCasing = v10 + v6;
+        setValue('casingPipeUsed', totalCasing > 0 ? totalCasing.toString() : '');
+    }, [watchedCasing10kg, watchedCasing6kg, setValue]);
+
+    useEffect(() => {
+        const i6 = parseFloat(watchedInner6kg || '0') || 0;
+        const i4 = parseFloat(watchedInner4kg || '0') || 0;
+        const totalInner = i6 + i4;
+        setValue('innerCasingPipe', totalInner > 0 ? totalInner.toString() : '');
+    }, [watchedInner6kg, watchedInner4kg, setValue]);
     
     const isCompletionDateRequired = watchedWorkStatus === 'Work Completed' || watchedWorkStatus === 'Work Failed';
 
@@ -293,7 +343,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [allRigCompressors]);
 
     const handleDialogSubmit = (data: SiteDetailFormData) => {
-        onConfirm(data);
+        const effectiveCasing = data.casing6kgPipe || data.casingPipeUsed || data.surveyRecommendedCasingPipe || "";
+        const updatedData = {
+            ...data,
+            casing6kgPipe: data.casing6kgPipe || effectiveCasing,
+            casingPipeUsed: data.casingPipeUsed || effectiveCasing,
+            surveyRecommendedCasingPipe: data.surveyRecommendedCasingPipe || effectiveCasing,
+        };
+        onConfirm(updatedData);
     };
 
     return (
@@ -376,13 +433,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="surveyRecommendedTD" control={control} render={({ field }) => <FormItem><FormLabel>Total Depth (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                             
                                                             {watchedPurpose === 'BWC' && (
-                                                                <>
-                                                                    <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
-                                                                </>
-                                                            )}
+                                                             <>
+                                                                 <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                 <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                             </>
+                                                         )}
 
-                                                            {watchedPurpose === 'TWC' && (
+                                                         {watchedPurpose === 'TWC' && (
                                                                 <>
                                                                     <FormField name="surveyRecommendedPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                                     <FormField name="surveyRecommendedSlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
@@ -581,14 +638,32 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 </FormItem>
                                                             )}/>
                                                             <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            
-                                                            {watchedPurpose === 'BWC' && (
-                                                                <>
-                                                                    <FormField name="surveyOB" control={control} render={({ field }) => <FormItem><FormLabel>Actual OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="innerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                </>
+                                                                                             {watchedPurpose === 'BWC' && (
+                                                                 <>
+                                                                     <FormField name="surveyOB" control={control} render={({ field }) => <FormItem><FormLabel>Actual OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="casing10kgPipe" control={control} render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel>Casing 10 kg/cm² (m)</FormLabel>
+                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )} />
+                                                                     <FormField name="casing6kgPipe" control={control} render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel>Casing 6 kg/cm² (m)</FormLabel>
+                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )} />
+                                                                     <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Total Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="outerCasingPressure" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing Pressure</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 6 kg/cm²" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasing6kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 6 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasing4kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 4 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Total Inner Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
+                                                                 </>
                                                             )}
 
                                                             {watchedPurpose === 'TWC' && (
@@ -607,6 +682,21 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Yield (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="zoneDetails" control={control} render={({ field }) => <FormItem><FormLabel>Zone Details (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="endCap" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>End Cap</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select End Cap" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                                            <SelectItem value="No">No</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    {endCapHint && <FormDescription className="text-xs text-muted-foreground font-medium">{endCapHint}</FormDescription>}
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                             
                                                             <FormField name="typeOfRig" control={control} render={({ field }) => (
                                                                 <FormItem>
@@ -654,6 +744,21 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="endCap" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>End Cap</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select End Cap" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                                            <SelectItem value="No">No</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    {endCapHint && <FormDescription className="text-xs text-muted-foreground font-medium">{endCapHint}</FormDescription>}
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <FormField name="developingRemarks" control={control} render={({ field }) => (
                                                             <FormItem>

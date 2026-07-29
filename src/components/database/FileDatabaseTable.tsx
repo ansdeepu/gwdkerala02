@@ -14,7 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, Loader2, Copy, ArrowUpDown, ArrowUp, ArrowDown, Move } from "lucide-react";
+import { Eye, Trash2, Loader2, Copy, ArrowUpDown, ArrowUp, ArrowDown, Move, Printer } from "lucide-react";
+import PrintableReportModal from "./PrintableReportModal";
 import type { DataEntryFormData, SiteWorkStatus, SiteDetailFormData, ApplicationType, UserRole } from "@/lib/schemas";
 import { 
     LOGGING_PUMPING_TEST_PURPOSE_OPTIONS,
@@ -111,6 +112,7 @@ export default function FileDatabaseTable({
   const lastId = searchParams?.get('lastId');
   const [deleteItem, setDeleteItem] = useState<DataEntryFormData | null>(null);
   const [itemToMove, setItemToMove] = useState<DataEntryFormData | null>(null);
+  const [selectedPrintEntry, setSelectedPrintEntry] = useState<DataEntryFormData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'firstRemittanceDate', direction: 'desc' });
 
@@ -389,6 +391,13 @@ export default function FileDatabaseTable({
         onConfirm={handleMoveCopyFileConfirm}
         fileNo={itemToMove?.fileNo || ''}
         currentModule={currentModule}
+      />
+
+      <PrintableReportModal
+        isOpen={!!selectedPrintEntry}
+        onClose={() => setSelectedPrintEntry(null)}
+        entry={selectedPrintEntry}
+        moduleType={currentModule}
       />
     </>
   );

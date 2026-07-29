@@ -62,7 +62,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useDataStore, type RateDescriptionId, type RateDescriptionDetail } from "@/hooks/use-data-store";
+import { useDataStore, defaultRateDescriptions, type RateDescriptionId, type RateDescriptionDetail } from "@/hooks/use-data-store";
 import { useRouter } from "next/navigation";
 import { DollarSign, PlusCircle, Trash2, Loader2, Save, X, ShieldAlert, Eye, Move, Clock, History, FileText, Calendar } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -1067,7 +1067,7 @@ const RateDescriptionCard = ({
                         <div className="bg-muted/10 rounded-md p-3 border border-dashed">
                             <h5 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Description</h5>
                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                                {detail?.description || "No description provided."}
+                                {detail?.description || defaultRateDescriptions[rateId] || "No description provided."}
                             </p>
                         </div>
                     )}

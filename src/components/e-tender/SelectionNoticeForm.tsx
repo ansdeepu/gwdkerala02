@@ -47,21 +47,23 @@ const parseStampPaperLogic = (description: string) => {
 };
 
 const parseAdditionalPerformanceGuaranteeLogic = (description: string) => {
-    const apgRequiredThresholdMatch = description.match(/between\s+([\d.]+)%\s+and\s*([\d.]+)%/);
-    const noApgThresholdMatch = description.match(/up to ([\d.]+)%/);
-    const moreThanMatch = description.match(/more than ([\d.]+)%/);
+    const betweenMatch = description.match(/between\s+([\d.]+)%\s*(?:to|and)\s*([\d.]+)%/i);
+    const upToMatch = description.match(/up\s*to\s*([\d.]+)%/i);
+    const moreThanMatch = description.match(/more\s+than\s+([\d.]+)%/i);
 
+    if (betweenMatch) {
+        const lower = parseFloat(betweenMatch[1]);
+        const threshold = lower > 10 ? 0.10 : lower / 100;
+        return { threshold };
+    }
+    if (upToMatch) {
+        return { threshold: parseFloat(upToMatch[1]) / 100 };
+    }
     if (moreThanMatch) {
         return { threshold: parseFloat(moreThanMatch[1]) / 100 };
     }
-    if (apgRequiredThresholdMatch) {
-        return { threshold: parseFloat(apgRequiredThresholdMatch[1]) / 100 };
-    }
-    if (noApgThresholdMatch) {
-        return { threshold: parseFloat(noApgThresholdMatch[1]) / 100 };
-    }
     
-    return { threshold: 0.15 }; 
+    return { threshold: 0.10 }; 
 };
 
 
@@ -137,15 +139,18 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
     const watchAmountType = watch('amountType');
 
     useEffect(() => {
-        const contractAmount: number | null | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? undefined);
+        const baseAmount: number | null | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? tender.contractAmount ?? undefined);
 
         // Performance Guarantee logic extraction
         const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
         const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
 
-        const pg = contractAmount ? Math.ceil((contractAmount * pgRate) / 100) * 100 : 0;
-        const stamp = calculateStampPaperValue(contractAmount);
-        const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, contractAmount);
+        const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
+        const stamp = calculateStampPaperValue(baseAmount);
+
+        // Additional PG is always calculated from quoted L1/contract amount against the tender estimate amount
+        const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
+        const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
 
         if (!getValues('selectionNoticeDate')) {
             setValue('selectionNoticeDate', formatDateForInput(tender?.selectionNoticeDate) || '');
@@ -155,7 +160,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         setValue('additionalPerformanceGuaranteeAmount', additionalPg, { shouldValidate: true, shouldDirty: true });
         setValue('stampPaperAmount', stamp, { shouldValidate: true, shouldDirty: true });
 
-    }, [tender.estimateAmount, tender.selectionNoticeDate, l1Amount, watchAmountType, calculateStampPaperValue, calculateAdditionalPG, performanceGuaranteeDescription, setValue, getValues]);
+    }, [tender.estimateAmount, tender.contractAmount, tender.selectionNoticeDate, l1Amount, watchAmountType, calculateStampPaperValue, calculateAdditionalPG, performanceGuaranteeDescription, setValue, getValues]);
 
 
     const handleFormSubmit = (data: SelectionNoticeDetailsFormData) => {

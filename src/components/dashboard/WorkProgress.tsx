@@ -291,10 +291,13 @@ export default function WorkProgress({ allFileEntries, allArsEntries, onOpenDial
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateString = e.target.value;
-    const parsedDate = parse(dateString, 'yyyy-MM', new Date());
-    if (isValid(parsedDate)) {
-      setWorkReportMonth(parsedDate);
-    }
+    if (!dateString || typeof dateString !== 'string') return;
+    try {
+      const parsedDate = parse(dateString, 'yyyy-MM', new Date());
+      if (isValid(parsedDate)) {
+        setWorkReportMonth(parsedDate);
+      }
+    } catch { /* ignore */ }
   };
 
 
@@ -303,7 +306,7 @@ export default function WorkProgress({ allFileEntries, allArsEntries, onOpenDial
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex-grow">
-            <CardTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-primary" />Work Progress for {format(workReportMonth, 'MMMM yyyy')}</CardTitle>
+            <CardTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-primary" />Work Progress for {workReportMonth && isValid(workReportMonth) ? format(workReportMonth, 'MMMM yyyy') : ''}</CardTitle>
             <CardDescription>Summary of completed and ongoing work by category.</CardDescription>
           </div>
           <div className="shrink-0">
@@ -312,7 +315,7 @@ export default function WorkProgress({ allFileEntries, allArsEntries, onOpenDial
                 id="work-report-month"
                 name="workReportMonth"
                 className="w-full sm:w-[200px]" 
-                value={format(workReportMonth, 'yyyy-MM')} 
+                value={workReportMonth && isValid(workReportMonth) ? format(workReportMonth, 'yyyy-MM') : ''} 
                 onChange={handleMonthChange} 
             />
           </div>

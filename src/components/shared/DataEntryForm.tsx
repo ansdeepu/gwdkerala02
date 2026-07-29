@@ -25,7 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink } from "lucide-react";
+import PrintableReportModal, { type ReportDocType } from "../database/PrintableReportModal";
 import {
   DataEntrySchema,
   type DataEntryFormData,
@@ -645,6 +646,8 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const [reappAccordionValue, setReappAccordionValue] = useState<string>("");
   const [dialogState, setDialogState] = useState<{ type: null | 'application' | 'remittance' | 'reappropriation' | 'payment' | 'site' | 'reorderSite' | 'viewSite' | 'moveCopySite'; data: any, isView?: boolean }>({ type: null, data: null, isView: false });
   const [isReappInfoOpen, setIsReappInfoOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printModalDocType, setPrintModalDocType] = useState<ReportDocType>('completion_report');
   const [itemToDelete, setItemToDelete] = useState<{ type: 'remittance' | 'reappropriation' | 'payment' | 'site'; index: number } | null>(null);
 
   const isEditor = userRole === 'admin' || userRole === 'engineer';
@@ -1252,6 +1255,75 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                     </FormItem>
                 )} />
                 <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor} /></FormControl><FormMessage /></FormItem>} /></div></CardContent></Card>
+            
+            {/* 7. Print Section */}
+            <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-xl flex items-center justify-between flex-wrap gap-2">
+                        <span className="flex items-center gap-2 text-primary font-bold">
+                            <Printer className="h-5 w-5" />
+                            {finalDetailsSectionNumber + 1}. Print Reports & Bills
+                        </span>
+                        <Button
+                            type="button"
+                            variant="default"
+                            onClick={() => setIsPrintModalOpen(true)}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                        >
+                            <Printer className="h-4 w-4" /> Open Print Reports / Bills
+                        </Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                        Generate and print official Completion Reports, Final Bills, Sanction Proceedings, Utilization Certificates, and Cover Letters for this file entry.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPrintModalDocType('completion_report'); setIsPrintModalOpen(true); }}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
+                        </Button>
+                        {watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC') && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('final_bill'); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
+                            </Button>
+                        )}
+                        {currentModuleKey === 'private' ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('proceedings'); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Sanction Proceedings
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('utilization_certificate'); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Utilization Certificate
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting}>
                     <X className="mr-2 h-4 w-4" /> Close
@@ -1310,6 +1382,16 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {isPrintModalOpen && (
+          <PrintableReportModal
+            isOpen={isPrintModalOpen}
+            onClose={() => setIsPrintModalOpen(false)}
+            entry={watch()}
+            moduleType={currentModuleKey}
+            initialDocType={printModalDocType}
+          />
+        )}
       </div>
     </FormProvider>
   );

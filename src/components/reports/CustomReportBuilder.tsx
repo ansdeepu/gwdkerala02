@@ -73,6 +73,7 @@ const reportableFields = [
     { id: 'yieldDischarge', label: 'Yield/Discharge (LPH)', sources: ['deposit', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'], accessor: (entry: any) => entry.yieldDischarge },
     { id: 'zoneDetails', label: 'Zone Details', sources: ['deposit', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'], accessor: (entry: any) => entry.zoneDetails },
     { id: 'waterLevel', label: 'Static Water Level (m)', sources: ['deposit', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'], accessor: (entry: any) => entry.waterLevel },
+    { id: 'endCap', label: 'End Cap', sources: ['deposit', 'private', 'collector', 'planFund'], accessor: (entry: any) => entry.endCap },
     { id: 'drillingRemarks', label: 'Drilling Remarks', sources: ['deposit', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'], accessor: (entry: any) => entry.drillingRemarks },
     { id: 'developingRemarks', label: 'Developing Remarks', sources: ['deposit', 'private', 'collector', 'planFund'], accessor: (entry: any) => entry.developingRemarks },
     { id: 'schemeRemarks', label: 'Scheme Remarks', sources: ['deposit', 'private', 'collector', 'planFund'], accessor: (entry: any) => entry.schemeRemarks },

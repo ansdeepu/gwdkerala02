@@ -73,7 +73,7 @@ export const defaultRateDescriptions: Record<RateDescriptionId, string> = {
     tenderFee: "For Works:\n- Up to Rs 1 Lakh: No Fee\n- Over 1 Lakh up to 10 Lakhs: Rs 500\n- Over 10 Lakhs up to 50 Lakhs: Rs 2500\n- Over 50 Lakhs up to 1 Crore: Rs 5000\n- Above 1 Crore: Rs 10000\n\nFor Purchase:\n- Up to Rs 1 Lakh: No Fee\n- Over 1 Lakh up to 10 Lakhs: Rs 800\n- Over 10 Lakhs up to 25 Lakhs: Rs 1600\n- Above 25 Lakhs: Rs 3000",
     emd: "For Works:\n- Up to Rs. 2 Crore: 2.5% of the project cost, subject to a maximum of Rs. 50,000\n- Above Rs. 2 Crore up to Rs. 5 Crore: Rs. 1 Lakh\n- Above Rs. 5 Crore up to Rs. 10 Crore: Rs. 2 Lakh\n- Above Rs. 10 Crore: Rs. 5 Lakh\n\nFor Purchase:\n- Up to 2 Crore: 1.00% of the project cost\n- Above 2 Crore: No EMD",
     performanceGuarantee: "Performance Guarantee, the amount collected at the time of executing contract agreement will be 5% of the contract value (agreed PAC) and the deposit will be retained till the expiry of Defect Liability Period.",
-    additionalPerformanceGuarantee: "Additional Performance Security for abnormally low quoted tenders will be collected at the time of executing contract agreement from the successful tenderer if the tender is below the estimate cost by more than 15%.",
+    additionalPerformanceGuarantee: "Additional Performance Guarantee is the additional amount to be deposited for unbalanced price ie, for works quoted below estimate rate. Government decided to do away with additional performance guarantee for all works quoted below upto 10% of the estimate rate. Additional performance guarantee will be required if works quoted between 11% to 25% below estimate rate.",
     stampPaper: "For agreements or memorandums, stamp duty shall be ₹100 for every ₹1,00,000 (or part) of the contract amount, subject to a minimum of ₹200.",
 };
 
@@ -201,13 +201,20 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     const descriptions: Partial<Record<RateDescriptionId, string>> = {};
                     const details: Record<RateDescriptionId, RateDescriptionDetail> = {} as Record<RateDescriptionId, RateDescriptionDetail>;
 
-                    snapshot.docs.forEach(doc => {
-                        const data = doc.data();
-                        const id = doc.id as RateDescriptionId;
-                        descriptions[id] = data.description || '';
+                    snapshot.docs.forEach(docSnap => {
+                        const data = docSnap.data();
+                        const id = docSnap.id as RateDescriptionId;
+                        let desc = data.description || '';
+                        
+                        // If stored description in Firestore is the legacy text (15%), automatically update in memory to new standard
+                        if (id === 'additionalPerformanceGuarantee' && (desc.includes('15%') || !desc.includes('10%'))) {
+                            desc = defaultRateDescriptions.additionalPerformanceGuarantee;
+                        }
+
+                        descriptions[id] = desc;
                         
                         details[id] = {
-                            description: data.description || '',
+                            description: desc,
                             rate: data.rate || '',
                             orderNo: data.orderNo || '',
                             orderDate: data.orderDate instanceof Timestamp ? data.orderDate.toDate() : undefined,
@@ -222,6 +229,18 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                                 updatedAt: h.updatedAt instanceof Timestamp ? h.updatedAt.toDate() : (h.updatedAt ? new Date(h.updatedAt) : new Date()),
                             })) : []
                         };
+                    });
+
+                    // Ensure all default rate IDs have entries in details
+                    (Object.keys(defaultRateDescriptions) as RateDescriptionId[]).forEach(id => {
+                        if (!details[id] || !details[id].description) {
+                            details[id] = {
+                                description: defaultRateDescriptions[id],
+                                rate: '',
+                                orderNo: '',
+                                history: []
+                            };
+                        }
                     });
 
                     setAllRateDescriptions((prev: Record<RateDescriptionId, string>) => ({ ...defaultRateDescriptions, ...prev, ...descriptions }));
