@@ -50,7 +50,8 @@ export default function PrivateDepositWorksPage() {
   const searchTerm = searchTerms['private'] || "";
   const setSearchTerm = (term: string) => setModuleSearchTerm('private', term);
 
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "pre-execution");
+  const initialTab = searchParams?.get('tab');
+  const [activeTab, setActiveTab] = useState(initialTab === 'tender-stage' ? 'pre-execution' : (initialTab || "pre-execution"));
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -177,8 +178,7 @@ export default function PrivateDepositWorksPage() {
 
   const { groups, counts } = useMemo(() => {
       const pre = searchFilteredEntries.filter(e => e.fileStatus === 'File Under Process');
-      const tender = searchFilteredEntries.filter(e => e.fileStatus === 'Tender Process');
-      const exec = searchFilteredEntries.filter(e => ["Work Initiated", "Partially Completed"].includes(e.fileStatus as string));
+      const exec = searchFilteredEntries.filter(e => ["Work Initiated", "Partially Completed", "Tender Process"].includes(e.fileStatus as string));
       const comp = searchFilteredEntries.filter(e => ["Fully Completed", "Fully Disputed", "Fully Completed Except Disputed"].includes(e.fileStatus as string));
       
       const isZero = (val: any) => {
@@ -200,7 +200,6 @@ export default function PrivateDepositWorksPage() {
       return {
           groups: {
               "pre-execution": pre,
-              "tender-stage": tender,
               "execution": exec,
               "completed": comp,
               "closed-pending": closedPending,
@@ -208,7 +207,6 @@ export default function PrivateDepositWorksPage() {
           },
           counts: {
               pre: pre.length,
-              tender: tender.length,
               exec: exec.length,
               comp: comp.length,
               closedPending: closedPending.length,
@@ -289,9 +287,6 @@ export default function PrivateDepositWorksPage() {
                 <TabsList className="flex flex-wrap w-full h-auto p-1 bg-muted/50 justify-start gap-1">
                     <TabsTrigger value="pre-execution" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
                         Pre-Execution <Badge variant="secondary" className="ml-1">{counts.pre || 0}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="tender-stage" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
-                        Tender Stage <Badge variant="secondary" className="ml-1">{counts.tender || 0}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="execution" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
                         Execution <Badge variant="secondary" className="ml-1">{counts.exec || 0}</Badge>

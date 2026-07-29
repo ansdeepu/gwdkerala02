@@ -695,12 +695,8 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const isSpecialWorkType = workTypeContext === 'public' || workTypeContext === 'collector' || workTypeContext === 'private' || workTypeContext === 'planFund';
 
     const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Pending", "VES Pending"];
-    const tenderingGroup = isSpecialWorkType 
-      ? ["Tendered", "Selection Notice Issued", "Work Order Issued", "Department Rig Allotted"]
-      : ["Tendered", "Selection Notice Issued", "Work Order Issued"];
-    const executionGroup = isSpecialWorkType
-      ? ["Work in Progress", "Work Initiated"]
-      : ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
+    const tenderingGroup = ["Tendered", "Selection Notice Issued", "Work Order Issued"];
+    const executionGroup = ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
     const completionGroup = ["Work Failed", "Work Completed", "Completed"];
     const disputeGroup = ["Work Cancelled", "Refund Pending", "To be Refunded"];
     
@@ -1264,14 +1260,6 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                             <Printer className="h-5 w-5" />
                             {finalDetailsSectionNumber + 1}. Print Reports & Bills
                         </span>
-                        <Button
-                            type="button"
-                            variant="default"
-                            onClick={() => setIsPrintModalOpen(true)}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                        >
-                            <Printer className="h-4 w-4" /> Open Print Reports / Bills
-                        </Button>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
