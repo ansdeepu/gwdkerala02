@@ -86,25 +86,14 @@ const calculateFeeForYear = (baseAmount: number, baseYear: number, targetYear: n
     return fee;
 };
 
-const calculateRenewalFee = (baseAmount: number, renewalNum: number) => {
-    let fee = baseAmount;
-    const roundUpToNearest10 = (num: number) => Math.ceil(num / 10) * 10;
-    
-    for (let i = 1; i < renewalNum; i++) {
-        fee = roundUpToNearest10(fee * 1.05);
-    }
-    return fee;
-};
-
 
 // Fee Details Dialog Component
 const RigFeeDetailsContent = () => {
     const currentYear = new Date().getFullYear();
     const [selectedRegYear, setSelectedRegYear] = useState<number>(currentYear);
-    const [selectedRenewalNum, setSelectedRenewalNum] = useState<number>(1);
+    const [selectedRenewalYear, setSelectedRenewalYear] = useState<number>(currentYear);
 
     const registrationYears = Array.from({ length: 28 }, (_, i) => 2023 + i); // 2023 to 2050
-    const renewalNumbers = Array.from({ length: 30 }, (_, i) => i + 1);
     
     const staticFees = [
         { description: 'Application Fee - Agency Registration', amount: 1000 },
@@ -120,8 +109,8 @@ const RigFeeDetailsContent = () => {
     ];
     
     const renewalFeeItems = [
-        { description: 'Rig Registration Renewal Fee - DTH, Rotary, Dismantling Rig, Calyx', baseAmount: 6000 },
-        { description: 'Rig Registration Renewal Fee - Filterpoint, Hand bore', baseAmount: 3000 },
+        { description: 'Rig Registration Renewal Fee - DTH, Rotary, Dismantling Rig, Calyx', baseAmount: 6000, baseYear: 2023 },
+        { description: 'Rig Registration Renewal Fee - Filterpoint, Hand bore', baseAmount: 3000, baseYear: 2023 },
     ];
     
     return (
@@ -199,13 +188,13 @@ const RigFeeDetailsContent = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-4 mb-4">
-                        <Label htmlFor="renewal-num-select" className="shrink-0">Select Renewal:</Label>
-                        <Select value={String(selectedRenewalNum)} onValueChange={(val) => setSelectedRenewalNum(Number(val))}>
-                            <SelectTrigger id="renewal-num-select" className="w-[180px]">
-                                <SelectValue placeholder="Select Renewal No." />
+                        <Label htmlFor="renewal-year-select" className="shrink-0">Select Year:</Label>
+                        <Select value={String(selectedRenewalYear)} onValueChange={(val) => setSelectedRenewalYear(Number(val))}>
+                            <SelectTrigger id="renewal-year-select" className="w-[180px]">
+                                <SelectValue placeholder="Select Year" />
                             </SelectTrigger>
                             <SelectContent>
-                                {renewalNumbers.map(num => <SelectItem key={num} value={String(num)}>{num}{num === 1 ? 'st' : num === 2 ? 'nd' : num === 3 ? 'rd' : 'th'} Renewal</SelectItem>)}
+                                {registrationYears.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -214,7 +203,7 @@ const RigFeeDetailsContent = () => {
                             <TableHeader className="sticky top-0 bg-secondary/80 backdrop-blur-sm">
                                 <TableRow>
                                     <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">Fee for Renewal #{selectedRenewalNum}</TableHead>
+                                    <TableHead className="text-right">Fee for {selectedRenewalYear}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -222,7 +211,7 @@ const RigFeeDetailsContent = () => {
                                     <TableRow key={item.description}>
                                         <TableCell>{item.description}</TableCell>
                                         <TableCell className="text-right font-mono">
-                                            {calculateRenewalFee(item.baseAmount, selectedRenewalNum).toLocaleString('en-IN')}
+                                            {calculateFeeForYear(item.baseAmount, item.baseYear, selectedRenewalYear).toLocaleString('en-IN')}
                                         </TableCell>
                                     </TableRow>
                                 ))}

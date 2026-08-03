@@ -426,7 +426,7 @@ const RigAccordionItem = ({
             onClick={() => {
               const rigs = form.getValues('rigs') || [];
               const realId = rigs[index]?.id || field.id;
-              window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=registration`, '_blank', 'noopener,noreferrer');
+              window.location.href = `/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=registration`;
             }}
           >
             <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Reg. Checklist (ML)
@@ -671,7 +671,7 @@ const RigAccordionItem = ({
                                                             e.stopPropagation(); 
                                                             const rigs = form.getValues('rigs') || [];
                                                             const realId = rigs[index]?.id || field.id;
-                                                            window.open(`/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=renewal&renewalId=${renewal.id}`, '_blank', 'noopener,noreferrer'); 
+                                                            window.location.href = `/dashboard/agency-registration/print-checklist?id=${applicationId}&rigId=${realId}&type=renewal&renewalId=${renewal.id}`; 
                                                         }}
                                                     >
                                                         <Printer className="h-3.5 w-3.5 text-emerald-600"/>

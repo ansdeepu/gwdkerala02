@@ -648,6 +648,22 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const [isReappInfoOpen, setIsReappInfoOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printModalDocType, setPrintModalDocType] = useState<ReportDocType>('completion_report');
+
+  useEffect(() => {
+    const printModalParam = searchParams.get("printModal");
+    const docTypeParam = searchParams.get("docType") as ReportDocType | null;
+    const tabParam = searchParams.get("tab");
+    if (printModalParam === "true" || tabParam === "completion_report" || tabParam === "final_bill" || tabParam === "proceedings" || tabParam === "utilization_certificate") {
+      if (docTypeParam) {
+        setPrintModalDocType(docTypeParam);
+      } else if (tabParam && tabParam !== "print" && tabParam !== "compl") {
+        setPrintModalDocType(tabParam as ReportDocType);
+      } else if (tabParam?.startsWith("compl")) {
+        setPrintModalDocType("completion_report");
+      }
+      setIsPrintModalOpen(true);
+    }
+  }, [searchParams]);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'remittance' | 'reappropriation' | 'payment' | 'site'; index: number } | null>(null);
 
   const isEditor = userRole === 'admin' || userRole === 'engineer';
@@ -1057,6 +1073,45 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     return { activeSites: active, closedSites: closed, totalActiveEstimate: activeEstimateSum };
   }, [siteFields]);
 
+  if (isPrintModalOpen) {
+    return (
+      <FormProvider {...form}>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 print:hidden no-print">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPrintModalOpen(false)}
+              className="gap-1 bg-white hover:bg-slate-50 border-slate-200"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>Back to Form Entry</span>
+            </Button>
+            <span className="text-xs text-muted-foreground italic">
+              Editing values inline below updates the document in real-time. Click Save to apply changes back to the main form.
+            </span>
+          </div>
+          
+          <PrintableReportModal
+            isOpen={isPrintModalOpen}
+            onClose={() => setIsPrintModalOpen(false)}
+            entry={watch()}
+            moduleType={currentModuleKey}
+            initialDocType={printModalDocType}
+            isFullPage={true}
+            onSave={(updatedEntry) => {
+              if (updatedEntry.siteDetails) {
+                setValue('siteDetails', updatedEntry.siteDetails, { shouldDirty: true });
+              }
+              toast({ title: "Report updates saved back to form!" });
+            }}
+          />
+        </div>
+      </FormProvider>
+    );
+  }
+
   return (
     <FormProvider {...form}>
       <div>
@@ -1371,15 +1426,6 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
           </DialogContent>
         </Dialog>
 
-        {isPrintModalOpen && (
-          <PrintableReportModal
-            isOpen={isPrintModalOpen}
-            onClose={() => setIsPrintModalOpen(false)}
-            entry={watch()}
-            moduleType={currentModuleKey}
-            initialDocType={printModalDocType}
-          />
-        )}
       </div>
     </FormProvider>
   );

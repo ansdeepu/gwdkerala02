@@ -3,12 +3,13 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { format, addYears, isValid, parseISO, isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { printDocument } from '@/lib/print-utils';
 import { getFirestore, collectionGroup, query, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import type { AgencyApplication } from '@/hooks/useAgencyApplications';
@@ -31,6 +32,7 @@ const toDateOrNull = (value: any): Date | null => {
 };
 
 export default function AgencyExpiryPrintPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
     const lang = searchParams.get('lang') || 'en';
@@ -136,7 +138,7 @@ export default function AgencyExpiryPrintPage() {
 
     return (
         <div className="bg-white p-0 sm:p-8 print:h-auto print:p-0 print:m-0">
-            <div className="max-w-4xl mx-auto border bg-white shadow-sm p-12 text-black font-serif print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
+            <div id="print-letter-content" className="max-w-4xl mx-auto border bg-white shadow-sm p-12 text-black font-serif print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
                 
                 {/* Header */}
                 <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-8">
@@ -154,22 +156,22 @@ export default function AgencyExpiryPrintPage() {
                 {/* From / To */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="space-y-1 text-left">
-                        <p className="font-bold text-xs uppercase text-muted-foreground mb-1">From:</p>
+                        <p className="font-bold text-xs uppercase text-black mb-1">From:</p>
                         <p className="font-bold text-sm">The District Officer</p>
                         <p className="text-sm">Ground Water Department</p>
                         <p className="text-sm capitalize">{officeAddress?.officeLocation || ''}</p>
                     </div>
                     <div className="space-y-1 text-left">
-                        <p className="font-bold text-xs uppercase text-muted-foreground mb-1">To:</p>
+                        <p className="font-bold text-xs uppercase text-black mb-1">To:</p>
                         <div className="space-y-4">
                             <div>
-                                {data.ownerNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm">{data.ownerNameMalayalam}</p>}
-                                <p className={data.ownerNameMalayalam ? "text-xs whitespace-pre-wrap text-muted-foreground" : "font-bold whitespace-pre-wrap text-sm"}>{data.ownerName}</p>
-                                {data.ownerAddress && <p className="text-sm whitespace-pre-wrap">{data.ownerAddress}</p>}
+                                {data.ownerNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm text-black">{data.ownerNameMalayalam}</p>}
+                                <p className={data.ownerNameMalayalam ? "text-xs whitespace-pre-wrap text-black" : "font-bold whitespace-pre-wrap text-sm text-black"}>{data.ownerName}</p>
+                                {data.ownerAddress && <p className="text-sm whitespace-pre-wrap text-black">{data.ownerAddress}</p>}
                             </div>
                             <div>
-                                {data.agencyNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm">{data.agencyNameMalayalam}</p>}
-                                <p className={data.agencyNameMalayalam ? "text-xs whitespace-pre-wrap text-muted-foreground" : "font-bold whitespace-pre-wrap text-sm"}>{data.agencyName}</p>
+                                {data.agencyNameMalayalam && <p className="font-bold whitespace-pre-wrap text-sm text-black">{data.agencyNameMalayalam}</p>}
+                                <p className={data.agencyNameMalayalam ? "text-xs whitespace-pre-wrap text-black" : "font-bold whitespace-pre-wrap text-sm text-black"}>{data.agencyName}</p>
                             </div>
                         </div>
                     </div>
@@ -276,11 +278,11 @@ export default function AgencyExpiryPrintPage() {
 
                 {/* Print Controls */}
                 <div className="fixed bottom-6 right-6 no-print flex gap-2">
-                    <Button onClick={() => window.print()} className="shadow-lg">
+                    <Button onClick={() => printDocument('print-letter-content', 'Agency Registration Renewal Letter')} className="shadow-lg">
                         <Printer className="mr-2 h-4 w-4" /> Print Letter
                     </Button>
-                    <Button variant="outline" onClick={() => window.close()} className="shadow-lg">
-                        Close
+                    <Button variant="outline" onClick={() => router.back()} className="shadow-lg">
+                        Back
                     </Button>
                 </div>
             </div>

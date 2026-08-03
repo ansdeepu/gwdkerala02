@@ -7,7 +7,9 @@ import { useTenderData } from '@/components/e-tender/TenderDataContext';
 import { formatDateSafe, formatTenderNoForFilename } from '@/components/e-tender/utils';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
-import { Printer, X } from 'lucide-react';
+import { Copy, Printer, X } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { printDocument } from '@/lib/print-utils';
 
 const capitalize = (s?: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
@@ -506,7 +508,61 @@ export default function WorkAgreementPrintPage() {
     const clauses = lang === 'en' ? clausesEn : clausesMl;
 
     const handlePrint = () => {
-        window.print();
+        printDocument('print-sheet', document.title || 'Work Agreement');
+    };
+
+    const handleCopyRichHtml = async () => {
+        const el = document.getElementById('print-sheet');
+        if (!el) {
+            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const contentHtml = el.innerHTML;
+            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 11pt; line-height: 1.5; color: #000000;">${contentHtml}</div></body></html>`;
+            const plainText = el.innerText;
+
+            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
+                const textBlob = new Blob([plainText], { type: 'text/plain' });
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': htmlBlob,
+                        'text/plain': textBlob,
+                    })
+                ]);
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Work Agreement copied in Rich HTML format. You can paste it into Word or email.",
+                });
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const selection = window.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            const success = document.execCommand('copy');
+            selection?.removeAllRanges();
+
+            if (success) {
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Work Agreement copied to clipboard.",
+                });
+            } else {
+                throw new Error("Copy command failed");
+            }
+        } catch (err: any) {
+            console.error("Rich HTML copy error:", err);
+            toast({
+                title: "Copy Failed",
+                description: "Could not copy automatically. Please select text manually to copy.",
+                variant: "destructive",
+            });
+        }
     };
 
     return (
@@ -640,6 +696,10 @@ export default function WorkAgreementPrintPage() {
                             </Button>
                         </div>
 
+                        <Button variant="outline" onClick={handleCopyRichHtml} className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                            <Copy className="h-4 w-4" />
+                            Copy (Rich HTML)
+                        </Button>
                         <Button onClick={handlePrint} className="flex items-center gap-2">
                             <Printer className="h-4 w-4" />
                             Print Agreement
@@ -976,7 +1036,7 @@ export default function WorkAgreementPrintPage() {
                     </div>
                 </div>
             </div>
-            <div className="fixed bottom-4 right-4 no-print flex gap-2">
+            <div className="fixed bottom-4 right-4 no-print flex gap-2 bg-white/95 p-2 rounded-lg border shadow-lg backdrop-blur z-50">
                 <Button 
                     variant="outline" 
                     onClick={() => {
@@ -993,7 +1053,14 @@ export default function WorkAgreementPrintPage() {
                 >
                     Close
                 </Button>
-                <Button onClick={() => window.print()}>Print</Button>
+                <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                    <Copy className="h-4 w-4" />
+                    Copy (Rich HTML)
+                </Button>
+                <Button onClick={handlePrint} className="gap-1.5">
+                    <Printer className="h-4 w-4" />
+                    Print
+                </Button>
             </div>
         </div>
     );

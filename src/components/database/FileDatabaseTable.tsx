@@ -105,7 +105,7 @@ export default function FileDatabaseTable({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { deleteFileEntry, addFileEntry, moveCopyFile } = useFileEntries(); 
+  const { deleteFileEntry, addFileEntry, moveCopyFile, updateFileEntry } = useFileEntries(); 
   const { user, authIsLoading } = useAuth() as any;
   const { allFileEntries } = useDataStore();
 
@@ -398,6 +398,12 @@ export default function FileDatabaseTable({
         onClose={() => setSelectedPrintEntry(null)}
         entry={selectedPrintEntry}
         moduleType={currentModule}
+        onSave={async (updatedEntry) => {
+          if (updatedEntry.id) {
+            await updateFileEntry(updatedEntry.id, updatedEntry);
+            setSelectedPrintEntry(updatedEntry);
+          }
+        }}
       />
     </>
   );

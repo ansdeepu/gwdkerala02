@@ -9,6 +9,9 @@ import { useDataStore, defaultRateDescriptions } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
 import { usePageHeader } from '@/hooks/usePageHeader';
 import { isValid } from 'date-fns';
+import { Copy, Printer } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { printDocument } from '@/lib/print-utils';
 
 const parseStampPaperLogic = (description: string) => {
     const rateBasisMatch = description.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
@@ -155,18 +158,72 @@ export default function SelectionNoticePrintPage() {
                 const additionalPerformanceGuaranteeStr = additionalPerformanceGuarantee.toLocaleString('en-IN');
     
                 return (
-                     <p className="leading-relaxed text-justify indent-8">
-                        മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span className="font-semibold">{quotedAmountStr}/-</span> രൂപയുടെ <span className="font-semibold">5%</span> തുകയായ <span className="font-semibold">{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും, അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരന്റിയായി എസ്റ്റിമേറ്റ് തുകയുടെ <span className="font-semibold">{excessPercentageText}%</span> തുകയായ <span className="font-semibold">{additionalPerformanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span className="font-semibold">{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെന്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
+                     <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                        മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span style={{ fontWeight: 'bold' }}>{quotedAmountStr}/-</span> രൂപയുടെ <span style={{ fontWeight: 'bold' }}>5%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും, അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരന്റിയായി എസ്റ്റിമേറ്റ് തുകയുടെ <span style={{ fontWeight: 'bold' }}>{excessPercentageText}%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{additionalPerformanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെന്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                     </p>
                 );
             }
     
             return (
-                <p className="leading-relaxed text-justify indent-8">
-                    മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span className="font-semibold">{quotedAmountStr}/-</span> രൂപയുടെ <span className="font-semibold">5%</span> തുകയായ <span className="font-semibold">{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായി ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span className="font-semibold">{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെൻ്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
+                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                    മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span style={{ fontWeight: 'bold' }}>{quotedAmountStr}/-</span> രൂപയുടെ <span style={{ fontWeight: 'bold' }}>5%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായി ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെൻ്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                 </p>
             );
         };
+
+    const handleCopyRichHtml = async () => {
+        const el = document.getElementById('selection-notice-content');
+        if (!el) {
+            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const contentHtml = el.innerHTML;
+            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 12pt; line-height: 1.6; color: #000000;">${contentHtml}</div></body></html>`;
+            const plainText = el.innerText;
+
+            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
+                const textBlob = new Blob([plainText], { type: 'text/plain' });
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': htmlBlob,
+                        'text/plain': textBlob,
+                    })
+                ]);
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Selection Notice copied in Rich HTML format. You can paste it into Word or email.",
+                });
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const selection = window.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            const success = document.execCommand('copy');
+            selection?.removeAllRanges();
+
+            if (success) {
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Selection Notice copied to clipboard.",
+                });
+            } else {
+                throw new Error("Copy command failed");
+            }
+        } catch (err: any) {
+            console.error("Rich HTML copy error:", err);
+            toast({
+                title: "Copy Failed",
+                description: "Could not copy automatically. Please select text manually to copy.",
+                variant: "destructive",
+            });
+        }
+    };
 
     return (
         <div className="-m-6 bg-white min-h-screen print:min-h-0 print:bg-transparent print:m-0">
@@ -186,64 +243,85 @@ export default function SelectionNoticePrintPage() {
                     }
                 }
             `}} />
-            <div className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed">
-              <div className="text-center">
-                  <h1 className="font-bold underline">{`"ഭരണഭാഷ-മാതൃഭാഷ"`}</h1>
+            <div id="selection-notice-content" className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000' }}>
+              <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
+                  &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
               
-              <div className="flex justify-between pt-2 print:pt-1">
-                  <div>
-                      <p>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
-                      <p>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
-                  </div>
-                  <div className="text-right">
-                      <p className="whitespace-pre-wrap">{(officeAddress?.officeNameMalayalam || '').replace('ഭൂജലവകുപ്പ്', '').replace(',', '').trim()}</p>
-                      <p className="whitespace-pre-wrap">{officeAddress?.addressMalayalam || ''}</p>
-                      <p>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
-                      <p>ഇമെയിൽ: {officeAddress?.email || ''}</p>
-                      <p>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
-                  </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '8px', marginBottom: '16px' }}>
+                  <tbody>
+                      <tr>
+                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5' }}>
+                              <p style={{ margin: 0, padding: 0 }}>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
+                              <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
+                          </td>
+                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5' }}>
+                              <p style={{ margin: 0, padding: 0 }}>{(officeAddress?.officeNameMalayalam || '').replace('ഭൂജലവകുപ്പ്', '').replace(',', '').trim()}</p>
+                              <p style={{ margin: 0, padding: 0 }}>{officeAddress?.addressMalayalam || ''}</p>
+                              <p style={{ margin: 0, padding: 0 }}>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
+                              <p style={{ margin: 0, padding: 0 }}>ഇമെയിൽ: {officeAddress?.email || ''}</p>
+                              <p style={{ margin: 0, padding: 0 }}>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
+
+              <div style={{ marginTop: '16px', fontSize: '12pt' }}>
+                  <p style={{ margin: 0, padding: 0 }}>പ്രേഷകൻ</p>
+                  <p style={{ margin: '0 0 0 32px', padding: 0 }}>ജില്ലാ ആഫീസർ</p>
               </div>
 
-              <div className="pt-6 print:pt-2">
-                  <p>പ്രേഷകൻ</p>
-                  <p className="ml-8">ജില്ലാ ആഫീസർ</p>
-              </div>
-
-              <div className="pt-2 print:pt-1">
-                  <p>സ്വീകർത്താവ്</p>
-                  <div className="ml-8 whitespace-pre-wrap min-h-[6rem] print:min-h-0">
-                      <p className="text-2xl print:text-lg font-semibold">{l1Bidder?.name || '____________________'}</p>
-                      <p className="text-2xl print:text-lg">{l1Bidder?.address || '____________________'}</p>
-                  </div>
-              </div>
-              
-              <div className="pt-2 print:pt-1">
-                  <p>സർ,</p>
-              </div>
-
-              <div className="space-y-2 print:space-y-1 pt-2 print:pt-1">
-                  <div className="grid grid-cols-[auto,1fr] gap-x-2">
-                      <span>വിഷയം:</span>
-                      <span className="text-justify">{tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.</span>
-                  </div>
-                  <div className="grid grid-cols-[auto,1fr] gap-x-2">
-                      <span>സൂചന:</span>
-                      <span>ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}</span>
+              <div style={{ marginTop: '12px', fontSize: '12pt' }}>
+                  <p style={{ margin: 0, padding: 0 }}>സ്വീകർത്താവ്</p>
+                  <div style={{ margin: '0 0 0 32px', padding: 0, minHeight: '60px' }}>
+                      <p style={{ margin: 0, padding: 0, fontSize: '13pt', fontWeight: 'bold' }}>{l1Bidder?.name || '____________________'}</p>
+                      <p style={{ margin: 0, padding: 0, fontSize: '12pt' }}>{l1Bidder?.address || '____________________'}</p>
                   </div>
               </div>
               
-              <div className="pt-2 print:pt-1">
+              <div style={{ marginTop: '12px', fontSize: '12pt' }}>
+                  <p style={{ margin: 0, padding: 0 }}>സർ,</p>
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
+                  <tbody>
+                      <tr>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', paddingRight: '8px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                              വിഷയം:
+                          </td>
+                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5' }}>
+                              {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.
+                          </td>
+                      </tr>
+                      <tr>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', paddingRight: '8px', paddingTop: '6px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                              സൂചന:
+                          </td>
+                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', paddingTop: '6px' }}>
+                              ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
+              
+              <div style={{ marginTop: '12px' }}>
                   <MainContent />
               </div>
               
-              <div className="pt-10 print:pt-4 text-right">
-                  <p>വിശ്വസ്തതയോടെ</p>
-                  <div className="h-16 print:h-20" />
-                  <p className="font-semibold">ജില്ലാ ഓഫീസർ</p>
-              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '40px', fontSize: '12pt' }}>
+                  <tbody>
+                      <tr>
+                          <td style={{ width: '50%' }}></td>
+                          <td align="right" valign="top" style={{ width: '50%', textAlign: 'right', verticalAlign: 'top' }}>
+                              <p style={{ margin: 0, padding: 0 }}>വിശ്വസ്തതയോടെ</p>
+                              <div style={{ height: '50px' }}></div>
+                              <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>ജില്ലാ ഓഫീസർ</p>
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
           </div>
-            <div className="fixed bottom-4 right-4 no-print flex gap-2">
+            <div className="fixed bottom-4 right-4 no-print flex gap-2 bg-white/95 p-2 rounded-lg border shadow-lg backdrop-blur z-50">
                 <Button 
                     variant="outline" 
                     onClick={() => {
@@ -260,7 +338,14 @@ export default function SelectionNoticePrintPage() {
                 >
                     Close
                 </Button>
-                <Button onClick={() => window.print()}>Print</Button>
+                <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                    <Copy className="h-4 w-4" />
+                    Copy (Rich HTML)
+                </Button>
+                <Button onClick={() => printDocument('selection-notice-content', document.title || 'Selection Notice')} className="gap-1.5">
+                    <Printer className="h-4 w-4" />
+                    Print
+                </Button>
             </div>
         </div>
     );

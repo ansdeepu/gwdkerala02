@@ -9,6 +9,9 @@ import { useDataStore } from '@/hooks/use-data-store';
 import type { StaffMember } from '@/lib/schemas';
 import { numberToWords } from '@/components/e-tender/pdf/generators/utils';
 import { Button } from '@/components/ui/button';
+import { Copy, Printer } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { printDocument } from '@/lib/print-utils';
 
 export default function SupplyOrderPrintPage() {
     const router = useRouter();
@@ -56,85 +59,164 @@ export default function SupplyOrderPrintPage() {
         return clean;
     };
 
+    const handleCopyRichHtml = async () => {
+        const el = document.getElementById('supply-order-content');
+        if (!el) {
+            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const contentHtml = el.innerHTML;
+            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.4; color: #000000;">${contentHtml}</div></body></html>`;
+            const plainText = el.innerText;
+
+            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
+                const textBlob = new Blob([plainText], { type: 'text/plain' });
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': htmlBlob,
+                        'text/plain': textBlob,
+                    })
+                ]);
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Supply Order copied in Rich HTML format. You can paste it into Word or email.",
+                });
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const selection = window.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            const success = document.execCommand('copy');
+            selection?.removeAllRanges();
+
+            if (success) {
+                toast({
+                    title: "Copied Rich HTML!",
+                    description: "Supply Order copied to clipboard.",
+                });
+            } else {
+                throw new Error("Copy command failed");
+            }
+        } catch (err: any) {
+            console.error("Rich HTML copy error:", err);
+            toast({
+                title: "Copy Failed",
+                description: "Could not copy automatically. Please select text manually to copy.",
+                variant: "destructive",
+            });
+        }
+    };
+
     return (
         <div className="-m-6 bg-white min-h-screen">
-          <div className="max-w-5xl mx-auto p-12 text-black" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.4' }}>
+          <div id="supply-order-content" className="max-w-5xl mx-auto p-12 text-black" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.4' }}>
             {/* Page 1 & 2 combined */}
             <div className="space-y-4">
-                <div className="flex justify-between">
-                    <div>
-                        <p>File No. {officeAddress?.officeCode || 'GKT'}/{tender.fileNo || '__________'}</p>
-                        <p>Tender No. {tender.eTenderNo || '__________'}</p>
-                    </div>
-                    <div className="text-right">
-                        <p>Office of the District Officer</p>
-                        <p>Ground Water Department</p>
-                        {(() => {
-                            const raw = officeAddress?.address || '';
-                            const clean = cleanAddress(raw);
-                            if (clean.includes("High School Junction")) {
-                                return (
-                                    <>
-                                        <p>High School Junction</p>
-                                        <p>Thevally P. O, Kollam - 691009</p>
-                                    </>
-                                );
-                            }
-                            return <p>{clean}</p>;
-                        })()}
-                        <p>Phone: {officeAddress?.phoneNo || ''}</p>
-                        <p>Email: {officeAddress?.email || ''}</p>
-                        <p>Date: {formatDateSafe(tender.dateWorkOrder) || '__________'}</p>
-                    </div>
-                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '8px', marginBottom: '16px' }}>
+                    <tbody>
+                        <tr>
+                            <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5' }}>
+                                <p style={{ margin: 0, padding: 0 }}>File No. {officeAddress?.officeCode || 'GKT'}/{tender.fileNo || '__________'}</p>
+                                <p style={{ margin: 0, padding: 0 }}>Tender No. {tender.eTenderNo || '__________'}</p>
+                            </td>
+                            <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5' }}>
+                                <p style={{ margin: 0, padding: 0 }}>Office of the District Officer</p>
+                                <p style={{ margin: 0, padding: 0 }}>Ground Water Department</p>
+                                {(() => {
+                                    const raw = officeAddress?.address || '';
+                                    const clean = cleanAddress(raw);
+                                    if (clean.includes("High School Junction")) {
+                                        return (
+                                            <>
+                                                <p style={{ margin: 0, padding: 0 }}>High School Junction</p>
+                                                <p style={{ margin: 0, padding: 0 }}>Thevally P. O, Kollam - 691009</p>
+                                            </>
+                                        );
+                                    }
+                                    return <p style={{ margin: 0, padding: 0 }}>{clean}</p>;
+                                })()}
+                                <p style={{ margin: 0, padding: 0 }}>Phone: {officeAddress?.phoneNo || ''}</p>
+                                <p style={{ margin: 0, padding: 0 }}>Email: {officeAddress?.email || ''}</p>
+                                <p style={{ margin: 0, padding: 0 }}>Date: {formatDateSafe(tender.dateWorkOrder) || '__________'}</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 
-                 <div className="pt-1">
-                    <p>From</p>
-                    <p className="ml-8">District Officer</p>
+                 <div style={{ marginTop: '16px', fontSize: '12pt' }}>
+                    <p style={{ margin: 0, padding: 0 }}>From</p>
+                    <p style={{ margin: '0 0 0 32px', padding: 0 }}>District Officer</p>
                 </div>
-                 <div className="pt-1">
-                    <p>To</p>
-                    <div className="ml-8">
-                        <p>{l1Bidder?.name || '____________________'}</p>
-                        <p className="whitespace-pre-wrap">{l1Bidder?.address || '____________________'}</p>
+                 <div style={{ marginTop: '12px', fontSize: '12pt' }}>
+                    <p style={{ margin: 0, padding: 0 }}>To</p>
+                    <div style={{ margin: '0 0 0 32px', padding: 0 }}>
+                        <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>{l1Bidder?.name || '____________________'}</p>
+                        <p style={{ margin: 0, padding: 0 }}>{l1Bidder?.address || '____________________'}</p>
                     </div>
                 </div>
-                <p>Sir,</p>
-                <div className="flex space-x-4">
-                    <span>Sub:</span>
-                    <p className="text-justify leading-relaxed">GWD, {officeAddress?.officeLocation || ''} - {tender.nameOfWork} - Supply Order issued – reg.</p>
-                </div>
-                <div className="flex space-x-4">
-                    <span>Ref:</span>
-                    <div className="flex-1">
-                        <p>1. 	e-Tender Notice of this office, {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.tenderDate) || '__________'}.</p>
-                        <p>2.	Supply Agreement No. {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.agreementDate) || '__________'}.</p>
-                    </div>
-                </div>
-                <p className="text-justify leading-relaxed indent-8">As per the 1st reference cited above, e-tender was invited for the purchase of {tender.nameOfWork}.</p>
-                <p className="text-justify leading-relaxed indent-8">Vide the 2nd reference cited, {l1Bidder?.name || 'N/A'}, {l1Bidder?.address || 'N/A'}, submitted the lowest bid of Rs. {contractAmount?.toLocaleString('en-IN') || '0.00'}/- (Rupees {quotedAmountInWords} only) for the aforesaid purchase. Your bid was accepted accordingly.</p>
-                <p className="text-justify leading-relaxed indent-8">You are therefore directed to supply the items as per the schedule and specifications mentioned in the e-tender, and complete the supply within the stipulated period of {tender.periodOfCompletion || '___'} days under the supervision of {supervisorDetailsText}. Thereafter, you shall submit the bill in triplicate to this office for processing of payment.</p>
-                
-                 <div className="pt-2 text-right">
-                  <div className="h-12" />
-                  <p className="font-semibold">District Officer</p>
-                </div>
-                
-                <div className="pt-1">
-                  <p>Copy to:</p>
-                  <p>1.	File, 2.	OC</p>
+                <div style={{ marginTop: '12px', fontSize: '12pt' }}>
+                    <p style={{ margin: 0, padding: 0 }}>Sir,</p>
                 </div>
 
-                <div className="text-center pt-2">
-                    <h2 className="font-bold underline">Special Conditions</h2>
-                    <ol className="list-decimal list-inside text-left mt-1 space-y-0.5">
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
+                    <tbody>
+                        <tr>
+                            <td valign="top" style={{ width: '50px', whiteSpace: 'nowrap', paddingRight: '8px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                                Sub:
+                            </td>
+                            <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5' }}>
+                                GWD, {officeAddress?.officeLocation || ''} - {tender.nameOfWork} - Supply Order issued – reg.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td valign="top" style={{ width: '50px', whiteSpace: 'nowrap', paddingRight: '8px', paddingTop: '6px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                                Ref:
+                            </td>
+                            <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', paddingTop: '6px' }}>
+                                <p style={{ margin: 0, padding: 0 }}>1. e-Tender Notice of this office, {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.tenderDate) || '__________'}.</p>
+                                <p style={{ margin: 0, padding: 0 }}>2. Supply Agreement No. {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.agreementDate) || '__________'}.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>As per the 1st reference cited above, e-tender was invited for the purchase of {tender.nameOfWork}.</p>
+                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>Vide the 2nd reference cited, {l1Bidder?.name || 'N/A'}, {l1Bidder?.address || 'N/A'}, submitted the lowest bid of Rs. {contractAmount?.toLocaleString('en-IN') || '0.00'}/- (Rupees {quotedAmountInWords} only) for the aforesaid purchase. Your bid was accepted accordingly.</p>
+                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>You are therefore directed to supply the items as per the schedule and specifications mentioned in the e-tender, and complete the supply within the stipulated period of {tender.periodOfCompletion || '___'} days under the supervision of {supervisorDetailsText}. Thereafter, you shall submit the bill in triplicate to this office for processing of payment.</p>
+                
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '30px', fontSize: '12pt' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ width: '50%' }}></td>
+                            <td align="right" valign="top" style={{ width: '50%', textAlign: 'right', verticalAlign: 'top' }}>
+                                <div style={{ height: '30px' }}></div>
+                                <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>District Officer</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div style={{ marginTop: '16px', fontSize: '12pt' }}>
+                  <p style={{ margin: 0, padding: 0 }}>Copy to:</p>
+                  <p style={{ margin: 0, padding: 0 }}>1. File, 2. OC</p>
+                </div>
+
+                <div align="center" style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
+                    <h2 style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', margin: '0 0 8px 0' }}>Special Conditions</h2>
+                    <ol style={{ textAlign: 'left', marginTop: '4px', marginLeft: '32px', paddingLeft: 0, lineHeight: '1.5' }}>
                         <li>The entire supply shall be completed within 15 days from the date of receipt of this order.</li>
                         <li>No advance payment will be made for the entire supply of items.</li>
                     </ol>
                 </div>
-                 <div className="text-center">
-                    <h2 className="font-bold underline">Notes</h2>
-                    <ol className="list-decimal list-inside text-left mt-1 space-y-1 text-justify">
+                 <div align="center" style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
+                    <h2 style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', margin: '0 0 8px 0' }}>Notes</h2>
+                    <ol style={{ textAlign: 'justify', marginTop: '4px', marginLeft: '32px', paddingLeft: 0, lineHeight: '1.5' }}>
                         <li>INVOICES IN TRIPLICATE SHOULD BE DRAWN ON AND FORWARDED FOR PAYMENT TO The District Officer, District Office, Groundwater Department, {cleanAddress(officeAddress?.address || '')}.</li>
                         <li>Acknowledgment and all other communications regarding this purchase may be sent to the District Officer.</li>
                         <li>In all future correspondence and bills relating to this order the number and date at the top should INVARIABLY be quoted.</li>
@@ -184,7 +266,7 @@ export default function SupplyOrderPrintPage() {
                 </div>
             </div>
           </div>
-            <div className="fixed bottom-4 right-4 no-print flex gap-2">
+            <div className="fixed bottom-4 right-4 no-print flex gap-2 bg-white/95 p-2 rounded-lg border shadow-lg backdrop-blur z-50">
                 <Button 
                     variant="outline" 
                     onClick={() => {
@@ -201,7 +283,14 @@ export default function SupplyOrderPrintPage() {
                 >
                     Close
                 </Button>
-                <Button onClick={() => window.print()}>Print</Button>
+                <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                    <Copy className="h-4 w-4" />
+                    Copy (Rich HTML)
+                </Button>
+                <Button onClick={() => printDocument('supply-order-content', document.title || 'Supply Order')} className="gap-1.5">
+                    <Printer className="h-4 w-4" />
+                    Print
+                </Button>
             </div>
         </div>
     );

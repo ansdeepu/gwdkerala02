@@ -6,8 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +22,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2 } from "lucide-react";
+import { printDocument } from "@/lib/print-utils";
 import type { DataEntryFormData, SiteDetailFormData } from "@/lib/schemas";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
 import { useDataStore } from "@/hooks/use-data-store";
@@ -80,12 +79,17 @@ const formatDateDDMMYYYY = (dateStr: string): string => {
   return trimmed;
 };
 
-const formatMeterValue = (val: string | number): string => {
+const formatMeterValue = (val: string | number, unit: string = 'meter'): string => {
   if (!val || val === 'N/A') return '';
-  const str = String(val).trim();
+  let str = String(val).trim();
   if (!str) return '';
+  if (unit === 'മീറ്റർ') {
+    str = str.replace(/\bmeter(s)?\b/gi, 'മീറ്റർ').replace(/\bm\b/gi, 'മീറ്റർ');
+  } else if (unit === 'meter') {
+    str = str.replace(/മീറ്റർ/g, 'meter');
+  }
   if (str.toLowerCase().includes('meter') || str.includes('മീറ്റർ') || str.endsWith(' m')) return str;
-  return `${str} meter`;
+  return `${str} ${unit}`;
 };
 
 interface PrintableReportModalProps {
@@ -107,7 +111,7 @@ export default function PrintableReportModal({
   isFullPage = false,
   onSave,
 }: PrintableReportModalProps) {
-  const { officeAddress, selectedOffice } = useDataStore();
+  const { officeAddress, selectedOffice, allStaffMembers } = useDataStore();
   const { user } = useAuth();
 
   const isPrivateWork = moduleType === 'private' || (entry?.applicationType?.toLowerCase().includes('private') ?? false);
@@ -142,6 +146,7 @@ export default function PrintableReportModal({
   }, [docType, isOpen]);
 
   const currentSite: SiteDetailFormData | undefined = sites[selectedSiteIndex] || sites[0];
+  const isDeptRigWork = currentSite?.siteConditions === 'Accessible to Dept. Rig' || (entry as any)?.siteConditions === 'Accessible to Dept. Rig';
 
   // Currently editing row key (null if none)
   const [editingRow, setEditingRow] = useState<string | null>(null);
@@ -177,7 +182,7 @@ export default function PrintableReportModal({
   const [endCap, setEndCap] = useState<string>('No');
   const [yieldLph, setYieldLph] = useState<number>(0);
   const [waterStruckZone, setWaterStruckZone] = useState<string>('');
-  const [staticWaterLevel, setStaticWaterLevel] = useState<number>(0);
+  const [staticWaterLevel, setStaticWaterLevel] = useState<number | string>('');
   const [rigUsed, setRigUsed] = useState<string>('Disassembled Rig + Atlas Copco Compressor');
   const [contractorName, setContractorName] = useState<string>('');
   const [periodFrom, setPeriodFrom] = useState<string>('');
@@ -194,10 +199,10 @@ export default function PrintableReportModal({
   const [outerCasingPipe, setOuterCasingPipe] = useState<string>('');
 
   // Final Bill row descriptions
-  const [fbDescDrillingMl, setFbDescDrillingMl] = useState<string>('110 മില്ലീമീറ്റർ വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രിilling ചാർജ്');
+  const [fbDescDrillingMl, setFbDescDrillingMl] = useState<string>('110 മില്ലീമീറ്റർ വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്');
   const [fbDescCasing10Ml, setFbDescCasing10Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescCasing6Ml, setFbDescCasing6Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
-  const [fbDescInnerMl, setFbDescInnerMl] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടിയപ്പിന്റെ / ഇന്നർ കേസിംഗ് വില');
+  const [fbDescInnerMl, setFbDescInnerMl] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില');
 
   const [fbDescDrillingEn, setFbDescDrillingEn] = useState<string>('Drilling charges for 110 mm dia borewell');
   const [fbDescCasing10En, setFbDescCasing10En] = useState<string>('140 mm dia 10 kg/cm² PVC Casing Pipe');
@@ -263,24 +268,47 @@ export default function PrintableReportModal({
       setSubOfficeLocation(rawSubOffice);
       setSubOfficeLocationMl(officeAddress?.officeNameMalayalam || rawSubOffice);
     }
-  }, [entry, selectedOffice, user, officeAddress]);
+
+    // District Officer Name from Settings page and Designation from Establishment page
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || 'Jiji Thampi';
+    const doStaff = allStaffMembers?.find(s => 
+      (doName && s.name?.toLowerCase() === doName.toLowerCase()) || 
+      s.roles?.includes('District Officer')
+    );
+    const doDesignation = doStaff?.designation || 'Executive Engineer';
+
+    if (doName) setOfficerName(doName);
+    if (doDesignation) setOfficerDesignation(doDesignation);
+  }, [entry, selectedOffice, user, officeAddress, allStaffMembers]);
 
   useEffect(() => {
     if (!entry) return;
 
-    const fNo = entry.fileNo || 'GWD/1372/2022';
+    const fNo = entry.fileNo || 'GWDKLM/794/2026';
     setFileNo(fNo);
     setApplicantName(entry.applicantName || '');
     setApplicantAddress(entry.applicantAddress || '');
     setApplicationType(entry.applicationType || moduleType.toUpperCase());
 
-    const ordNo = `GWD/${fNo.replace(/\//g, '-')}/2026`;
-    setOrderNo(ordNo);
-    const todayStr = new Date().toISOString().split('T')[0];
-    setOrderDate(todayStr);
+    const oCode = officeAddress?.officeCode || 'GWDKLM';
+    let cleanFNo = fNo.replace(/^(GWD[A-Z]*|GWD)\//i, '');
+    let computedOrderNo = cleanFNo.includes('/') ? `${oCode}/${cleanFNo}` : `${oCode}/${cleanFNo}/2026`;
+    if (fNo.startsWith(oCode + '/')) {
+      computedOrderNo = fNo;
+    }
+    setOrderNo(computedOrderNo);
+
+    // Format date as dd/mm/yyyy
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const todayFormatted = `${dd}/${mm}/${yyyy}`;
+    setOrderDate(todayFormatted);
+
     const refNo = `AE/1/${fNo}`;
     setRefLetterNo(refNo);
-    setRefLetterDate(todayStr);
+    setRefLetterDate(todayFormatted);
 
     // Financial remittance
     const depositTotal = entry.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0;
@@ -324,7 +352,7 @@ export default function PrintableReportModal({
 
       setWaterStruckZone(currentSite.zoneDetails || '');
 
-      const wl = Number(currentSite.waterLevel) || 0;
+      const wl = (currentSite.waterLevel !== undefined && currentSite.waterLevel !== null && currentSite.waterLevel !== '') ? currentSite.waterLevel : '';
       setStaticWaterLevel(wl);
 
       let rigStr = currentSite.typeOfRig || '';
@@ -352,10 +380,10 @@ export default function PrintableReportModal({
       const drillingDia = isDia150 ? '150 മില്ലീമീറ്റർ' : '110 മില്ലീമീറ്റർ';
       const drillingDiaEn = isDia150 ? '150 mm' : '110 mm';
 
-      setFbDescDrillingMl(`${drillingDia} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രിilling ചാർജ്`);
+      setFbDescDrillingMl(`${drillingDia} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്`);
       setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
       setFbDescCasing6Ml(`${casingDia} വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
-      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടിയപ്പിന്റെ / ഇന്നർ കേസിംഗ് വില`);
+      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
 
       setFbDescDrillingEn(`Drilling charges for ${drillingDiaEn} dia borewell`);
       setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
@@ -363,26 +391,38 @@ export default function PrintableReportModal({
       setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
 
       // Calculate localized net payable
+      const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
+      const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
+      const depthForSubsidy = Math.min(depth || drillingQty || 0, 120);
+      const calculatedPrivateSubsidy = (depthForSubsidy * drillingRate) * 0.5;
+      const localSubsidy = isPrivateIrrigation 
+        ? (Number((currentSite as any)?.subsidyAmount) || Number((entry as any)?.subsidyAmount) || calculatedPrivateSubsidy)
+        : (Number((currentSite as any)?.subsidyAmount) || Number((entry as any)?.subsidyAmount) || 0);
+      setSubsidyAmount(localSubsidy);
+
+      const localEndCap = currentSite.endCap || 'No';
+      const localInnerQty = (localEndCap === 'Yes' && innerQty === 0) ? 1 : innerQty;
+
       const localDrillingTotal = drillingRate * depth;
       const localCasing10Total = casing10kgRate * c10;
       const localCasing6Total = casing6kgRate * c6;
-      const localInnerTotal = innerCasingRate * innerQty;
+      const localInnerTotal = innerCasingRate * localInnerQty;
       localTotalExpenditure = localDrillingTotal + localCasing10Total + localCasing6Total + localInnerTotal;
-      localNetPayable = localTotalExpenditure - subsidyAmount;
+      localNetPayable = localTotalExpenditure - localSubsidy;
     }
 
     setProceedingsSubject(
       `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
     );
     setProceedingsRef1(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`);
-    setProceedingsRef2(`2. Final Bill of this office, dated ${todayStr}.`);
+    setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
 
     setUcFrom(`District Officer, Ground Water Department, ${district}`);
     setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`);
     setUcSubject(
       `ഭൂജല വകുപ്പ്, ${districtMl} - ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് സംബന്ധിച്ച്.`
     );
-    setUcRef1(`1. കത്ത് നമ്പർ GWD/${fNo.replace(/\//g, '-')}/2026 തീയതി ${todayStr}`);
+    setUcRef1(`1. കത്ത് നമ്പർ GWD/${fNo.replace(/\//g, '-')}/2026 തീയതി ${todayFormatted}`);
     setUcRef2(`2. പൂർത്തീകരണ റിപ്പോർട്ട് & ഫൈനൽ ബിൽ`);
 
     const localNetPayableFinal = localNetPayable || (drillingRate * drillingQty) - subsidyAmount;
@@ -440,16 +480,24 @@ export default function PrintableReportModal({
       };
     }));
 
-  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl]);
+  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode]);
 
   // Derived Calculations
+  const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
+  const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
+  
+  const subsidyEligibleDepth = Math.min(drillingQty || depthMeter || 0, 120);
+  const calculatedPrivateSubsidy = isPrivateIrrigation ? (subsidyEligibleDepth * drillingRate * 0.5) : 0;
+  const effectiveSubsidyAmount = (isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount;
+
   const drillingTotal = drillingRate * drillingQty;
   const casing10kgTotal = casing10kgRate * casing10kgQty;
   const casing6kgTotal = casing6kgRate * casing6kgQty;
-  const innerCasingTotal = innerCasingRate * innerCasingQty;
+  const effectiveInnerCasingQty = (endCap === 'Yes' && innerCasingQty === 0) ? 1 : innerCasingQty;
+  const innerCasingTotal = innerCasingRate * effectiveInnerCasingQty;
 
   const totalExpenditure = drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal;
-  const netPayableGwd = totalExpenditure - subsidyAmount;
+  const netPayableGwd = totalExpenditure - effectiveSubsidyAmount;
   const balanceRefund = advanceDeposit - netPayableGwd;
 
   // Casing pipe label based on diameter
@@ -473,13 +521,230 @@ export default function PrintableReportModal({
     }
   }, [docType, hasMultipleSites, isPrivateWork, isDepositWork]);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsInIframe(window.self !== window.top);
+    }
+  }, []);
+
+  const openPrintWindow = (printableElement: HTMLElement) => {
+    try {
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(style => style.outerHTML)
+        .join('\n');
+
+      const printWin = window.open('', '_blank', 'width=950,height=1100,scrollbars=yes');
+      if (printWin) {
+        printWin.document.open();
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Official Report - ${entry?.fileNo || 'GWD Kerala'}</title>
+              ${styles}
+              <style>
+                @page {
+                  size: A4 portrait;
+                  margin: 12mm 15mm 12mm 15mm;
+                }
+                *, ::before, ::after {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                body {
+                  background: #ffffff !important;
+                  color: #000000 !important;
+                  margin: 0 !important;
+                  padding: 20px !important;
+                  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                }
+                .no-print, .print\\:hidden, button, [class*="DialogFooter"] {
+                  display: none !important;
+                }
+                table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                }
+                th, td {
+                  border-color: #000000 !important;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="bg-white text-black p-0 m-0 font-sans text-[13px] leading-relaxed">
+                ${printableElement.innerHTML}
+              </div>
+              <script>
+                window.onload = function() {
+                  setTimeout(function() {
+                    window.focus();
+                    window.print();
+                  }, 300);
+                };
+              </script>
+            </body>
+          </html>
+        `);
+        printWin.document.close();
+        return true;
+      }
+    } catch (e) {
+      console.error("Popup window print error:", e);
+    }
+    return false;
+  };
+
+  const printViaHiddenIframe = (printableElement: HTMLElement) => {
+    try {
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(style => style.outerHTML)
+        .join('\n');
+
+      let iframe = document.getElementById('gwd-report-print-iframe') as HTMLIFrameElement;
+      if (iframe) {
+        iframe.remove();
+      }
+      iframe = document.createElement('iframe');
+      iframe.id = 'gwd-report-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0px';
+      iframe.style.height = '0px';
+      iframe.style.border = '0px';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (!iframeDoc) return false;
+
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${entry?.fileNo ? `Report - ${entry.fileNo}` : 'Official GWD Report'}</title>
+            ${styles}
+            <style>
+              @page {
+                size: A4 portrait;
+                margin: 10mm 12mm 10mm 12mm;
+              }
+              *, ::before, ::after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                margin: 0 !important;
+                padding: 15px !important;
+                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              }
+              .no-print, .print\\:hidden, button, [class*="DialogFooter"] {
+                display: none !important;
+              }
+              table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+              }
+              th, td {
+                border-color: #000000 !important;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="bg-white text-black p-0 m-0 font-sans text-[13px] leading-relaxed">
+              ${printableElement.innerHTML}
+            </div>
+          </body>
+        </html>
+      `);
+      iframeDoc.close();
+
+      setTimeout(() => {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
+      }, 350);
+
+      return true;
+    } catch (err) {
+      console.error("Iframe print error:", err);
+      return false;
+    }
+  };
+
   const handlePrint = () => {
-    setTimeout(() => {
-      window.print();
-    }, 50);
+    setEditingRow(null);
+    printDocument('printable-report-document', entry?.fileNo ? `Report - ${entry.fileNo}` : 'Official GWD Report');
+  };
+
+  const handleOpenNewWindowPrint = () => {
+    setEditingRow(null);
+    const docEl = document.getElementById('printable-report-document');
+    if (docEl) {
+      const opened = openPrintWindow(docEl);
+      if (!opened) {
+        // Fallback to window.print if popup blocked
+        handlePrint();
+      }
+    } else {
+      handlePrint();
+    }
+  };
+
+  const handleSave = async () => {
+    if (!entry || !onSave) return;
+    setIsSaving(true);
+    setEditingRow(null);
+    try {
+      const updatedSiteDetails = [...(entry.siteDetails || [])];
+      if (updatedSiteDetails[selectedSiteIndex]) {
+        updatedSiteDetails[selectedSiteIndex] = {
+          ...updatedSiteDetails[selectedSiteIndex],
+          contractorName: contractorName || updatedSiteDetails[selectedSiteIndex].contractorName,
+          latitude: latitude ? Number(latitude) : updatedSiteDetails[selectedSiteIndex].latitude,
+          longitude: longitude ? Number(longitude) : updatedSiteDetails[selectedSiteIndex].longitude,
+          localSelfGovt: localSelfGovt || updatedSiteDetails[selectedSiteIndex].localSelfGovt,
+          constituency: constituency || updatedSiteDetails[selectedSiteIndex].constituency,
+          totalDepth: depthMeter || updatedSiteDetails[selectedSiteIndex].totalDepth,
+          casing10kgPipe: casing10kgQty || updatedSiteDetails[selectedSiteIndex].casing10kgPipe,
+          casing6kgPipe: casing6kgQty || updatedSiteDetails[selectedSiteIndex].casing6kgPipe,
+          yieldDischarge: yieldLph || updatedSiteDetails[selectedSiteIndex].yieldDischarge,
+          zoneDetails: waterStruckZone || updatedSiteDetails[selectedSiteIndex].zoneDetails,
+          waterLevel: staticWaterLevel || updatedSiteDetails[selectedSiteIndex].waterLevel,
+          drillingRemarks: remarks || updatedSiteDetails[selectedSiteIndex].drillingRemarks,
+          workRemarks: remarks || updatedSiteDetails[selectedSiteIndex].workRemarks,
+          dateOfCommencement: periodFrom || updatedSiteDetails[selectedSiteIndex].dateOfCommencement,
+          dateOfCompletion: periodTo || updatedSiteDetails[selectedSiteIndex].dateOfCompletion,
+        };
+      }
+
+      const updatedEntry: DataEntryFormData = {
+        ...entry,
+        siteDetails: updatedSiteDetails,
+      };
+
+      await onSave(updatedEntry);
+      toast({ title: "Changes Saved", description: "Edited data saved to Firebase database successfully." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Save Failed", description: err.message || "Could not save changes." });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const rowResetHandlers: Record<string, () => void> = {
+    cr_fileNo: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
+    cr_applicant: () => { setApplicantName(entry?.applicantName || ''); setApplicantAddress(entry?.applicantAddress || ''); },
+    cr_siteName: () => setSiteName(currentSite?.nameOfSite || entry?.applicantName || ''),
     cr_latLong: () => { setLatitude(currentSite?.latitude ? String(currentSite.latitude) : ''); setLongitude(currentSite?.longitude ? String(currentSite.longitude) : ''); },
     cr_lsgd: () => setLocalSelfGovt(currentSite?.localSelfGovt || ''),
     cr_constituency: () => setConstituency(currentSite?.constituency || ''),
@@ -507,10 +772,78 @@ export default function PrintableReportModal({
     cr_endCap: () => setEndCap(currentSite?.endCap || 'No'),
     cr_yield: () => setYieldLph(Number(currentSite?.yieldDischarge) || 0),
     cr_zone: () => setWaterStruckZone(currentSite?.zoneDetails || ''),
-    cr_swl: () => setStaticWaterLevel(Number(currentSite?.waterLevel) || 0),
+    cr_swl: () => setStaticWaterLevel((currentSite?.waterLevel !== undefined && currentSite?.waterLevel !== null && currentSite?.waterLevel !== '') ? currentSite.waterLevel : ''),
     cr_period: () => { setPeriodFrom(currentSite?.dateOfCommencement || ''); setPeriodTo(currentSite?.dateOfCompletion || ''); },
     cr_remarks: () => setRemarks(currentSite?.drillingRemarks || currentSite?.workRemarks || ''),
     cr_contractor: () => setContractorName(currentSite?.contractorName || ''),
+
+    // Final Bill resets
+    fb_desc_drilling: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      setFbDescDrillingMl(`${isDia150 ? '150 മില്ലീമീറ്റർ' : '110 മില്ലീമീറ്റർ'} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്`);
+      setFbDescDrillingEn(`Drilling charges for ${isDia150 ? '150 mm' : '110 mm'} dia borewell`);
+    },
+    fb_r1: () => setDrillingRate(390),
+    fb_q1: () => { const d = Number(currentSite?.totalDepth) || 0; setDrillingQty(d); setDepthMeter(d); },
+    fb_desc_casing10: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
+    },
+    fb_r2: () => setCasing10kgRate(960),
+    fb_q2: () => setCasing10kgQty(Number(currentSite?.casing10kgPipe) || 0),
+    fb_desc_casing6: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescCasing6Ml(`${casingDia} വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing6En(`${casingDiaEn} dia 6 kg/cm² PVC Casing Pipe`);
+    },
+    fb_r3: () => setCasing6kgRate(580),
+    fb_q3: () => setCasing6kgQty(Number(currentSite?.casing6kgPipe) || 0),
+    fb_desc_inner: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
+      setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
+    },
+    fb_r4: () => setInnerCasingRate(225),
+    fb_q4: () => setInnerCasingQty(Number(currentSite?.innerCasingPipe) || Number(currentSite?.innerCasing6kgPipe) || Number(currentSite?.innerCasing4kgPipe) || 0),
+    fb_subsidy: () => setSubsidyAmount(0),
+    fb_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
+
+    // Proceedings & UC resets
+    proc_officer: () => setDistrict(entry?.officeLocation || selectedOffice || 'Pathanamthitta'),
+    proc_sub: () => setProceedingsSubject(`GWD, ${district} - Construction of borewell at ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`),
+    proc_ref: () => {
+      const fNo = entry?.fileNo || 'GWD/1372/2022';
+      const firstRemittance = entry?.remittanceDetails?.[0];
+      const ddStr = firstRemittance ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${firstRemittance.dateOfRemittance || ''}` : '';
+      setProceedingsRef1(`1. Application of ${entry?.applicantName || ''} and DD details (${ddStr}).`);
+      setProceedingsRef2(`2. Final Bill of this office, dated ${new Date().toISOString().split('T')[0]}.`);
+    },
+    proc_ordNo: () => setOrderNo(`GWD/${(entry?.fileNo || 'GWD/1372/2022').replace(/\//g, '-')}/2026`),
+    proc_ordDate: () => setOrderDate(new Date().toISOString().split('T')[0]),
+    proc_para1: () => setProcPara1(''),
+    proc_para2: () => setProcPara2(''),
+    proc_para3: () => setProcPara3(''),
+    proc_para4: () => setProcPara4(''),
+    proc_para5: () => setProcPara5(''),
+
+    uc_contact: () => { setUcPhone('0474 - 2790313'); setUcEmail('gwdklm@gmail.com'); },
+    uc_ref: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
+    uc_date: () => setOrderDate(new Date().toISOString().split('T')[0]),
+    uc_from: () => setUcFrom(`District Officer, Ground Water Department, ${district}`),
+    uc_to: () => setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`),
+    uc_sub: () => setUcSubject(`Utilization Certificate for borewell construction works at ${currentSite?.localSelfGovt || 'Panchayat'}`),
+    uc_refs: () => { setUcRef1(''); setUcRef2(''); },
   };
 
   // Helper function to render inline editable cell / row
@@ -520,61 +853,87 @@ export default function PrintableReportModal({
     editControl: React.ReactNode
   ) => {
     const isEditing = editingRow === rowKey;
-    const resetKey = rowKey.replace('_en_', '_');
-    const resetFn = rowResetHandlers[rowKey] || rowResetHandlers[resetKey];
+    const normalizedKey = rowKey
+      .replace('_en_', '_')
+      .replace('_ml_', '_')
+      .replace('cr_en_', 'cr_')
+      .replace('fb_en_', 'fb_')
+      .replace('uc_en_', 'uc_')
+      .replace('uc_ml_', 'uc_');
+
+    const resetFn = rowResetHandlers[rowKey] || rowResetHandlers[normalizedKey];
+
+    const handleReset = () => {
+      if (resetFn) {
+        resetFn();
+        toast({ description: "Reset row to original value." });
+      } else {
+        toast({ description: "No custom reset handler for this row." });
+      }
+    };
 
     return (
-      <div className="flex items-center justify-between gap-1.5 w-full">
-        {isEditing ? (
-          <div className="flex items-center gap-1 w-full print:hidden">
-            <div className="flex-1">{editControl}</div>
+      <div className="flex flex-col w-full min-w-0">
+        <div className="flex items-start justify-between gap-1 w-full">
+          <div className="flex-1 min-w-0">{displayContent}</div>
+          <div className="flex items-center gap-0.5 print:hidden shrink-0 ml-1">
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-green-700 hover:bg-green-100 shrink-0"
-              onClick={() => setEditingRow(null)}
-              title="Done editing"
+              className={`h-5 w-5 opacity-60 hover:opacity-100 ${isEditing ? 'text-blue-600 bg-blue-100' : 'text-primary'}`}
+              onClick={() => setEditingRow(isEditing ? null : rowKey)}
+              title={isEditing ? "Close edit controls" : "Edit item"}
             >
-              <Check className="h-3.5 w-3.5" />
+              <Pencil className="h-3 w-3" />
             </Button>
             {resetFn && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6 text-amber-700 hover:bg-amber-100 shrink-0"
-                onClick={() => { resetFn(); setEditingRow(null); toast({ description: "Reset row to original value." }); }}
+                className="h-5 w-5 opacity-60 hover:opacity-100 text-amber-600 hover:text-amber-800"
+                onClick={handleReset}
                 title="Reset row to original data"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
-        ) : (
-          <>
-            <div className="flex-1">{displayContent}</div>
-            <div className="flex items-center gap-0.5 print:hidden shrink-0 ml-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-5 w-5 opacity-40 hover:opacity-100 text-primary"
-                onClick={() => setEditingRow(rowKey)}
-                title="Edit row"
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-              {resetFn && (
+        </div>
+
+        {isEditing && (
+          <div className="mt-1 p-1.5 bg-blue-50/90 dark:bg-blue-950/60 rounded border border-blue-200 dark:border-blue-800 print:hidden shadow-xs">
+            <div className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1 flex items-center justify-between">
+              <span>Change Item / വിവരങ്ങൾ തിരുത്തുക:</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="flex-1 min-w-0">{editControl}</div>
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-5 w-5 opacity-40 hover:opacity-100 text-amber-600 hover:text-amber-800"
-                  onClick={() => { resetFn(); toast({ description: "Reset row to original value." }); }}
-                  title="Reset row to original data"
+                  className="h-6 w-6 text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-900/60 shrink-0 border border-green-300"
+                  onClick={() => setEditingRow(null)}
+                  title="Done editing"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <Check className="h-3.5 w-3.5" />
                 </Button>
-              )}
+                {resetFn && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/60 shrink-0 border border-amber-300"
+                    onClick={() => {
+                      handleReset();
+                      setEditingRow(null);
+                    }}
+                    title="Reset row to original data"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     );
@@ -589,16 +948,16 @@ export default function PrintableReportModal({
         <DialogHeader className="border-b pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
                 <FileText className="h-5 w-5 text-primary" />
                 Printable Official Reports & Completion Documents
-              </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm">
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Generate official GWD Kerala Completion Reports, Final Bills, Proceedings & Utilization Certificates.
-              </DialogDescription>
+              </p>
             </div>
 
-            {/* Language Selector & Print Button */}
+            {/* Language Selector & Action Buttons */}
             <div className="flex items-center gap-2">
               <Tabs value={lang} onValueChange={(val) => setLang(val as LanguageMode)} className="w-auto">
                 <TabsList className="grid grid-cols-2 w-36">
@@ -607,10 +966,26 @@ export default function PrintableReportModal({
                 </TabsList>
               </Tabs>
 
-              <Button onClick={handlePrint} className="bg-primary text-primary-foreground gap-1.5 shadow">
-                <Printer className="h-4 w-4" />
-                Print / Save PDF
-              </Button>
+              {onSave && (
+                <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5 shadow">
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />}
+                  Save
+                </Button>
+              )}
+
+              {isInIframe ? (
+                <Button asChild variant="default" className="gap-1.5 shadow bg-amber-600 hover:bg-amber-700 text-white border-none animate-pulse" title="Print this document (opens in a new tab)">
+                  <a href={typeof window !== 'undefined' ? window.location.href : '#'} target="_blank" rel="noopener noreferrer">
+                    <Printer className="h-4 w-4" />
+                    <span>Print</span>
+                  </a>
+                </Button>
+              ) : (
+                <Button onClick={handlePrint} className="bg-primary text-primary-foreground gap-1.5 shadow">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </Button>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -776,15 +1151,16 @@ export default function PrintableReportModal({
         </div>
 
         {/* PRINTABLE DOCUMENT CANVAS */}
-        <div className="bg-white text-black p-6 sm:p-10 border shadow-sm font-sans rounded-none print:border-none print:shadow-none print:p-0 print:m-0 text-[13px] leading-relaxed">
+        <div id="printable-report-document" className="bg-white text-black p-6 sm:p-10 border shadow-sm font-sans rounded-none print:border-none print:shadow-none print:p-0 print:m-0 text-[13px] leading-relaxed">
           
           {/* 1. COMPLETION REPORT (MALAYALAM & ENGLISH) */}
           {docType === 'completion_report' && (() => {
             const displayFileNo = fileNo ? (fileNo.toUpperCase().startsWith('GWDKLM') ? fileNo : `GWDKLM/${fileNo}`) : '';
             const displayAppType = applicationType ? (applicationType.toLowerCase().includes('deposit') ? applicationType : `${applicationType} - Deposit Works`) : 'Deposit Works';
 
-            const recTDFormatted = surveyRecommendedTD ? formatMeterValue(surveyRecommendedTD) : '';
-            const recOBFormatted = surveyRecommendedOB ? formatMeterValue(surveyRecommendedOB) : '';
+            const meterUnit = lang === 'ml' ? 'മീറ്റർ' : 'meter';
+            const recTDFormatted = surveyRecommendedTD ? formatMeterValue(surveyRecommendedTD, meterUnit) : '';
+            const recOBFormatted = surveyRecommendedOB ? formatMeterValue(surveyRecommendedOB, meterUnit) : '';
             const recDisplay = [recTDFormatted, recOBFormatted].filter(Boolean).join(', ');
 
             const totalCasingMeters = (Number(casing10kgQty) || 0) + (Number(casing6kgQty) || 0) + (Number(innerCasingQty) || 0);
@@ -793,407 +1169,463 @@ export default function PrintableReportModal({
             const formattedPeriodTo = formatDateDDMMYYYY(periodTo);
 
             return (
-              <div className="space-y-4">
+              <div className="completion-report flex flex-col justify-between min-h-[255mm] space-y-2">
                 {lang === 'ml' ? (
                   <>
-                    <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                      <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                      <h3 className="text-base font-bold underline">പൂർത്തീകരണറിപ്പോർട്ട് - {currentSite?.purpose === 'TWC' ? 'റ്റ്യൂബ് കിണർ നിർമ്മാണം' : 'കുഴൽകിണർ നിർമ്മാണം'}</h3>
+                    <div>
+                      <div className="text-center space-y-1 pb-2 mb-3 border-b-2 border-black">
+                        <h2 className="text-base sm:text-lg font-extrabold tracking-wide">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
+                        <h3 className="text-sm sm:text-base font-bold underline">{currentSite?.purpose === 'TWC' ? 'പൂർത്തീകരണറിപ്പോർട്ട് - റ്റ്യൂബ് കിണർ നിർമ്മാണം' : 'പൂർത്തീകരണറിപ്പോർട്ട് - കുഴൽകിണർ നിർമ്മാണം'}</h3>
+                      </div>
+
+                      <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <tbody>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold w-[40%] text-black align-top">1. ഫയൽ നമ്പർ</td>
+                            <td className="py-2 px-2 w-[60%] text-black align-top">
+                              {renderEditableCell('cr_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">2. അപേക്ഷകന്റെ പേരും മേൽവിലാസവും</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_applicant', `: ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="പേര്" value={applicantName} onChange={e => setApplicantName(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="മേൽവിലാസം" value={applicantAddress} onChange={e => setApplicantAddress(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">3. സൈറ്റിന്റെ പേര് / സ്ഥലം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">4. ലാറ്റിറ്റ്യൂഡ് / ലാംഗിറ്റ്യൂഡ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">5. തദ്ദേശസ്വയംഭരണ സ്ഥാപനം, വാർഡ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_lsgd', `: ${localSelfGovt || ''}`, <Input className="h-6 text-xs" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">6. നിയമസഭാമണ്ഡലം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_constituency', `: ${constituency || ''}`, <Input className="h-6 text-xs" value={constituency} onChange={e => setConstituency(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">7. പദ്ധതി / ഉദ്ദേശ്യം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_appType', `: ${displayAppType}`, <Input className="h-6 text-xs" value={applicationType} onChange={e => setApplicationType(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">8. ശുപാർശ ചെയ്ത ആഴവും മേൽമണ്ണിന്റെ ഘനവും</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_recommended', `: ${recDisplay}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="ആഴം" value={surveyRecommendedTD} onChange={e => setSurveyRecommendedTD(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="മേൽമണ്ണ്" value={surveyRecommendedOB} onChange={e => setSurveyRecommendedOB(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">9. കുഴൽകിണറിന്റെ സ്ഥാനം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_surveyLoc', `: ${surveyLocation || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={surveyLocation} onChange={e => setSurveyLocation(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">10. പ്രവൃത്തിക്ക് ഉപയോഗിച്ച റിഗ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_rigUsed', `: ${rigUsed}`, <Input className="h-6 text-xs" value={rigUsed} onChange={e => setRigUsed(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">11. കുഴൽകിണറിന്റെ വ്യാസം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_diameter', `: ${diameter}`, <Input className="h-6 text-xs" value={diameter} onChange={e => setDiameter(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">12. കുഴൽകിണറിന്റെ ആഴം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_depth', `: ${depthMeter ? `${depthMeter} മീറ്റർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={depthMeter} onChange={e => { const val = Number(e.target.value); setDepthMeter(val); setDrillingQty(val); }} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_row_ob">
+                            <td className="py-2 px-2 font-bold text-black align-top">13. മേൽമണ്ണിന്റെ ഘനം</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_ob', `: ${actualOverburden ? `${actualOverburden} മീറ്റർ` : ''}`, <Input className="h-6 text-xs w-28" value={actualOverburden} onChange={e => setActualOverburden(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_row_casingDetails">
+                            <td className="py-2 px-2 font-bold text-black align-top">14. ഉപയോഗിച്ച കേസിംഗ് പൈപ്പ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_casingDetails', 
+                                (() => {
+                                  const lines: string[] = [];
+                                  if (casing10kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 10 kg/cm² : ${casing10kgQty} മീറ്റർ`);
+                                  if (casing6kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 6 kg/cm² : ${casing6kgQty} മീറ്റർ`);
+                                  if (innerCasingQty) lines.push(`ഇന്നർ കേസിംഗ് (110 mm, 4 kg/cm²) : ${innerCasingQty} മീറ്റർ`);
+                                  if (currentSite?.purpose === 'TWC') {
+                                    if (pilotDrillingDepth) lines.push(`പൈലറ്റ് ഡ്രില്ലിംഗ് ആഴം: ${formatMeterValue(pilotDrillingDepth, 'മീറ്റർ')}`);
+                                    if (surveyPlainPipe) lines.push(`പ്ലെയിൻ പൈപ്പ് (Plain Pipe): ${formatMeterValue(surveyPlainPipe, 'മീറ്റർ')}`);
+                                    if (surveySlottedPipe) lines.push(`സ്ലോട്ടഡ് പൈപ്പ് (Slotted Pipe): ${formatMeterValue(surveySlottedPipe, 'മീറ്റർ')}`);
+                                    if (outerCasingPipe) lines.push(`എം.എസ് കേസിംഗ് (MS Casing): ${formatMeterValue(outerCasingPipe, 'മീറ്റർ')}`);
+                                  }
+                                  return (
+                                    <span>
+                                      : {totalCasingMeters ? `${totalCasingMeters} മീറ്റർ` : ''}
+                                      {lines.length > 0 && (
+                                        <span className="ml-4 inline-block align-top">
+                                          {lines.map((line, idx) => (
+                                            <React.Fragment key={idx}>
+                                              {idx > 0 && <br />}
+                                              {line}
+                                            </React.Fragment>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })(), 
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
+                                  {currentSite?.purpose === 'TWC' && (
+                                    <>
+                                      <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
+                                      <Input placeholder="Plain Pipe" className="h-6 text-xs" value={surveyPlainPipe} onChange={e => setSurveyPlainPipe(e.target.value)} />
+                                      <Input placeholder="Slotted Pipe" className="h-6 text-xs" value={surveySlottedPipe} onChange={e => setSurveySlottedPipe(e.target.value)} />
+                                      <Input placeholder="MS Casing" className="h-6 text-xs" value={outerCasingPipe} onChange={e => setOuterCasingPipe(e.target.value)} />
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">15. കുഴൽകിണറിന്റെ അടപ്പിന്റെ വിവരം (End Cap)</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} വ്യാസം` : 'ഇല്ല'}`, 
+                                <Select value={endCap} onValueChange={setEndCap}>
+                                  <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Yes">Yes (ഉണ്ട് - 1 എണ്ണം)</SelectItem>
+                                    <SelectItem value="No">No (ഇല്ല)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">16. ജലലഭ്യത (മണിക്കൂറിൽ)</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_yield', `: ${yieldLph ? `${yieldLph} ലിറ്റർ പ്രതി മണിക്കൂർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">17. ജലം ലഭിച്ച മേഖല</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_zone', `: ${waterStruckZone ? (waterStruckZone.includes('മീറ്റർ') || waterStruckZone.includes('meter') ? waterStruckZone : `${waterStruckZone} മീറ്റർ`) : ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">18. ജലനിരപ്പ് (ഭൂനിരപ്പിൽ നിന്ന് താഴേക്ക്)</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_swl', `: ${staticWaterLevel !== '' && staticWaterLevel !== null && staticWaterLevel !== undefined ? `${staticWaterLevel} മീറ്റർ` : ''}`, <Input className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">19. പ്രവർത്തന കാലയളവ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} മുതൽ ${formattedPeriodTo} വരെ` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="From" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="To" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">20. കുറിപ്പ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_remarks', `: ${remarks || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          {!isDeptRigWork && (
+                            <tr className="border-b border-gray-300">
+                              <td className="py-2 px-2 font-bold text-black align-top">21. കോൺട്രാക്ടറുടെ പേര്</td>
+                              <td className="py-2 px-2 text-black align-top">
+                                {renderEditableCell('cr_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
 
-                    <table className="w-full border-collapse text-xs">
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold w-2/5">1. ഫയൽ നമ്പർ</td>
-                          <td className="py-1.5 w-3/5">
-                            {renderEditableCell('cr_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">2. അപേക്ഷകന്റെ പേരും മേൽവിലാസവും</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_applicant', `: ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="പേര്" value={applicantName} onChange={e => setApplicantName(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="മേൽവിലാസം" value={applicantAddress} onChange={e => setApplicantAddress(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">3. സൈറ്റിന്റെ പേര് / സ്ഥലം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">4. ലാറ്റിറ്റ്യൂഡ് / ലാംഗിറ്റ്യൂഡ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">5. തദ്ദേശസ്വയംഭരണ സ്ഥാപനം, വാർഡ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_lsgd', `: ${localSelfGovt || ''}`, <Input className="h-6 text-xs" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">6. നിയമസഭാമണ്ഡലം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_constituency', `: ${constituency || ''}`, <Input className="h-6 text-xs" value={constituency} onChange={e => setConstituency(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">7. പദ്ധതി / ഉദ്ദേശ്യം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_appType', `: ${displayAppType}`, <Input className="h-6 text-xs" value={applicationType} onChange={e => setApplicationType(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">8. ശുപാർശ ചെയ്ത ആഴവും മേൽമണ്ണിന്റെ ഘനവും</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_recommended', `: ${recDisplay}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="ആഴം" value={surveyRecommendedTD} onChange={e => setSurveyRecommendedTD(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="മേൽമണ്ണ്" value={surveyRecommendedOB} onChange={e => setSurveyRecommendedOB(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">9. കുഴൽകിണറിന്റെ സ്ഥാനം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_surveyLoc', `: ${surveyLocation || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={surveyLocation} onChange={e => setSurveyLocation(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">10. പ്രവൃത്തിക്ക് ഉപയോഗിച്ച റിഗ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_rigUsed', `: ${rigUsed}`, <Input className="h-6 text-xs" value={rigUsed} onChange={e => setRigUsed(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">11. കുഴൽകിണറിന്റെ വ്യാസം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_diameter', `: ${diameter}`, <Input className="h-6 text-xs" value={diameter} onChange={e => setDiameter(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">12. കുഴൽകിണറിന്റെ ആഴം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_depth', `: ${depthMeter ? `${depthMeter} മീറ്റർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={depthMeter} onChange={e => { const val = Number(e.target.value); setDepthMeter(val); setDrillingQty(val); }} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b" id="cr_row_ob">
-                          <td className="py-1.5 font-bold">13. മേൽമണ്ണിന്റെ ഘനം</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_ob', `: ${actualOverburden ? `${actualOverburden} മീറ്റർ` : ''}`, <Input className="h-6 text-xs w-28" value={actualOverburden} onChange={e => setActualOverburden(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b" id="cr_row_casingDetails">
-                          <td className="py-1.5 font-bold">14. ഉപയോഗിച്ച കേസിംഗ് പൈപ്പ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_casingDetails', 
-                              <span>
-                                : {totalCasingMeters ? `${totalCasingMeters} meter` : ''}
-                                {casing10kgQty ? <><br />&nbsp; {casingDiameterLabel} വ്യാസം, 10 kg/cm² : {casing10kgQty} meter</> : null}
-                                {casing6kgQty ? <><br />&nbsp; {casingDiameterLabel} വ്യാസം, 6 kg/cm² : {casing6kgQty} meter</> : null}
-                                {innerCasingQty ? <><br />&nbsp; ഇന്നർ കേസിംഗ് (110 mm, 4 kg/cm²) : {innerCasingQty} meter</> : null}
-                                {currentSite?.purpose === 'TWC' && (
-                                  <>
-                                    <br />&nbsp; പൈലറ്റ് ഡ്രില്ലിംഗ് ആഴം: {pilotDrillingDepth ? formatMeterValue(pilotDrillingDepth) : ''}
-                                    <br />&nbsp; പ്ലെയിൻ പൈപ്പ് (Plain Pipe): {surveyPlainPipe ? formatMeterValue(surveyPlainPipe) : ''}
-                                    <br />&nbsp; സ്ലോട്ടഡ് പൈപ്പ് (Slotted Pipe): {surveySlottedPipe ? formatMeterValue(surveySlottedPipe) : ''}
-                                    <br />&nbsp; എം.എസ് കേസിംഗ് (MS Casing): {outerCasingPipe ? formatMeterValue(outerCasingPipe) : ''}
-                                  </>
-                                )}
-                              </span>, 
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
-                                <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
-                                <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
-                                {currentSite?.purpose === 'TWC' && (
-                                  <>
-                                    <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
-                                    <Input placeholder="Plain Pipe" className="h-6 text-xs" value={surveyPlainPipe} onChange={e => setSurveyPlainPipe(e.target.value)} />
-                                    <Input placeholder="Slotted Pipe" className="h-6 text-xs" value={surveySlottedPipe} onChange={e => setSurveySlottedPipe(e.target.value)} />
-                                    <Input placeholder="MS Casing" className="h-6 text-xs" value={outerCasingPipe} onChange={e => setOuterCasingPipe(e.target.value)} />
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">15. കുഴൽകിണറിന്റെ അടിപ്പിന്റെ വിവരം (End Cap)</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} വ്യാസം` : 'ഇല്ല'}`, 
-                              <Select value={endCap} onValueChange={setEndCap}>
-                                <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Yes">Yes (ഉണ്ട് - 1 എണ്ണം)</SelectItem>
-                                  <SelectItem value="No">No (ഇല്ല)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">16. ജലലഭ്യത (മണിക്കൂറിൽ)</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_yield', `: ${yieldLph ? `${yieldLph} ലിറ്റർ പ്രതി മണിക്കൂർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">17. ജലം ലഭിച്ച മേഖല</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_zone', `: ${waterStruckZone || ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">18. ജലനിരപ്പ് (ഭൂനിരപ്പിൽ നിന്ന് താഴേക്ക്)</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_swl', `: ${staticWaterLevel || staticWaterLevel === 0 ? `${staticWaterLevel} മീറ്റർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(Number(e.target.value))} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">19. പ്രവർത്തന കാലയളവ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} മുതൽ ${formattedPeriodTo} വരെ` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="From" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="To" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">20. കുറിപ്പ്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_remarks', `: ${remarks || 'പാറകഷ്ണങ്ങൾ വരുന്നത് മൂലം ഹാമർ റൊട്ടേഷൻ തടസ്സപ്പെട്ടതിനാൽ നിർദ്ദിഷ്ട ആഴത്തിൽ വർക്ക് പൂർത്തിയാക്കി.'}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">21. കോൺട്രാക്ടറുടെ പേര്</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <div className="pt-12 grid grid-cols-4 text-center font-bold text-xs">
-                      <div>സൈറ്റ് - ഇൻ - ചാർജ്</div>
-                      <div>അസി. എഞ്ചിനീയർ</div>
-                      <div>അസി. എക്സി. എഞ്ചിനീയർ</div>
-                      <div>ജില്ലാ ഓഫീസർ</div>
+                    <div className="pt-10 pb-2 mt-auto grid grid-cols-4 text-center font-bold text-xs sm:text-[12.5px] signature-block gap-2">
+                      <div>
+                        <div className="h-10"></div>
+                        സൈറ്റ് - ഇൻ - ചാർജ്
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        അസി. എഞ്ചിനീയർ
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        അസി. എക്സി. എഞ്ചിനീയർ
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        ജില്ലാ ഓഫീസർ
+                      </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                      <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                      <h3 className="text-base font-bold underline">{currentSite?.purpose === 'TWC' ? 'TUBE WELL COMPLETION REPORT' : 'BORE WELL COMPLETION REPORT'}</h3>
+                    <div>
+                      <div className="text-center space-y-1 pb-2 mb-3 border-b-2 border-black">
+                        <h2 className="text-base sm:text-lg font-extrabold tracking-wide uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
+                        <h3 className="text-sm sm:text-base font-bold underline">{currentSite?.purpose === 'TWC' ? 'TUBE WELL COMPLETION REPORT' : 'BORE WELL COMPLETION REPORT'}</h3>
+                      </div>
+
+                      <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <tbody>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold w-[40%] text-black align-top">1. File No.</td>
+                            <td className="py-2 px-2 w-[60%] text-black align-top">
+                              {renderEditableCell('cr_en_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">2. Name & Address of Applicant</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_applicant', `: ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="Name" value={applicantName} onChange={e => setApplicantName(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="Address" value={applicantAddress} onChange={e => setApplicantAddress(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">3. Name of Site / Location</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">4. Latitude / Longitude</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">5. Local Self Govt. / Ward</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_lsgd', `: ${localSelfGovt || ''}`, <Input className="h-6 text-xs" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">6. Assembly Constituency</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_constituency', `: ${constituency || ''}`, <Input className="h-6 text-xs" value={constituency} onChange={e => setConstituency(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">7. Scheme / Purpose</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_appType', `: ${displayAppType}`, <Input className="h-6 text-xs" value={applicationType} onChange={e => setApplicationType(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">8. Recommended Depth & Overburden</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_recommended', `: ${recDisplay}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="Depth" value={surveyRecommendedTD} onChange={e => setSurveyRecommendedTD(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="Overburden" value={surveyRecommendedOB} onChange={e => setSurveyRecommendedOB(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">9. Location of Borewell</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_surveyLoc', `: ${surveyLocation || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={surveyLocation} onChange={e => setSurveyLocation(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">10. Drilling Rig / Machinery Used</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_rig', `: ${rigUsed}`, <Input className="h-6 text-xs" value={rigUsed} onChange={e => setRigUsed(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">11. Diameter of Borewell</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_dia', `: ${diameter}`, <Input className="h-6 text-xs" value={diameter} onChange={e => setDiameter(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">12. Total Depth Drilled</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_depth', `: ${depthMeter ? `${depthMeter} meters` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={depthMeter} onChange={e => { const v = Number(e.target.value); setDepthMeter(v); setDrillingQty(v); }} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_en_row_ob">
+                            <td className="py-2 px-2 font-bold text-black align-top">13. Overburden Thickness</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_ob', `: ${actualOverburden ? `${actualOverburden} meters` : ''}`, <Input className="h-6 text-xs w-28" value={actualOverburden} onChange={e => setActualOverburden(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_en_row_casing">
+                            <td className="py-2 px-2 font-bold text-black align-top">14. Casing Pipe Lowered</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_casing', 
+                                (() => {
+                                  const lines: string[] = [];
+                                  if (casing10kgQty) lines.push(`${casingDiameterLabel}, 10 kg/cm²: ${casing10kgQty} meter`);
+                                  if (casing6kgQty) lines.push(`${casingDiameterLabel}, 6 kg/cm²: ${casing6kgQty} meter`);
+                                  if (innerCasingQty) lines.push(`Inner Casing (110 mm, 4 kg/cm²): ${innerCasingQty} meter`);
+                                  if (currentSite?.purpose === 'TWC') {
+                                    if (pilotDrillingDepth) lines.push(`Pilot Drilling Depth: ${formatMeterValue(pilotDrillingDepth)}`);
+                                    if (surveyPlainPipe) lines.push(`Plain Pipe: ${formatMeterValue(surveyPlainPipe)}`);
+                                    if (surveySlottedPipe) lines.push(`Slotted Pipe: ${formatMeterValue(surveySlottedPipe)}`);
+                                    if (outerCasingPipe) lines.push(`MS Casing: ${formatMeterValue(outerCasingPipe)}`);
+                                  }
+                                  if (lines.length > 0) {
+                                    return (
+                                      <span>
+                                        : {lines[0]}
+                                        {lines.slice(1).map((line, idx) => (
+                                          <React.Fragment key={idx}>
+                                            <br />&nbsp; {line}
+                                          </React.Fragment>
+                                        ))}
+                                      </span>
+                                    );
+                                  }
+                                  return <span>: {totalCasingMeters ? `${totalCasingMeters} meter` : ''}</span>;
+                                })(), 
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
+                                  {currentSite?.purpose === 'TWC' && (
+                                    <>
+                                      <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
+                                      <Input placeholder="Plain Pipe" className="h-6 text-xs" value={surveyPlainPipe} onChange={e => setSurveyPlainPipe(e.target.value)} />
+                                      <Input placeholder="Slotted Pipe" className="h-6 text-xs" value={surveySlottedPipe} onChange={e => setSurveySlottedPipe(e.target.value)} />
+                                      <Input placeholder="MS Casing" className="h-6 text-xs" value={outerCasingPipe} onChange={e => setOuterCasingPipe(e.target.value)} />
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">15. End Cap Details</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} diameter` : 'Nil'}`, 
+                                <Select value={endCap} onValueChange={setEndCap}>
+                                  <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Yes">Yes (1 No. Cap)</SelectItem>
+                                    <SelectItem value="No">No (Nil)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">16. Average Yield</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_yield', `: ${yieldLph ? `${yieldLph} Litres Per Hour (LPH)` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">17. Water Struck Zone</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_zone', `: ${waterStruckZone ? (waterStruckZone.toLowerCase().includes('meter') ? waterStruckZone : `${waterStruckZone} meters`) : ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">18. Static Water Level</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_swl', `: ${staticWaterLevel !== '' && staticWaterLevel !== null && staticWaterLevel !== undefined ? `${staticWaterLevel} meters below ground level` : ''}`, <Input className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">19. Period of Work</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} to ${formattedPeriodTo}` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
+                                <div className="flex gap-1">
+                                  <Input className="h-6 text-xs" placeholder="From" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
+                                  <Input className="h-6 text-xs" placeholder="To" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300">
+                            <td className="py-2 px-2 font-bold text-black align-top">20. Remarks</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_remarks', `: ${remarks || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
+                            </td>
+                          </tr>
+                          {!isDeptRigWork && (
+                            <tr className="border-b border-gray-300">
+                              <td className="py-2 px-2 font-bold text-black align-top">21. Name of Contractor</td>
+                              <td className="py-2 px-2 text-black align-top">
+                                {renderEditableCell('cr_en_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
 
-                    <table className="w-full border-collapse text-xs mt-2">
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold w-2/5">1. File No.</td>
-                          <td className="py-1.5 w-3/5">
-                            {renderEditableCell('cr_en_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">2. Name & Address of Applicant</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_applicant', `: ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="Name" value={applicantName} onChange={e => setApplicantName(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="Address" value={applicantAddress} onChange={e => setApplicantAddress(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">3. Name of Site / Location</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">4. Latitude / Longitude</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">5. Local Self Govt. / Ward</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_lsgd', `: ${localSelfGovt || ''}`, <Input className="h-6 text-xs" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">6. Assembly Constituency</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_constituency', `: ${constituency || ''}`, <Input className="h-6 text-xs" value={constituency} onChange={e => setConstituency(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">7. Scheme / Purpose</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_appType', `: ${displayAppType}`, <Input className="h-6 text-xs" value={applicationType} onChange={e => setApplicationType(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">8. Recommended Depth & Overburden</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_recommended', `: ${recDisplay}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="Depth" value={surveyRecommendedTD} onChange={e => setSurveyRecommendedTD(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="Overburden" value={surveyRecommendedOB} onChange={e => setSurveyRecommendedOB(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">9. Location of Borewell</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_surveyLoc', `: ${surveyLocation || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={surveyLocation} onChange={e => setSurveyLocation(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">10. Drilling Rig / Machinery Used</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_rig', `: ${rigUsed}`, <Input className="h-6 text-xs" value={rigUsed} onChange={e => setRigUsed(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">11. Diameter of Borewell</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_dia', `: ${diameter}`, <Input className="h-6 text-xs" value={diameter} onChange={e => setDiameter(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">12. Total Depth Drilled</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_depth', `: ${depthMeter ? `${depthMeter} meters` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={depthMeter} onChange={e => { const v = Number(e.target.value); setDepthMeter(v); setDrillingQty(v); }} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b" id="cr_en_row_ob">
-                          <td className="py-1.5 font-bold">13. Overburden Thickness</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_ob', `: ${actualOverburden ? `${actualOverburden} meters` : ''}`, <Input className="h-6 text-xs w-28" value={actualOverburden} onChange={e => setActualOverburden(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b" id="cr_en_row_casing">
-                          <td className="py-1.5 font-bold">14. Casing Pipe Lowered</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_casing', 
-                              <span>
-                                : {totalCasingMeters ? `${totalCasingMeters} meter` : ''}
-                                {casing10kgQty ? <><br />&nbsp; {casingDiameterLabel}, 10 kg/cm²: {casing10kgQty} meter</> : null}
-                                {casing6kgQty ? <><br />&nbsp; {casingDiameterLabel}, 6 kg/cm²: {casing6kgQty} meter</> : null}
-                                {innerCasingQty ? <><br />&nbsp; Inner Casing (110 mm, 4 kg/cm²): {innerCasingQty} meter</> : null}
-                                {currentSite?.purpose === 'TWC' && (
-                                  <>
-                                    <br />&nbsp; Pilot Drilling Depth: {pilotDrillingDepth ? formatMeterValue(pilotDrillingDepth) : ''}
-                                    <br />&nbsp; Plain Pipe: {surveyPlainPipe ? formatMeterValue(surveyPlainPipe) : ''}
-                                    <br />&nbsp; Slotted Pipe: {surveySlottedPipe ? formatMeterValue(surveySlottedPipe) : ''}
-                                    <br />&nbsp; MS Casing: {outerCasingPipe ? formatMeterValue(outerCasingPipe) : ''}
-                                  </>
-                                )}
-                              </span>, 
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
-                                <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
-                                <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
-                                {currentSite?.purpose === 'TWC' && (
-                                  <>
-                                    <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
-                                    <Input placeholder="Plain Pipe" className="h-6 text-xs" value={surveyPlainPipe} onChange={e => setSurveyPlainPipe(e.target.value)} />
-                                    <Input placeholder="Slotted Pipe" className="h-6 text-xs" value={surveySlottedPipe} onChange={e => setSurveySlottedPipe(e.target.value)} />
-                                    <Input placeholder="MS Casing" className="h-6 text-xs" value={outerCasingPipe} onChange={e => setOuterCasingPipe(e.target.value)} />
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">15. End Cap Details</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} diameter` : 'Nil'}`, 
-                              <Select value={endCap} onValueChange={setEndCap}>
-                                <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Yes">Yes (1 No. Cap)</SelectItem>
-                                  <SelectItem value="No">No (Nil)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">16. Average Yield</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_yield', `: ${yieldLph ? `${yieldLph} Litres Per Hour (LPH)` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">17. Water Struck Zone</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_zone', `: ${waterStruckZone || ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">18. Static Water Level</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_swl', `: ${staticWaterLevel || staticWaterLevel === 0 ? `${staticWaterLevel} meters below ground level` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(Number(e.target.value))} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">19. Period of Work</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} to ${formattedPeriodTo}` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
-                              <div className="flex gap-1">
-                                <Input className="h-6 text-xs" placeholder="From" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} />
-                                <Input className="h-6 text-xs" placeholder="To" value={periodTo} onChange={e => setPeriodTo(e.target.value)} />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">20. Remarks</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_remarks', `: ${remarks || 'Work completed satisfactorily as per departmental specifications.'}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-1.5 font-bold">21. Name of Contractor</td>
-                          <td className="py-1.5">
-                            {renderEditableCell('cr_en_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <div className="pt-12 grid grid-cols-4 text-center font-bold text-xs">
-                      <div>Site-in-Charge</div>
-                      <div>Assistant Engineer</div>
-                      <div>Assistant Exec. Engineer</div>
-                      <div>District Officer</div>
+                    <div className="pt-10 pb-2 mt-auto grid grid-cols-4 text-center font-bold text-xs sm:text-[12.5px] signature-block gap-2">
+                      <div>
+                        <div className="h-10"></div>
+                        Site-in-Charge
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        Assistant Engineer
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        Assistant Exec. Engineer
+                      </div>
+                      <div>
+                        <div className="h-10"></div>
+                        District Officer
+                      </div>
                     </div>
                   </>
                 )}
@@ -1205,243 +1637,307 @@ export default function PrintableReportModal({
           {docType === 'final_bill' && (
             <div className="space-y-4">
               {lang === 'ml' ? (
-                <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                    <h3 className="text-base font-bold">കുഴൽകിണർ നിർമ്മാണം - പൂർത്തീകരണ റിപ്പോർട്ട്, ഫൈനൽ ബിൽ</h3>
-                    <p className="text-xs font-semibold">ഫൈനൽ ബിൽ</p>
-                  </div>
+                (() => {
+                  const itemsMl = [
+                    {
+                      qty: drillingQty,
+                      descId: 'fb_desc_drilling_ml',
+                      descValue: fbDescDrillingMl,
+                      descEl: <Input className="h-6 text-xs" value={fbDescDrillingMl} onChange={e => setFbDescDrillingMl(e.target.value)} />,
+                      rateId: 'fb_r1',
+                      rateValue: drillingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={drillingRate} onChange={e => setDrillingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q1',
+                      qtyText: `${drillingQty} മീറ്റർ`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={drillingQty} onChange={e => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />,
+                      total: drillingTotal
+                    },
+                    {
+                      qty: casing10kgQty,
+                      descId: 'fb_desc_casing10_ml',
+                      descValue: fbDescCasing10Ml,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing10Ml} onChange={e => setFbDescCasing10Ml(e.target.value)} />,
+                      rateId: 'fb_r2',
+                      rateValue: casing10kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing10kgRate} onChange={e => setCasing10kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q2',
+                      qtyText: `${casing10kgQty} മീറ്റർ`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />,
+                      total: casing10kgTotal
+                    },
+                    {
+                      qty: casing6kgQty,
+                      descId: 'fb_desc_casing6_ml',
+                      descValue: fbDescCasing6Ml,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing6Ml} onChange={e => setFbDescCasing6Ml(e.target.value)} />,
+                      rateId: 'fb_r3',
+                      rateValue: casing6kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing6kgRate} onChange={e => setCasing6kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q3',
+                      qtyText: `${casing6kgQty} മീറ്റർ`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />,
+                      total: casing6kgTotal
+                    },
+                    {
+                      qty: effectiveInnerCasingQty,
+                      descId: 'fb_desc_inner_ml',
+                      descValue: fbDescInnerMl,
+                      descEl: <Input className="h-6 text-xs" value={fbDescInnerMl} onChange={e => setFbDescInnerMl(e.target.value)} />,
+                      rateId: 'fb_r4',
+                      rateValue: innerCasingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q4',
+                      qtyText: `${effectiveInnerCasingQty} എണ്ണം`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />,
+                      total: innerCasingTotal
+                    }
+                  ];
+                  const activeItemsMl = itemsMl.filter(item => item.qty > 0);
 
-                  <div className="flex justify-between text-xs py-1">
-                    <span>ഫയൽ നമ്പർ: <strong>{fileNo}</strong></span>
-                    <span>അപേക്ഷകൻ: <strong>{applicantName}</strong></span>
-                  </div>
+                  return (
+                    <>
+                      <div className="text-center space-y-1 pb-2 border-b-2 border-black">
+                        <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
+                        <h3 className="text-base font-bold">കുഴൽകിണർ നിർമ്മാണം - പൂർത്തീകരണ റിപ്പോർട്ട്, ഫൈനൽ ബിൽ</h3>
+                        <p className="text-xs font-semibold">ഫൈനൽ ബിൽ</p>
+                      </div>
 
-                  <table className="w-full border-collapse border border-black text-xs">
-                    <thead>
-                      <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                        <td className="border border-black py-1.5 w-12">ക്രമ നമ്പർ</td>
-                        <td className="border border-black py-1.5">വിവരണങ്ങൾ</td>
-                        <td className="border border-black py-1.5 w-24">നിരക്ക് (രൂപ)</td>
-                        <td className="border border-black py-1.5 w-24">അളവ്</td>
-                        <td className="border border-black py-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">1</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_drilling_ml', fbDescDrillingMl, <Input className="h-6 text-xs" value={fbDescDrillingMl} onChange={e => setFbDescDrillingMl(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_r1', drillingRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={drillingRate} onChange={e => setDrillingRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_q1', `${drillingQty} മീറ്റർ`, <Input type="number" className="h-6 text-xs" value={drillingQty} onChange={e => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{drillingTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">2</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_casing10_ml', fbDescCasing10Ml, <Input className="h-6 text-xs" value={fbDescCasing10Ml} onChange={e => setFbDescCasing10Ml(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_r2', casing10kgRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={casing10kgRate} onChange={e => setCasing10kgRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_q2', `${casing10kgQty} മീറ്റർ`, <Input type="number" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{casing10kgTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">3</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_casing6_ml', fbDescCasing6Ml, <Input className="h-6 text-xs" value={fbDescCasing6Ml} onChange={e => setFbDescCasing6Ml(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_r3', casing6kgRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={casing6kgRate} onChange={e => setCasing6kgRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_q3', `${casing6kgQty} മീറ്റർ`, <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{casing6kgTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">4</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_inner_ml', fbDescInnerMl, <Input className="h-6 text-xs" value={fbDescInnerMl} onChange={e => setFbDescInnerMl(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_r4', innerCasingRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_q4', `${innerCasingQty} എണ്ണം`, <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{innerCasingTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr className="font-bold bg-gray-50">
-                        <td className="border border-black p-1.5 text-center">5</td>
-                        <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      {subsidyAmount > 0 && (
-                        <tr>
-                          <td className="border border-black p-1.5 text-center">6</td>
-                          <td className="border border-black p-1.5" colSpan={3}>
-                            {renderEditableCell('fb_subsidy', 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം', <Input type="number" className="h-6 text-xs" value={subsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />)}
-                          </td>
-                          <td className="border border-black p-1.5 text-right font-mono">{subsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        </tr>
-                      )}
-                      <tr className="font-bold">
-                        <td className="border border-black p-1.5 text-center">{subsidyAmount > 0 ? 7 : 6}</td>
-                        <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">{subsidyAmount > 0 ? 8 : 7}</td>
-                        <td className="border border-black p-1.5" colSpan={3}>
-                          {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
-                            <div className="flex gap-1">
-                              <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                              <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                            </div>
+                      <div className="flex justify-between text-xs py-1">
+                        <span>ഫയൽ നമ്പർ: <strong>{fileNo}</strong></span>
+                        <span>അപേക്ഷകൻ: <strong>{applicantName}</strong></span>
+                      </div>
+
+                      <table className="w-full border-collapse border border-black text-xs">
+                        <thead>
+                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
+                            <td className="border border-black py-1.5 w-12">ക്രമ നമ്പർ</td>
+                            <td className="border border-black py-1.5">വിവരണങ്ങൾ</td>
+                            <td className="border border-black py-1.5 w-24">നിരക്ക് (രൂപ)</td>
+                            <td className="border border-black py-1.5 w-24">അളവ്</td>
+                            <td className="border border-black py-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeItemsMl.map((item, idx) => (
+                            <tr key={item.descId}>
+                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
+                              <td className="border border-black p-1.5">
+                                {renderEditableCell(item.descId, item.descValue, item.descEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-center">
+                                {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                          <tr className="font-bold bg-gray-50">
+                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + 1}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
+                            <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          {(effectiveSubsidyAmount > 0 || isPrivateIrrigation) && (
+                            <tr>
+                              <td className="border border-black p-1.5 text-center">{activeItemsMl.length + 2}</td>
+                              <td className="border border-black p-1.5" colSpan={3}>
+                                {renderEditableCell('fb_subsidy', 
+                                  isPrivateIrrigation 
+                                    ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
+                                    : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം', 
+                                  <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr className="font-bold bg-gray-100">
-                        <td className="border border-black p-1.5 text-center">{subsidyAmount > 0 ? 9 : 8}</td>
-                        <td className="border border-black p-1.5" colSpan={3}>
-                          {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          <tr className="font-bold">
+                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 3 : 2)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
+                            <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 4 : 3)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>
+                              {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
+                                <div className="flex gap-1">
+                                  <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                  <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          <tr className="font-bold bg-gray-100">
+                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 5 : 4)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>
+                              {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">
+                              {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
 
-                  <div className="pt-8 text-right">
-                    <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
-                    <p className="text-xs">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</p>
-                  </div>
-                </>
+                      <div className="pt-8 text-right">
+                        <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
+                      </div>
+                    </>
+                  );
+                })()
               ) : (
-                <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                    <h3 className="text-base font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
-                  </div>
+                (() => {
+                  const itemsEn = [
+                    {
+                      qty: drillingQty,
+                      descId: 'fb_desc_drilling_en',
+                      descValue: fbDescDrillingEn,
+                      descEl: <Input className="h-6 text-xs" value={fbDescDrillingEn} onChange={e => setFbDescDrillingEn(e.target.value)} />,
+                      rateId: 'fb_en_r1',
+                      rateValue: drillingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={drillingRate} onChange={e => setDrillingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q1',
+                      qtyText: `${drillingQty} m`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={drillingQty} onChange={e => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />,
+                      total: drillingTotal
+                    },
+                    {
+                      qty: casing10kgQty,
+                      descId: 'fb_desc_casing10_en',
+                      descValue: fbDescCasing10En,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing10En} onChange={e => setFbDescCasing10En(e.target.value)} />,
+                      rateId: 'fb_en_r2',
+                      rateValue: casing10kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing10kgRate} onChange={e => setCasing10kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q2',
+                      qtyText: `${casing10kgQty} m`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />,
+                      total: casing10kgTotal
+                    },
+                    {
+                      qty: casing6kgQty,
+                      descId: 'fb_desc_casing6_en',
+                      descValue: fbDescCasing6En,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing6En} onChange={e => setFbDescCasing6En(e.target.value)} />,
+                      rateId: 'fb_en_r3',
+                      rateValue: casing6kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing6kgRate} onChange={e => setCasing6kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q3',
+                      qtyText: `${casing6kgQty} m`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />,
+                      total: casing6kgTotal
+                    },
+                    {
+                      qty: effectiveInnerCasingQty,
+                      descId: 'fb_desc_inner_en',
+                      descValue: fbDescInnerEn,
+                      descEl: <Input className="h-6 text-xs" value={fbDescInnerEn} onChange={e => setFbDescInnerEn(e.target.value)} />,
+                      rateId: 'fb_en_r4',
+                      rateValue: innerCasingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q4',
+                      qtyText: `${effectiveInnerCasingQty} No`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />,
+                      total: innerCasingTotal
+                    }
+                  ];
+                  const activeItemsEn = itemsEn.filter(item => item.qty > 0);
 
-                  <div className="flex justify-between text-xs py-1">
-                    <span>File No: <strong>{fileNo}</strong></span>
-                    <span>Applicant: <strong>{applicantName}</strong></span>
-                  </div>
+                  return (
+                    <>
+                      <div className="text-center space-y-1 pb-2 border-b-2 border-black">
+                        <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
+                        <h3 className="text-base font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
+                      </div>
 
-                  <table className="w-full border-collapse border border-black text-xs">
-                    <thead>
-                      <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                        <td className="border border-black py-1.5 w-12">Sl No</td>
-                        <td className="border border-black py-1.5">Description of Item</td>
-                        <td className="border border-black py-1.5 w-24">Rate (Rs)</td>
-                        <td className="border border-black py-1.5 w-24">Qty / Unit</td>
-                        <td className="border border-black py-1.5 w-32 text-right pr-2">Amount (Rs)</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">1</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_drilling_en', fbDescDrillingEn, <Input className="h-6 text-xs" value={fbDescDrillingEn} onChange={e => setFbDescDrillingEn(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_en_r1', drillingRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={drillingRate} onChange={e => setDrillingRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_en_q1', `${drillingQty} m`, <Input type="number" className="h-6 text-xs" value={drillingQty} onChange={e => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{drillingTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">2</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_casing10_en', fbDescCasing10En, <Input className="h-6 text-xs" value={fbDescCasing10En} onChange={e => setFbDescCasing10En(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_en_r2', casing10kgRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={casing10kgRate} onChange={e => setCasing10kgRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_en_q2', `${casing10kgQty} m`, <Input type="number" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{casing10kgTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">3</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_casing6_en', fbDescCasing6En, <Input className="h-6 text-xs" value={fbDescCasing6En} onChange={e => setFbDescCasing6En(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_en_r3', casing6kgRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={casing6kgRate} onChange={e => setCasing6kgRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_en_q3', `${casing6kgQty} m`, <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{casing6kgTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">4</td>
-                        <td className="border border-black p-1.5">
-                          {renderEditableCell('fb_desc_inner_en', fbDescInnerEn, <Input className="h-6 text-xs" value={fbDescInnerEn} onChange={e => setFbDescInnerEn(e.target.value)} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {renderEditableCell('fb_en_r4', innerCasingRate.toFixed(2), <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-center">
-                          {renderEditableCell('fb_en_q4', `${innerCasingQty} No`, <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />)}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{innerCasingTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr className="font-bold bg-gray-50">
-                        <td className="border border-black p-1.5 text-center">5</td>
-                        <td className="border border-black p-1.5" colSpan={3}>Total Expenditure Incurred</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr className="font-bold">
-                        <td className="border border-black p-1.5 text-center">6</td>
-                        <td className="border border-black p-1.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-black p-1.5 text-center">7</td>
-                        <td className="border border-black p-1.5" colSpan={3}>
-                          {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
-                            <div className="flex gap-1">
-                              <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                              <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                            </div>
+                      <div className="flex justify-between text-xs py-1">
+                        <span>File No: <strong>{fileNo}</strong></span>
+                        <span>Applicant: <strong>{applicantName}</strong></span>
+                      </div>
+
+                      <table className="w-full border-collapse border border-black text-xs">
+                        <thead>
+                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
+                            <td className="border border-black py-1.5 w-12">Sl No</td>
+                            <td className="border border-black py-1.5">Description of Item</td>
+                            <td className="border border-black py-1.5 w-24">Rate (Rs)</td>
+                            <td className="border border-black py-1.5 w-24">Qty / Unit</td>
+                            <td className="border border-black py-1.5 w-32 text-right pr-2">Amount (Rs)</td>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeItemsEn.map((item, idx) => (
+                            <tr key={item.descId}>
+                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
+                              <td className="border border-black p-1.5">
+                                {renderEditableCell(item.descId, item.descValue, item.descEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-center">
+                                {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                          <tr className="font-bold bg-gray-50">
+                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + 1}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>Total Expenditure Incurred</td>
+                            <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          {(effectiveSubsidyAmount > 0 || isPrivateIrrigation) && (
+                            <tr>
+                              <td className="border border-black p-1.5 text-center">{activeItemsEn.length + 2}</td>
+                              <td className="border border-black p-1.5" colSpan={3}>
+                                {renderEditableCell('fb_en_subsidy', 
+                                  isPrivateIrrigation 
+                                    ? 'Subsidy for Marginal / Small Farmers - 50% of Drilling Charge (up to recommended depth of 120 meters)' 
+                                    : 'Subsidy for Marginal / Small Farmers', 
+                                  <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                      <tr className="font-bold bg-gray-100">
-                        <td className="border border-black p-1.5 text-center">8</td>
-                        <td className="border border-black p-1.5" colSpan={3}>
-                          {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
-                        </td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          <tr className="font-bold">
+                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 3 : 2)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
+                            <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 4 : 3)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>
+                              {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
+                                <div className="flex gap-1">
+                                  <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                  <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                </div>
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                          <tr className="font-bold bg-gray-100">
+                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 5 : 4)}</td>
+                            <td className="border border-black p-1.5" colSpan={3}>
+                              {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">
+                              {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
 
-                  <div className="pt-8 text-right">
-                    <p className="font-bold">District Officer</p>
-                    <p className="text-xs">Ground Water Department, {district}</p>
-                  </div>
-                </>
+                      <div className="pt-8 text-right">
+                        <p className="font-bold">District Officer</p>
+                        <p className="text-xs">Ground Water Department, {district}</p>
+                      </div>
+                    </>
+                  );
+                })()
               )}
             </div>
           )}
@@ -1533,7 +2029,6 @@ export default function PrintableReportModal({
 
                   <div className="pt-8 text-right">
                     <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
-                    <p className="text-xs">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</p>
                   </div>
                 </>
               ) : (
@@ -1669,7 +2164,7 @@ export default function PrintableReportModal({
               </div>
 
               <div className="text-xs space-y-3 leading-relaxed text-justify pt-2">
-                <p className="p-1 rounded hover:bg-slate-50 transition-colors">
+                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                   {renderEditableCell('proc_para1',
                     <span>
                       As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({ddDetails}) for the construction of a borewell at their premises.
@@ -1679,8 +2174,8 @@ export default function PrintableReportModal({
                       <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
                     </div>
                   )}
-                </p>
-                <p className="p-1 rounded hover:bg-slate-50 transition-colors">
+                </div>
+                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                   {renderEditableCell('proc_para2',
                     <span>
                       Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
@@ -1690,41 +2185,28 @@ export default function PrintableReportModal({
                       <Input type="number" placeholder="Refund" className="h-6 text-xs" value={advanceDeposit - netPayableGwd} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                     </div>
                   )}
-                </p>
-                <p className="p-1 rounded hover:bg-slate-50 transition-colors">
+                </div>
+                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                   {renderEditableCell('proc_para3',
                     <span>
-                      In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> being the balance amount due to the applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} ({bankName})</strong>.
+                      In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/- ({numberToWordsEnglish(netPayableGwd)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
                     </span>,
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-4 gap-1">
                       <Input className="h-6 text-xs" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
                       <Input className="h-6 text-xs" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
                       <Input className="h-6 text-xs" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
+                      <Input className="h-6 text-xs" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
                     </div>
                   )}
-                </p>
-                <p className="p-1 rounded hover:bg-slate-50 transition-colors">
-                  {renderEditableCell('proc_para4',
-                    <span>
-                      Sanction is also hereby accorded to remit an amount of <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/- ({numberToWordsEnglish(netPayableGwd)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
-                    </span>,
-                    <Input type="number" className="h-6 text-xs w-48" placeholder="Remit Amount" value={netPayableGwd} onChange={e => {
-                      const targetVal = Number(e.target.value);
-                      const diff = targetVal - (casing10kgTotal + casing6kgTotal + innerCasingTotal);
-                      if (drillingQty > 0) {
-                        setDrillingRate(diff / drillingQty);
-                      }
-                    }} />
-                  )}
-                </p>
-                <p className="p-1 rounded hover:bg-slate-50 transition-colors">
+                </div>
+                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                   {renderEditableCell('proc_para5',
                     <span>
                       The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant into STSB Account of the District Officer, Ground Water Department, {district}.
                     </span>,
                     <Input type="number" className="h-6 text-xs w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                   )}
-                </p>
+                </div>
               </div>
 
               <div className="pt-10 flex justify-between items-end text-xs">
@@ -1735,7 +2217,6 @@ export default function PrintableReportModal({
                 </div>
                 <div className="text-right">
                   <p className="font-bold">District Officer</p>
-                  <p className="text-[11px]">Ground Water Department, {district}</p>
                 </div>
               </div>
             </div>
@@ -1969,10 +2450,27 @@ export default function PrintableReportModal({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={handlePrint} className="bg-primary gap-1.5">
-            <Printer className="h-4 w-4" />
-            Print Document
-          </Button>
+          <div className="flex items-center gap-2">
+            {onSave && (
+              <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />}
+                Save
+              </Button>
+            )}
+            {isInIframe ? (
+              <Button asChild variant="default" className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white border-none animate-pulse" title="Print this document (opens in a new tab)">
+                <a href={typeof window !== 'undefined' ? window.location.href : '#'} target="_blank" rel="noopener noreferrer">
+                  <Printer className="h-4 w-4" />
+                  Print
+                </a>
+              </Button>
+            ) : (
+              <Button onClick={handlePrint} className="bg-primary gap-1.5">
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+            )}
+          </div>
         </DialogFooter>
 
     </div>

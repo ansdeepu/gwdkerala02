@@ -2,18 +2,20 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { format, isValid, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings2, CloudCheck } from 'lucide-react';
+import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings2, CloudCheck, Copy, FileSpreadsheet } from 'lucide-react';
 import { cn, getDistrictMalayalam } from '@/lib/utils';
+import { printDocument } from '@/lib/print-utils';
 import { getFirestore, collectionGroup, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { app } from '@/lib/firebase';
 import type { AgencyApplication } from '@/hooks/useAgencyApplications';
+import ExcelJS from 'exceljs';
 
 const toDateOrNull = (value: any): Date | null => {
     if (!value) return null;
@@ -89,6 +91,7 @@ const extractTextFromNode = (node: any): string => {
 };
 
 export default function RigChecklistPrintPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
     const rigId = searchParams.get('rigId');
@@ -312,7 +315,7 @@ export default function RigChecklistPrintPage() {
         const officerDesig = (inspectingOfficerDesig || data?.rig?.inspectingOfficerDesig || '').trim();
 
         if (!officerName) {
-            return <span className="font-bold text-slate-500">[പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ / Officer Assigned]</span>;
+            return <span className="font-bold text-black">[പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ / Officer Assigned]</span>;
         }
 
         let label = officerName;
@@ -383,7 +386,7 @@ export default function RigChecklistPrintPage() {
                     {application.owner?.nameMalayalam && (
                         <p className="whitespace-pre-wrap font-medium">{application.owner.nameMalayalam}</p>
                     )}
-                    <p className={`whitespace-pre-wrap ${application.owner?.nameMalayalam ? 'text-sm text-muted-foreground' : 'font-medium'}`}>
+                    <p className={`whitespace-pre-wrap ${application.owner?.nameMalayalam ? 'text-sm text-black font-normal' : 'font-medium'}`}>
                         {application.owner?.name || (!application.owner?.nameMalayalam ? "രേഖപ്പെടുത്തിയിട്ടില്ല" : "")}
                     </p>
                 </div>
@@ -397,7 +400,7 @@ export default function RigChecklistPrintPage() {
                     {application.agencyNameMalayalam && (
                         <p className="whitespace-pre-wrap font-medium">{application.agencyNameMalayalam}</p>
                     )}
-                    <p className={`whitespace-pre-wrap ${application.agencyNameMalayalam ? 'text-sm text-muted-foreground' : 'font-medium'}`}>
+                    <p className={`whitespace-pre-wrap ${application.agencyNameMalayalam ? 'text-sm text-black font-normal' : 'font-medium'}`}>
                         {application.agencyName || (!application.agencyNameMalayalam ? "രേഖപ്പെടുത്തിയിട്ടില്ല" : "")}
                     </p>
                 </div>
@@ -429,7 +432,7 @@ export default function RigChecklistPrintPage() {
                         <p className="whitespace-pre-wrap font-medium">{getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</p>
                     )}
                     {rig.typeOfRig && rig.typeOfRig !== getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam) && (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{rig.typeOfRig}</p>
+                        <p className="text-sm text-black font-normal whitespace-pre-wrap">{rig.typeOfRig}</p>
                     )}
                     {!rig.typeOfRig && !rig.typeOfRigMalayalam && (
                         <p className="font-medium">രേഖപ്പെടുത്തിയിട്ടില്ല</p>
@@ -831,100 +834,466 @@ export default function RigChecklistPrintPage() {
         }
     ];
 
+    const getSubRowsData = () => {
+        return !isRenewal ? [
+            { 
+                key: "30_a", 
+                label: "a. അപേക്ഷ ഫീസ് - ഏജൻസി രജിസ്ട്രേഷൻ", 
+                defaultValue: (() => {
+                    const agencyRegFee = (application.applicationFees || []).find(f => f.applicationFeeType === "Agency Registration");
+                    if (agencyRegFee) {
+                        return `Rs. ${agencyRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(agencyRegFee.applicationFeePaymentDate)}, Challan No. ${agencyRegFee.applicationFeeChallanNo || ''}`;
+                    }
+                    return application.agencyRegistrationFee 
+                        ? `Rs. ${application.agencyRegistrationFee}/- dtd. ${formatDateSafe(application.agencyPaymentDate)}, Challan No. ${application.agencyChallanNo || ''}`
+                        : '-';
+                })()
+            },
+            { 
+                key: "30_b", 
+                label: "b. അപേക്ഷ ഫീസ് - റിഗ് രജിസ്ട്രേഷൻ", 
+                defaultValue: (() => {
+                    const activeRigsList = (application.rigs || []).filter(r => r.status !== 'Cancelled');
+                    const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
+                    const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
+
+                    const rigRegFee = (application.applicationFees || []).find(
+                        f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
+                    ) || (application.applicationFees || []).find(
+                        f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
+                    );
+                    
+                    if (rigRegFee) {
+                        return `Rs. ${rigRegFee.applicationFeeAmount || 0}/- dtd. ${formatDateSafe(rigRegFee.applicationFeePaymentDate)}, Challan: ${rigRegFee.applicationFeeChallanNo || ''}`;
+                    }
+                    
+                    return rig.registrationFee 
+                        ? `Rs. ${rig.registrationFee}/- dtd. ${formatDateSafe(rig.paymentDate)}, Challan: ${rig.challanNo || ''}${rig.challanAmount ? `, Rs. ${rig.challanAmount}/-` : ''}`
+                        : '-';
+                })()
+            },
+            { 
+                key: "30_c", 
+                label: "c. ഏജൻസി രജിസ്ട്രേഷൻ", 
+                defaultValue: (() => {
+                    const total = (application.agencyRegistrationFee || 0) + (application.agencyAdditionalRegFee || 0);
+                    if (!total) return '-';
+                    const primaryPart = application.agencyRegistrationFee 
+                        ? `Challan No. ${application.agencyChallanNo || ''} dtd. ${formatDateSafe(application.agencyPaymentDate)} (Rs. ${application.agencyRegistrationFee}/-)`
+                        : '';
+                    const additionalPart = application.agencyAdditionalRegFee 
+                        ? `Additional Challan No. ${application.agencyAdditionalChallanNo || ''} dtd. ${formatDateSafe(application.agencyAdditionalPaymentDate)} (Rs. ${application.agencyAdditionalRegFee}/-)`
+                        : '';
+                    return `Rs. ${total}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                })()
+            },
+            { 
+                key: "30_d", 
+                label: "d. റിഗ് രജിസ്ട്രേഷൻ", 
+                defaultValue: (() => {
+                    const total = (rig.registrationFee || 0) + (rig.additionalRegistrationFee || 0);
+                    if (!total) return '-';
+                    const primaryPart = rig.registrationFee 
+                        ? `Challan No. ${rig.challanNo || ''} dtd. ${formatDateSafe(rig.paymentDate)} (Rs. ${rig.registrationFee}/-)`
+                        : '';
+                    const additionalPart = rig.additionalRegistrationFee 
+                        ? `Additional Challan No. ${rig.additionalChallanNo || ''} dtd. ${formatDateSafe(rig.additionalPaymentDate)} (Rs. ${rig.additionalRegistrationFee}/-)`
+                        : '';
+                    return `Rs. ${total}/- [${[primaryPart, additionalPart].filter(Boolean).join(', ')}]`;
+                })()
+            }
+        ] : [
+            { key: "30_a", label: "a. അപേക്ഷ ഫീസ്", defaultValue: "ബാധകമല്ല" },
+            { key: "30_b", label: "b. രജിസ്ട്രേഷൻ പുതുക്കൽ", defaultValue: (selectedRenewal?.totalRenewalFee ?? selectedRenewal?.renewalFee) ? `Rs. ${(selectedRenewal?.totalRenewalFee ?? selectedRenewal?.renewalFee)}/- dtd. ${formatDateSafe(selectedRenewal?.paymentDate)}, e-Chalan: ${selectedRenewal?.challanNo || ''}${selectedRenewal?.challanAmount ? `, Rs. ${selectedRenewal.challanAmount}/-` : ''}` : '-' }
+        ];
+    };
+
+    const handleCopyText = async () => {
+        const title = isRenewal 
+            ? "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ ചെക്ക് ലിസ്റ്റ്"
+            : "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ ചെക്ക് ലിസ്റ്റ്";
+        const officeName = (officeAddress?.officeNameMalayalam && officeAddress.officeNameMalayalam !== 'ഭൂജലവകുപ്പ്')
+            ? (officeAddress.officeNameMalayalam.startsWith('ജില്ലാ ഓഫീസ്')
+                ? officeAddress.officeNameMalayalam
+                : `ജില്ലാ ഓഫീസ്: ${officeAddress.officeNameMalayalam.replace(/^ജില്ലാ ഓഫീസ്\s*[:,-]?\s*/, '')}`)
+            : `ജില്ലാ ഓഫീസ്: ${getDistrictMalayalam(officeAddress?.officeLocation)}`;
+        
+        const fileNoStr = safeString(customFileNo || application.fileNo || 'GWDKLM/363/2026-MD2');
+        const dateStr = safeString(customDate, format(new Date(), 'dd/MM/yyyy'));
+        const subTitle = isRenewal 
+            ? `രജിസ്ട്രേഷൻ പുതുക്കൽ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`
+            : `പുതിയ റിഗ് രജിസ്ട്രേഷൻ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`;
+
+        const exportRows: { slNo: string; label: string; value: string }[] = [];
+
+        checklistItems.forEach((item, idx) => {
+            if (item.num === "30") {
+                exportRows.push({
+                    slNo: "30",
+                    label: "ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :",
+                    value: ""
+                });
+                const subRows = getSubRowsData();
+                subRows.forEach(sub => {
+                    const hasSubOverride = (rowOverrides as any)[sub.key] !== undefined;
+                    const subVal = hasSubOverride ? (rowOverrides as any)[sub.key] : sub.defaultValue;
+                    exportRows.push({
+                        slNo: "",
+                        label: sub.label,
+                        value: extractTextFromNode(subVal).trim()
+                    });
+                });
+            } else {
+                const currentVal = rowOverrides[idx] !== undefined 
+                    ? rowOverrides[idx] 
+                    : ((rowOverrides as any)[String(idx)] !== undefined ? (rowOverrides as any)[String(idx)] : item.value);
+                exportRows.push({
+                    slNo: item.num || "",
+                    label: extractTextFromNode(item.label).trim(),
+                    value: extractTextFromNode(currentVal).trim()
+                });
+            }
+        });
+
+        // Rich HTML table representation with inline CSS for Word/Docs/Excel clipboard pasting
+        const htmlTableRows = exportRows.map(row => {
+            if (row.slNo === "30" && !row.value) {
+                return `<tr>
+                    <td style="border: 1px solid #000000; padding: 6px 8px; text-align: center; font-weight: bold; vertical-align: top; width: 8%;">30</td>
+                    <td colspan="2" style="border: 1px solid #000000; padding: 6px 8px; font-weight: bold; vertical-align: top;">${row.label}</td>
+                </tr>`;
+            }
+            return `<tr>
+                <td style="border: 1px solid #000000; padding: 6px 8px; text-align: center; font-weight: bold; vertical-align: top; width: 8%;">${row.slNo}</td>
+                <td style="border: 1px solid #000000; padding: 6px 8px; font-weight: 600; vertical-align: top; width: 42%;">${row.label}</td>
+                <td style="border: 1px solid #000000; padding: 6px 8px; white-space: pre-wrap; vertical-align: top; width: 50%;">${row.value}</td>
+            </tr>`;
+        }).join("");
+
+        const htmlContent = `
+            <div style="font-family: Arial, Helvetica, sans-serif; color: #000000; max-width: 800px; margin: 0 auto; padding: 10px; line-height: 1.5;">
+                <div style="text-align: center; border-bottom: 2px solid #000000; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h1 style="font-size: 20px; font-weight: bold; margin: 0 0 4px 0;">ഭൂജലവകുപ്പ്</h1>
+                    <p style="font-size: 14px; font-weight: bold; margin: 0 0 6px 0;">${officeName}</p>
+                    <h2 style="font-size: 16px; font-weight: bold; text-decoration: underline; margin: 8px 0 0 0;">${title}</h2>
+                </div>
+                <table style="width: 100%; margin-bottom: 12px; font-size: 13px; font-weight: bold; border: none;">
+                    <tr>
+                        <td style="text-align: left;">ഫയൽ നമ്പർ: <span style="font-family: monospace;">${fileNoStr}</span></td>
+                        <td style="text-align: right;">തീയതി : <span style="font-family: monospace;">${dateStr}</span></td>
+                    </tr>
+                </table>
+                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 15px; background-color: #f1f5f9; padding: 8px; border-radius: 4px; text-decoration: underline;">
+                    ${subTitle}
+                </div>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #000000; font-size: 12px; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f8fafc;">
+                            <th style="border: 1px solid #000000; padding: 8px; width: 8%; text-align: center; font-weight: bold;">ക്രമ നമ്പർ</th>
+                            <th style="border: 1px solid #000000; padding: 8px; width: 42%; text-align: left; font-weight: bold;">വിവരണം</th>
+                            <th style="border: 1px solid #000000; padding: 8px; width: 50%; text-align: left; font-weight: bold;">വിവരങ്ങൾ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${htmlTableRows}
+                    </tbody>
+                </table>
+                <div style="border: 1px solid #94a3b8; padding: 12px; font-size: 12px; margin-top: 15px; border-radius: 4px;">
+                    <h3 style="font-size: 13px; font-weight: bold; margin: 0 0 6px 0;">സത്യപ്രസ്താവന (Declaration)</h3>
+                    <p style="margin: 0; text-align: justify; text-indent: 20px; line-height: 1.6;">
+                        ഈ ഓഫീസിലെ <b>${formattedOfficerDisplay}</b>, ജില്ലാ ഓഫീസ്, <b>${getDistrictMalayalam(officeAddress?.officeLocation)}</b>, മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <b>${safeString(application.owner?.nameMalayalam || application.owner?.name)}</b> എന്നവരുടെ <b>${safeString(application.agencyNameMalayalam || application.agencyName)}</b> എന്ന ഏജൻസിയുടെ <b>${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</b> ${rig.rigVehicle?.regNo && rig.rigVehicle.regNo !== 'ബാധകമല്ല' ? `(രജി. നമ്പർ: ${rig.rigVehicle.regNo})` : ''} ന് ${isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
+                    </p>
+                </div>
+                <table style="width: 100%; margin-top: 40px; font-size: 12px; font-weight: bold; text-align: center; border: none;">
+                    <tr>
+                        <td style="width: 50%; padding-bottom: 35px;">പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ</td>
+                        <td style="width: 50%; padding-bottom: 35px;">അസി. എഞ്ചിനീയർ</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 50%;">അസി. എക്സി. എഞ്ചിനീയർ</td>
+                        <td style="width: 50%;">ജില്ലാ ഓഫീസർ</td>
+                    </tr>
+                </table>
+            </div>
+        `;
+
+        // Plain text fallback
+        let plainText = `ഭൂജലവകുപ്പ്\n${officeName}\n${title}\n\n`;
+        plainText += `ഫയൽ നമ്പർ: ${fileNoStr}\tതീയതി : ${dateStr}\n`;
+        plainText += `${subTitle}\n\n`;
+        exportRows.forEach(row => {
+            const sl = row.slNo ? `[${row.slNo}] ` : "    - ";
+            plainText += `${sl}${row.label}\n    👉 ${row.value.split('\n').join('\n       ')}\n\n`;
+        });
+
+        // 1. First, attempt copy using document.execCommand('copy') with intercept listener (highly iframe-compatible)
+        try {
+            const listener = (e: ClipboardEvent) => {
+                e.clipboardData?.setData('text/html', htmlContent);
+                e.clipboardData?.setData('text/plain', plainText);
+                e.preventDefault();
+            };
+            document.addEventListener('copy', listener);
+            const success = document.execCommand('copy');
+            document.removeEventListener('copy', listener);
+
+            if (success) {
+                toast({
+                    title: "Copied Rich Format",
+                    description: "Checklist copied with rich official table formatting to clipboard.",
+                });
+                return;
+            }
+        } catch (err) {
+            console.warn("execCommand copy intercept failed, attempting Clipboard API fallback", err);
+        }
+
+        // 2. Second, attempt Clipboard API with ClipboardItem
+        try {
+            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+                const textBlob = new Blob([plainText], { type: 'text/plain' });
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': htmlBlob,
+                        'text/plain': textBlob
+                    })
+                ]);
+                toast({
+                    title: "Copied Rich Format",
+                    description: "Checklist copied with rich official table formatting to clipboard.",
+                });
+                return;
+            }
+        } catch (apiErr) {
+            console.error("Clipboard API write failed, trying text-only writeText", apiErr);
+        }
+
+        // 3. Third, plain text writeText fallback
+        try {
+            await navigator.clipboard.writeText(plainText);
+            toast({
+                title: "Copied Plain Text",
+                description: "Copied plain text only (rich formatting not supported by your browser).",
+            });
+        } catch (lastErr) {
+            console.error("All copy methods failed:", lastErr);
+            toast({
+                title: "Copy Failed",
+                description: "Could not copy data to clipboard. Please select and copy manually.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleExportExcel = async () => {
+        const title = isRenewal 
+            ? "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ ചെക്ക് ലിസ്റ്റ്"
+            : "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ ചെക്ക് ലിസ്റ്റ്";
+        const officeName = (officeAddress?.officeNameMalayalam && officeAddress.officeNameMalayalam !== 'ഭൂജലവകുപ്പ്')
+            ? (officeAddress.officeNameMalayalam.startsWith('ജില്ലാ ഓഫീസ്')
+                ? officeAddress.officeNameMalayalam
+                : `ജില്ലാ ഓഫീസ്: ${officeAddress.officeNameMalayalam.replace(/^ജില്ലാ ഓഫീസ്\s*[:,-]?\s*/, '')}`)
+            : `ജില്ലാ ഓഫീസ്: ${getDistrictMalayalam(officeAddress?.officeLocation)}`;
+        
+        const fileNoStr = safeString(customFileNo || application.fileNo || 'GWDKLM/363/2026-MD2');
+        const dateStr = safeString(customDate, format(new Date(), 'dd/MM/yyyy'));
+        const subTitle = isRenewal 
+            ? `രജിസ്ട്രേഷൻ പുതുക്കൽ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`
+            : `പുതിയ റിഗ് രജിസ്ട്രേഷൻ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`;
+
+        const exportRows: { slNo: string; label: string; value: string }[] = [];
+
+        checklistItems.forEach((item, idx) => {
+            if (item.num === "30") {
+                exportRows.push({
+                    slNo: "30",
+                    label: "ഫീസ് തുക, ഒടുക്കിയ തീയതി (ചലാൻ പകർപ്പ്) :",
+                    value: ""
+                });
+                const subRows = getSubRowsData();
+                subRows.forEach(sub => {
+                    const hasSubOverride = (rowOverrides as any)[sub.key] !== undefined;
+                    const subVal = hasSubOverride ? (rowOverrides as any)[sub.key] : sub.defaultValue;
+                    exportRows.push({
+                        slNo: "",
+                        label: sub.label,
+                        value: extractTextFromNode(subVal).trim()
+                    });
+                });
+            } else {
+                const currentVal = rowOverrides[idx] !== undefined 
+                    ? rowOverrides[idx] 
+                    : ((rowOverrides as any)[String(idx)] !== undefined ? (rowOverrides as any)[String(idx)] : item.value);
+                exportRows.push({
+                    slNo: item.num || "",
+                    label: extractTextFromNode(item.label).trim(),
+                    value: extractTextFromNode(currentVal).trim()
+                });
+            }
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Checklist");
+
+        // Add Government Header
+        worksheet.addRow(["ഭൂജലവകുപ്പ്"]).font = { bold: true, size: 16 };
+        worksheet.addRow([officeName]).font = { bold: true, size: 12 };
+        worksheet.addRow([title]).font = { bold: true, size: 12, underline: true };
+        worksheet.addRow([]).commit();
+
+        // Add reference details
+        worksheet.addRow([`ഫയൽ നമ്പർ: ${fileNoStr}`, `തീയതി : ${dateStr}`]).font = { bold: true };
+        worksheet.addRow([subTitle]).font = { bold: true, italic: true };
+        worksheet.addRow([]).commit();
+
+        // Headers
+        const headers = ["ക്രമ നമ്പർ (Sl. No.)", "വിവരണം (Description)", "വിവരങ്ങൾ (Details)"];
+        const headerRow = worksheet.addRow(headers);
+        headerRow.font = { bold: true };
+        headerRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F0F0F0' } };
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        });
+
+        // Checklist rows
+        exportRows.forEach(row => {
+            const newRow = worksheet.addRow([row.slNo, row.label, row.value]);
+            newRow.eachCell((cell, colIndex) => {
+                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                if (colIndex === 1) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else {
+                    cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+                }
+            });
+        });
+
+        // Column widths
+        worksheet.getColumn(1).width = 18;
+        worksheet.getColumn(2).width = 45;
+        worksheet.getColumn(3).width = 50;
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const filePrefix = isRenewal ? "Rig_Renewal_Checklist" : "Rig_Registration_Checklist";
+        a.download = `${filePrefix}_${fileNoStr.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        toast({
+            title: "Excel Exported",
+            description: "Checklist exported to Excel successfully.",
+        });
+    };
+
     return (
         <div className="bg-slate-50 min-h-screen p-4 sm:p-8 print:bg-white print:p-0">
             {/* Top Toolbar (Hidden on print) */}
-            <div className="max-w-4xl mx-auto mb-6 bg-white rounded-lg shadow-sm p-4 border space-y-4 no-print">
-                <div className="flex flex-wrap justify-between items-center gap-4">
+            <div className="max-w-4xl mx-auto mb-4 bg-white rounded-lg shadow-sm p-3 border space-y-3 no-print">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => window.close()}>
-                            <ArrowLeft className="mr-2 h-4 w-4" /> മടങ്ങുക (Close)
+                        <Button variant="ghost" size="sm" onClick={() => router.back()} className="h-8 px-2 text-xs">
+                            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back
                         </Button>
                         <span className="text-gray-300">|</span>
-                        <span className="text-sm font-semibold text-slate-700">
-                            {isRenewal ? 'പുതുക്കൽ ചെക്ക് ലിസ്റ്റ്' : 'രജിസ്ട്രേഷൻ ചെക്ക് ലിസ്റ്റ്'} പ്രിന്റ് പ്രിവ്യൂ
+                        <span className="text-xs font-semibold text-slate-700">
+                            {isRenewal ? 'Renewal Checklist' : 'Registration Checklist'} Print Preview
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-1.5">
                         <Button 
                             variant="outline" 
                             size="sm" 
                             onClick={() => setShowSettings(!showSettings)}
-                            className={cn(showSettings && "bg-slate-100 border-slate-300")}
+                            className={cn("h-8 text-xs px-2.5", showSettings && "bg-slate-100 border-slate-300")}
                         >
-                            <Settings2 className="mr-1.5 h-4 w-4 text-slate-600" />
-                            {showSettings ? 'ഹെഡർ ഹൈഡ് ചെയ്യുക' : 'ഹെഡർ എഡിറ്റ് ചെയ്യുക'}
+                            <Settings2 className="mr-1.5 h-3.5 w-3.5 text-slate-600" />
+                            {showSettings ? 'Hide Header' : 'Edit Header'}
                         </Button>
 
                         {Object.keys(rowOverrides).length > 0 && (
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="text-amber-700 border-amber-200 hover:bg-amber-50"
+                                className="h-8 text-xs px-2.5 text-amber-700 border-amber-200 hover:bg-amber-50"
                                 onClick={() => {
                                     setRowOverrides({});
                                     handleSaveChecklist({});
                                 }}
                             >
                                 <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                                റിസെറ്റ് (Reset All)
+                                Reset All
                             </Button>
                         )}
 
                         <Button 
+                            size="sm"
                             onClick={() => handleSaveChecklist()} 
                             disabled={isSaving}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                            className="h-8 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                         >
                             {isSaving ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                             ) : (
-                                <Save className="mr-2 h-4 w-4" />
+                                <Save className="mr-1.5 h-3.5 w-3.5" />
                             )}
-                            സേവ് ചെയ്യുക (Save)
+                            Save
                         </Button>
 
-                        <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white">
-                            <Printer className="mr-2 h-4 w-4" /> പ്രിന്റ് ചെയ്യുക (Print)
+                        <Button size="sm" onClick={() => printDocument('print-checklist-content', 'Renewal Checklist')} className="h-8 text-xs px-2.5 bg-blue-600 hover:bg-blue-700 text-white">
+                            <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
+                        </Button>
+
+                        <Button size="sm" onClick={handleCopyText} variant="outline" className="h-8 text-xs px-2.5 border-slate-300 hover:bg-slate-50 text-slate-700">
+                            <Copy className="mr-1.5 h-3.5 w-3.5 text-slate-500" /> Copy Official Table
+                        </Button>
+
+                        <Button size="sm" onClick={handleExportExcel} className="h-8 text-xs px-2.5 bg-green-700 hover:bg-green-800 text-white">
+                            <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" /> Export Excel
                         </Button>
                     </div>
                 </div>
 
                 {/* Collapsible Header/Inspector Edit Panel */}
                 {showSettings && (
-                    <div className="pt-4 border-t grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/80 p-3 rounded-md text-xs">
+                    <div className="pt-2 border-t grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 bg-slate-50/80 p-2.5 rounded-md text-xs">
                         <div className="space-y-1">
-                            <Label className="text-[11px] text-slate-600 font-medium">ഫയൽ നമ്പർ (File No)</Label>
+                            <Label className="text-[11px] text-slate-600 font-medium">File No</Label>
                             <Input 
-                                className="h-8 text-xs bg-white" 
+                                className="h-7 text-xs bg-white" 
                                 value={customFileNo} 
                                 onChange={(e) => setCustomFileNo(e.target.value)} 
                                 placeholder="e.g. GWDKLM/363/2026-MD2"
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-[11px] text-slate-600 font-medium">തീയതി (Date)</Label>
+                            <Label className="text-[11px] text-slate-600 font-medium">Date</Label>
                             <Input 
-                                className="h-8 text-xs bg-white" 
+                                className="h-7 text-xs bg-white" 
                                 value={customDate} 
                                 onChange={(e) => setCustomDate(e.target.value)} 
                                 placeholder="dd/mm/yyyy"
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-[11px] text-slate-600 font-medium">പരിശോധിച്ച ഉദ്യോഗസ്ഥൻ (Officer)</Label>
+                            <Label className="text-[11px] text-slate-600 font-medium">Officer</Label>
                             <Input 
-                                className="h-8 text-xs bg-white" 
+                                className="h-7 text-xs bg-white" 
                                 value={inspectingOfficer} 
                                 onChange={(e) => setInspectingOfficer(e.target.value)} 
                                 placeholder="e.g. R. Suresh"
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-[11px] text-slate-600 font-medium">തസ്തിക (Designation)</Label>
+                            <Label className="text-[11px] text-slate-600 font-medium">Designation</Label>
                             <Input 
-                                className="h-8 text-xs bg-white" 
+                                className="h-7 text-xs bg-white" 
                                 value={inspectingOfficerDesig} 
                                 onChange={(e) => setInspectingOfficerDesig(e.target.value)} 
                                 placeholder="e.g. Hydrogeologist / AE"
@@ -935,7 +1304,7 @@ export default function RigChecklistPrintPage() {
             </div>
 
             {/* Printable Document Sheet */}
-            <div className="max-w-4xl mx-auto bg-white border shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
+            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
                 
                 {/* Government Header */}
                 <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8">

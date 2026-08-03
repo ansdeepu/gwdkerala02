@@ -201,25 +201,54 @@
 
 /* Print specific styles */
 @media print {
-  /* Hide known app layout components that are not part of the report itself */
+  /* Hide standard non-printable UI elements */
   .no-print,
   .print\:hidden,
-  header.sticky, /* AppHeader */
-  div[data-sidebar="sidebar"], /* AppSidebar on desktop */
-  div[data-sidebar="sidebar"][data-mobile="true"], /* AppSidebar on mobile */
-  button[data-sidebar="rail"], /* Sidebar rail if it's part of the DOM and not hidden */
-  /* Hide Toasts during print */
+  header,
+  nav,
+  aside,
+  button,
+  header.sticky,
+  div[data-sidebar="sidebar"],
+  div[data-sidebar="sidebar"][data-mobile="true"],
+  button[data-sidebar="rail"],
   div[data-radix-toast-viewport], 
-  div[class*="z-[100]"][class*="fixed"][class*="flex-col-reverse"], /* Mobile-first toast viewport */
-  div[class*="z-[100]"][class*="fixed"][class*="sm:flex-col"], /* Desktop toast viewport */
-  /* Hide modal overlay backdrops during print */
+  div[class*="z-[100]"][class*="fixed"][class*="flex-col-reverse"],
+  div[class*="z-[100]"][class*="fixed"][class*="sm:flex-col"],
   div[data-state="open"][class*="fixed"][class*="inset-0"],
-  [data-radix-portal] > div.fixed
-  {
+  div[class*="fixed"][class*="inset-0"][class*="bg-black"],
+  [class*="DialogFooter"],
+  [class*="DialogOverlay"] {
     display: none !important;
   }
 
+  /* Ensure printable report container is always fully visible */
+  #printable-report-document {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* When printing from a modal dialog, hide main app structure */
+  body.printing-report-modal div.group\/sidebar-wrapper,
+  body.printing-report-modal header,
+  body.printing-report-modal aside,
+  body.printing-report-modal main {
+    background: transparent !important;
+  }
+
   /* Reset Radix Dialog modal containers for continuous full-page printing */
+  html, body,
   [data-radix-portal],
   div[role="dialog"],
   div[data-state="open"][role="dialog"] {
@@ -237,6 +266,9 @@
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    color: #000000 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 
   /* Base HTML and BODY setup for print */
