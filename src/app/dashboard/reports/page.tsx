@@ -170,7 +170,7 @@ const safeParseDate = (dateValue: any): Date | null => {
 
 export default function ReportsPage() {
   const { setHeader } = usePageHeader();
-  const { allRigCompressors, officeAddress, allFileEntries, allArsEntries } = useDataStore();
+  const { allRigCompressors, officeAddress, allFileEntries, allArsEntries, allLsgConstituencyMaps } = useDataStore();
   
   useEffect(() => {
     setHeader('Reports', 'Generate custom reports by applying a combination of filters.');
@@ -196,6 +196,7 @@ export default function ReportsPage() {
   const [typeOfRigFilter, setTypeOfRigFilter] = useState("all");
   const [constituencyFilter, setConstituencyFilter] = useState("all");
   const [applicantNameFilter, setApplicantNameFilter] = useState("all");
+  const [lsgFilter, setLsgFilter] = useState("all");
 
   const [currentDate, setCurrentDate] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string | null>(null);
@@ -229,6 +230,22 @@ export default function ReportsPage() {
     constituencyOptions.forEach(c => set.add(c));
     return Array.from(set).filter(Boolean).sort();
   }, [allFileEntries, allArsEntries]);
+
+  const dynamicLsgs = useMemo(() => {
+    const set = new Set<string>();
+    allFileEntries?.forEach(entry => {
+      entry.siteDetails?.forEach(site => {
+        if (site.localSelfGovt) set.add(site.localSelfGovt);
+      });
+    });
+    allArsEntries?.forEach(entry => {
+      if (entry.localSelfGovt) set.add(entry.localSelfGovt);
+    });
+    allLsgConstituencyMaps?.forEach(m => {
+      if (m.name) set.add(m.name);
+    });
+    return Array.from(set).filter(Boolean).sort();
+  }, [allFileEntries, allArsEntries, allLsgConstituencyMaps]);
 
 
   const matchesDataSource = useCallback((entry: DataEntryFormData, source: DataSource): boolean => {
@@ -308,6 +325,7 @@ export default function ReportsPage() {
     setApplicationTypeFilter("all");
     setWorkCategoryFilter("all");
     setTypeOfRigFilter("all");
+    setLsgFilter("all");
     setSelectedExportFields(['fileNo', 'applicantName', 'siteName', 'siteWorkStatus', 'totalRemittance', 'balance']);
   }, [dataSourceFilter]);
 
@@ -370,6 +388,12 @@ export default function ReportsPage() {
                     : (entry.constituency === constituencyFilter || entry.siteDetails?.some((sd: any) => sd.constituency === constituencyFilter));
                 if (!match) return false;
             }
+            if (lsgFilter !== "all") {
+                const match = isArsPool
+                    ? entry.localSelfGovt === lsgFilter
+                    : entry.siteDetails?.some((sd: any) => sd.localSelfGovt === lsgFilter);
+                if (!match) return false;
+            }
             if (workCategoryFilter !== "all") {
                 const match = isArsPool ? entry.arsStatus === workCategoryFilter : entry.siteDetails?.some((sd: any) => sd.workStatus === workCategoryFilter);
                 if (!match) return false;
@@ -406,6 +430,8 @@ export default function ReportsPage() {
         if (entry.siteDetails && entry.siteDetails.length > 0) {
             entry.siteDetails.forEach(site => {
                 if (workCategoryFilter !== 'all' && site.workStatus !== workCategoryFilter) return;
+                if (lsgFilter !== 'all' && site.localSelfGovt !== lsgFilter) return;
+                if (constituencyFilter !== 'all' && site.constituency !== constituencyFilter) return;
                 flattenedRows.push({
                     fileNo: entry.fileNo || "-", 
                     applicantName: entry.applicantName || "-", 
@@ -501,7 +527,7 @@ export default function ReportsPage() {
     });
     
     setFilteredReportRows(flattenedRows);
-  }, [fileEntries, allArsEntries, matchesDataSource, dataSourceFilter, searchTerm, statusFilter, serviceTypeFilter, workCategoryFilter, startDate, endDate, dateFilterType, applicationTypeFilter, typeOfRigFilter, constituencyFilter, applicantNameFilter]);
+  }, [fileEntries, allArsEntries, matchesDataSource, dataSourceFilter, searchTerm, statusFilter, serviceTypeFilter, workCategoryFilter, startDate, endDate, dateFilterType, applicationTypeFilter, typeOfRigFilter, constituencyFilter, applicantNameFilter, lsgFilter]);
 
   useEffect(() => {
     if (!entriesLoading && !authIsLoading) {
@@ -510,7 +536,7 @@ export default function ReportsPage() {
   }, [entriesLoading, authIsLoading, applyFilters]);
 
   const handleResetFilters = () => {
-    setDataSourceFilter("all"); setStartDate(""); setEndDate(""); setSearchTerm(""); setStatusFilter("all"); setServiceTypeFilter("all"); setWorkCategoryFilter("all"); setDateFilterType("all"); setApplicationTypeFilter("all"); setTypeOfRigFilter("all"); setConstituencyFilter("all"); setApplicantNameFilter("all");
+    setDataSourceFilter("all"); setStartDate(""); setEndDate(""); setSearchTerm(""); setStatusFilter("all"); setServiceTypeFilter("all"); setWorkCategoryFilter("all"); setDateFilterType("all"); setApplicationTypeFilter("all"); setTypeOfRigFilter("all"); setConstituencyFilter("all"); setApplicantNameFilter("all"); setLsgFilter("all");
     router.replace(`/dashboard/reports`, { scroll: false });
   };
 
@@ -669,6 +695,17 @@ export default function ReportsPage() {
                         <SelectContent className="max-h-80">
                             <SelectItem value="all">All Categories</SelectItem>
                             {siteWorkStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Local Self Govt.</Label>
+                    <Select value={lsgFilter} onValueChange={setLsgFilter}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="All LSGs" /></SelectTrigger>
+                        <SelectContent className="max-h-80">
+                            <SelectItem value="all">All LSGs</SelectItem>
+                            {dynamicLsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>

@@ -43,6 +43,7 @@ import { app } from '@/lib/firebase';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import MediaManager from '@/components/shared/MediaManager';
+import { RigRegistrationApplicationFormModal, RigRenewalApplicationFormModal, RigRegistrationApplicationFormView, RigRenewalApplicationFormView } from '@/components/agency/RigApplicationFormsModal';
 
 const db = getFirestore(app);
 
@@ -831,6 +832,10 @@ export default function AgencyRegistrationPage() {
     },
   });
 
+  const [activeFormView, setActiveFormView] = useState<'registration' | 'renewal' | null>(null);
+  const [showRegistrationFormModal, setShowRegistrationFormModal] = useState(false);
+  const [showRenewalFormModal, setShowRenewalFormModal] = useState(false);
+
   const { control, formState: { isDirty }, reset } = form;
   
   const { fields: partnerFields, append: appendPartner, remove: removePartner, update: updatePartner } = useFieldArray({ control, name: "partners" });
@@ -1609,8 +1614,27 @@ export default function AgencyRegistrationPage() {
 
   // FORM VIEW
   if (selectedApplicationId) {
+      if (activeFormView === 'registration') {
+          return (
+              <RigRegistrationApplicationFormView
+                  application={{ ...form.getValues(), id: selectedApplicationId } as any}
+                  onClose={() => setActiveFormView(null)}
+              />
+          );
+      }
+
+      if (activeFormView === 'renewal') {
+          return (
+              <RigRenewalApplicationFormView
+                  application={{ ...form.getValues(), id: selectedApplicationId } as any}
+                  onClose={() => setActiveFormView(null)}
+              />
+          );
+      }
+
       const hasCancelledRigs = cancelledRigs.length > 0;
-      const remarksSectionNumber = hasCancelledRigs ? 6 : 5;
+      const appFormsSectionNumber = hasCancelledRigs ? 6 : 5;
+      const remarksSectionNumber = hasCancelledRigs ? 7 : 6;
 
       return (
         <TooltipProvider>
@@ -1891,6 +1915,35 @@ export default function AgencyRegistrationPage() {
                             </CardContent>
                         </>
                     )}
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{appFormsSectionNumber}. Application Forms</CardTitle>
+                        <CardDescription>
+                            Generate, view, fill, and print official application forms for Rig Registration and Rig Renewal.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-4 pb-6">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
+                            onClick={() => setActiveFormView('registration')}
+                        >
+                            <FileText className="h-4 w-4 text-blue-600" />
+                            Rig Registration Application Form
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
+                            onClick={() => setActiveFormView('renewal')}
+                        >
+                            <RefreshCw className="h-4 w-4 text-blue-600" />
+                            Rig Renewal Application Form
+                        </Button>
+                    </CardContent>
                 </Card>
 
                 <Card>

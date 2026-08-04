@@ -223,7 +223,9 @@
   }
 
   /* Ensure printable report container is always fully visible */
-  #printable-report-document {
+  #printable-report-document,
+  #rig-registration-form-printable,
+  #rig-renewal-form-printable {
     display: block !important;
     visibility: visible !important;
     position: static !important;
@@ -239,12 +241,16 @@
     color: #000000 !important;
   }
 
-  /* When printing from a modal dialog, hide main app structure */
+  /* When printing from a modal dialog, hide main app layout so only the modal contents print */
+  body:has(div[role="dialog"][data-state="open"]) div.group\/sidebar-wrapper,
+  body:has(div[role="dialog"][data-state="open"]) header,
+  body:has(div[role="dialog"][data-state="open"]) aside,
+  body:has(div[role="dialog"][data-state="open"]) main,
   body.printing-report-modal div.group\/sidebar-wrapper,
   body.printing-report-modal header,
   body.printing-report-modal aside,
   body.printing-report-modal main {
-    background: transparent !important;
+    display: none !important;
   }
 
   /* Reset Radix Dialog modal containers for continuous full-page printing */

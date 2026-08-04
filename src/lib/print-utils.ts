@@ -7,150 +7,150 @@ export const printDocument = (elementId: string, title: string = 'Document') => 
   if (typeof window === 'undefined') return;
 
   const element = document.getElementById(elementId);
-  const contentHtml = element ? element.innerHTML : document.body.innerHTML;
-  const isInIframe = window.self !== window.top;
+  if (!element) {
+    window.print();
+    return;
+  }
 
-  const buildPrintHtml = (bodyContent: string) => {
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(s => s.outerHTML)
-      .join('\n');
+  // Preserve form input values in DOM before capturing HTML
+  const inputs = element.querySelectorAll('input, textarea, select');
+  inputs.forEach((input: any) => {
+    if (input.tagName === 'TEXTAREA') {
+      input.textContent = input.value;
+    } else if (input.type === 'checkbox' || input.type === 'radio') {
+      if (input.checked) {
+        input.setAttribute('checked', 'checked');
+      } else {
+        input.removeAttribute('checked');
+      }
+    } else {
+      input.setAttribute('value', input.value);
+    }
+  });
 
-    return `<!DOCTYPE html>
+  const contentHtml = element.innerHTML;
+
+  // 1. Try opening print preview window via window.open
+  try {
+    const printWin = window.open('', '_blank', 'width=950,height=800,scrollbars=yes');
+    if (printWin && !printWin.closed) {
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((s) => s.outerHTML)
+        .join('\n');
+
+      printWin.document.open();
+      printWin.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>${title}</title>
   ${styles}
   <style>
-    @page {
-      size: A4 portrait;
-      margin: 5mm 10mm;
-    }
-    *, ::before, ::after {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    body {
-      background: #ffffff !important;
-      color: #000000 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important;
-    }
-    .no-print, .print\\:hidden, button, [class*="DialogFooter"] {
-      display: none !important;
-    }
-    table {
-      width: 100% !important;
-      border-collapse: collapse !important;
-    }
-    th, td {
-      border-color: #000000 !important;
-    }
-    @media print {
-      html, body {
-        height: 100%;
-      }
-      .completion-report {
-        font-size: 12.5px !important;
-        line-height: 1.45 !important;
-      }
-      .completion-report td {
-        padding-top: 3.5px !important;
-        padding-bottom: 3.5px !important;
-        padding-left: 6px !important;
-        padding-right: 6px !important;
-      }
-      .completion-report .signature-block {
-        margin-top: 28px !important;
-        padding-top: 12px !important;
-        page-break-inside: avoid !important;
-      }
-    }
+    @page { size: A4 portrait; margin: 8mm 10mm; }
+    *, ::before, ::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 15px !important; font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important; }
+    .no-print, .print\\:hidden, button { display: none !important; }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    th, td { border-color: #000000 !important; }
+    input, textarea { border: none !important; background: transparent !important; }
   </style>
 </head>
 <body>
-  <div>${bodyContent}</div>
+  <div style="background: white; color: black;">${contentHtml}</div>
   <script>
     window.onload = function() {
       setTimeout(function() {
         window.focus();
         window.print();
-      }, 350);
+      }, 300);
     };
   </script>
 </body>
-</html>`;
-  };
-
-  // 1. In preview iframe or when popups are supported, opening a clean print window is most reliable
-  try {
-    const printWin = window.open('', '_blank', 'width=950,height=1000');
-    if (printWin) {
-      printWin.document.open();
-      printWin.document.write(buildPrintHtml(contentHtml));
+</html>`);
       printWin.document.close();
       return;
     }
-  } catch (err) {
-    console.warn("Popup print window open failed:", err);
+  } catch (e) {
+    console.warn("Popup print window blocked or failed:", e);
   }
 
-  // 2. Blob URL popup window fallback
+  // 2. Direct Body Print Portal Fallback (Inject clean element directly into document.body with print CSS)
   try {
-    const htmlString = buildPrintHtml(contentHtml);
-    const blob = new Blob([htmlString], { type: 'text/html;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-    const printWin = window.open(blobUrl, '_blank');
-    if (printWin) {
-      return;
-    }
-  } catch (err) {
-    console.warn("Blob print window open failed:", err);
-  }
+    // Remove previous print portal if present
+    const existingPortal = document.getElementById('global-print-portal');
+    if (existingPortal) existingPortal.remove();
 
-  // 3. Try hidden iframe print injection
-  if (element) {
-    try {
-      let iframe = document.getElementById('gwd-document-print-iframe') as HTMLIFrameElement;
-      if (iframe) {
-        iframe.remove();
+    const existingStyle = document.getElementById('global-print-portal-style');
+    if (existingStyle) existingStyle.remove();
+
+    // Create portal
+    const portal = document.createElement('div');
+    portal.id = 'global-print-portal';
+    portal.className = 'global-print-portal';
+    portal.innerHTML = contentHtml;
+    document.body.appendChild(portal);
+
+    // Inject CSS for printing that isolates the portal and hides everything else
+    const styleEl = document.createElement('style');
+    styleEl.id = 'global-print-portal-style';
+    styleEl.innerHTML = `
+      @media screen {
+        #global-print-portal {
+          display: none !important;
+        }
       }
-      iframe = document.createElement('iframe');
-      iframe.id = 'gwd-document-print-iframe';
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0px';
-      iframe.style.height = '0px';
-      iframe.style.border = '0px';
-      iframe.style.visibility = 'hidden';
-      document.body.appendChild(iframe);
-
-      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
-      if (iframeDoc) {
-        iframeDoc.open();
-        iframeDoc.write(buildPrintHtml(contentHtml));
-        iframeDoc.close();
-
-        setTimeout(() => {
-          if (iframe.contentWindow) {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-          }
-        }, 350);
-        return;
+      @media print {
+        html, body {
+          background: #ffffff !important;
+          color: #000000 !important;
+          height: auto !important;
+          overflow: visible !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        body > *:not(#global-print-portal) {
+          display: none !important;
+        }
+        #global-print-portal {
+          display: block !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          background: white !important;
+          color: black !important;
+          padding: 10px !important;
+          margin: 0 !important;
+          font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important;
+        }
+        .no-print, .print\\:hidden, button, [class*="DialogHeader"], [class*="DialogFooter"] {
+          display: none !important;
+        }
+        input, textarea {
+          border: none !important;
+          background: transparent !important;
+          resize: none !important;
+        }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
       }
-    } catch (e) {
-      console.warn("Hidden iframe print failed:", e);
-    }
-  }
+    `;
+    document.head.appendChild(styleEl);
 
-  // 4. Native window.print() fallback
-  try {
+    // Trigger print
     window.focus();
     window.print();
+
+    // Clean up portal after printing
+    setTimeout(() => {
+      if (portal) portal.remove();
+      if (styleEl) styleEl.remove();
+    }, 3000);
   } catch (e) {
-    console.error("Native window.print() failed:", e);
+    console.error("Direct portal print failed:", e);
+    window.print();
   }
 };
+

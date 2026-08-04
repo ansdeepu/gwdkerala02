@@ -709,10 +709,15 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     if (allStatuses.length === 0) return;
 
     const isSpecialWorkType = workTypeContext === 'public' || workTypeContext === 'collector' || workTypeContext === 'private' || workTypeContext === 'planFund';
+    const isTenderStageRedirected = workTypeContext === 'public' || workTypeContext === 'collector' || workTypeContext === 'planFund';
 
     const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Pending", "VES Pending"];
-    const tenderingGroup = ["Tendered", "Selection Notice Issued", "Work Order Issued"];
-    const executionGroup = ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
+    const tenderingGroup = isTenderStageRedirected
+      ? ["Tendered", "Selection Notice Issued", "Work Order Issued", "Department Rig Allotted"]
+      : ["Tendered", "Selection Notice Issued", "Work Order Issued"];
+    const executionGroup = isTenderStageRedirected
+      ? ["Work in Progress", "Work Initiated"]
+      : ["Work in Progress", "Department Rig Allotted", "Work Initiated"];
     const completionGroup = ["Work Failed", "Work Completed", "Completed"];
     const disputeGroup = ["Work Cancelled", "Refund Pending", "To be Refunded"];
     
