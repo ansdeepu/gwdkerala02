@@ -86,6 +86,20 @@ const getL1Bidder = (tender: E_tender) => {
     );
 };
 
+const getSelectionNoticeValidity = (selectionNoticeDate: any) => {
+    const d = toDateOrNull(selectionNoticeDate);
+    if (!d || !(d instanceof Date) || isNaN(d.getTime())) return null;
+    const validityDate = new Date(d);
+    validityDate.setDate(validityDate.getDate() + 13);
+    return validityDate;
+};
+
+const getOrderValidity = (tender: E_tender) => {
+    const d = toDateOrNull(tender.dateWorkOrder);
+    if (!d || !(d instanceof Date) || isNaN(d.getTime()) || !tender.periodOfCompletion) return null;
+    return addDays(d, tender.periodOfCompletion);
+};
+
 type WorkOrderRow = {
     id: string;
     slNo: number;
@@ -639,9 +653,9 @@ function TenderSummaryDialog({ tender, isOpen, onOpenChange }: { tender: E_tende
                                 <TenderDetailRow label="L1 Address" value={l1Bidder?.address} className="lg:col-span-2" />
                                 <TenderDetailRow label="L1 Amount" value={l1Amount} isCurrency />
                                 <TenderDetailRow label="Selection Notice Date" value={tender.selectionNoticeDate} />
-                                <TenderDetailRow label="Performance PG (₹)" value={tender.performanceGuaranteeAmount} isCurrency />
-                                <TenderDetailRow label="Additional PG (₹)" value={tender.additionalPerformanceGuaranteeAmount} isCurrency />
-                                <TenderDetailRow label="Stamp Paper (₹)" value={tender.stampPaperAmount} isCurrency />
+                                <TenderDetailRow label="PG (₹)" value={tender.performanceGuaranteeAmount} isCurrency />
+                                <TenderDetailRow label="Addl. PG (₹)" value={tender.additionalPerformanceGuaranteeAmount} isCurrency />
+                                <TenderDetailRow label="SP (₹)" value={tender.stampPaperAmount} isCurrency />
                                 <TenderDetailRow label="Order Issued Date" value={tender.dateWorkOrder} />
                             </div>
                         </div>
@@ -663,7 +677,7 @@ function TenderSummaryDialog({ tender, isOpen, onOpenChange }: { tender: E_tende
     );
 }
 
-type SortKey = keyof E_tender;
+type SortKey = keyof E_tender | 'l1Bidder' | 'selectionNoticeValidity' | 'expectedDateOfCompletion';
 
 
 export default function ETenderListPage() {
@@ -959,10 +973,28 @@ export default function ETenderListPage() {
 
         if (sortConfig !== null) {
             tabFiltered.sort((a, b) => {
-                let aValue: any = a[sortConfig.key];
-                let bValue: any = b[sortConfig.key];
+                let aValue: any;
+                let bValue: any;
+
+                if (sortConfig.key === 'l1Bidder') {
+                    aValue = getL1Bidder(a)?.name || "";
+                    bValue = getL1Bidder(b)?.name || "";
+                } else if (sortConfig.key === 'selectionNoticeValidity') {
+                    const dateA = getSelectionNoticeValidity(a.selectionNoticeDate);
+                    const dateB = getSelectionNoticeValidity(b.selectionNoticeDate);
+                    aValue = dateA?.getTime() ?? 0;
+                    bValue = dateB?.getTime() ?? 0;
+                } else if (sortConfig.key === 'expectedDateOfCompletion') {
+                    const dateA = getOrderValidity(a);
+                    const dateB = getOrderValidity(b);
+                    aValue = dateA?.getTime() ?? 0;
+                    bValue = dateB?.getTime() ?? 0;
+                } else {
+                    aValue = a[sortConfig.key as keyof E_tender];
+                    bValue = b[sortConfig.key as keyof E_tender];
+                }
                 
-                if (sortConfig.key === 'tenderDate' || sortConfig.key === 'dateTimeOfReceipt' || sortConfig.key === 'dateTimeOfOpening') {
+                if (sortConfig.key === 'tenderDate' || sortConfig.key === 'dateTimeOfReceipt' || sortConfig.key === 'dateTimeOfOpening' || sortConfig.key === 'selectionNoticeDate' || sortConfig.key === 'dateWorkOrder') {
                     aValue = toDateOrNull(aValue)?.getTime() ?? 0;
                     bValue = toDateOrNull(bValue)?.getTime() ?? 0;
                 }
@@ -1373,25 +1405,77 @@ export default function ETenderListPage() {
 
             <Card>
                 <CardContent className="p-0">
-                    <div className="max-h-[70vh] overflow-auto">
+                    <div className={cn("max-h-[70vh] overflow-y-auto", (activeTab === 'selection' || activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "overflow-x-hidden" : "overflow-x-auto")}>
                         <Table>
                                 <TableHeader className="sticky top-0 bg-secondary z-10">
                                     <TableRow>
-                                        <TableHead className="w-[4%] px-2 py-3 text-sm">Sl. No.</TableHead>
-                                        <TableHead className="w-[12%] px-2 py-3"><Button variant="ghost" className="p-0 hover:bg-transparent" onClick={() => requestSort('eTenderNo')}>eTender Ref. No. {getSortIcon('eTenderNo')}</Button></TableHead>
-                                        <TableHead className="w-[50%] px-2 py-3"><Button variant="ghost" className="p-0 hover:bg-transparent" onClick={() => requestSort('nameOfWork')}>Name of Work {getSortIcon('nameOfWork')}</Button></TableHead>
-                                        <TableHead className="w-[8%] px-2 py-3">
-                                            <Button variant="ghost" className="p-0 hover:bg-transparent whitespace-normal leading-tight text-left" onClick={() => requestSort('dateTimeOfReceipt')}>
-                                                Last Date of Receipt {getSortIcon('dateTimeOfReceipt')}
+                                        <TableHead className={cn("px-2 py-3", activeTab === 'selection' ? "w-[3%] px-1 py-2 text-[10px] md:text-xs" : "w-[4%] text-sm")}>Sl. No.</TableHead>
+                                        <TableHead className={cn("px-2 py-3", activeTab === 'selection' ? "w-[10%] px-1 py-2 text-[10px] md:text-xs" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "w-[12%] text-xs md:text-sm" : "w-[12%]")}>
+                                            <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('eTenderNo')}>
+                                                eTender Ref. No. {getSortIcon('eTenderNo')}
                                             </Button>
                                         </TableHead>
-                                        <TableHead className="w-[8%] px-2 py-3">
-                                            <Button variant="ghost" className="p-0 hover:bg-transparent whitespace-normal leading-tight text-left" onClick={() => requestSort('dateTimeOfOpening')}>
-                                                Date of Opening {getSortIcon('dateTimeOfOpening')}
+                                        <TableHead className={cn("px-2 py-3", activeTab === 'selection' ? "w-[33%] px-1 py-2 text-[10px] md:text-xs" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "w-[40%] text-xs md:text-sm" : "w-[50%]")}>
+                                            <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('nameOfWork')}>
+                                                Name of Work {getSortIcon('nameOfWork')}
                                             </Button>
                                         </TableHead>
-                                        <TableHead className="w-[10%] px-2 py-3"><Button variant="ghost" className="p-0 hover:bg-transparent" onClick={() => requestSort('presentStatus')}>Status {getSortIcon('presentStatus')}</Button></TableHead>
-                                        <TableHead className="text-center w-[8%] px-2 py-3">Actions</TableHead>
+                                        {activeTab === 'selection' ? (
+                                            <>
+                                                <TableHead className="w-[11%] px-1 py-2 text-[10px] md:text-xs">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('l1Bidder')}>
+                                                        L1 Bidder {getSortIcon('l1Bidder')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[18%] px-1 py-2 text-[10px] md:text-xs">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('performanceGuaranteeAmount')}>
+                                                        PG / Addl. PG / SP {getSortIcon('performanceGuaranteeAmount')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[8%] px-1 py-2 text-[10px] md:text-xs">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('selectionNoticeDate')}>
+                                                        Selection Notice Date {getSortIcon('selectionNoticeDate')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[8%] px-1 py-2 text-[10px] md:text-xs">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('selectionNoticeValidity')}>
+                                                        Selection Notice Validity {getSortIcon('selectionNoticeValidity')}
+                                                    </Button>
+                                                </TableHead>
+                                            </>
+                                        ) : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? (
+                                            <>
+                                                <TableHead className="w-[16%] px-2 py-3 text-xs md:text-sm">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('l1Bidder')}>
+                                                        L1 Bidder {getSortIcon('l1Bidder')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[12%] px-2 py-3 text-xs md:text-sm">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('dateWorkOrder')}>
+                                                        {activeTab === 'supplyOrder' ? 'Supply Order Date' : 'Work Order Date'} {getSortIcon('dateWorkOrder')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[12%] px-2 py-3 text-xs md:text-sm">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent text-left whitespace-normal leading-tight font-semibold" onClick={() => requestSort('expectedDateOfCompletion')}>
+                                                        {activeTab === 'supplyOrder' ? 'Supply Order Validity' : 'Work Order Validity'} {getSortIcon('expectedDateOfCompletion')}
+                                                    </Button>
+                                                </TableHead>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <TableHead className="w-[8%] px-2 py-3">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent whitespace-normal leading-tight text-left" onClick={() => requestSort('dateTimeOfReceipt')}>
+                                                        Last Date of Receipt {getSortIcon('dateTimeOfReceipt')}
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="w-[8%] px-2 py-3">
+                                                    <Button variant="ghost" className="p-0 hover:bg-transparent whitespace-normal leading-tight text-left" onClick={() => requestSort('dateTimeOfOpening')}>
+                                                        Date of Opening {getSortIcon('dateTimeOfOpening')}
+                                                    </Button>
+                                                </TableHead>
+                                            </>
+                                        )}
+                                        <TableHead className={cn("text-center px-2 py-3", activeTab === 'selection' ? "w-[4%] px-1 py-2 text-[10px] md:text-xs" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "w-[4%] text-xs md:text-sm" : "w-[8%]")}>Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -1401,8 +1485,10 @@ export default function ETenderListPage() {
 
                                             return (
                                                 <TableRow key={tender.id} id={`row-${tender.id}`} className={cn(getStatusRowClass(tender.presentStatus), "transition-colors duration-1000")}>
-                                                    <TableCell className="align-top py-2 px-3">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
-                                                    <TableCell className="font-bold align-top py-2 px-3">
+                                                    <TableCell className={cn("align-top py-2", activeTab === 'selection' ? "px-1 text-[11px] w-[3%]" : "px-3")}>
+                                                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                                                    </TableCell>
+                                                    <TableCell className={cn("font-bold align-top py-2", activeTab === 'selection' ? "px-1 text-[11px] w-[10%]" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "px-2 text-[11px] w-[12%]" : "px-3")}>
                                                         <div className="flex flex-col">
                                                             <Link
                                                                 href={`/dashboard/e-tender/${tender.id}${(() => {
@@ -1412,95 +1498,166 @@ export default function ETenderListPage() {
                                                                     const qs = params.toString();
                                                                     return qs ? `?${qs}` : '';
                                                                 })()}`}
-                                                                className="text-left hover:underline transition-all block"
+                                                                className="text-left hover:underline transition-all block font-bold text-[11px] md:text-xs"
                                                             >
                                                                 <span className="whitespace-normal break-words">{`${officeAddress?.officeCode || 'GKT'}/${tender.fileNo}/${tender.eTenderNo}`}</span>
                                                             </Link>
-                                                            <span className="text-xs font-normal">Dated: {formatDateSafe(tender.tenderDate)}</span>
-                                                            {(tender.retenders?.length || 0) > 0 && <Badge variant="secondary" className="mt-1 w-fit bg-yellow-200 text-yellow-800">Re-tender</Badge>}
+                                                            <span className="text-[10px] font-normal text-muted-foreground">Dated: {formatDateSafe(tender.tenderDate)}</span>
+                                                            {(tender.retenders?.length || 0) > 0 && <Badge variant="secondary" className="mt-1 w-fit bg-yellow-200 text-yellow-800 text-[9px] px-1 py-0 h-4">Re-tender</Badge>}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="whitespace-normal break-words align-top py-2 px-3 w-[50%]">
+                                                    <TableCell className={cn("whitespace-normal break-words align-top py-2", activeTab === 'selection' ? "px-1 text-[11px] w-[33%]" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "px-2 text-[11px] w-[40%]" : "px-3 w-[50%]")}>
                                                         <button 
                                                             onClick={() => setTenderForDialog(tender)} 
-                                                            className="text-left font-semibold hover:text-primary transition-colors cursor-pointer"
+                                                            className="text-left font-semibold hover:text-primary transition-colors cursor-pointer text-[11px] md:text-xs"
                                                         >
                                                             {tender.nameOfWork}
                                                         </button>
                                                     </TableCell>
-                                                    <TableCell className="align-top py-2 px-3 w-[8%]">
-                                                        <div className="flex flex-col text-[10px]">
-                                                            {receiptHistory.slice(0, -1).map((d, i) => {
-                                                                const dObj = toDateOrNull(d);
-                                                                if (!dObj) return null;
-                                                                return (
-                                                                    <div key={i} className="text-muted-foreground line-through opacity-60 mb-1">
-                                                                        <div className="block">{format(dObj, 'dd/MM/yyyy')}</div>
-                                                                        <div className="block">{format(dObj, 'hh:mm a')}</div>
+                                                    {activeTab === 'selection' ? (
+                                                        <>
+                                                            <TableCell className="align-top py-2 px-1 w-[11%] text-[11px] font-medium whitespace-normal break-words">
+                                                                {getL1Bidder(tender)?.name || 'N/A'}
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-1 w-[18%] text-[10px] md:text-[11px] leading-tight">
+                                                                <div className="space-y-1">
+                                                                    <div>
+                                                                        <span className="font-semibold text-muted-foreground mr-1">PG:</span>
+                                                                        <span className="font-mono">
+                                                                            {tender.performanceGuaranteeAmount !== undefined && tender.performanceGuaranteeAmount !== null ? (
+                                                                                `Rs. ${Number(tender.performanceGuaranteeAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                                            ) : 'N/A'}
+                                                                        </span>
                                                                     </div>
-                                                                );
-                                                            })}
-                                                            {activeReceipt ? (
-                                                                <div className="font-semibold text-primary">
-                                                                    {(() => {
-                                                                        const dObj = toDateOrNull(activeReceipt);
-                                                                        if (!dObj) return 'N/A';
+                                                                    <div>
+                                                                        <span className="font-semibold text-muted-foreground mr-1">Addl. PG:</span>
+                                                                        <span className="font-mono">
+                                                                            {tender.additionalPerformanceGuaranteeAmount !== undefined && tender.additionalPerformanceGuaranteeAmount !== null ? (
+                                                                                `Rs. ${Number(tender.additionalPerformanceGuaranteeAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                                            ) : 'N/A'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="font-semibold text-muted-foreground mr-1">SP:</span>
+                                                                        <span className="font-mono">
+                                                                            {tender.stampPaperAmount !== undefined && tender.stampPaperAmount !== null ? (
+                                                                                `Rs. ${Number(tender.stampPaperAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                                            ) : 'N/A'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-1 w-[8%] text-[11px] font-semibold">
+                                                                {tender.selectionNoticeDate ? formatDateSafe(tender.selectionNoticeDate) : 'N/A'}
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-1 w-[8%] text-[11px] font-semibold">
+                                                                {(() => {
+                                                                    const valDate = getSelectionNoticeValidity(tender.selectionNoticeDate);
+                                                                    if (!valDate) return 'N/A';
+                                                                    const isExpired = isBefore(valDate, startOfDay(new Date()));
+                                                                    return (
+                                                                        <span className={cn(isExpired ? "text-red-600 font-bold" : "text-emerald-700")}>
+                                                                            {format(valDate, 'dd/MM/yyyy')}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </TableCell>
+                                                        </>
+                                                    ) : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? (
+                                                        <>
+                                                            <TableCell className="align-top py-2 px-2 w-[16%] text-[11px] font-medium whitespace-normal break-words">
+                                                                {getL1Bidder(tender)?.name || 'N/A'}
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-2 w-[12%] text-[11px] font-semibold">
+                                                                {tender.dateWorkOrder ? formatDateSafe(tender.dateWorkOrder) : 'N/A'}
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-2 w-[12%] text-[11px] font-semibold">
+                                                                {(() => {
+                                                                    const valDate = getOrderValidity(tender);
+                                                                    if (!valDate) return 'N/A';
+                                                                    const isExpired = isBefore(valDate, startOfDay(new Date()));
+                                                                    return (
+                                                                        <span className={cn(isExpired ? "text-red-600 font-bold" : "text-emerald-700")}>
+                                                                            {format(valDate, 'dd/MM/yyyy')}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </TableCell>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <TableCell className="align-top py-2 px-3 w-[8%]">
+                                                                <div className="flex flex-col text-[10px]">
+                                                                    {receiptHistory.slice(0, -1).map((d, i) => {
+                                                                        const dObj = toDateOrNull(d);
+                                                                        if (!dObj) return null;
                                                                         return (
-                                                                            <>
+                                                                            <div key={i} className="text-muted-foreground line-through opacity-60 mb-1">
                                                                                 <div className="block">{format(dObj, 'dd/MM/yyyy')}</div>
                                                                                 <div className="block">{format(dObj, 'hh:mm a')}</div>
-                                                                            </>
+                                                                            </div>
                                                                         );
-                                                                    })()}
-                                                                </div>
-                                                            ) : 'N/A'}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="align-top py-2 px-3 w-[8%]">
-                                                        <div className="flex flex-col text-[10px]">
-                                                            {openingHistory.slice(0, -1).map((item, i) => {
-                                                                const dObj = toDateOrNull(item.value);
-                                                                if (!dObj) return null;
-                                                                return (
-                                                                    <div key={i} className="text-muted-foreground line-through opacity-60 mb-1">
-                                                                        <div className="block">
-                                                                            {format(dObj, 'dd/MM/yyyy')}
-                                                                            {item.source && <span className="ml-1">({item.source})</span>}
+                                                                    })}
+                                                                    {activeReceipt ? (
+                                                                        <div className="font-semibold text-primary">
+                                                                            {(() => {
+                                                                                const dObj = toDateOrNull(activeReceipt);
+                                                                                if (!dObj) return 'N/A';
+                                                                                return (
+                                                                                    <>
+                                                                                        <div className="block">{format(dObj, 'dd/MM/yyyy')}</div>
+                                                                                        <div className="block">{format(dObj, 'hh:mm a')}</div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
                                                                         </div>
-                                                                        <div className="block">{format(dObj, 'hh:mm a')}</div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                            {activeOpening ? (
-                                                                <div className="font-semibold text-primary">
-                                                                    {(() => {
-                                                                        const dObj = toDateOrNull(activeOpening);
-                                                                        if (!dObj) return 'N/A';
-                                                                        const lastEvent = openingHistory[openingHistory.length - 1];
+                                                                    ) : 'N/A'}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="align-top py-2 px-3 w-[8%]">
+                                                                <div className="flex flex-col text-[10px]">
+                                                                    {openingHistory.slice(0, -1).map((item, i) => {
+                                                                        const dObj = toDateOrNull(item.value);
+                                                                        if (!dObj) return null;
                                                                         return (
-                                                                            <>
+                                                                            <div key={i} className="text-muted-foreground line-through opacity-60 mb-1">
                                                                                 <div className="block">
                                                                                     {format(dObj, 'dd/MM/yyyy')}
-                                                                                    {lastEvent?.source && <span className="ml-1">({lastEvent.source})</span>}
+                                                                                    {item.source && <span className="ml-1">({item.source})</span>}
                                                                                 </div>
                                                                                 <div className="block">{format(dObj, 'hh:mm a')}</div>
-                                                                            </>
+                                                                            </div>
                                                                         );
-                                                                    })()}
+                                                                    })}
+                                                                    {activeOpening ? (
+                                                                        <div className="font-semibold text-primary">
+                                                                            {(() => {
+                                                                                const dObj = toDateOrNull(activeOpening);
+                                                                                if (!dObj) return 'N/A';
+                                                                                const lastEvent = openingHistory[openingHistory.length - 1];
+                                                                                return (
+                                                                                    <>
+                                                                                        <div className="block">
+                                                                                            {format(dObj, 'dd/MM/yyyy')}
+                                                                                            {lastEvent?.source && <span className="ml-1">({lastEvent.source})</span>}
+                                                                                        </div>
+                                                                                        <div className="block">{format(dObj, 'hh:mm a')}</div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    ) : 'N/A'}
                                                                 </div>
-                                                            ) : 'N/A'}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="align-top py-2 px-3 w-[10%]">
-                                                        {tender.presentStatus && <Badge className={cn(getStatusBadgeClass(tender.presentStatus))}>{tender.presentStatus}</Badge>}
-                                                    </TableCell>
-                                                    <TableCell className="text-center align-top py-2 px-3">
+                                                            </TableCell>
+                                                        </>
+                                                    )}
+                                                    <TableCell className={cn("text-center align-top py-2", activeTab === 'selection' ? "px-1 w-[4%]" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "px-2 w-[4%]" : "px-3")}>
                                                         <div className="flex items-center justify-center space-x-1">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewAndEdit(tender.id)} title={canEdit ? "View / Edit" : "View Details"}><Eye className="h-4 w-4" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewAndEdit(tender.id)} title={canEdit ? "View / Edit" : "View Details"}><Eye className="h-3.5 w-3.5" /></Button>
                                                             {canEdit && (
                                                                 <>
-                                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyClick(tender)} title="Copy Tender"><Copy className="h-4 w-4" /></Button>
-                                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => handleDeleteClick(tender)} title="Delete Tender"><Trash2 className="h-4 w-4" /></Button>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopyClick(tender)} title="Copy Tender"><Copy className="h-3.5 w-3.5" /></Button>
+                                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-7 w-7" onClick={() => handleDeleteClick(tender)} title="Delete Tender"><Trash2 className="h-3.5 w-3.5" /></Button>
                                                                 </>
                                                             )}
                                                         </div>
@@ -1510,7 +1667,7 @@ export default function ETenderListPage() {
                                         })
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">
+                                            <TableCell colSpan={activeTab === 'selection' ? 10 : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? 7 : 6} className="h-24 text-center">
                                                 No tenders found in this category.
                                             </TableCell>
                                         </TableRow>

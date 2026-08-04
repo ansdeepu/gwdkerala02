@@ -248,41 +248,83 @@ export default function TenderDetails() {
     }, [tender, reset]);
 
     const handleBidderSave = (bidderData: Bidder) => {
+        const current = getValues('bidders') || [];
+        let updated: Bidder[];
         if (activeModal === 'addBidder') {
             appendBidder(bidderData);
+            updated = [...current, bidderData];
         } else if (activeModal === 'editBidder' && modalData?.index !== undefined) {
             updateBidder(modalData.index, bidderData);
+            updated = [...current];
+            updated[modalData.index] = bidderData;
+        } else {
+            updated = current;
         }
-        // Local state updated via useFieldArray
+        updateTender({ bidders: updated });
         setActiveModal(null);
         setModalData(null);
     };
     
+    const handleRemoveBidder = (index: number) => {
+        removeBidder(index);
+        const current = getValues('bidders') || [];
+        const updated = current.filter((_, i) => i !== index);
+        updateTender({ bidders: updated });
+    };
+
     const handleCorrigendumSave = (corrigendumData: Corrigendum) => {
+        const current = getValues('corrigendums') || [];
+        let updated: Corrigendum[];
         if (activeModal === 'addCorrigendum') {
             appendCorrigendum(corrigendumData);
+            updated = [...current, corrigendumData];
         } else if (activeModal === 'editCorrigendum' && modalData?.index !== undefined) {
             updateCorrigendum(modalData.index, corrigendumData);
+            updated = [...current];
+            updated[modalData.index] = corrigendumData;
+        } else {
+            updated = current;
         }
-        // Local state updated via useFieldArray
+        updateTender({ corrigendums: updated });
         setActiveModal(null);
         setModalData(null);
     };
 
+    const handleRemoveCorrigendum = (index: number) => {
+        removeCorrigendum(index);
+        const current = getValues('corrigendums') || [];
+        const updated = current.filter((_, i) => i !== index);
+        updateTender({ corrigendums: updated });
+    };
+
     const handleRetenderSave = (retenderData: RetenderDetails) => {
+        const current = getValues('retenders') || [];
+        let updated: RetenderDetails[];
         if (activeModal === 'addRetender') {
             appendRetender(retenderData);
+            updated = [...current, retenderData];
         } else if (activeModal === 'editRetender' && modalData?.index !== undefined) {
             updateRetender(modalData.index, retenderData);
+            updated = [...current];
+            updated[modalData.index] = retenderData;
+        } else {
+            updated = current;
         }
-        // Local state updated via useFieldArray
+        updateTender({ retenders: updated });
         setActiveModal(null);
         setModalData(null);
+    };
+
+    const handleRemoveRetender = (index: number) => {
+        removeRetender(index);
+        const current = getValues('retenders') || [];
+        const updated = current.filter((_, i) => i !== index);
+        updateTender({ retenders: updated });
     };
     
     const confirmDeleteRetender = () => {
         if (!retenderToDelete) return;
-        removeRetender(retenderToDelete.index);
+        handleRemoveRetender(retenderToDelete.index);
         setRetenderToDelete(null);
         toast({ title: "Removed locally" });
     };
@@ -526,7 +568,7 @@ export default function TenderDetails() {
                                                 <div key={corrigendum.id} className="p-4 border rounded-md bg-secondary/30 relative group">
                                                     <div className="absolute top-2 right-2 flex items-center gap-1">
                                                         {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditCorrigendumClick(corrigendum, index)}><Edit className="h-4 w-4"/></Button>}
-                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeCorrigendum(index)}><Trash2 className="h-4 w-4"/></Button>}
+                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveCorrigendum(index)}><Trash2 className="h-4 w-4"/></Button>}
                                                     </div>
                                                     <h4 className="text-sm font-semibold text-primary mb-2">Corrigendum No. {index + 1}</h4>
                                                     <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-1">
@@ -651,7 +693,7 @@ export default function TenderDetails() {
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setModalData({ ...bidder, index: originalIndex }); setActiveModal('editBidder'); }}><Edit className="h-4 w-4"/></Button>}
-                                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeBidder(originalIndex)}><Trash2 className="h-4 w-4"/></Button>}
+                                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveBidder(originalIndex)}><Trash2 className="h-4 w-4"/></Button>}
                                                             </div>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">{bidder.address}</p>
@@ -689,10 +731,30 @@ export default function TenderDetails() {
                                     <CardContent className="p-6 pt-0">
                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
                                             <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
-                                            <DetailRow label="Performance Guarantee Amount" value={watch('performanceGuaranteeAmount')} isCurrency />
-                                            <DetailRow label="Additional Performance Guarantee Amount" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency />
-                                            <DetailRow label="Stamp Paper required" value={watch('stampPaperAmount')} isCurrency />
                                             <DetailRow label="Basis for Calculation" value={watch('amountType')} />
+                                            <div className="md:col-span-1 space-y-2">
+                                                <dt className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight">Guarantee & Paper Required</dt>
+                                                <dd className="space-y-1">
+                                                    <div>
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">PG:</span>
+                                                        <span className="text-xs font-bold font-mono">
+                                                            {watch('performanceGuaranteeAmount') !== null && watch('performanceGuaranteeAmount') !== undefined ? `Rs. ${Number(watch('performanceGuaranteeAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">Addl. PG:</span>
+                                                        <span className="text-xs font-bold font-mono">
+                                                            {watch('additionalPerformanceGuaranteeAmount') !== null && watch('additionalPerformanceGuaranteeAmount') !== undefined ? `Rs. ${Number(watch('additionalPerformanceGuaranteeAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">SP:</span>
+                                                        <span className="text-xs font-bold font-mono">
+                                                            {watch('stampPaperAmount') !== null && watch('stampPaperAmount') !== undefined ? `Rs. ${Number(watch('stampPaperAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                </dd>
+                                            </div>
                                         </dl>
                                     </CardContent>
                                 ) : (
