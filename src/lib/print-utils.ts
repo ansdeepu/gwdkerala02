@@ -6,9 +6,21 @@
 export const printDocument = (elementId: string, title: string = 'Document') => {
   if (typeof window === 'undefined') return;
 
+  const originalTitle = document.title;
+  if (title) {
+    document.title = title;
+  }
+
+  const restoreTitle = () => {
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 3000);
+  };
+
   const element = document.getElementById(elementId);
   if (!element) {
     window.print();
+    restoreTitle();
     return;
   }
 
@@ -46,9 +58,9 @@ export const printDocument = (elementId: string, title: string = 'Document') => 
   <title>${title}</title>
   ${styles}
   <style>
-    @page { size: A4 portrait; margin: 8mm 10mm; }
+    @page { size: A4 portrait; margin: 0 !important; }
     *, ::before, ::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 15px !important; font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important; }
+    body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important; }
     .no-print, .print\\:hidden, button { display: none !important; }
     table { width: 100% !important; border-collapse: collapse !important; }
     th, td { border-color: #000000 !important; }
@@ -147,10 +159,12 @@ export const printDocument = (elementId: string, title: string = 'Document') => 
     setTimeout(() => {
       if (portal) portal.remove();
       if (styleEl) styleEl.remove();
+      restoreTitle();
     }, 3000);
   } catch (e) {
     console.error("Direct portal print failed:", e);
     window.print();
+    restoreTitle();
   }
 };
 

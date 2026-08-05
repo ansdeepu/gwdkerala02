@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2 } from "lucide-react";
+import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, Copy } from "lucide-react";
 import { printDocument } from "@/lib/print-utils";
 import type { DataEntryFormData, SiteDetailFormData } from "@/lib/schemas";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
@@ -77,6 +77,13 @@ const formatDateDDMMYYYY = (dateStr: string): string => {
     return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
   }
   return trimmed;
+};
+
+const formatDatesInText = (text: string): string => {
+  if (!text) return text;
+  return text.replace(/\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/g, (_, y, m, d) => {
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  });
 };
 
 const formatMeterValue = (val: string | number, unit: string = 'meter'): string => {
@@ -314,9 +321,12 @@ export default function PrintableReportModal({
     const depositTotal = entry.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0;
     setAdvanceDeposit(depositTotal);
     const firstRemittance = entry.remittanceDetails?.[0];
-    const ddStr = firstRemittance
-      ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${firstRemittance.dateOfRemittance || ''}`
-      : '';
+    const rawRemittanceDate = firstRemittance?.dateOfRemittance ? formatDateDDMMYYYY(firstRemittance.dateOfRemittance) : '';
+    const ddStr = formatDatesInText(
+      firstRemittance
+        ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${rawRemittanceDate}`
+        : ''
+    );
     setDdDetails(ddStr);
 
     let localTotalExpenditure = 0;
@@ -414,7 +424,7 @@ export default function PrintableReportModal({
     setProceedingsSubject(
       `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
     );
-    setProceedingsRef1(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`);
+    setProceedingsRef1(formatDatesInText(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`));
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
 
     setUcFrom(`District Officer, Ground Water Department, ${district}`);
@@ -530,11 +540,37 @@ export default function PrintableReportModal({
     }
   }, []);
 
+  const getReportDocumentTitle = (type: ReportDocType, currentFileNo?: string) => {
+    const rawNo = currentFileNo || fileNo || entry?.fileNo || '';
+    const sanitizedFileNo = rawNo.replace(/\//g, '-').trim();
+    let docPrefix = 'Report';
+    switch (type) {
+      case 'completion_report':
+        docPrefix = 'Completion_Report';
+        break;
+      case 'final_bill':
+        docPrefix = 'Final_Bill';
+        break;
+      case 'abstract_final_bill':
+        docPrefix = 'Abstract_Final_Bill';
+        break;
+      case 'proceedings':
+        docPrefix = 'Proceedings';
+        break;
+      case 'utilization_certificate':
+        docPrefix = 'Utilization_Certificate';
+        break;
+    }
+    return sanitizedFileNo ? `${docPrefix}_${sanitizedFileNo}` : docPrefix;
+  };
+
   const openPrintWindow = (printableElement: HTMLElement) => {
     try {
       const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
         .map(style => style.outerHTML)
         .join('\n');
+
+      const docTitle = getReportDocumentTitle(docType, fileNo || entry?.fileNo);
 
       const printWin = window.open('', '_blank', 'width=950,height=1100,scrollbars=yes');
       if (printWin) {
@@ -544,12 +580,12 @@ export default function PrintableReportModal({
           <html>
             <head>
               <meta charset="utf-8">
-              <title>Official Report - ${entry?.fileNo || 'GWD Kerala'}</title>
+              <title>${docTitle}</title>
               ${styles}
               <style>
                 @page {
                   size: A4 portrait;
-                  margin: 12mm 15mm 12mm 15mm;
+                  margin: 0 !important;
                 }
                 *, ::before, ::after {
                   -webkit-print-color-adjust: exact !important;
@@ -559,7 +595,7 @@ export default function PrintableReportModal({
                   background: #ffffff !important;
                   color: #000000 !important;
                   margin: 0 !important;
-                  padding: 20px !important;
+                  padding: 0 !important;
                   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
                 }
                 .no-print, .print\\:hidden, button, [class*="DialogFooter"] {
@@ -604,6 +640,8 @@ export default function PrintableReportModal({
         .map(style => style.outerHTML)
         .join('\n');
 
+      const docTitle = getReportDocumentTitle(docType, fileNo || entry?.fileNo);
+
       let iframe = document.getElementById('gwd-report-print-iframe') as HTMLIFrameElement;
       if (iframe) {
         iframe.remove();
@@ -628,12 +666,12 @@ export default function PrintableReportModal({
         <html>
           <head>
             <meta charset="utf-8">
-            <title>${entry?.fileNo ? `Report - ${entry.fileNo}` : 'Official GWD Report'}</title>
+            <title>${docTitle}</title>
             ${styles}
             <style>
               @page {
                 size: A4 portrait;
-                margin: 10mm 12mm 10mm 12mm;
+                margin: 0 !important;
               }
               *, ::before, ::after {
                 -webkit-print-color-adjust: exact !important;
@@ -643,7 +681,7 @@ export default function PrintableReportModal({
                 background: #ffffff !important;
                 color: #000000 !important;
                 margin: 0 !important;
-                padding: 15px !important;
+                padding: 0 !important;
                 font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
               }
               .no-print, .print\\:hidden, button, [class*="DialogFooter"] {
@@ -683,7 +721,8 @@ export default function PrintableReportModal({
 
   const handlePrint = () => {
     setEditingRow(null);
-    printDocument('printable-report-document', entry?.fileNo ? `Report - ${entry.fileNo}` : 'Official GWD Report');
+    const docTitle = getReportDocumentTitle(docType, fileNo || entry?.fileNo);
+    printDocument('printable-report-document', docTitle);
   };
 
   const handleOpenNewWindowPrint = () => {
@@ -697,6 +736,122 @@ export default function PrintableReportModal({
       }
     } else {
       handlePrint();
+    }
+  };
+
+  const handleCopyRichHtml = async () => {
+    setEditingRow(null);
+    const element = document.getElementById('printable-report-document');
+    if (!element) return;
+
+    try {
+      const clone = element.cloneNode(true) as HTMLElement;
+
+      // Clean up interactive edit buttons or controls in the cloned element
+      const noPrintElems = clone.querySelectorAll('.no-print, button, input[type="file"], [title*="Edit"], [title*="Reset"]');
+      noPrintElems.forEach((el) => el.remove());
+
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: 'Times New Roman', Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000000;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 11pt;
+    }
+    th, td {
+      border: 1px solid #000000;
+      padding: 5px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      font-weight: bold;
+      background-color: #f5f5f5;
+    }
+    h1, h2, h3, h4 {
+      text-align: center;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    p {
+      margin: 6px 0;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-justify { text-align: justify; }
+    .font-bold { font-weight: bold; }
+    .uppercase { text-transform: uppercase; }
+    .border-b-2 { border-bottom: 2px solid #000000; }
+    .border-y { border-top: 1px solid #000000; border-bottom: 1px solid #000000; }
+    .flex { display: flex; }
+    .justify-between { justify-content: space-between; }
+  </style>
+</head>
+<body>
+  ${clone.innerHTML}
+</body>
+</html>
+      `.trim();
+
+      const plainTextContent = clone.innerText || clone.textContent || '';
+
+      let copied = false;
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+        const blobText = new Blob([plainTextContent], { type: 'text/plain' });
+        const item = new ClipboardItem({
+          'text/html': blobHtml,
+          'text/plain': blobText,
+        });
+        await navigator.clipboard.write([item]);
+        copied = true;
+      }
+
+      if (!copied && typeof document !== 'undefined') {
+        const container = document.createElement('div');
+        container.innerHTML = htmlContent;
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        document.body.appendChild(container);
+
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+
+        document.execCommand('copy');
+        selection?.removeAllRanges();
+        document.body.removeChild(container);
+        copied = true;
+      }
+
+      toast({
+        title: "Copied Rich HTML",
+        description: "Exact formatted report copied to clipboard! You can paste directly into Word, Docs, or email.",
+      });
+    } catch (error) {
+      console.error("Copy rich text failed:", error);
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy rich HTML to clipboard.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -825,9 +980,10 @@ export default function PrintableReportModal({
     proc_ref: () => {
       const fNo = entry?.fileNo || 'GWD/1372/2022';
       const firstRemittance = entry?.remittanceDetails?.[0];
-      const ddStr = firstRemittance ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${firstRemittance.dateOfRemittance || ''}` : '';
-      setProceedingsRef1(`1. Application of ${entry?.applicantName || ''} and DD details (${ddStr}).`);
-      setProceedingsRef2(`2. Final Bill of this office, dated ${new Date().toISOString().split('T')[0]}.`);
+      const rawRemittanceDate = firstRemittance?.dateOfRemittance ? formatDateDDMMYYYY(firstRemittance.dateOfRemittance) : '';
+      const ddStr = formatDatesInText(firstRemittance ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${rawRemittanceDate}` : '');
+      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''} and DD details (${ddStr}).`));
+      setProceedingsRef2(`2. Final Bill of this office, dated ${orderDate || formatDateDDMMYYYY(new Date().toISOString().split('T')[0])}.`);
     },
     proc_ordNo: () => setOrderNo(`GWD/${(entry?.fileNo || 'GWD/1372/2022').replace(/\//g, '-')}/2026`),
     proc_ordDate: () => setOrderDate(new Date().toISOString().split('T')[0]),
@@ -965,6 +1121,11 @@ export default function PrintableReportModal({
                   <TabsTrigger value="en" className="text-xs font-semibold">English</TabsTrigger>
                 </TabsList>
               </Tabs>
+
+              <Button onClick={handleCopyRichHtml} variant="outline" className="gap-1.5 shadow border-slate-300 hover:bg-slate-100" title="Copy formatted document HTML to clipboard for pasting into Word, Docs, or Email">
+                <Copy className="h-4 w-4 text-slate-700" />
+                <span>Copy Rich HTML</span>
+              </Button>
 
               {onSave && (
                 <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5 shadow">
@@ -1635,7 +1796,7 @@ export default function PrintableReportModal({
 
           {/* 2. FINAL BILL (MALAYALAM & ENGLISH) */}
           {docType === 'final_bill' && (
-            <div className="space-y-4">
+            <div className="flex flex-col justify-between min-h-[255mm] space-y-4">
               {lang === 'ml' ? (
                 (() => {
                   const itemsMl = [
@@ -1695,96 +1856,133 @@ export default function PrintableReportModal({
                   const activeItemsMl = itemsMl.filter(item => item.qty > 0);
 
                   return (
-                    <>
-                      <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                        <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                        <h3 className="text-base font-bold">കുഴൽകിണർ നിർമ്മാണം - പൂർത്തീകരണ റിപ്പോർട്ട്, ഫൈനൽ ബിൽ</h3>
-                        <p className="text-xs font-semibold">ഫൈനൽ ബിൽ</p>
-                      </div>
+                    <div className="flex flex-col justify-between h-full flex-1 space-y-4">
+                      <div className="space-y-4">
+                        <div className="text-center space-y-1.5 pb-2 border-b-2 border-black">
+                          <h2 className="text-2xl font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
+                          <h3 className="text-lg font-bold">കുഴൽകിണർ നിർമ്മാണം - പൂർത്തീകരണ റിപ്പോർട്ട്</h3>
+                          <p className="text-xl font-bold">ഫൈനൽ ബിൽ</p>
+                        </div>
 
-                      <div className="flex justify-between text-xs py-1">
-                        <span>ഫയൽ നമ്പർ: <strong>{fileNo}</strong></span>
-                        <span>അപേക്ഷകൻ: <strong>{applicantName}</strong></span>
-                      </div>
+                        <div className="flex flex-col space-y-1 text-base font-semibold py-1">
+                          <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo}</strong></div>
+                          <div></div>
+                          <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
+                        </div>
 
-                      <table className="w-full border-collapse border border-black text-xs">
-                        <thead>
-                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                            <td className="border border-black py-1.5 w-12">ക്രമ നമ്പർ</td>
-                            <td className="border border-black py-1.5">വിവരണങ്ങൾ</td>
-                            <td className="border border-black py-1.5 w-24">നിരക്ക് (രൂപ)</td>
-                            <td className="border border-black py-1.5 w-24">അളവ്</td>
-                            <td className="border border-black py-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeItemsMl.map((item, idx) => (
-                            <tr key={item.descId}>
-                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                              <td className="border border-black p-1.5">
-                                {renderEditableCell(item.descId, item.descValue, item.descEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-center">
-                                {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <table className="w-full border-collapse border border-black text-xs">
+                          <thead>
+                            <tr className="bg-gray-100 border-b border-black text-center font-bold">
+                              <td className="border border-black py-2.5 w-12">ക്രമ നമ്പർ</td>
+                              <td className="border border-black py-2.5">വിവരണങ്ങൾ</td>
+                              <td className="border border-black py-2.5 w-24">നിരക്ക് (രൂപ)</td>
+                              <td className="border border-black py-2.5 w-24">അളവ്</td>
+                              <td className="border border-black py-2.5 w-32 text-right pr-2">തുക (രൂപ)</td>
                             </tr>
-                          ))}
-                          <tr className="font-bold bg-gray-50">
-                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + 1}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
-                            <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          {(effectiveSubsidyAmount > 0 || isPrivateIrrigation) && (
-                            <tr>
-                              <td className="border border-black p-1.5 text-center">{activeItemsMl.length + 2}</td>
-                              <td className="border border-black p-1.5" colSpan={3}>
-                                {renderEditableCell('fb_subsidy', 
-                                  isPrivateIrrigation 
-                                    ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
-                                    : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം', 
-                                  <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                            </tr>
-                          )}
-                          <tr className="font-bold">
-                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 3 : 2)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
-                            <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 4 : 3)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>
-                              {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
-                                <div className="flex gap-1">
-                                  <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                  <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                </div>
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          <tr className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">{activeItemsMl.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 5 : 4)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>
-                              {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const rows = [];
+                              activeItemsMl.forEach((item, idx) => {
+                                rows.push(
+                                  <tr key={item.descId}>
+                                    <td className="border border-black py-2 px-2.5 text-center">{idx + 1}</td>
+                                    <td className="border border-black py-2 px-2.5">
+                                      {renderEditableCell(item.descId, item.descValue, item.descEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-center">
+                                      {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              });
 
-                      <div className="pt-8 text-right">
-                        <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
+                              rows.push(
+                                <tr key="total_exp" className="font-bold bg-gray-50">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation) {
+                                rows.push(
+                                  <tr key="subsidy">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {renderEditableCell('fb_subsidy', 
+                                        isPrivateIrrigation 
+                                          ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
+                                          : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം', 
+                                        <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
+                                      )}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              }
+
+                              rows.push(
+                                <tr key="net_payable" className="font-bold">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              rows.push(
+                                <tr key="advance">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                    {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
+                                      <div className="flex gap-1">
+                                        <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                        <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              rows.push(
+                                <tr key="balance" className="font-bold bg-gray-100">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                    {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
+                                  </td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                    {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              );
+
+                              return rows;
+                            })()}
+                          </tbody>
+                        </table>
+
+                        {/* Signature Block after table (4 rows distance) */}
+                        <div className="pt-16 pb-2 grid grid-cols-3 text-center font-bold text-xs sm:text-sm gap-4 signature-block">
+                          <div>
+                            <div className="h-10"></div>
+                            അസിസ്റ്റന്റ് എഞ്ചിനീയർ
+                          </div>
+                          <div>
+                            <div className="h-10"></div>
+                            അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ
+                          </div>
+                          <div>
+                            <div className="h-10"></div>
+                            ജില്ലാ ഓഫീസർ
+                          </div>
+                        </div>
                       </div>
-                    </>
+                    </div>
                   );
                 })()
               ) : (
@@ -1846,96 +2044,132 @@ export default function PrintableReportModal({
                   const activeItemsEn = itemsEn.filter(item => item.qty > 0);
 
                   return (
-                    <>
-                      <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                        <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                        <h3 className="text-base font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
-                      </div>
+                    <div className="flex flex-col justify-between h-full flex-1 space-y-4">
+                      <div className="space-y-4">
+                        <div className="text-center space-y-1.5 pb-2 border-b-2 border-black">
+                          <h2 className="text-2xl font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
+                          <h3 className="text-xl font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
+                        </div>
 
-                      <div className="flex justify-between text-xs py-1">
-                        <span>File No: <strong>{fileNo}</strong></span>
-                        <span>Applicant: <strong>{applicantName}</strong></span>
-                      </div>
+                        <div className="flex flex-col space-y-1 text-base font-semibold py-1">
+                          <div>File No: <strong className="text-lg">{fileNo}</strong></div>
+                          <div></div>
+                          <div>Applicant: <strong className="text-lg">{applicantName}</strong></div>
+                        </div>
 
-                      <table className="w-full border-collapse border border-black text-xs">
-                        <thead>
-                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                            <td className="border border-black py-1.5 w-12">Sl No</td>
-                            <td className="border border-black py-1.5">Description of Item</td>
-                            <td className="border border-black py-1.5 w-24">Rate (Rs)</td>
-                            <td className="border border-black py-1.5 w-24">Qty / Unit</td>
-                            <td className="border border-black py-1.5 w-32 text-right pr-2">Amount (Rs)</td>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeItemsEn.map((item, idx) => (
-                            <tr key={item.descId}>
-                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                              <td className="border border-black p-1.5">
-                                {renderEditableCell(item.descId, item.descValue, item.descEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-center">
-                                {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <table className="w-full border-collapse border border-black text-xs">
+                          <thead>
+                            <tr className="bg-gray-100 border-b border-black text-center font-bold">
+                              <td className="border border-black py-2 w-12">Sl No</td>
+                              <td className="border border-black py-2">Description of Item</td>
+                              <td className="border border-black py-2 w-24">Rate (Rs)</td>
+                              <td className="border border-black py-2 w-24">Qty / Unit</td>
+                              <td className="border border-black py-2 w-32 text-right pr-2">Amount (Rs)</td>
                             </tr>
-                          ))}
-                          <tr className="font-bold bg-gray-50">
-                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + 1}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>Total Expenditure Incurred</td>
-                            <td className="border border-black p-1.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          {(effectiveSubsidyAmount > 0 || isPrivateIrrigation) && (
-                            <tr>
-                              <td className="border border-black p-1.5 text-center">{activeItemsEn.length + 2}</td>
-                              <td className="border border-black p-1.5" colSpan={3}>
-                                {renderEditableCell('fb_en_subsidy', 
-                                  isPrivateIrrigation 
-                                    ? 'Subsidy for Marginal / Small Farmers - 50% of Drilling Charge (up to recommended depth of 120 meters)' 
-                                    : 'Subsidy for Marginal / Small Farmers', 
-                                  <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                            </tr>
-                          )}
-                          <tr className="font-bold">
-                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 3 : 2)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
-                            <td className="border border-black p-1.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 4 : 3)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>
-                              {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
-                                <div className="flex gap-1">
-                                  <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                  <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                </div>
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                          <tr className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">{activeItemsEn.length + ((effectiveSubsidyAmount > 0 || isPrivateIrrigation) ? 5 : 4)}</td>
-                            <td className="border border-black p-1.5" colSpan={3}>
-                              {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const rowsEn = [];
+                              activeItemsEn.forEach((item, idx) => {
+                                rowsEn.push(
+                                  <tr key={item.descId}>
+                                    <td className="border border-black py-2 px-2.5 text-center">{idx + 1}</td>
+                                    <td className="border border-black py-2 px-2.5">
+                                      {renderEditableCell(item.descId, item.descValue, item.descEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {renderEditableCell(item.rateId, item.rateValue, item.rateEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-center">
+                                      {renderEditableCell(item.qtyId, item.qtyText, item.qtyEl)}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{item.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              });
 
-                      <div className="pt-8 text-right">
-                        <p className="font-bold">District Officer</p>
-                        <p className="text-xs">Ground Water Department, {district}</p>
+                              rowsEn.push(
+                                <tr key="total_exp_en" className="font-bold bg-gray-50">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>Total Expenditure Incurred</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation) {
+                                rowsEn.push(
+                                  <tr key="subsidy_en">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {renderEditableCell('fb_en_subsidy', 
+                                        isPrivateIrrigation 
+                                          ? 'Subsidy for Marginal / Small Farmers - 50% of Drilling Charge (up to recommended depth of 120 meters)' 
+                                          : 'Subsidy for Marginal / Small Farmers', 
+                                        <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
+                                      )}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              }
+
+                              rowsEn.push(
+                                <tr key="net_payable_en" className="font-bold">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              rowsEn.push(
+                                <tr key="advance_en">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                    {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
+                                      <div className="flex gap-1">
+                                        <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                        <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                              );
+
+                              rowsEn.push(
+                                <tr key="balance_en" className="font-bold bg-gray-100">
+                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                    {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
+                                  </td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                    {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              );
+
+                              return rowsEn;
+                            })()}
+                          </tbody>
+                        </table>
+
+                        {/* Signature Block after table (4 rows distance) */}
+                        <div className="pt-16 pb-2 grid grid-cols-3 text-center font-bold text-xs sm:text-sm gap-4 signature-block">
+                          <div>
+                            <div className="h-10"></div>
+                            Assistant Engineer
+                          </div>
+                          <div>
+                            <div className="h-10"></div>
+                            Assistant Executive Engineer
+                          </div>
+                          <div>
+                            <div className="h-10"></div>
+                            District Officer
+                          </div>
+                        </div>
                       </div>
-                    </>
+                    </div>
                   );
                 })()
               )}
@@ -2124,92 +2358,104 @@ export default function PrintableReportModal({
 
           {/* 4. PROCEEDINGS (FOR PRIVATE DEPOSIT WORKS) */}
           {docType === 'proceedings' && (
-            <div className="space-y-4">
-              <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                <h2 className="text-sm font-bold uppercase tracking-wider">
-                  PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
-                </h2>
-                {renderEditableCell('proc_officer', 
-                  <p className="text-xs italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
-                  <div className="flex gap-1">
-                    <Input className="h-6 text-xs" value={officerName} onChange={e => setOfficerName(e.target.value)} />
-                    <Input className="h-6 text-xs" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
+            <div className="flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm] text-[12pt] leading-[1.5]">
+              <style>{`
+                @page {
+                  size: A4 portrait;
+                  margin: 0 !important;
+                }
+              `}</style>
+              <div className="space-y-4">
+                <div className="text-center space-y-1 pb-2 border-b-2 border-black">
+                  <h2 className="text-[14pt] font-bold uppercase tracking-wider">
+                    PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
+                  </h2>
+                  {renderEditableCell('proc_officer', 
+                    <p className="text-[12pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
+                    <div className="flex gap-1">
+                      <Input className="h-6 text-[12pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
+                      <Input className="h-6 text-[12pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-[12pt] space-y-3 py-2 leading-[1.5]">
+                  <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
+                    <span className="font-bold">Sub:</span>
+                    {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-[12pt]" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
                   </div>
-                )}
-              </div>
+                  <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
+                    <span className="font-bold">Ref:</span>
+                    {renderEditableCell('proc_ref', 
+                      <div>
+                        {formatDatesInText(proceedingsRef1)}<br />
+                        {formatDatesInText(proceedingsRef2)}
+                      </div>,
+                      <div className="space-y-1">
+                        <Input className="h-6 text-[12pt]" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
+                        <Input className="h-6 text-[12pt]" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-              <div className="text-xs space-y-2 py-2">
-                <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
-                  <span className="font-bold">Sub:</span>
-                  {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-xs" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
+                <div className="flex justify-between items-center font-bold border-y border-black py-1 text-[12pt]">
+                  <div>
+                    {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[12pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                  </div>
+                  <div className="text-right ml-auto">
+                    {renderEditableCell('proc_ordDate', <span>Date: {formatDatesInText(orderDate)}</span>, <Input className="h-6 text-[12pt] w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                  </div>
                 </div>
-                <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
-                  <span className="font-bold">Ref:</span>
-                  {renderEditableCell('proc_ref', 
-                    <div>
-                      {proceedingsRef1}<br />
-                      {proceedingsRef2}
-                    </div>,
-                    <div className="space-y-1">
-                      <Input className="h-6 text-xs" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
-                      <Input className="h-6 text-xs" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="flex justify-between font-bold border-y border-black py-1 text-xs">
-                {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-xs w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
-                {renderEditableCell('proc_ordDate', <span>Dated: {orderDate}</span>, <Input className="h-6 text-xs w-36" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-              </div>
-
-              <div className="text-xs space-y-3 leading-relaxed text-justify pt-2">
-                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                  {renderEditableCell('proc_para1',
-                    <span>
-                      As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({ddDetails}) for the construction of a borewell at their premises.
-                    </span>,
-                    <div className="flex gap-1">
-                      <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                      <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                    </div>
-                  )}
-                </div>
-                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                  {renderEditableCell('proc_para2',
-                    <span>
-                      Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
-                    </span>,
-                    <div className="flex gap-1">
-                      <Input type="number" placeholder="Net Payable" className="h-6 text-xs" value={drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal} onChange={e => setDrillingRate(Number(e.target.value))} />
-                      <Input type="number" placeholder="Refund" className="h-6 text-xs" value={advanceDeposit - netPayableGwd} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                    </div>
-                  )}
-                </div>
-                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                  {renderEditableCell('proc_para3',
-                    <span>
-                      In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/- ({numberToWordsEnglish(netPayableGwd)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
-                    </span>,
-                    <div className="grid grid-cols-4 gap-1">
-                      <Input className="h-6 text-xs" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
-                      <Input className="h-6 text-xs" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
-                      <Input className="h-6 text-xs" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
-                      <Input className="h-6 text-xs" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
-                    </div>
-                  )}
-                </div>
-                <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                  {renderEditableCell('proc_para5',
-                    <span>
-                      The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant into STSB Account of the District Officer, Ground Water Department, {district}.
-                    </span>,
-                    <Input type="number" className="h-6 text-xs w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                  )}
+                <div className="text-[12pt] space-y-4 leading-[1.5] text-justify pt-2">
+                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                    {renderEditableCell('proc_para1',
+                      <span>
+                        As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({formatDatesInText(ddDetails)}) for the construction of a borewell at their premises.
+                      </span>,
+                      <div className="flex gap-1">
+                        <Input type="number" className="h-6 text-[12pt]" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        <Input className="h-6 text-[12pt]" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                    {renderEditableCell('proc_para2',
+                      <span>
+                        Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
+                      </span>,
+                      <div className="flex gap-1">
+                        <Input type="number" placeholder="Net Payable" className="h-6 text-[12pt]" value={drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal} onChange={e => setDrillingRate(Number(e.target.value))} />
+                        <Input type="number" placeholder="Refund" className="h-6 text-[12pt]" value={advanceDeposit - netPayableGwd} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                    {renderEditableCell('proc_para3',
+                      <span>
+                        In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/- ({numberToWordsEnglish(netPayableGwd)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
+                      </span>,
+                      <div className="grid grid-cols-4 gap-1">
+                        <Input className="h-6 text-[12pt]" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                        <Input className="h-6 text-[12pt]" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
+                        <Input className="h-6 text-[12pt]" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
+                        <Input className="h-6 text-[12pt]" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                    {renderEditableCell('proc_para5',
+                      <span>
+                        The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant into STSB Account of the District Officer, Ground Water Department, {district}.
+                      </span>,
+                      <Input type="number" className="h-6 text-[12pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-10 flex justify-between items-end text-xs">
+              <div className="pt-10 flex justify-between items-end text-[12pt] leading-[1.5]">
                 <div>
                   <p className="font-bold">Copy to:</p>
                   <p>1. File</p>
@@ -2451,6 +2697,10 @@ export default function PrintableReportModal({
             Close
           </Button>
           <div className="flex items-center gap-2">
+            <Button onClick={handleCopyRichHtml} variant="outline" className="gap-1.5 border-slate-300 hover:bg-slate-100" title="Copy formatted document HTML to clipboard for pasting into Word, Docs, or Email">
+              <Copy className="h-4 w-4 text-slate-700" />
+              <span>Copy Rich HTML</span>
+            </Button>
             {onSave && (
               <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />}
