@@ -2280,7 +2280,7 @@ export default function PrintableReportModal({
 
                 <div className="flex justify-between font-bold border-y border-black py-1 text-[12pt]">
                   {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[12pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
-                  {renderEditableCell('proc_ordDate', <span>Dated: {orderDate}</span>, <Input className="h-6 text-[12pt] w-36" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                  {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[12pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
                 </div>
 
                 <div className="text-[12pt] space-y-4 leading-[1.5] text-justify pt-2">
