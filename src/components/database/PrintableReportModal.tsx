@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, Copy } from "lucide-react";
+import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2 } from "lucide-react";
 import { printDocument } from "@/lib/print-utils";
 import type { DataEntryFormData, SiteDetailFormData } from "@/lib/schemas";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
@@ -739,122 +739,6 @@ export default function PrintableReportModal({
     }
   };
 
-  const handleCopyRichHtml = async () => {
-    setEditingRow(null);
-    const element = document.getElementById('printable-report-document');
-    if (!element) return;
-
-    try {
-      const clone = element.cloneNode(true) as HTMLElement;
-
-      // Clean up interactive edit buttons or controls in the cloned element
-      const noPrintElems = clone.querySelectorAll('.no-print, button, input[type="file"], [title*="Edit"], [title*="Reset"]');
-      noPrintElems.forEach((el) => el.remove());
-
-      const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      font-family: 'Times New Roman', Arial, sans-serif;
-      font-size: 12pt;
-      line-height: 1.5;
-      color: #000000;
-      background-color: #ffffff;
-      margin: 0;
-      padding: 10px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 12px;
-      font-size: 11pt;
-    }
-    th, td {
-      border: 1px solid #000000;
-      padding: 5px 8px;
-      vertical-align: top;
-      text-align: left;
-    }
-    th {
-      font-weight: bold;
-      background-color: #f5f5f5;
-    }
-    h1, h2, h3, h4 {
-      text-align: center;
-      font-weight: bold;
-      margin: 8px 0;
-    }
-    p {
-      margin: 6px 0;
-    }
-    .text-center { text-align: center; }
-    .text-right { text-align: right; }
-    .text-justify { text-align: justify; }
-    .font-bold { font-weight: bold; }
-    .uppercase { text-transform: uppercase; }
-    .border-b-2 { border-bottom: 2px solid #000000; }
-    .border-y { border-top: 1px solid #000000; border-bottom: 1px solid #000000; }
-    .flex { display: flex; }
-    .justify-between { justify-content: space-between; }
-  </style>
-</head>
-<body>
-  ${clone.innerHTML}
-</body>
-</html>
-      `.trim();
-
-      const plainTextContent = clone.innerText || clone.textContent || '';
-
-      let copied = false;
-      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-        const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-        const blobText = new Blob([plainTextContent], { type: 'text/plain' });
-        const item = new ClipboardItem({
-          'text/html': blobHtml,
-          'text/plain': blobText,
-        });
-        await navigator.clipboard.write([item]);
-        copied = true;
-      }
-
-      if (!copied && typeof document !== 'undefined') {
-        const container = document.createElement('div');
-        container.innerHTML = htmlContent;
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
-        container.style.top = '-9999px';
-        document.body.appendChild(container);
-
-        const range = document.createRange();
-        range.selectNodeContents(container);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-
-        document.execCommand('copy');
-        selection?.removeAllRanges();
-        document.body.removeChild(container);
-        copied = true;
-      }
-
-      toast({
-        title: "Copied Rich HTML",
-        description: "Exact formatted report copied to clipboard! You can paste directly into Word, Docs, or email.",
-      });
-    } catch (error) {
-      console.error("Copy rich text failed:", error);
-      toast({
-        title: "Copy Failed",
-        description: "Failed to copy rich HTML to clipboard.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleSave = async () => {
     if (!entry || !onSave) return;
     setIsSaving(true);
@@ -1121,11 +1005,6 @@ export default function PrintableReportModal({
                   <TabsTrigger value="en" className="text-xs font-semibold">English</TabsTrigger>
                 </TabsList>
               </Tabs>
-
-              <Button onClick={handleCopyRichHtml} variant="outline" className="gap-1.5 shadow border-slate-300 hover:bg-slate-100" title="Copy formatted document HTML to clipboard for pasting into Word, Docs, or Email">
-                <Copy className="h-4 w-4 text-slate-700" />
-                <span>Copy Rich HTML</span>
-              </Button>
 
               {onSave && (
                 <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5 shadow">
@@ -2399,13 +2278,9 @@ export default function PrintableReportModal({
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center font-bold border-y border-black py-1 text-[12pt]">
-                  <div>
-                    {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[12pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
-                  </div>
-                  <div className="text-right ml-auto">
-                    {renderEditableCell('proc_ordDate', <span>Date: {formatDatesInText(orderDate)}</span>, <Input className="h-6 text-[12pt] w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-                  </div>
+                <div className="flex justify-between font-bold border-y border-black py-1 text-[12pt]">
+                  {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[12pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                  {renderEditableCell('proc_ordDate', <span>Dated: {orderDate}</span>, <Input className="h-6 text-[12pt] w-36" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
                 </div>
 
                 <div className="text-[12pt] space-y-4 leading-[1.5] text-justify pt-2">
@@ -2697,10 +2572,6 @@ export default function PrintableReportModal({
             Close
           </Button>
           <div className="flex items-center gap-2">
-            <Button onClick={handleCopyRichHtml} variant="outline" className="gap-1.5 border-slate-300 hover:bg-slate-100" title="Copy formatted document HTML to clipboard for pasting into Word, Docs, or Email">
-              <Copy className="h-4 w-4 text-slate-700" />
-              <span>Copy Rich HTML</span>
-            </Button>
             {onSave && (
               <Button onClick={handleSave} disabled={isSaving} variant="outline" className="gap-1.5">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-primary" />}
