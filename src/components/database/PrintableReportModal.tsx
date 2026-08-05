@@ -1209,7 +1209,7 @@ export default function PrintableReportModal({
             const formattedPeriodTo = formatDateDDMMYYYY(periodTo);
 
             return (
-              <div className="completion-report flex flex-col justify-between min-h-[255mm] space-y-2">
+              <div className="completion-report flex flex-col justify-between min-h-[255mm] space-y-2 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm]">
                 {lang === 'ml' ? (
                   <>
                     <div>
@@ -1675,7 +1675,7 @@ export default function PrintableReportModal({
 
           {/* 2. FINAL BILL (MALAYALAM & ENGLISH) */}
           {docType === 'final_bill' && (
-            <div className="flex flex-col justify-between min-h-[255mm] space-y-4">
+            <div className="final-bill flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm]">
               {lang === 'ml' ? (
                 (() => {
                   const itemsMl = [
