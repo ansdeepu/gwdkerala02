@@ -6,9 +6,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { format, isValid, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings2, CloudCheck, Copy, FileSpreadsheet } from 'lucide-react';
+import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings2, CloudCheck, Copy, FileSpreadsheet, ClipboardCopy } from 'lucide-react';
 import { cn, getDistrictMalayalam } from '@/lib/utils';
-import { printDocument } from '@/lib/print-utils';
+import { printDocument, copyRichHtml } from '@/lib/print-utils';
 import { getFirestore, collectionGroup, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -115,6 +115,7 @@ export default function RigChecklistPrintPage() {
     const [tempRowValue, setTempRowValue] = useState<string>('');
     const [isSaving, setIsSaving] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [isCopying, setIsCopying] = useState(false);
 
     useEffect(() => {
         if (!id || id === 'new') {
@@ -908,6 +909,34 @@ export default function RigChecklistPrintPage() {
         ];
     };
 
+    const handleCopyRichHtml = async () => {
+        setIsCopying(true);
+        try {
+            const success = await copyRichHtml('print-checklist-content');
+            if (success) {
+                toast({
+                    title: "Copied successfully",
+                    description: "Checklist copied to clipboard as Rich HTML.",
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Copy failed",
+                    description: "Could not copy checklist HTML to clipboard.",
+                });
+            }
+        } catch (err) {
+            console.error(err);
+            toast({
+                variant: "destructive",
+                title: "Copy failed",
+                description: "An unexpected error occurred while copying.",
+            });
+        } finally {
+            setIsCopying(false);
+        }
+    };
+
     const handleCopyText = async () => {
         const title = isRenewal 
             ? "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ ചെക്ക് ലിസ്റ്റ്"
@@ -1252,6 +1281,17 @@ export default function RigChecklistPrintPage() {
 
                         <Button size="sm" onClick={handleCopyText} variant="outline" className="h-8 text-xs px-2.5 border-slate-300 hover:bg-slate-50 text-slate-700">
                             <Copy className="mr-1.5 h-3.5 w-3.5 text-slate-500" /> Copy Official Table
+                        </Button>
+
+                        <Button 
+                            size="sm" 
+                            onClick={handleCopyRichHtml} 
+                            disabled={isCopying}
+                            variant="outline" 
+                            className="h-8 text-xs px-2.5 border-blue-300 hover:bg-blue-50 text-blue-700 gap-1"
+                        >
+                            <ClipboardCopy className="h-3.5 w-3.5 text-blue-500" /> 
+                            {isCopying ? "Copying..." : "Copy Rich HTML"}
                         </Button>
 
                         <Button size="sm" onClick={handleExportExcel} className="h-8 text-xs px-2.5 bg-green-700 hover:bg-green-800 text-white">

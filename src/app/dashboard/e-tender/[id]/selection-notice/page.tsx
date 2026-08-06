@@ -11,7 +11,7 @@ import { usePageHeader } from '@/hooks/usePageHeader';
 import { isValid } from 'date-fns';
 import { Copy, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { printDocument } from '@/lib/print-utils';
+import { printDocument, copyRichHtml } from '@/lib/print-utils';
 
 const parseStampPaperLogic = (description: string) => {
     const rateBasisMatch = description.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
@@ -172,54 +172,25 @@ export default function SelectionNoticePrintPage() {
         };
 
     const handleCopyRichHtml = async () => {
-        const el = document.getElementById('selection-notice-content');
-        if (!el) {
-            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
-            return;
-        }
-
         try {
-            const contentHtml = el.innerHTML;
-            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 12pt; line-height: 1.6; color: #000000;">${contentHtml}</div></body></html>`;
-            const plainText = el.innerText;
-
-            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
-                const textBlob = new Blob([plainText], { type: 'text/plain' });
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': htmlBlob,
-                        'text/plain': textBlob,
-                    })
-                ]);
+            const success = await copyRichHtml('selection-notice-content');
+            if (success) {
                 toast({
                     title: "Copied Rich HTML!",
                     description: "Selection Notice copied in Rich HTML format. You can paste it into Word or email.",
                 });
-                return;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            const success = document.execCommand('copy');
-            selection?.removeAllRanges();
-
-            if (success) {
-                toast({
-                    title: "Copied Rich HTML!",
-                    description: "Selection Notice copied to clipboard.",
-                });
             } else {
-                throw new Error("Copy command failed");
+                toast({
+                    title: "Copy Failed",
+                    description: "Could not copy automatically. Please select text manually to copy.",
+                    variant: "destructive",
+                });
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Rich HTML copy error:", err);
             toast({
                 title: "Copy Failed",
-                description: "Could not copy automatically. Please select text manually to copy.",
+                description: "An error occurred while copying.",
                 variant: "destructive",
             });
         }
@@ -231,7 +202,7 @@ export default function SelectionNoticePrintPage() {
                 @media print {
                     @page {
                         size: A4;
-                        margin: 10mm 15mm;
+                        margin: 1cm 1.5cm 1cm 2.3cm;
                     }
                     body {
                         background: white !important;
@@ -243,7 +214,7 @@ export default function SelectionNoticePrintPage() {
                     }
                 }
             `}} />
-            <div id="selection-notice-content" className="max-w-4xl mx-auto p-12 print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000' }}>
+            <div id="selection-notice-content" className="max-w-4xl mx-auto bg-white shadow-sm print:shadow-none print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000', paddingTop: '1cm', paddingBottom: '1cm', paddingLeft: '2.3cm', paddingRight: '1.5cm' }}>
               <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
@@ -340,9 +311,9 @@ export default function SelectionNoticePrintPage() {
                 </Button>
                 <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
                     <Copy className="h-4 w-4" />
-                    Copy (Rich HTML)
+                    Copy Rich HTML
                 </Button>
-                <Button onClick={() => printDocument('selection-notice-content', document.title || 'Selection Notice')} className="gap-1.5">
+                <Button onClick={() => printDocument('selection-notice-content', document.title || 'Selection Notice', '1cm 1.5cm 1cm 2.3cm')} className="gap-1.5">
                     <Printer className="h-4 w-4" />
                     Print
                 </Button>

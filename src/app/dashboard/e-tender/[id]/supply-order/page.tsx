@@ -11,7 +11,7 @@ import { numberToWords } from '@/components/e-tender/pdf/generators/utils';
 import { Button } from '@/components/ui/button';
 import { Copy, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { printDocument } from '@/lib/print-utils';
+import { printDocument, copyRichHtml } from '@/lib/print-utils';
 
 export default function SupplyOrderPrintPage() {
     const router = useRouter();
@@ -60,54 +60,25 @@ export default function SupplyOrderPrintPage() {
     };
 
     const handleCopyRichHtml = async () => {
-        const el = document.getElementById('supply-order-content');
-        if (!el) {
-            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
-            return;
-        }
-
         try {
-            const contentHtml = el.innerHTML;
-            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.4; color: #000000;">${contentHtml}</div></body></html>`;
-            const plainText = el.innerText;
-
-            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
-                const textBlob = new Blob([plainText], { type: 'text/plain' });
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': htmlBlob,
-                        'text/plain': textBlob,
-                    })
-                ]);
+            const success = await copyRichHtml('supply-order-content');
+            if (success) {
                 toast({
                     title: "Copied Rich HTML!",
                     description: "Supply Order copied in Rich HTML format. You can paste it into Word or email.",
                 });
-                return;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            const success = document.execCommand('copy');
-            selection?.removeAllRanges();
-
-            if (success) {
-                toast({
-                    title: "Copied Rich HTML!",
-                    description: "Supply Order copied to clipboard.",
-                });
             } else {
-                throw new Error("Copy command failed");
+                toast({
+                    title: "Copy Failed",
+                    description: "Could not copy automatically. Please select text manually to copy.",
+                    variant: "destructive",
+                });
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Rich HTML copy error:", err);
             toast({
                 title: "Copy Failed",
-                description: "Could not copy automatically. Please select text manually to copy.",
+                description: "An error occurred while copying.",
                 variant: "destructive",
             });
         }
@@ -285,7 +256,7 @@ export default function SupplyOrderPrintPage() {
                 </Button>
                 <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
                     <Copy className="h-4 w-4" />
-                    Copy (Rich HTML)
+                    Copy Rich HTML
                 </Button>
                 <Button onClick={() => printDocument('supply-order-content', document.title || 'Supply Order')} className="gap-1.5">
                     <Printer className="h-4 w-4" />

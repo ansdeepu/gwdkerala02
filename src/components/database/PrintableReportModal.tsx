@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2 } from "lucide-react";
-import { printDocument } from "@/lib/print-utils";
+import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
+import { printDocument, copyRichHtml } from "@/lib/print-utils";
 import type { DataEntryFormData, SiteDetailFormData } from "@/lib/schemas";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
 import { useDataStore } from "@/hooks/use-data-store";
@@ -127,6 +127,7 @@ export default function PrintableReportModal({
   // Language & DocType state
   const [lang, setLang] = useState<LanguageMode>('ml');
   const [docType, setDocType] = useState<ReportDocType>(initialDocType);
+  const [isCopying, setIsCopying] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialDocType) {
@@ -725,6 +726,35 @@ export default function PrintableReportModal({
     printDocument('printable-report-document', docTitle);
   };
 
+  const handleCopyRichHtml = async () => {
+    setEditingRow(null);
+    setIsCopying(true);
+    try {
+      const success = await copyRichHtml('printable-report-document');
+      if (success) {
+        toast({
+          title: "Copied successfully",
+          description: "Report copied to clipboard as Rich HTML.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Copy failed",
+          description: "Could not copy report HTML to clipboard.",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Copy failed",
+        description: "An unexpected error occurred while copying.",
+      });
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   const handleOpenNewWindowPrint = () => {
     setEditingRow(null);
     const docEl = document.getElementById('printable-report-document');
@@ -1026,6 +1056,11 @@ export default function PrintableReportModal({
                   Print
                 </Button>
               )}
+
+              <Button onClick={handleCopyRichHtml} disabled={isCopying} variant="outline" className="gap-1.5 shadow border-primary/20 hover:bg-primary/5 hover:text-primary">
+                <ClipboardCopy className="h-4 w-4 text-primary" />
+                {isCopying ? "Copying..." : "Copy Rich HTML"}
+              </Button>
             </div>
           </div>
         </DialogHeader>
@@ -2591,6 +2626,10 @@ export default function PrintableReportModal({
                 Print
               </Button>
             )}
+            <Button onClick={handleCopyRichHtml} disabled={isCopying} variant="outline" className="gap-1.5 border-primary/20 hover:bg-primary/5 hover:text-primary">
+              <ClipboardCopy className="h-4 w-4 text-primary" />
+              {isCopying ? "Copying..." : "Copy Rich HTML"}
+            </Button>
           </div>
         </DialogFooter>
 

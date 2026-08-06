@@ -7,7 +7,7 @@ import { useTenderData } from '@/components/e-tender/TenderDataContext';
 import { formatDateSafe, formatTenderNoForFilename } from '@/components/e-tender/utils';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
-import { Copy, Printer, X } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { printDocument } from '@/lib/print-utils';
 
@@ -26,7 +26,7 @@ export default function WorkAgreementPrintPage() {
     // Style for printing to hide headers/footers
     const printStyles = `
         @page {
-            margin: 0 !important;
+            margin: 0.5cm 1cm 0.5cm 1.5cm !important;
             size: auto;
         }
         @media print {
@@ -508,61 +508,7 @@ export default function WorkAgreementPrintPage() {
     const clauses = lang === 'en' ? clausesEn : clausesMl;
 
     const handlePrint = () => {
-        printDocument('print-sheet', document.title || 'Work Agreement');
-    };
-
-    const handleCopyRichHtml = async () => {
-        const el = document.getElementById('print-sheet');
-        if (!el) {
-            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
-            return;
-        }
-
-        try {
-            const contentHtml = el.innerHTML;
-            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 11pt; line-height: 1.5; color: #000000;">${contentHtml}</div></body></html>`;
-            const plainText = el.innerText;
-
-            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
-                const textBlob = new Blob([plainText], { type: 'text/plain' });
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': htmlBlob,
-                        'text/plain': textBlob,
-                    })
-                ]);
-                toast({
-                    title: "Copied Rich HTML!",
-                    description: "Work Agreement copied in Rich HTML format. You can paste it into Word or email.",
-                });
-                return;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            const success = document.execCommand('copy');
-            selection?.removeAllRanges();
-
-            if (success) {
-                toast({
-                    title: "Copied Rich HTML!",
-                    description: "Work Agreement copied to clipboard.",
-                });
-            } else {
-                throw new Error("Copy command failed");
-            }
-        } catch (err: any) {
-            console.error("Rich HTML copy error:", err);
-            toast({
-                title: "Copy Failed",
-                description: "Could not copy automatically. Please select text manually to copy.",
-                variant: "destructive",
-            });
-        }
+        printDocument('print-sheet', '', '0');
     };
 
     return (
@@ -584,14 +530,33 @@ export default function WorkAgreementPrintPage() {
                         min-height: auto !important;
                         overflow: visible !important;
                         page-break-inside: auto !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        box-sizing: border-box !important;
+                        width: 100% !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    table.print-doc-table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        border: none !important;
+                        margin: 0 !important;
+                    }
+                    table.print-doc-table > thead > tr > td,
+                    table.print-doc-table > tbody > tr > td,
+                    table.print-doc-table > tfoot > tr > td {
+                        border: none !important;
                     }
                     @page {
-                        size: A4;
-                        margin: 15mm 15mm 15mm 15mm;
+                        size: A4 portrait;
+                        margin: 0 !important;
                     }
-                    body {
-                        background-color: white;
-                        color: black;
+                    html, body {
+                        background-color: white !important;
+                        color: black !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
                     .no-print {
                         display: none !important;
@@ -610,11 +575,11 @@ export default function WorkAgreementPrintPage() {
                     #agreement-page-1 {
                         margin: 0 !important;
                         margin-top: ${useStampMargin ? `${stampMargin}cm` : '0'} !important;
-                        margin-bottom: 5cm !important;
+                        margin-bottom: 0 !important;
                         border: ${page1Border ? '2px double rgb(156 163 175)' : 'none'} !important;
                         min-height: auto !important;
                         height: auto !important;
-                        max-height: ${useStampMargin ? `calc(297mm - ${stampMargin}cm - 5cm)` : '24.7cm'} !important;
+                        max-height: ${useStampMargin ? `calc(297mm - 1.5cm - 1.25cm - ${stampMargin}cm)` : '26.95cm'} !important;
                         padding-top: 0 !important;
                         padding-bottom: 0 !important;
                         display: flex !important;
@@ -696,10 +661,6 @@ export default function WorkAgreementPrintPage() {
                             </Button>
                         </div>
 
-                        <Button variant="outline" onClick={handleCopyRichHtml} className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
-                            <Copy className="h-4 w-4" />
-                            Copy (Rich HTML)
-                        </Button>
                         <Button onClick={handlePrint} className="flex items-center gap-2">
                             <Printer className="h-4 w-4" />
                             Print Agreement
@@ -766,7 +727,18 @@ export default function WorkAgreementPrintPage() {
             </div>
 
             {/* Document page body */}
-            <div id="print-sheet" className="max-w-4xl mx-auto bg-white border border-gray-300 shadow-md p-12 pr-12 min-h-[297mm] font-serif text-gray-900 leading-relaxed space-y-8 select-none print:shadow-none print:border-none print:p-0 print:space-y-0 relative">
+            <div id="print-sheet" className="max-w-4xl mx-auto bg-white border border-gray-300 shadow-md p-12 pr-12 min-h-[297mm] font-serif text-gray-900 leading-relaxed space-y-8 select-none print:shadow-none print:border-none print:p-0 print:space-y-0 relative" style={{ paddingTop: '0.5cm', paddingBottom: '0.5cm', paddingLeft: '1.5cm', paddingRight: '1cm' }}>
+                <table className="w-full border-collapse border-none print-doc-table">
+                    <thead className="hidden print:table-header-group">
+                        <tr className="border-none">
+                            <td className="p-0 border-none">
+                                <div style={{ height: '1.5cm' }} className="w-full" />
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody className="table-row-group border-none">
+                        <tr className="border-none">
+                            <td className="p-0 border-none print:pl-[2.5cm] print:pr-[2cm]">
                 
                 {/* PAGE 1: COVER PAGE */}
                 <div 
@@ -886,7 +858,7 @@ export default function WorkAgreementPrintPage() {
                     </div>
                 </div>
 
-                <div className="page-break no-print" />
+                <div className="page-break print:block" style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
 
                 {/* MIDDLE PAGES: CLAUSES SECTION */}
                 <div id="clauses-section" className="w-full font-serif text-gray-900 leading-relaxed max-w-4xl mx-auto py-1 animate-fade-in relative">
@@ -1035,6 +1007,17 @@ export default function WorkAgreementPrintPage() {
                         </div>
                     </div>
                 </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot className="hidden print:table-footer-group">
+                        <tr className="border-none">
+                            <td className="p-0 border-none">
+                                <div style={{ height: '1.25cm' }} className="w-full" />
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
             <div className="fixed bottom-4 right-4 no-print flex gap-2 bg-white/95 p-2 rounded-lg border shadow-lg backdrop-blur z-50">
                 <Button 
@@ -1052,10 +1035,6 @@ export default function WorkAgreementPrintPage() {
                     }}
                 >
                     Close
-                </Button>
-                <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
-                    <Copy className="h-4 w-4" />
-                    Copy (Rich HTML)
                 </Button>
                 <Button onClick={handlePrint} className="gap-1.5">
                     <Printer className="h-4 w-4" />

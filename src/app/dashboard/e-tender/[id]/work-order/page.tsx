@@ -11,7 +11,7 @@ import { numberToWords } from '@/components/e-tender/pdf/generators/utils';
 import { Button } from '@/components/ui/button';
 import { Copy, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { printDocument } from '@/lib/print-utils';
+import { printDocument, copyRichHtml } from '@/lib/print-utils';
 
 export default function WorkOrderPrintPage() {
     const router = useRouter();
@@ -90,54 +90,25 @@ export default function WorkOrderPrintPage() {
 
 
     const handleCopyRichHtml = async () => {
-        const el = document.getElementById('work-order-content');
-        if (!el) {
-            toast({ title: "Copy Failed", description: "Content element not found.", variant: "destructive" });
-            return;
-        }
-
         try {
-            const contentHtml = el.innerHTML;
-            const wrappedHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div style="font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 12pt; line-height: 1.6; color: #000000;">${contentHtml}</div></body></html>`;
-            const plainText = el.innerText;
-
-            if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-                const htmlBlob = new Blob([wrappedHtml], { type: 'text/html' });
-                const textBlob = new Blob([plainText], { type: 'text/plain' });
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': htmlBlob,
-                        'text/plain': textBlob,
-                    })
-                ]);
+            const success = await copyRichHtml('work-order-content');
+            if (success) {
                 toast({
                     title: "Copied Rich HTML!",
                     description: "Work Order copied in Rich HTML format. You can paste it into Word or email.",
                 });
-                return;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            const success = document.execCommand('copy');
-            selection?.removeAllRanges();
-
-            if (success) {
-                toast({
-                    title: "Copied Rich HTML!",
-                    description: "Work Order copied to clipboard.",
-                });
             } else {
-                throw new Error("Copy command failed");
+                toast({
+                    title: "Copy Failed",
+                    description: "Could not copy automatically. Please select text manually to copy.",
+                    variant: "destructive",
+                });
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Rich HTML copy error:", err);
             toast({
                 title: "Copy Failed",
-                description: "Could not copy automatically. Please select text manually to copy.",
+                description: "An error occurred while copying.",
                 variant: "destructive",
             });
         }
@@ -145,6 +116,32 @@ export default function WorkOrderPrintPage() {
 
     return (
         <div className="-m-6 bg-white min-h-screen">
+          <style>{`
+            @page {
+                size: A4 portrait;
+                margin-top: 1.25cm !important;
+                margin-right: 1.8cm !important;
+                margin-bottom: 1.25cm !important;
+                margin-left: 2.3cm !important;
+            }
+            @media print {
+                body {
+                    background-color: white !important;
+                    color: black !important;
+                }
+                .no-print {
+                    display: none !important;
+                }
+                #work-order-content {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    max-width: 100% !important;
+                }
+                ol {
+                    list-style-type: decimal !important;
+                }
+            }
+          `}</style>
           <div id="work-order-content" className="max-w-4xl mx-auto p-8 space-y-4 font-serif text-base" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000' }}>
               <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
@@ -216,7 +213,7 @@ export default function WorkOrderPrintPage() {
 
               <div style={{ marginTop: '14px', fontSize: '12pt' }}>
                 <p style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: '8px' }}>നിബന്ധനകൾ</p>
-                <ol style={{ marginLeft: '35px', paddingLeft: 0, marginTop: '4px', lineHeight: '1.6', textAlign: 'justify' }}>
+                <ol style={{ listStyleType: 'decimal', listStylePosition: 'outside', marginLeft: 0, paddingLeft: '28px', marginTop: '4px', lineHeight: '1.6', textAlign: 'justify' }}>
                     <li align="justify" style={{ marginBottom: '6px' }}>എല്ലാ വർക്കുകളും തുടങ്ങേണ്ടതും പൂർത്തീകരിക്കേണ്ടതും വകുപ്പ് സൂപ്പർവിഷന് നിയോഗിക്കുന്ന ഉദ്യോഗസ്ഥന്റെ സാന്നിധ്യത്തിൽ ആയിരിക്കണം.</li>
                     <li align="justify" style={{ marginBottom: '6px' }}>കുഴൽകിണർ നിർമ്മാണം, ട്യൂബ് വെൽ നിർമ്മാണം, കുടിവെള്ള പദ്ധതി, കൃത്രിമ ഭൂജലസംപോഷണ പദ്ധതി എന്നിവയ്ക്കായി ഉപയോഗിക്കുന്ന പൈപ്പുകളുടെ ISI മുദ്ര, ബ്യൂറോ ഓഫ് ഇന്ത്യൻ സ്റ്റാൻഡേർഡ്‌സ്‌ അംഗീകരിച്ചിട്ടുള്ള ലിസ്റ്റിൽ ഉൾപ്പെടുന്നതായിരിക്കണം. ആയത് സംബന്ധിച്ച ഗുണനിലവാര സർട്ടിഫിക്കറ്റ് പ്രവൃത്തി നിർവഹണത്തിന് മുന്നോടിയായി ഓഫീസിൽ സമർപ്പിക്കേണ്ടതാണ്.</li>
                     <li align="justify" style={{ marginBottom: '6px' }}>വർക്ക് ഓർഡർ ലഭിച്ചതിന് <span style={{ fontWeight: 'bold' }}>5</span> ദിവസത്തിനകം വർക്ക് തുടങ്ങിയിരിക്കേണ്ടതും, വർക്ക് ഓർഡറിൽ പറഞ്ഞിരിക്കുന്ന നിശ്ചിത ദിവസത്തിനകം വർക്ക് പൂർത്തീകരിക്കുകയും ചെയ്യേണ്ടതാണ്.</li>
@@ -250,7 +247,7 @@ export default function WorkOrderPrintPage() {
 
               <div style={{ marginTop: '20px', fontSize: '12pt' }}>
                   <p style={{ margin: 0, padding: 0 }}>പകർപ്പ്</p>
-                  <ol style={{ marginLeft: '32px', paddingLeft: 0, marginTop: '4px', lineHeight: '1.4' }}>
+                  <ol style={{ listStyleType: 'decimal', listStylePosition: 'outside', marginLeft: 0, paddingLeft: '28px', marginTop: '4px', lineHeight: '1.4' }}>
                       {copyToList.map((person, index) => (
                           <li key={index} style={{ marginBottom: '2px' }}>{person.nameMalayalam || person.name}, {person.designationMalayalam || person.designation}</li>
                       ))}
@@ -277,9 +274,9 @@ export default function WorkOrderPrintPage() {
             </Button>
             <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
                 <Copy className="h-4 w-4" />
-                Copy (Rich HTML)
+                Copy Rich HTML
             </Button>
-            <Button onClick={() => printDocument('work-order-content', document.title || 'Work Order')} className="gap-1.5">
+            <Button onClick={() => printDocument('work-order-content', document.title || 'Work Order', '1.25cm 1.8cm 1.25cm 2.3cm')} className="gap-1.5">
                 <Printer className="h-4 w-4" />
                 Print
             </Button>
