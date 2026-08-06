@@ -70,6 +70,12 @@ const nextConfig = {
   env: {
     CACHE_BUSTER: `force-rebuild-final-1779123000001`,
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = false;
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;
