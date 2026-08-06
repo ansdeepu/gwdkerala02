@@ -732,29 +732,9 @@ export default function TenderDetails() {
                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
                                             <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
                                             <DetailRow label="Basis for Calculation" value={watch('amountType')} />
-                                            <div className="md:col-span-1 space-y-2">
-                                                <dt className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight">Guarantee & Paper Required</dt>
-                                                <dd className="space-y-1">
-                                                    <div>
-                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">PG:</span>
-                                                        <span className="text-xs font-bold font-mono">
-                                                            {watch('performanceGuaranteeAmount') !== null && watch('performanceGuaranteeAmount') !== undefined ? `Rs. ${Number(watch('performanceGuaranteeAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">Addl. PG:</span>
-                                                        <span className="text-xs font-bold font-mono">
-                                                            {watch('additionalPerformanceGuaranteeAmount') !== null && watch('additionalPerformanceGuaranteeAmount') !== undefined ? `Rs. ${Number(watch('additionalPerformanceGuaranteeAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-tight mr-1">SP:</span>
-                                                        <span className="text-xs font-bold font-mono">
-                                                            {watch('stampPaperAmount') !== null && watch('stampPaperAmount') !== undefined ? `Rs. ${Number(watch('stampPaperAmount')).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                </dd>
-                                            </div>
+                                            <DetailRow label="Performance Guarantee" value={watch('performanceGuaranteeAmount')} isCurrency />
+                                            <DetailRow label="Additional PG" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency />
+                                            <DetailRow label="Stamp Paper" value={watch('stampPaperAmount')} isCurrency />
                                         </dl>
                                     </CardContent>
                                 ) : (

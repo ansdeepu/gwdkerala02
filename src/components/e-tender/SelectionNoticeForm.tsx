@@ -123,45 +123,44 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
     }, [additionalPerformanceGuaranteeDescription]);
 
 
-    const form = useForm<SelectionNoticeDetailsFormData>({
-        resolver: zodResolver(SelectionNoticeDetailsSchema),
-        defaultValues: {
-            selectionNoticeDate: formatDateForInput(tender?.selectionNoticeDate),
-            performanceGuaranteeAmount: tender?.performanceGuaranteeAmount,
-            additionalPerformanceGuaranteeAmount: tender?.additionalPerformanceGuaranteeAmount,
-            stampPaperAmount: tender?.stampPaperAmount,
-            amountType: tender?.amountType || 'Contract Amount',
-        }
-    });
-    
-    const { handleSubmit, setValue, getValues, watch, formState: { isDirty } } = form;
+    const initialValues = useMemo(() => {
+        const baseAmountType = tender?.amountType || 'Contract Amount';
+        const baseAmount = baseAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? tender.contractAmount ?? undefined);
 
-    const watchAmountType = watch('amountType');
-
-    useEffect(() => {
-        const baseAmount: number | null | undefined = watchAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? tender.contractAmount ?? undefined);
-
-        // Performance Guarantee logic extraction
         const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
         const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
 
         const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
         const stamp = calculateStampPaperValue(baseAmount);
 
-        // Additional PG is always calculated from quoted L1/contract amount against the tender estimate amount
         const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
         const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
 
-        if (!getValues('selectionNoticeDate')) {
-            setValue('selectionNoticeDate', formatDateForInput(tender?.selectionNoticeDate) || '');
-        }
-        
-        setValue('performanceGuaranteeAmount', pg, { shouldValidate: true, shouldDirty: true });
-        setValue('additionalPerformanceGuaranteeAmount', additionalPg, { shouldValidate: true, shouldDirty: true });
-        setValue('stampPaperAmount', stamp, { shouldValidate: true, shouldDirty: true });
+        return {
+            selectionNoticeDate: formatDateForInput(tender?.selectionNoticeDate),
+            performanceGuaranteeAmount: tender?.performanceGuaranteeAmount !== undefined && tender?.performanceGuaranteeAmount !== null 
+                ? tender.performanceGuaranteeAmount 
+                : pg,
+            additionalPerformanceGuaranteeAmount: tender?.additionalPerformanceGuaranteeAmount !== undefined && tender?.additionalPerformanceGuaranteeAmount !== null 
+                ? tender.additionalPerformanceGuaranteeAmount 
+                : additionalPg,
+            stampPaperAmount: tender?.stampPaperAmount !== undefined && tender?.stampPaperAmount !== null 
+                ? tender.stampPaperAmount 
+                : stamp,
+            amountType: baseAmountType,
+        };
+    }, [tender, l1Amount, performanceGuaranteeDescription, calculateStampPaperValue, calculateAdditionalPG]);
 
-    }, [tender.estimateAmount, tender.contractAmount, tender.selectionNoticeDate, l1Amount, watchAmountType, calculateStampPaperValue, calculateAdditionalPG, performanceGuaranteeDescription, setValue, getValues]);
+    const form = useForm<SelectionNoticeDetailsFormData>({
+        resolver: zodResolver(SelectionNoticeDetailsSchema),
+        defaultValues: initialValues,
+    });
+    
+    const { handleSubmit, setValue, getValues, watch, reset, formState: { isDirty } } = form;
 
+    useEffect(() => {
+        reset(initialValues);
+    }, [initialValues, reset]);
 
     const handleFormSubmit = (data: SelectionNoticeDetailsFormData) => {
         const formData: Partial<E_tenderFormData> = { ...data };
@@ -198,7 +197,24 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                             <FormField name="amountType" control={form.control} render={({ field }) => ( 
                                 <FormItem>
                                     <FormLabel>Basis for Calculation</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
+                                    <Select 
+                                        onValueChange={(val) => {
+                                            field.onChange(val);
+                                            const baseAmount = val === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? tender.contractAmount ?? undefined);
+                                            const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
+                                            const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
+                                            const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
+                                            const stamp = calculateStampPaperValue(baseAmount);
+                                            const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
+                                            const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
+                                            
+                                            setValue('performanceGuaranteeAmount', pg, { shouldValidate: true, shouldDirty: true });
+                                            setValue('additionalPerformanceGuaranteeAmount', additionalPg, { shouldValidate: true, shouldDirty: true });
+                                            setValue('stampPaperAmount', stamp, { shouldValidate: true, shouldDirty: true });
+                                        }} 
+                                        defaultValue={field.value ?? undefined} 
+                                        value={field.value ?? undefined}
+                                    >
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select basis" />
@@ -223,11 +239,18 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                         <Separator />
 
                         <div className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4 items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                                 <FormField name="performanceGuaranteeAmount" control={form.control} render={({ field }) => ( 
                                     <FormItem>
-                                        <FormLabel>PG (₹)</FormLabel>
-                                        <FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly className="bg-muted/50 font-bold" /></FormControl>
+                                        <FormLabel>Performance Guarantee (₹)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                {...field} 
+                                                value={field.value ?? ""} 
+                                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
+                                            />
+                                        </FormControl>
                                         <FormDescription className="text-[10px] leading-tight">Based on 5% of the contract value (rounded up).</FormDescription>
                                         <FormMessage />
                                     </FormItem> 
@@ -235,16 +258,30 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
 
                                 <FormField name="additionalPerformanceGuaranteeAmount" control={form.control} render={({ field }) => ( 
                                     <FormItem>
-                                        <FormLabel>Addl. PG (₹)</FormLabel>
-                                        <FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly className="bg-muted/50 font-bold" /></FormControl>
+                                        <FormLabel>Additional PG (₹)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                {...field} 
+                                                value={field.value ?? ""} 
+                                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
+                                            />
+                                        </FormControl>
                                         <FormDescription className="text-[10px] leading-tight">Required for low bids; based on GWD Rates threshold.</FormDescription>
                                         <FormMessage />
                                     </FormItem> 
                                  )}/>
                                 <FormField name="stampPaperAmount" control={form.control} render={({ field }) => ( 
                                     <FormItem>
-                                        <FormLabel>SP (₹)</FormLabel>
-                                        <FormControl><Input type="number" {...field} value={field.value ?? ""} readOnly className="bg-muted/50 font-bold"/></FormControl>
+                                        <FormLabel>Stamp Paper (₹)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                {...field} 
+                                                value={field.value ?? ""} 
+                                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            />
+                                        </FormControl>
                                         <FormDescription className="text-[10px] leading-tight">Calculated at ₹100 per lakh (min ₹200).</FormDescription>
                                         <FormMessage />
                                     </FormItem> 
