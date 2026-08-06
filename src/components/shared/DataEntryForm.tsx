@@ -868,24 +868,35 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const totalRemittance = watchedRemittanceDetails?.reduce((sum, item) => {
         return sum + (Number(item.amountRemitted) || 0);
     }, 0) || 0;
-    setValue("totalRemittance", totalRemittance);
+    if (getValues("totalRemittance") !== totalRemittance) {
+      setValue("totalRemittance", totalRemittance);
+    }
 
     const totalReappDebit = watchedReappropriationDetails?.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0) || 0;
-    setValue("totalReappropriation", totalReappDebit);
+    if (getValues("totalReappropriation") !== totalReappDebit) {
+      setValue("totalReappropriation", totalReappDebit);
+    }
 
     const totalReappCredit = autoCredits.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0);
-    setValue("totalReappropriationCredit", totalReappCredit);
+    if (getValues("totalReappropriationCredit") !== totalReappCredit) {
+      setValue("totalReappropriationCredit", totalReappCredit);
+    }
     
     const totalPayment = watchedPaymentDetails?.reduce((sum, item) => sum + calculatePaymentEntryTotalGlobal(item), 0) || 0;
-    setValue("totalPaymentAllEntries", totalPayment);
+    if (getValues("totalPaymentAllEntries") !== totalPayment) {
+      setValue("totalPaymentAllEntries", totalPayment);
+    }
 
-    setValue("overallBalance", totalRemittance + totalReappCredit - totalPayment - totalReappDebit);
+    const overallBal = totalRemittance + totalReappCredit - totalPayment - totalReappDebit;
+    if (getValues("overallBalance") !== overallBal) {
+      setValue("overallBalance", overallBal);
+    }
     
-  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue]);
+  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, getValues]);
 
     const paymentFieldsToDisplay = useMemo(() => {
         const fields: { key: keyof PaymentDetailFormData; label: string }[] = [
@@ -1345,6 +1356,17 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 className="bg-background shadow-xs hover:bg-accent border-primary/25"
                             >
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
+                            </Button>
+                        )}
+                        {(watchedSiteDetails && watchedSiteDetails.length > 1) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('abstract_final_bill'); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Abstract Final Bill
                             </Button>
                         )}
                         {currentModuleKey === 'private' ? (

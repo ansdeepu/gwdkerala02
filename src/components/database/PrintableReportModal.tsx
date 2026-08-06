@@ -99,6 +99,13 @@ const formatMeterValue = (val: string | number, unit: string = 'meter'): string 
   return `${str} ${unit}`;
 };
 
+const parseNum = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const match = String(val).match(/-?\d+(\.\d+)?/);
+  return match ? parseFloat(match[0]) : 0;
+};
+
 interface PrintableReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -137,14 +144,22 @@ export default function PrintableReportModal({
 
   const rawSites = useMemo(() => entry?.siteDetails || [], [entry]);
 
+  const countOfBwcOrTwc = useMemo(() => {
+    return rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC').length;
+  }, [rawSites]);
+
   const sites = useMemo(() => {
     if (docType === 'final_bill' || docType === 'abstract_final_bill') {
-      return rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC');
+      const filtered = rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC');
+      if (filtered.length > 0) {
+        return filtered;
+      }
+      return rawSites;
     }
     return rawSites;
   }, [rawSites, docType]);
   
-  const hasMultipleSites = sites.length > 1;
+  const hasMultipleSites = countOfBwcOrTwc > 1 || rawSites.length > 1;
 
   // Selected site index
   const [selectedSiteIndex, setSelectedSiteIndex] = useState<number>(0);
@@ -347,17 +362,25 @@ export default function PrintableReportModal({
       setSurveyRecommendedOB(currentSite.surveyRecommendedOB ? String(currentSite.surveyRecommendedOB) : (currentSite.surveyOB ? String(currentSite.surveyOB) : ''));
       setSurveyLocation(currentSite.surveyLocation || '');
 
-      const depth = Number(currentSite.totalDepth) || 0;
+      const depth = parseNum(currentSite.totalDepth);
       setDepthMeter(depth);
       setDrillingQty(depth);
 
       setDiameter(currentSite.diameter || 'Ø 110 മില്ലീമീറ്റർ');
 
-      const c10 = Number(currentSite.casing10kgPipe) || 0;
+      const c10 = parseNum(currentSite.casing10kgPipe);
+      const rawC6 = parseNum(currentSite.casing6kgPipe);
+      const rawPipeUsed = parseNum(currentSite.casingPipeUsed);
+      const rawSurveyCasing = parseNum(currentSite.surveyRecommendedCasingPipe);
+
+      let c6 = rawC6;
+      if (c10 === 0 && c6 === 0) {
+        c6 = rawPipeUsed || rawSurveyCasing || 0;
+      }
+
       setCasing10kgQty(c10);
-      const c6 = Number(currentSite.casing6kgPipe) || 0;
       setCasing6kgQty(c6);
-      const innerQty = Number(currentSite.innerCasingPipe) || Number(currentSite.innerCasing6kgPipe) || Number(currentSite.innerCasing4kgPipe) || 0;
+      const innerQty = parseNum(currentSite.innerCasingPipe) || parseNum(currentSite.innerCasing6kgPipe) || parseNum(currentSite.innerCasing4kgPipe);
       setInnerCasingQty(innerQty);
 
       setEndCap(currentSite.endCap || 'No');
@@ -467,11 +490,17 @@ export default function PrintableReportModal({
 
     // Initialize dynamic collections
     setUcRows(sites.map(s => {
-      const sDepth = Number(s.totalDepth) || 0;
+      const sDepth = parseNum(s.totalDepth);
       const sDrilling = drillingRate * sDepth;
-      const sC10 = casing10kgRate * (Number(s.casing10kgPipe) || 0);
-      const sC6 = casing6kgRate * (Number(s.casing6kgPipe) || 0);
-      const sInner = innerCasingRate * (Number(s.innerCasingPipe) || Number(s.innerCasing6kgPipe) || Number(s.innerCasing4kgPipe) || 0);
+      const sC10Val = parseNum(s.casing10kgPipe);
+      const sC6Raw = parseNum(s.casing6kgPipe);
+      const sPipeUsed = parseNum(s.casingPipeUsed);
+      const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
+      const sC6Val = sC6Raw > 0 ? sC6Raw : (sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+
+      const sC10 = casing10kgRate * sC10Val;
+      const sC6 = casing6kgRate * sC6Val;
+      const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
       const sCost = sDrilling + sC10 + sC6 + sInner;
       return {
         description: s.nameOfSite || entry?.applicantName || 'Borewell Construction',
@@ -481,11 +510,17 @@ export default function PrintableReportModal({
     }));
 
     setAbstractRows(sites.map(s => {
-      const sDepth = Number(s.totalDepth) || 0;
+      const sDepth = parseNum(s.totalDepth);
       const sDrilling = drillingRate * sDepth;
-      const sC10 = casing10kgRate * (Number(s.casing10kgPipe) || 0);
-      const sC6 = casing6kgRate * (Number(s.casing6kgPipe) || 0);
-      const sInner = innerCasingRate * (Number(s.innerCasingPipe) || Number(s.innerCasing6kgPipe) || Number(s.innerCasing4kgPipe) || 0);
+      const sC10Val = parseNum(s.casing10kgPipe);
+      const sC6Raw = parseNum(s.casing6kgPipe);
+      const sPipeUsed = parseNum(s.casingPipeUsed);
+      const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
+      const sC6Val = sC6Raw > 0 ? sC6Raw : (sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+
+      const sC10 = casing10kgRate * sC10Val;
+      const sC6 = casing6kgRate * sC6Val;
+      const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
       const sCost = sDrilling + sC10 + sC6 + sInner;
       return {
         siteName: s.nameOfSite || '',
@@ -514,6 +549,10 @@ export default function PrintableReportModal({
   const totalExpenditure = drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal;
   const netPayableGwd = totalExpenditure - effectiveSubsidyAmount;
   const balanceRefund = advanceDeposit - netPayableGwd;
+
+  const absTotalDeposited = abstractRows.reduce((acc, r) => acc + (Number(r.deposited) || 0), 0);
+  const absTotalExpenditure = abstractRows.reduce((acc, r) => acc + (Number(r.expenditure) || 0), 0);
+  const absTotalBalance = absTotalDeposited - absTotalExpenditure;
 
   // Casing pipe label based on diameter
   const casingDiameterLabel = useMemo(() => {
@@ -779,24 +818,25 @@ export default function PrintableReportModal({
     setEditingRow(null);
     try {
       const updatedSiteDetails = [...(entry.siteDetails || [])];
-      if (updatedSiteDetails[selectedSiteIndex]) {
-        updatedSiteDetails[selectedSiteIndex] = {
-          ...updatedSiteDetails[selectedSiteIndex],
-          contractorName: contractorName || updatedSiteDetails[selectedSiteIndex].contractorName,
-          latitude: latitude ? Number(latitude) : updatedSiteDetails[selectedSiteIndex].latitude,
-          longitude: longitude ? Number(longitude) : updatedSiteDetails[selectedSiteIndex].longitude,
-          localSelfGovt: localSelfGovt || updatedSiteDetails[selectedSiteIndex].localSelfGovt,
-          constituency: constituency || updatedSiteDetails[selectedSiteIndex].constituency,
-          totalDepth: depthMeter || updatedSiteDetails[selectedSiteIndex].totalDepth,
-          casing10kgPipe: casing10kgQty || updatedSiteDetails[selectedSiteIndex].casing10kgPipe,
-          casing6kgPipe: casing6kgQty || updatedSiteDetails[selectedSiteIndex].casing6kgPipe,
-          yieldDischarge: yieldLph || updatedSiteDetails[selectedSiteIndex].yieldDischarge,
-          zoneDetails: waterStruckZone || updatedSiteDetails[selectedSiteIndex].zoneDetails,
-          waterLevel: staticWaterLevel || updatedSiteDetails[selectedSiteIndex].waterLevel,
-          drillingRemarks: remarks || updatedSiteDetails[selectedSiteIndex].drillingRemarks,
-          workRemarks: remarks || updatedSiteDetails[selectedSiteIndex].workRemarks,
-          dateOfCommencement: periodFrom || updatedSiteDetails[selectedSiteIndex].dateOfCommencement,
-          dateOfCompletion: periodTo || updatedSiteDetails[selectedSiteIndex].dateOfCompletion,
+      const originalIndex = entry.siteDetails?.findIndex(s => s === currentSite) ?? -1;
+      if (originalIndex !== -1 && updatedSiteDetails[originalIndex]) {
+        updatedSiteDetails[originalIndex] = {
+          ...updatedSiteDetails[originalIndex],
+          contractorName: contractorName || updatedSiteDetails[originalIndex].contractorName,
+          latitude: latitude ? Number(latitude) : updatedSiteDetails[originalIndex].latitude,
+          longitude: longitude ? Number(longitude) : updatedSiteDetails[originalIndex].longitude,
+          localSelfGovt: localSelfGovt || updatedSiteDetails[originalIndex].localSelfGovt,
+          constituency: constituency || updatedSiteDetails[originalIndex].constituency,
+          totalDepth: depthMeter || updatedSiteDetails[originalIndex].totalDepth,
+          casing10kgPipe: casing10kgQty || updatedSiteDetails[originalIndex].casing10kgPipe,
+          casing6kgPipe: casing6kgQty || updatedSiteDetails[originalIndex].casing6kgPipe,
+          yieldDischarge: yieldLph || updatedSiteDetails[originalIndex].yieldDischarge,
+          zoneDetails: waterStruckZone || updatedSiteDetails[originalIndex].zoneDetails,
+          waterLevel: staticWaterLevel || updatedSiteDetails[originalIndex].waterLevel,
+          drillingRemarks: remarks || updatedSiteDetails[originalIndex].drillingRemarks,
+          workRemarks: remarks || updatedSiteDetails[originalIndex].workRemarks,
+          dateOfCommencement: periodFrom || updatedSiteDetails[originalIndex].dateOfCommencement,
+          dateOfCompletion: periodTo || updatedSiteDetails[originalIndex].dateOfCompletion,
         };
       }
 
@@ -834,9 +874,15 @@ export default function PrintableReportModal({
     cr_depth: () => { const d = Number(currentSite?.totalDepth) || 0; setDepthMeter(d); setDrillingQty(d); },
     cr_ob: () => setActualOverburden(currentSite?.surveyOB ? String(currentSite.surveyOB) : (currentSite?.surveyRecommendedOB ? String(currentSite.surveyRecommendedOB) : '')),
     cr_casingDetails: () => {
-      setCasing10kgQty(Number(currentSite?.casing10kgPipe) || 0);
-      setCasing6kgQty(Number(currentSite?.casing6kgPipe) || 0);
-      setInnerCasingQty(Number(currentSite?.innerCasingPipe) || Number(currentSite?.innerCasing6kgPipe) || Number(currentSite?.innerCasing4kgPipe) || 0);
+      const c10 = parseNum(currentSite?.casing10kgPipe);
+      const rawC6 = parseNum(currentSite?.casing6kgPipe);
+      const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
+      const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
+      const c6 = rawC6 > 0 ? rawC6 : (c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+
+      setCasing10kgQty(c10);
+      setCasing6kgQty(c6);
+      setInnerCasingQty(parseNum(currentSite?.innerCasingPipe) || parseNum(currentSite?.innerCasing6kgPipe) || parseNum(currentSite?.innerCasing4kgPipe));
       setPilotDrillingDepth(currentSite?.pilotDrillingDepth || '');
       setSurveyPlainPipe(currentSite?.surveyPlainPipe || '');
       setSurveySlottedPipe(currentSite?.surveySlottedPipe || '');
@@ -868,7 +914,7 @@ export default function PrintableReportModal({
       setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
     },
     fb_r2: () => setCasing10kgRate(960),
-    fb_q2: () => setCasing10kgQty(Number(currentSite?.casing10kgPipe) || 0),
+    fb_q2: () => setCasing10kgQty(parseNum(currentSite?.casing10kgPipe)),
     fb_desc_casing6: () => {
       const diaVal = currentSite?.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');
@@ -878,7 +924,14 @@ export default function PrintableReportModal({
       setFbDescCasing6En(`${casingDiaEn} dia 6 kg/cm² PVC Casing Pipe`);
     },
     fb_r3: () => setCasing6kgRate(580),
-    fb_q3: () => setCasing6kgQty(Number(currentSite?.casing6kgPipe) || 0),
+    fb_q3: () => {
+      const c10 = parseNum(currentSite?.casing10kgPipe);
+      const rawC6 = parseNum(currentSite?.casing6kgPipe);
+      const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
+      const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
+      const c6 = rawC6 > 0 ? rawC6 : (c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      setCasing6kgQty(c6);
+    },
     fb_desc_inner: () => {
       const diaVal = currentSite?.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');

@@ -213,6 +213,20 @@ export default function RigChecklistPrintPage() {
         }
     }, [data, type, renewalId]);
 
+    // Auto print when 'print=true' query parameter is present (used for reliable printing out of iframe sandbox)
+    useEffect(() => {
+        if (!isLoading && !isFetchingDoc && data && searchParams.get('print') === 'true') {
+            const timer = setTimeout(() => {
+                printDocument(
+                    'print-checklist-content',
+                    type === 'renewal' ? 'Rig Renewal Checklist' : 'Rig Registration Checklist',
+                    '1.2cm 1.5cm 1.2cm 1.5cm'
+                );
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [isLoading, isFetchingDoc, data, searchParams, type]);
+
     // Save checklist overrides to Firestore Cloud Persistence
     const handleSaveChecklist = async (overridesToSave?: Record<number, string>) => {
         if (!data || !data.application || !data.rig) return;
@@ -1223,7 +1237,7 @@ export default function RigChecklistPrintPage() {
     return (
         <div className="bg-slate-50 min-h-screen p-4 sm:p-8 print:bg-white print:p-0">
             {/* Top Toolbar (Hidden on print) */}
-            <div className="max-w-4xl mx-auto mb-4 bg-white rounded-lg shadow-sm p-3 border space-y-3 no-print">
+            <div className="max-w-4xl mx-auto mb-4 bg-white rounded-lg shadow-sm p-3 border space-y-3 no-print print:hidden">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="sm" onClick={() => router.back()} className="h-8 px-2 text-xs">
@@ -1275,7 +1289,7 @@ export default function RigChecklistPrintPage() {
                             Save
                         </Button>
 
-                        <Button size="sm" onClick={() => printDocument('print-checklist-content', 'Renewal Checklist')} className="h-8 text-xs px-2.5 bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button size="sm" onClick={() => printDocument('print-checklist-content', isRenewal ? 'Rig Renewal Checklist' : 'Rig Registration Checklist', '1.2cm 1.5cm 1.2cm 1.5cm')} className="h-8 text-xs px-2.5 bg-blue-600 hover:bg-blue-700 text-white">
                             <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
                         </Button>
 
@@ -1344,7 +1358,19 @@ export default function RigChecklistPrintPage() {
             </div>
 
             {/* Printable Document Sheet */}
-            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4 portrait;
+                        margin: 1.2cm 1.5cm 1.2cm 1.5cm !important;
+                    }
+                    body {
+                        background: #ffffff !important;
+                        color: #000000 !important;
+                    }
+                }
+            `}</style>
+            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-6 print:m-0 print:max-w-full">
                 
                 {/* Government Header */}
                 <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8">

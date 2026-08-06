@@ -118,6 +118,20 @@ export default function AgencyExpiryPrintPage() {
         };
     }, [allAgencyApplications, fetchedApp, id]);
 
+    // Auto print when 'print=true' query parameter is present (used for reliable printing out of iframe sandbox)
+    useEffect(() => {
+        if (!isLoading && !isFetchingDoc && data && searchParams.get('print') === 'true') {
+            const timer = setTimeout(() => {
+                printDocument(
+                    'print-letter-content', 
+                    'Agency Registration Renewal Letter', 
+                    '1.2cm 1.5cm 1.2cm 1.5cm'
+                );
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [isLoading, isFetchingDoc, data, searchParams]);
+
     if ((isLoading || isFetchingDoc) && !data) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-10 space-y-4">
@@ -138,7 +152,7 @@ export default function AgencyExpiryPrintPage() {
 
     return (
         <div className="bg-white p-0 sm:p-8 print:h-auto print:p-0 print:m-0">
-            <div id="print-letter-content" className="max-w-4xl mx-auto border bg-white shadow-sm p-12 text-black font-serif print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full">
+            <div id="print-letter-content" className="max-w-4xl mx-auto border bg-white shadow-sm p-12 text-black font-serif print:border-0 print:shadow-none print:p-6 print:m-0 print:max-w-full">
                 
                 {/* Header */}
                 <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-8">
@@ -278,7 +292,7 @@ export default function AgencyExpiryPrintPage() {
 
                 {/* Print Controls */}
                 <div className="fixed bottom-6 right-6 no-print flex gap-2">
-                    <Button onClick={() => printDocument('print-letter-content', 'Agency Registration Renewal Letter')} className="shadow-lg">
+                    <Button onClick={() => printDocument('print-letter-content', 'Agency Registration Renewal Letter', '1.2cm 1.5cm 1.2cm 1.5cm')} className="shadow-lg">
                         <Printer className="mr-2 h-4 w-4" /> Print Letter
                     </Button>
                     <Button variant="outline" onClick={() => router.back()} className="shadow-lg">

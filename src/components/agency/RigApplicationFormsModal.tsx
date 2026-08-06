@@ -297,7 +297,7 @@ export function RigRegistrationApplicationFormView({
   const update = (key: string, val: any) => setData((prev) => ({ ...prev, [key]: val }));
 
   const handlePrint = () => {
-    printDocument("rig-reg-official-form", "ഡ്രില്ലിംഗ് ഏജൻസി/സ്ഥാപനവും ഡ്രില്ലിംഗ് റിഗ്ഗും രജിസ്റ്റർ ചെയ്യുന്നതിനുള്ള അപേക്ഷാ ഫോറം");
+    printDocument("rig-reg-official-form", "ഡ്രില്ലിംഗ് ഏജൻസി/സ്ഥാപനവും ഡ്രില്ലിംഗ് റിഗ്ഗും രജിസ്റ്റർ ചെയ്യുന്നതിനുള്ള അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
   };
 
   return (
@@ -1275,7 +1275,7 @@ export function RigRenewalApplicationFormView({
   const update = (key: string, val: any) => setData((prev) => ({ ...prev, [key]: val }));
 
   const handlePrint = () => {
-    printDocument("rig-renewal-official-form", "റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ/പുതിയ റിഗ് രജിസ്ട്രേഷൻ അപേക്ഷാ ഫോറം");
+    printDocument("rig-renewal-official-form", "റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ/പുതിയ റിഗ് രജിസ്ട്രേഷൻ അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
   };
 
   return (
