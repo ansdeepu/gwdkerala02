@@ -228,8 +228,12 @@ export default function PrintableReportModal({
   const [ucEnPara2, setUcEnPara2] = useState<string>('');
 
   // Dynamic row collections for UC & Abstract tables
-  const [ucTableRows, setUcTableRows] = useState<Array<{ siteName: string; deposited: number; expenditure: number; }>>([]);
+  const [ucRows, setUcRows] = useState<Array<{ description: string; deposited: number; expenditure: number; }>>([]);
   const [abstractRows, setAbstractRows] = useState<Array<{ siteName: string; location: string; deposited: number; expenditure: number; }>>([]);
+
+  const ucTotalDeposited = useMemo(() => ucRows.reduce((acc, r) => acc + (Number(r.deposited) || 0), 0), [ucRows]);
+  const ucTotalExpenditure = useMemo(() => ucRows.reduce((acc, r) => acc + (Number(r.expenditure) || 0), 0), [ucRows]);
+  const ucTotalBalance = useMemo(() => ucTotalDeposited - ucTotalExpenditure, [ucTotalDeposited, ucTotalExpenditure]);
 
   // Financial & Rates editable values
   const [drillingRate, setDrillingRate] = useState<number>(390);
@@ -462,7 +466,7 @@ export default function PrintableReportModal({
     );
 
     // Initialize dynamic collections
-    setUcTableRows(sites.map(s => {
+    setUcRows(sites.map(s => {
       const sDepth = Number(s.totalDepth) || 0;
       const sDrilling = drillingRate * sDepth;
       const sC10 = casing10kgRate * (Number(s.casing10kgPipe) || 0);
@@ -470,7 +474,7 @@ export default function PrintableReportModal({
       const sInner = innerCasingRate * (Number(s.innerCasingPipe) || Number(s.innerCasing6kgPipe) || Number(s.innerCasing4kgPipe) || 0);
       const sCost = sDrilling + sC10 + sC6 + sInner;
       return {
-        siteName: s.nameOfSite || '',
+        description: s.nameOfSite || entry?.applicantName || 'Borewell Construction',
         deposited: depositTotal / (sites.length || 1),
         expenditure: sCost,
       };
