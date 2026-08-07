@@ -23,7 +23,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
 import { printDocument, copyRichHtml } from "@/lib/print-utils";
-import type { DataEntryFormData, SiteDetailFormData } from "@/lib/schemas";
+import { 
+  type DataEntryFormData, 
+  type SiteDetailFormData, 
+  PUBLIC_DEPOSIT_APPLICATION_TYPES, 
+  COLLECTOR_APPLICATION_TYPES, 
+  PLAN_FUND_APPLICATION_TYPES 
+} from "@/lib/schemas";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
 import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
