@@ -214,7 +214,7 @@ export default function SelectionNoticePrintPage() {
                     }
                 }
             `}} />
-            <div id="selection-notice-content" className="max-w-4xl mx-auto bg-white shadow-sm print:shadow-none print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000', paddingTop: '1cm', paddingBottom: '1cm', paddingLeft: '2.3cm', paddingRight: '1.5cm' }}>
+            <div id="selection-notice-content" className="max-w-4xl print:max-w-none mx-auto bg-white shadow-sm print:shadow-none print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000', paddingTop: '1cm', paddingBottom: '1cm', paddingLeft: '2.3cm', paddingRight: '1.5cm' }}>
               <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>

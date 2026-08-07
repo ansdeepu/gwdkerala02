@@ -1338,16 +1338,18 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                         Generate and print official Completion Reports, Final Bills, Sanction Proceedings, Utilization Certificates, and Cover Letters for this file entry.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setPrintModalDocType('completion_report'); setIsPrintModalOpen(true); }}
-                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                        >
-                            <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
-                        </Button>
-                        {watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC') && (
+                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('completion_report'); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
+                            </Button>
+                        )}
+                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1358,7 +1360,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
                             </Button>
                         )}
-                        {(watchedSiteDetails && watchedSiteDetails.length > 1) && (
+                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (watchedSiteDetails && watchedSiteDetails.length > 1) && (
                             <Button
                                 type="button"
                                 variant="outline"

@@ -1370,19 +1370,19 @@ export default function RigChecklistPrintPage() {
                     }
                 }
             `}</style>
-            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-6 print:m-0 print:max-w-full">
+            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border border-black shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-6 print:m-0 print:max-w-full" style={{ color: '#000000' }}>
                 
                 {/* Government Header */}
-                <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8">
-                    <h1 className="text-2xl font-bold tracking-wide">ഭൂജലവകുപ്പ്</h1>
-                    <p className="text-base font-semibold">
+                <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8 text-black">
+                    <h1 className="text-2xl font-bold tracking-wide text-black">ഭൂജലവകുപ്പ്</h1>
+                    <p className="text-base font-semibold text-black">
                         {(officeAddress?.officeNameMalayalam && officeAddress.officeNameMalayalam !== 'ഭൂജലവകുപ്പ്')
                             ? (officeAddress.officeNameMalayalam.startsWith('ജില്ലാ ഓഫീസ്')
                                 ? officeAddress.officeNameMalayalam
                                 : `ജില്ലാ ഓഫീസ്: ${officeAddress.officeNameMalayalam.replace(/^ജില്ലാ ഓഫീസ്\s*[:,-]?\s*/, '')}`)
                             : `ജില്ലാ ഓഫീസ്: ${getDistrictMalayalam(officeAddress?.officeLocation)}`}
                     </p>
-                    <h2 className="text-lg font-bold underline mt-4">
+                    <h2 className="text-lg font-bold underline mt-4 text-black">
                         {isRenewal 
                             ? "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ ചെക്ക് ലിസ്റ്റ്"
                             : "കുഴൽ കിണർ നിർമ്മാണ റിഗ് രജിസ്ട്രേഷൻ ചെക്ക് ലിസ്റ്റ്"
@@ -1391,20 +1391,20 @@ export default function RigChecklistPrintPage() {
                 </div>
 
                 {/* Reference Row */}
-                <div className="flex justify-between items-center text-sm font-bold mb-6">
-                    <div>
-                        <span>ഫയൽ നമ്പർ: </span>
-                        <span className="font-mono">{safeString(customFileNo || application.fileNo || 'GWDKLM/363/2026-MD2')}</span>
+                <div className="flex justify-between items-center text-sm font-bold mb-6 text-black">
+                    <div className="text-black">
+                        <span className="text-black">ഫയൽ നമ്പർ: </span>
+                        <span className="font-mono text-black">{safeString(customFileNo || application.fileNo || 'GWDKLM/363/2026-MD2')}</span>
                     </div>
-                    <div>
-                        <span>തീയതി : </span>
-                        <span className="font-mono">{safeString(customDate, format(new Date(), 'dd/MM/yyyy'))}</span>
+                    <div className="text-black">
+                        <span className="text-black">തീയതി : </span>
+                        <span className="font-mono text-black">{safeString(customDate, format(new Date(), 'dd/MM/yyyy'))}</span>
                     </div>
                 </div>
 
                 {/* Sub-heading */}
-                <div className="mb-6 text-center">
-                    <p className="font-bold text-base bg-slate-100 p-2 rounded print:bg-transparent print:p-0 print:underline">
+                <div className="mb-6 text-center text-black">
+                    <p className="font-bold text-base bg-slate-100 p-2 rounded print:bg-transparent print:p-0 print:underline text-black">
                         {isRenewal 
                             ? `രജിസ്ട്രേഷൻ പുതുക്കൽ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`
                             : `പുതിയ റിഗ് രജിസ്ട്രേഷൻ - ${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}`
@@ -1413,8 +1413,8 @@ export default function RigChecklistPrintPage() {
                 </div>
 
                 {/* Table Checklist */}
-                <table className="w-full border-collapse border border-black text-xs leading-normal">
-                    <tbody>
+                <table className="w-full border-collapse border border-black text-xs leading-normal text-black">
+                    <tbody className="text-black">
                         {checklistItems.map((item, index) => {
                             if (item.num === "30") {
                                 const subRows = !isRenewal ? [
@@ -1693,31 +1693,31 @@ export default function RigChecklistPrintPage() {
                 </table>
 
                 {/* Declaration Statement (സത്യപ്രസ്താവന) */}
-                <div className="mt-10 border border-slate-300 p-4 rounded bg-slate-50/30 text-xs leading-relaxed print:bg-transparent print:border-black print:p-4">
-                    <h3 className="font-bold text-sm mb-2">സത്യപ്രസ്താവന (Declaration)</h3>
-                    <p className="indent-8 text-justify">
-                        ഈ ഓഫീസിലെ <span className="font-bold">{formattedOfficerDisplay}</span>, 
-                        ജില്ലാ ഓഫീസ്, <span className="font-bold">{getDistrictMalayalam(officeAddress?.officeLocation)},</span> മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <span className="font-bold">{safeString(application.owner?.nameMalayalam || application.owner?.name)}</span> എന്നവരുടെ <span className="font-bold">{safeString(application.agencyNameMalayalam || application.agencyName)}</span> എന്ന ഏജൻസിയുടെ <span className="font-bold">{getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</span> {rig.rigVehicle?.regNo && rig.rigVehicle.regNo !== 'ബാധകമല്ല' ? `(രജി. നമ്പർ: ${rig.rigVehicle.regNo})` : ''} ന് {isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
+                <div className="mt-10 border border-black p-4 rounded bg-slate-50/30 text-xs leading-relaxed text-black print:bg-transparent print:border-black print:p-4">
+                    <h3 className="font-bold text-sm mb-2 text-black">സത്യപ്രസ്താവന (Declaration)</h3>
+                    <p className="indent-8 text-justify text-black">
+                        ഈ ഓഫീസിലെ <span className="font-bold text-black">{formattedOfficerDisplay}</span>, 
+                        ജില്ലാ ഓഫീസ്, <span className="font-bold text-black">{getDistrictMalayalam(officeAddress?.officeLocation)},</span> മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <span className="font-bold text-black">{safeString(application.owner?.nameMalayalam || application.owner?.name)}</span> എന്നവരുടെ <span className="font-bold text-black">{safeString(application.agencyNameMalayalam || application.agencyName)}</span> എന്ന ഏജൻസിയുടെ <span className="font-bold text-black">{getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</span> {rig.rigVehicle?.regNo && rig.rigVehicle.regNo !== 'ബാധകമല്ല' ? `(രജി. നമ്പർ: ${rig.rigVehicle.regNo})` : ''} ന് {isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
                     </p>
                 </div>
 
                 {/* Signatures Footer */}
-                <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-16 text-center text-xs font-bold pt-8">
-                    <div className="space-y-12">
+                <div className="mt-16 grid grid-cols-2 gap-x-8 gap-y-16 text-center text-xs font-bold pt-8 text-black">
+                    <div className="space-y-12 text-black">
                         <div className="h-1 bg-transparent"></div>
-                        <p>പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ</p>
+                        <p className="text-black">പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ</p>
                     </div>
-                    <div className="space-y-12">
+                    <div className="space-y-12 text-black">
                         <div className="h-1 bg-transparent"></div>
-                        <p>അസി. എഞ്ചിനീയർ</p>
+                        <p className="text-black">അസി. എഞ്ചിനീയർ</p>
                     </div>
-                    <div className="space-y-12">
+                    <div className="space-y-12 text-black">
                         <div className="h-1 bg-transparent"></div>
-                        <p>അസി. എക്സി. എഞ്ചിനീയർ</p>
+                        <p className="text-black">അസി. എക്സി. എഞ്ചിനീയർ</p>
                     </div>
-                    <div className="space-y-12">
+                    <div className="space-y-12 text-black">
                         <div className="h-1 bg-transparent"></div>
-                        <p>ജില്ലാ ഓഫീസർ</p>
+                        <p className="text-black">ജില്ലാ ഓഫീസർ</p>
                     </div>
                 </div>
 

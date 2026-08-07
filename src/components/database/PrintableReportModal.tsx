@@ -129,7 +129,7 @@ export default function PrintableReportModal({
   const { user } = useAuth();
 
   const isPrivateWork = moduleType === 'private' || (entry?.applicationType?.toLowerCase().includes('private') ?? false);
-  const isDepositWork = moduleType === 'collectors' || moduleType === 'public' || moduleType === 'deposit' || !isPrivateWork;
+  const isDepositWork = ['collectors', 'collector', 'public', 'deposit', 'planFund', 'plan_fund', 'plan-fund'].includes(moduleType) || (entry?.applicationType ? (PUBLIC_DEPOSIT_APPLICATION_TYPES.includes(entry.applicationType as any) || COLLECTOR_APPLICATION_TYPES.includes(entry.applicationType as any) || PLAN_FUND_APPLICATION_TYPES.includes(entry.applicationType as any)) : !isPrivateWork);
 
   // Language & DocType state
   const [lang, setLang] = useState<LanguageMode>('ml');
@@ -147,6 +147,10 @@ export default function PrintableReportModal({
   const countOfBwcOrTwc = useMemo(() => {
     return rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC').length;
   }, [rawSites]);
+
+  const hasBwcOrTwc = useMemo(() => {
+    return countOfBwcOrTwc > 0;
+  }, [countOfBwcOrTwc]);
 
   const sites = useMemo(() => {
     if (docType === 'final_bill' || docType === 'abstract_final_bill') {
@@ -373,8 +377,11 @@ export default function PrintableReportModal({
       const rawPipeUsed = parseNum(currentSite.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite.surveyRecommendedCasingPipe);
 
+      const is6kgDefined = currentSite.casing6kgPipe !== undefined && currentSite.casing6kgPipe !== null;
+      const is10kgDefined = currentSite.casing10kgPipe !== undefined && currentSite.casing10kgPipe !== null;
+
       let c6 = rawC6;
-      if (c10 === 0 && c6 === 0) {
+      if (!is6kgDefined && !is10kgDefined && c10 === 0 && c6 === 0) {
         c6 = rawPipeUsed || rawSurveyCasing || 0;
       }
 
@@ -496,7 +503,9 @@ export default function PrintableReportModal({
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
-      const sC6Val = sC6Raw > 0 ? sC6Raw : (sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
+      const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
 
       const sC10 = casing10kgRate * sC10Val;
       const sC6 = casing6kgRate * sC6Val;
@@ -516,7 +525,9 @@ export default function PrintableReportModal({
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
-      const sC6Val = sC6Raw > 0 ? sC6Raw : (sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
+      const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
 
       const sC10 = casing10kgRate * sC10Val;
       const sC6 = casing6kgRate * sC6Val;
@@ -567,13 +578,16 @@ export default function PrintableReportModal({
     if (docType === 'abstract_final_bill' && !hasMultipleSites) {
       setDocType('final_bill');
     }
+    if (isDepositWork && !hasBwcOrTwc && (docType === 'completion_report' || docType === 'final_bill' || docType === 'abstract_final_bill')) {
+      setDocType('utilization_certificate');
+    }
     if (docType === 'proceedings' && !isPrivateWork) {
-      setDocType('completion_report');
+      setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
     }
     if (docType === 'utilization_certificate' && !isDepositWork) {
       setDocType('completion_report');
     }
-  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork]);
+  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork, hasBwcOrTwc]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
@@ -827,9 +841,10 @@ export default function PrintableReportModal({
           longitude: longitude ? Number(longitude) : updatedSiteDetails[originalIndex].longitude,
           localSelfGovt: localSelfGovt || updatedSiteDetails[originalIndex].localSelfGovt,
           constituency: constituency || updatedSiteDetails[originalIndex].constituency,
-          totalDepth: depthMeter || updatedSiteDetails[originalIndex].totalDepth,
-          casing10kgPipe: casing10kgQty || updatedSiteDetails[originalIndex].casing10kgPipe,
-          casing6kgPipe: casing6kgQty || updatedSiteDetails[originalIndex].casing6kgPipe,
+          totalDepth: depthMeter !== undefined && depthMeter !== null ? String(depthMeter) : updatedSiteDetails[originalIndex].totalDepth,
+          casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails[originalIndex].casing10kgPipe ?? ""),
+          casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[originalIndex].casing6kgPipe ?? ""),
+          casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing6kgQty) || 0)),
           yieldDischarge: yieldLph || updatedSiteDetails[originalIndex].yieldDischarge,
           zoneDetails: waterStruckZone || updatedSiteDetails[originalIndex].zoneDetails,
           waterLevel: staticWaterLevel || updatedSiteDetails[originalIndex].waterLevel,
@@ -878,7 +893,9 @@ export default function PrintableReportModal({
       const rawC6 = parseNum(currentSite?.casing6kgPipe);
       const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
-      const c6 = rawC6 > 0 ? rawC6 : (c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      const is6kgDefined = currentSite?.casing6kgPipe !== undefined && currentSite?.casing6kgPipe !== null;
+      const is10kgDefined = currentSite?.casing10kgPipe !== undefined && currentSite?.casing10kgPipe !== null;
+      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
 
       setCasing10kgQty(c10);
       setCasing6kgQty(c6);
@@ -929,7 +946,9 @@ export default function PrintableReportModal({
       const rawC6 = parseNum(currentSite?.casing6kgPipe);
       const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
-      const c6 = rawC6 > 0 ? rawC6 : (c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      const is6kgDefined = currentSite?.casing6kgPipe !== undefined && currentSite?.casing6kgPipe !== null;
+      const is10kgDefined = currentSite?.casing10kgPipe !== undefined && currentSite?.casing10kgPipe !== null;
+      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
       setCasing6kgQty(c6);
     },
     fb_desc_inner: () => {
@@ -1131,13 +1150,17 @@ export default function PrintableReportModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="completion_report">
-                    {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
-                  </SelectItem>
-                  <SelectItem value="final_bill">
-                    {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
-                  </SelectItem>
-                  {hasMultipleSites && (
+                  {(!isDepositWork || hasBwcOrTwc) && (
+                    <SelectItem value="completion_report">
+                      {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
+                    </SelectItem>
+                  )}
+                  {(!isDepositWork || hasBwcOrTwc) && (
+                    <SelectItem value="final_bill">
+                      {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
+                    </SelectItem>
+                  )}
+                  {(!isDepositWork || hasBwcOrTwc) && hasMultipleSites && (
                     <SelectItem value="abstract_final_bill">
                       {lang === 'ml' ? 'അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (Abstract Final Bill)' : 'Abstract of Final Bill'}
                     </SelectItem>
@@ -1905,32 +1928,34 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              rows.push(
-                                <tr key="advance">
-                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
-                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                    {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
-                                      <div className="flex gap-1">
-                                        <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                        <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                </tr>
-                              );
+                              if (!isDepositWork) {
+                                rows.push(
+                                  <tr key="advance">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
+                                        <div className="flex gap-1">
+                                          <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                          <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
 
-                              rows.push(
-                                <tr key="balance" className="font-bold bg-gray-100">
-                                  <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
-                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                    {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
-                                  </td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">
-                                    {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </td>
-                                </tr>
-                              );
+                                rows.push(
+                                  <tr key="balance" className="font-bold bg-gray-100">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </td>
+                                  </tr>
+                                );
+                              }
 
                               return rows;
                             })()}
@@ -2092,32 +2117,34 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              rowsEn.push(
-                                <tr key="advance_en">
-                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
-                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                    {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
-                                      <div className="flex gap-1">
-                                        <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                        <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                </tr>
-                              );
+                              if (!isDepositWork) {
+                                rowsEn.push(
+                                  <tr key="advance_en">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
+                                        <div className="flex gap-1">
+                                          <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                          <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
 
-                              rowsEn.push(
-                                <tr key="balance_en" className="font-bold bg-gray-100">
-                                  <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
-                                  <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                    {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
-                                  </td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">
-                                    {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                  </td>
-                                </tr>
-                              );
+                                rowsEn.push(
+                                  <tr key="balance_en" className="font-bold bg-gray-100">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>
+                                      {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
+                                    </td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </td>
+                                  </tr>
+                                );
+                              }
 
                               return rowsEn;
                             })()}
@@ -2228,9 +2255,11 @@ export default function PrintableReportModal({
                     </tbody>
                   </table>
 
-                  <p className="text-xs font-semibold pt-2">
-                    അടയ്ക്കേണ്ട / തിരികെ നൽകേണ്ട ആകെ ബാലൻസ് തുക അക്ഷരത്തിൽ: <span className="underline">{numberToWordsMalayalam(Math.abs(balanceRefund))}</span>
-                  </p>
+                  {!isDepositWork && (
+                    <p className="text-xs font-semibold pt-2">
+                      അടയ്ക്കേണ്ട / തിരികെ നൽകേണ്ട ആകെ ബാലൻസ് തുക അക്ഷരത്തിൽ: <span className="underline">{numberToWordsMalayalam(Math.abs(balanceRefund))}</span>
+                    </p>
+                  )}
 
                   <div className="pt-8 text-right">
                     <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
@@ -2314,9 +2343,11 @@ export default function PrintableReportModal({
                     </tbody>
                   </table>
 
-                  <p className="text-xs font-semibold pt-2">
-                    Net Balance Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(balanceRefund))}</span>
-                  </p>
+                  {!isDepositWork && (
+                    <p className="text-xs font-semibold pt-2">
+                      Net Balance Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(balanceRefund))}</span>
+                    </p>
+                  )}
 
                   <div className="pt-8 text-right">
                     <p className="font-bold">District Officer</p>

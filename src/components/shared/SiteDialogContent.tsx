@@ -85,18 +85,24 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     workTypeContext: 'public' | 'private' | 'collector' | 'planFund' | 'gwInvestigation' | 'loggingPumpingTest' | null;
     applicationType?: string | null;
 }) {
-    const initialCasingValue = initialData?.casing6kgPipe || initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "";
+    const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
+    const hasExplicitCasing10kg = initialData?.casing10kgPipe !== undefined && initialData?.casing10kgPipe !== null;
+    const fallbackCasing = (!hasExplicitCasing6kg && !hasExplicitCasing10kg)
+        ? (initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "")
+        : "";
+    const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : fallbackCasing;
     const initialObValue = initialData?.surveyOB || initialData?.surveyRecommendedOB || "";
 
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
             ...initialData,
-            casing6kgPipe: initialCasingValue,
-            casingPipeUsed: initialData?.casingPipeUsed || initialCasingValue,
-            surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe || initialCasingValue,
+            casing6kgPipe: initialCasing6kg ?? "",
+            casing10kgPipe: initialData?.casing10kgPipe ?? "",
+            casingPipeUsed: initialData?.casingPipeUsed ?? fallbackCasing,
+            surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? "",
             surveyOB: initialObValue,
-            surveyRecommendedOB: initialData?.surveyRecommendedOB || initialObValue,
+            surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
             dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
             arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
             workImages: initialData?.workImages || [],
@@ -343,12 +349,16 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [allRigCompressors]);
 
     const handleDialogSubmit = (data: SiteDetailFormData) => {
-        const effectiveCasing = data.casing6kgPipe || data.casingPipeUsed || data.surveyRecommendedCasingPipe || "";
+        const v10 = parseFloat(data.casing10kgPipe || '0') || 0;
+        const v6 = parseFloat(data.casing6kgPipe || '0') || 0;
+        const totalCasing = v10 + v6;
+        const computedCasingUsed = totalCasing > 0 ? totalCasing.toString() : '';
+
         const updatedData = {
             ...data,
-            casing6kgPipe: data.casing6kgPipe || effectiveCasing,
-            casingPipeUsed: data.casingPipeUsed || effectiveCasing,
-            surveyRecommendedCasingPipe: data.surveyRecommendedCasingPipe || effectiveCasing,
+            casing6kgPipe: data.casing6kgPipe ?? "",
+            casing10kgPipe: data.casing10kgPipe ?? "",
+            casingPipeUsed: totalCasing > 0 ? totalCasing.toString() : "",
         };
         onConfirm(updatedData);
     };

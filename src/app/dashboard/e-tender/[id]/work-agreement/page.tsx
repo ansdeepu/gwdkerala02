@@ -548,6 +548,10 @@ export default function WorkAgreementPrintPage() {
                     table.print-doc-table > tfoot > tr > td {
                         border: none !important;
                     }
+                    .work-agreement-print-cell {
+                        padding-left: 2cm !important;
+                        padding-right: 2cm !important;
+                    }
                     @page {
                         size: A4 portrait;
                         margin: 0 !important;
@@ -727,7 +731,7 @@ export default function WorkAgreementPrintPage() {
             </div>
 
             {/* Document page body */}
-            <div id="print-sheet" className="max-w-4xl mx-auto bg-white border border-gray-300 shadow-md p-12 pr-12 min-h-[297mm] font-serif text-gray-900 leading-relaxed space-y-8 select-none print:shadow-none print:border-none print:p-0 print:space-y-0 relative" style={{ paddingTop: '0.5cm', paddingBottom: '0.5cm', paddingLeft: '1.5cm', paddingRight: '1cm' }}>
+            <div id="print-sheet" className="max-w-4xl print:max-w-none mx-auto bg-white border border-gray-300 shadow-md p-8 md:p-12 min-h-[297mm] font-serif text-black leading-relaxed space-y-8 select-none print:shadow-none print:border-none print:p-0 print:space-y-0 relative" style={{ paddingTop: '0.5cm', paddingBottom: '0.5cm', paddingLeft: '2cm', paddingRight: '2cm', color: '#000000' }}>
                 <table className="w-full border-collapse border-none print-doc-table">
                     <thead className="hidden print:table-header-group">
                         <tr className="border-none">
@@ -738,13 +742,13 @@ export default function WorkAgreementPrintPage() {
                     </thead>
                     <tbody className="table-row-group border-none">
                         <tr className="border-none">
-                            <td className="p-0 border-none print:pl-[2.5cm] print:pr-[2cm]">
+                            <td className="p-0 border-none work-agreement-print-cell">
                 
                 {/* PAGE 1: COVER PAGE */}
                 <div 
                     id="agreement-page-1"
-                    className={`flex flex-col justify-between p-8 print:p-4 transition-all duration-300 ${
-                        page1Border ? 'border-2 border-double border-gray-400' : 'border-0 border-transparent'
+                    className={`flex flex-col justify-between p-6 md:p-8 print:p-0 transition-all duration-300 ${
+                        page1Border ? 'border-2 border-double border-black p-4 md:p-6 print:p-2' : 'border-0 border-transparent'
                     }`}
                     style={{
                         minHeight: '260mm',
@@ -770,10 +774,10 @@ export default function WorkAgreementPrintPage() {
 
                     <div className="space-y-2">
                         <div className="text-center space-y-0">
-                            <h1 className="text-lg font-bold tracking-wide">
+                            <h1 className="text-lg font-bold tracking-wide text-black">
                                 {lang === 'en' ? 'GROUND WATER DEPARTMENT' : 'കേരള സർക്കാർ - ഭൂജല വകുപ്പ്'}
                             </h1>
-                            <p className="text-xs tracking-wider text-gray-600 uppercase font-bold">
+                            <p className="text-xs tracking-wider text-black uppercase font-bold">
                                 {lang === 'en' ? `DISTRICT OFFICE, ${officeLocation}` : `ജില്ലാ ഓഫീസ്, ${officeLocationMl}`}
                             </p>
                         </div>
@@ -783,74 +787,74 @@ export default function WorkAgreementPrintPage() {
                         </div>
 
                         <div className="text-center py-1 space-y-0.5">
-                            <h2 className="text-lg font-extrabold tracking-wide uppercase">
+                            <h2 className="text-lg font-extrabold tracking-wide uppercase text-black">
                                 {lang === 'en' ? 'CONTRACT AGREEMENT DEED' : 'കരാർ ഉടമ്പടി പത്രം'}
                             </h2>
                             <div className="w-1/3 mx-auto h-[1px] bg-black" />
                         </div>
 
                         {/* Details Box */}
-                        <div className="border border-gray-500 bg-[#fbfbfb] px-4 py-0.5 rounded-md space-y-0 shadow-sm">
-                            <div className="grid grid-cols-12 gap-y-0 pb-0 text-[18px] leading-tight">
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                        <div className="border border-black bg-[#fbfbfb] px-4 py-0.5 rounded-md space-y-0 shadow-sm text-black">
+                            <div className="grid grid-cols-12 gap-y-0 pb-0 text-[18px] leading-tight text-black">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Agreement No:' : 'ഉടമ്പടി നമ്പർ:'}
                                 </div>
-                                <div className="col-span-8 font-semibold">
+                                <div className="col-span-8 font-semibold text-black">
                                     {officeAddress?.officeCode || 'GKT'}/{fileNo}/{eTenderNo}
                                 </div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Agreement Date:' : 'ഉടമ്പടി തീയതി:'}
                                 </div>
-                                <div className="col-span-8 border-b border-gray-400 h-4 font-semibold flex items-end">
+                                <div className="col-span-8 border-b border-black h-4 font-semibold flex items-end text-black">
                                     {agreementDateFormatted}
                                 </div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Contractor Name:' : 'കരാറുകാരന്റെ പേര്:'}
                                 </div>
-                                <div className="col-span-8 font-semibold">{contractorName}</div>
+                                <div className="col-span-8 font-semibold text-black">{contractorName}</div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Obligee Address:' : 'മേൽവിലാസം:'}
                                 </div>
-                                <div className="col-span-8">{contractorAddress}</div>
+                                <div className="col-span-8 text-black">{contractorAddress}</div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Name of work:' : 'പ്രവൃത്തിയുടെ പേര്:'}
                                 </div>
-                                <div className="col-span-8 font-bold italic text-[18px] leading-tight">{workName}</div>
+                                <div className="col-span-8 font-bold italic text-[18px] leading-tight text-black">{workName}</div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Estimate PAC:' : 'അടങ്കൽ തുക (Estimate PAC):'}
                                 </div>
-                                <div className="col-span-8 font-semibold">{estimateAmountFormatted}</div>
+                                <div className="col-span-8 font-semibold text-black">{estimateAmountFormatted}</div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700">
+                                <div className="col-span-4 font-bold uppercase text-black">
                                     {lang === 'en' ? 'Accepted Contract PAC:' : 'അംഗീകരിച്ച കരാർ തുക:'}
                                 </div>
-                                <div className="col-span-8 font-semibold text-green-700">{acceptedAmountFormatted}</div>
+                                <div className="col-span-8 font-semibold text-black">{acceptedAmountFormatted}</div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700 leading-tight">
+                                <div className="col-span-4 font-bold uppercase text-black leading-tight">
                                     {lang === 'en' ? 'Performance Guarantee:' : 'പെർഫോമൻസ് ഗ്യാരണ്ടി:'}
                                 </div>
-                                <div className="col-span-8 border-b border-gray-300 h-6 mt-1"></div>
+                                <div className="col-span-8 border-b border-black h-6 mt-1"></div>
                                 
-                                <div className="col-span-4 font-bold uppercase text-gray-700 leading-tight mt-2">
+                                <div className="col-span-4 font-bold uppercase text-black leading-tight mt-2">
                                     {lang === 'en' ? 'Additional Performance Guarantee:' : 'അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരണ്ടി:'}
                                 </div>
-                                <div className="col-span-8 border-b border-gray-300 h-6 mt-3"></div>
+                                <div className="col-span-8 border-b border-black h-6 mt-3"></div>
                             </div>
                         </div>
 
-                        <div id="agreement-signatures" className="w-full flex justify-between items-center px-4 pt-16 pb-1 font-bold text-[14px] bg-white relative z-10 border-t border-gray-400 mt-0.5">
+                        <div id="agreement-signatures" className="w-full flex justify-between items-center px-4 pt-16 pb-1 font-bold text-[14px] bg-white relative z-10 border-t border-black mt-0.5 text-black">
                             <div className="flex flex-col items-start leading-tight">
-                                <p className="text-gray-800">
+                                <p className="text-black">
                                     {lang === 'en' ? 'CONTRACTOR:' : 'കരാറുകാരൻ:'} _______________________
                                 </p>
                             </div>
                             <div className="flex flex-col items-end leading-tight">
-                                <p className="text-gray-800">
+                                <p className="text-black">
                                     {lang === 'en' ? 'DISTRICT OFFICER:' : 'ജില്ലാഓഫീസർ:'} _______________________
                                 </p>
                             </div>
@@ -861,13 +865,13 @@ export default function WorkAgreementPrintPage() {
                 <div className="page-break print:block" style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
 
                 {/* MIDDLE PAGES: CLAUSES SECTION */}
-                <div id="clauses-section" className="w-full font-serif text-gray-900 leading-relaxed max-w-4xl mx-auto py-1 animate-fade-in relative">
+                <div id="clauses-section" className="w-full font-serif text-black leading-relaxed max-w-4xl print:max-w-none mx-auto py-1 animate-fade-in relative" style={{ color: '#000000' }}>
                     <table className="w-full border-collapse border-none">
                         <tfoot className="hidden print:table-footer-group">
                             <tr className="border-none">
                                 <td className="p-0 border-none">
                                     {/* Middle Clause Pages Footer */}
-                                    <div className="w-full mt-10 pt-4 border-t border-gray-300 flex justify-between items-end font-sans text-[10px] font-bold uppercase">
+                                    <div className="w-full mt-10 pt-4 border-t border-black flex justify-between items-end font-sans text-[10px] font-bold uppercase text-black">
                                         <div>
                                             {lang === 'en' ? 'CONTRACTOR: _______________________' : 'കരാറുകാരൻ: _______________________'}
                                         </div>
@@ -881,7 +885,7 @@ export default function WorkAgreementPrintPage() {
                         <tbody className="table-row-group">
                             <tr className="border-none">
                                 <td className="p-0 border-none">
-                                    <div className="pb-4 border-b border-gray-300 mb-6 flex justify-between items-center text-[10px] font-sans text-gray-500 uppercase tracking-wider">
+                                    <div className="pb-4 border-b border-black mb-6 flex justify-between items-center text-[10px] font-sans text-black uppercase tracking-wider">
                                         <span>
                                             {lang === 'en' 
                                                 ? `GROUND WATER DEPARTMENT | DISTRICT OFFICE, ${officeLocation.toUpperCase()}`
@@ -893,7 +897,7 @@ export default function WorkAgreementPrintPage() {
                                         </span>
                                     </div>
 
-                                    <h3 className="font-bold text-center underline text-base uppercase pb-6 tracking-wide text-gray-900 font-serif">
+                                    <h3 className="font-bold text-center underline text-base uppercase pb-6 tracking-wide text-black font-serif">
                                         {lang === 'en' 
                                             ? 'TERMS AND CONDITIONS OF CONTRACT' 
                                             : 'കരാറുടമ്പടി വ്യവസ്ഥകൾ'
@@ -921,10 +925,10 @@ export default function WorkAgreementPrintPage() {
                             }).map((item) => (
                                 <tr key={item.uniqueKey} className={`border-none ${item.num === '7' ? '' : 'break-inside-avoid'}`}>
                                     <td className="p-0 pb-3 border-none">
-                                        <div className="flex items-start gap-2 text-[12px] leading-relaxed text-justify text-gray-800">
+                                        <div className="flex items-start gap-2 text-[12px] leading-relaxed text-justify text-black">
                                             <span className="font-bold min-w-[22px] text-right">{item.num ? `${item.num}.` : ''}</span>
                                             <div className="flex-1 pl-1">
-                                                <p>{item.desc}</p>
+                                                <p className="text-black">{item.desc}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -937,9 +941,9 @@ export default function WorkAgreementPrintPage() {
                     <div className="print:block hidden bg-white relative z-20 -mt-24 h-24 w-full" />
 
                     {/* SIGNATURES & WITNESSES BLOCK DIRECTLY UNDER SL. NO. 38 */}
-                    <div className="w-full font-serif text-gray-900 leading-loose max-w-4xl mx-auto space-y-6 pt-6 bg-white relative z-10 print:pt-6">
-                        <div className="pt-4 text-sm font-bold text-justify">
-                            <p>
+                    <div className="w-full font-serif text-black leading-loose max-w-4xl print:max-w-none mx-auto space-y-6 pt-6 bg-white relative z-10 print:pt-6">
+                        <div className="pt-4 text-sm font-bold text-justify text-black">
+                            <p className="text-black">
                                 {lang === 'en'
                                     ? 'IN WITNESS WHEREOF the parties hereunto have set their hands and seals on the day and year first above written.'
                                     : 'മേൽപ്പറഞ്ഞ വ്യവസ്ഥകളെല്ലാം ബോധ്യപ്പെട്ടതിന്റെ അടിസ്ഥാനത്തിൽ ഇരു കക്ഷികളും യഥാസമയം ബന്ധപ്പെട്ട സാക്ഷികളുടെ മുൻപാകെ ഈ കരാർ ഉടമ്പടിയിൽ ഒപ്പുവെക്കുന്നു.'
@@ -948,26 +952,26 @@ export default function WorkAgreementPrintPage() {
                         </div>
 
                         {/* Final Signatures */}
-                        <div className="grid grid-cols-2 gap-8 pt-8 border-t">
-                            <div className="space-y-4 text-sm">
-                                <h4 className="font-bold uppercase">
+                        <div className="grid grid-cols-2 gap-8 pt-8 border-t border-black text-black">
+                            <div className="space-y-4 text-sm text-black">
+                                <h4 className="font-bold uppercase text-black">
                                     {lang === 'en' ? 'CONTRACTOR:' : 'കരാറുകാരൻ:'}
                                 </h4>
-                                <p>{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'} _______________________</p>
-                                <p>{lang === 'en' ? 'Name:' : 'പേര്:'} <span className="font-semibold">{contractorName}</span></p>
-                                <p className="leading-relaxed text-gray-800">
-                                    {lang === 'en' ? 'Address:' : 'മേൽവിലാസം:'} <span className="font-semibold">{contractorAddress}</span>
+                                <p className="text-black">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'} _______________________</p>
+                                <p className="text-black">{lang === 'en' ? 'Name:' : 'പേര്:'} <span className="font-semibold text-black">{contractorName}</span></p>
+                                <p className="leading-relaxed text-black">
+                                    {lang === 'en' ? 'Address:' : 'മേൽവിലാസം:'} <span className="font-semibold text-black">{contractorAddress}</span>
                                 </p>
                             </div>
-                            <div className="space-y-4 text-sm">
-                                <h4 className="font-bold uppercase">
+                            <div className="space-y-4 text-sm text-black">
+                                <h4 className="font-bold uppercase text-black">
                                     {lang === 'en' ? 'DISTRICT OFFICER:' : 'ജില്ലാ ഓഫീസർ:'}
                                 </h4>
-                                <p>{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'} _______________________</p>
-                                <p>{lang === 'en' ? 'GROUND WATER DEPARTMENT' : 'ഭൂജല വകുപ്പ്'}</p>
-                                <div className="space-y-1">
-                                    <p className="font-semibold">{lang === 'en' ? 'Office Address:' : 'ആഫീസ് വിലാസം:'}</p>
-                                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                                <p className="text-black">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'} _______________________</p>
+                                <p className="text-black">{lang === 'en' ? 'GROUND WATER DEPARTMENT' : 'ഭൂജല വകുപ്പ്'}</p>
+                                <div className="space-y-1 text-black">
+                                    <p className="font-semibold text-black">{lang === 'en' ? 'Office Address:' : 'ആഫീസ് വിലാസം:'}</p>
+                                    <p className="text-black whitespace-pre-line leading-relaxed">
                                         {lang === 'en' 
                                             ? (officeAddress?.address || 'District Office, Ground Water Department') 
                                             : (officeAddress?.addressMalayalam || (officeAddress?.officeLocation?.toLowerCase() === 'kottayam' ? 'ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസ്, കോട്ടയം' : 'ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസ്, കൊല്ലം'))
@@ -978,29 +982,29 @@ export default function WorkAgreementPrintPage() {
                         </div>
 
                         {/* Witness Details */}
-                        <div className="pt-8 space-y-4 text-sm border-t break-inside-avoid">
-                            <h4 className="font-bold uppercase">
+                        <div className="pt-8 space-y-4 text-sm border-t border-black break-inside-avoid text-black">
+                            <h4 className="font-bold uppercase text-black">
                                 {lang === 'en' ? 'In the presence of Witnesses:' : 'സാക്ഷികളുടെ സാന്നിധ്യത്തിൽ:'}
                             </h4>
-                            <div className="space-y-6 pl-2 text-[13px]">
+                            <div className="space-y-6 pl-2 text-[13px] text-black">
                                 <div className="space-y-2">
-                                    <div className="flex items-end gap-2">
-                                        <span className="font-semibold whitespace-nowrap">1. {lang === 'en' ? 'Name & Address:' : 'പേരും വിലാസവും:'}</span>
-                                        <span className="flex-1 border-b border-gray-400 mb-1 min-h-[20px]" />
+                                    <div className="flex items-end gap-2 text-black">
+                                        <span className="font-semibold whitespace-nowrap text-black">1. {lang === 'en' ? 'Name & Address:' : 'പേരും വിലാസവും:'}</span>
+                                        <span className="flex-1 border-b border-black mb-1 min-h-[20px]" />
                                     </div>
-                                    <div className="flex items-end gap-2 pl-4">
-                                        <span className="text-gray-500 whitespace-nowrap">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'}</span>
-                                        <span className="w-56 border-b border-gray-400 mb-1 min-h-[20px]" />
+                                    <div className="flex items-end gap-2 pl-4 text-black">
+                                        <span className="text-black whitespace-nowrap">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'}</span>
+                                        <span className="w-56 border-b border-black mb-1 min-h-[20px]" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="flex items-end gap-2">
-                                        <span className="font-semibold whitespace-nowrap">2. {lang === 'en' ? 'Name & Address:' : 'പേരും വിലാസവും:'}</span>
-                                        <span className="flex-1 border-b border-gray-400 mb-1 min-h-[20px]" />
+                                    <div className="flex items-end gap-2 text-black">
+                                        <span className="font-semibold whitespace-nowrap text-black">2. {lang === 'en' ? 'Name & Address:' : 'പേരും വിലാസവും:'}</span>
+                                        <span className="flex-1 border-b border-black mb-1 min-h-[20px]" />
                                     </div>
-                                    <div className="flex items-end gap-2 pl-4">
-                                        <span className="text-gray-500 whitespace-nowrap">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'}</span>
-                                        <span className="w-56 border-b border-gray-400 mb-1 min-h-[20px]" />
+                                    <div className="flex items-end gap-2 pl-4 text-black">
+                                        <span className="text-black whitespace-nowrap">{lang === 'en' ? 'Signature:' : 'ഒപ്പ്:'}</span>
+                                        <span className="w-56 border-b border-black mb-1 min-h-[20px]" />
                                     </div>
                                 </div>
                             </div>
