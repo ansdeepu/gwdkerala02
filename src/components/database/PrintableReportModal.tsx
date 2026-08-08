@@ -159,7 +159,7 @@ export default function PrintableReportModal({
   }, [countOfBwcOrTwc]);
 
   const sites = useMemo(() => {
-    if (docType === 'final_bill' || docType === 'abstract_final_bill') {
+    if (docType === 'final_bill' || docType === 'abstract_final_bill' || docType === 'proceedings') {
       const filtered = rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC');
       if (filtered.length > 0) {
         return filtered;
@@ -255,6 +255,10 @@ export default function PrintableReportModal({
   // Dynamic row collections for UC & Abstract tables
   const [ucRows, setUcRows] = useState<Array<{ description: string; deposited: number; expenditure: number; }>>([]);
   const [abstractRows, setAbstractRows] = useState<Array<{ siteName: string; location: string; deposited: number; expenditure: number; }>>([]);
+
+  // Selections for Abstract of Final Bill
+  const [selectedRemittanceIndices, setSelectedRemittanceIndices] = useState<number[]>([]);
+  const [selectedSiteIndices, setSelectedSiteIndices] = useState<number[]>([]);
 
   const ucTotalDeposited = useMemo(() => ucRows.reduce((acc, r) => acc + (Number(r.deposited) || 0), 0), [ucRows]);
   const ucTotalExpenditure = useMemo(() => ucRows.reduce((acc, r) => acc + (Number(r.expenditure) || 0), 0), [ucRows]);
@@ -445,8 +449,16 @@ export default function PrintableReportModal({
       const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
       const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
       const depthForSubsidy = Math.min(depth || drillingQty || 0, 120);
-      const calculatedPrivateSubsidy = (depthForSubsidy * drillingRate) * 0.5;
-      const localSubsidy = isPrivateIrrigation 
+
+      const isYieldZero = yl === 0 || parseNum(currentSite.yieldDischarge) === 0 || currentSite.yieldDischarge === '0' || currentSite.yieldDischarge === 0;
+      const workStatusStr = (currentSite.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
+      const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
+      const isFailedOrZeroYield = isYieldZero || isWorkFailed;
+
+      const subsidyRate = isFailedOrZeroYield ? 0.75 : 0.50;
+      const calculatedPrivateSubsidy = (depthForSubsidy * drillingRate) * subsidyRate;
+
+      const localSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || isPrivateWork) 
         ? (Number((currentSite as any)?.subsidyAmount) || Number((entry as any)?.subsidyAmount) || calculatedPrivateSubsidy)
         : (Number((currentSite as any)?.subsidyAmount) || Number((entry as any)?.subsidyAmount) || 0);
       setSubsidyAmount(localSubsidy);
@@ -547,15 +559,25 @@ export default function PrintableReportModal({
       };
     }));
 
-  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode]);
+  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork]);
 
   // Derived Calculations
   const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
   const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
   
+  const isYieldZero = yieldLph === 0 || parseNum(currentSite?.yieldDischarge) === 0 || currentSite?.yieldDischarge === '0' || currentSite?.yieldDischarge === 0;
+  const workStatusStr = (currentSite?.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
+  const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
+  const isFailedOrZeroYield = isYieldZero || isWorkFailed;
+
   const subsidyEligibleDepth = Math.min(drillingQty || depthMeter || 0, 120);
-  const calculatedPrivateSubsidy = isPrivateIrrigation ? (subsidyEligibleDepth * drillingRate * 0.5) : 0;
-  const effectiveSubsidyAmount = (isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount;
+  const subsidyRate = isFailedOrZeroYield ? 0.75 : 0.50;
+  const calculatedPrivateSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || (isPrivateWork && subsidyAmount > 0))
+    ? (subsidyEligibleDepth * drillingRate * subsidyRate)
+    : 0;
+  const effectiveSubsidyAmount = isFailedOrZeroYield
+    ? (subsidyAmount === 0 || subsidyAmount === subsidyEligibleDepth * drillingRate * 0.5 ? calculatedPrivateSubsidy : subsidyAmount)
+    : ((isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount);
 
   const drillingTotal = drillingRate * drillingQty;
   const casing10kgTotal = casing10kgRate * casing10kgQty;
@@ -567,9 +589,207 @@ export default function PrintableReportModal({
   const netPayableGwd = totalExpenditure - effectiveSubsidyAmount;
   const balanceRefund = advanceDeposit - netPayableGwd;
 
-  const absTotalDeposited = abstractRows.reduce((acc, r) => acc + (Number(r.deposited) || 0), 0);
-  const absTotalExpenditure = abstractRows.reduce((acc, r) => acc + (Number(r.expenditure) || 0), 0);
-  const absTotalBalance = absTotalDeposited - absTotalExpenditure;
+  // Remittances collection for Abstract selection
+  const allRemittances = useMemo(() => {
+    if (entry?.remittanceDetails && entry.remittanceDetails.length > 0) {
+      return entry.remittanceDetails;
+    }
+    return [{
+      amountRemitted: advanceDeposit,
+      dateOfRemittance: '',
+      remittanceRemarks: ddDetails,
+    }];
+  }, [entry?.remittanceDetails, advanceDeposit, ddDetails]);
+
+  useEffect(() => {
+    if (entry?.remittanceDetails && entry.remittanceDetails.length > 0) {
+      setSelectedRemittanceIndices(entry.remittanceDetails.map((_, i) => i));
+    } else {
+      setSelectedRemittanceIndices([0]);
+    }
+  }, [entry, isOpen]);
+
+  useEffect(() => {
+    if (sites && sites.length > 0) {
+      setSelectedSiteIndices(sites.map((_, i) => i));
+    } else {
+      setSelectedSiteIndices([0]);
+    }
+  }, [sites, isOpen]);
+
+  const abstractRemittanceRows = useMemo(() => {
+    return selectedRemittanceIndices.map((rIdx) => {
+      const r = allRemittances[rIdx];
+      if (!r) return null;
+      const rAmt = Number(r.amountRemitted) || Number((r as any).remittanceAmount) || 0;
+      const rawDate = r.dateOfRemittance ? formatDateDDMMYYYY(r.dateOfRemittance) : '';
+      const dateStr = formatDatesInText(rawDate);
+      const remarks = r.remittanceRemarks || (r as any).ddNo || (r as any).chalanNo || '';
+      
+      let ddDetailsPart = '';
+      if (remarks && dateStr) {
+        ddDetailsPart = ` (DD No. ${remarks} Dated ${dateStr})`;
+      } else if (remarks) {
+        ddDetailsPart = ` (DD No. ${remarks})`;
+      } else if (dateStr) {
+        ddDetailsPart = ` (Dated ${dateStr})`;
+      }
+
+      return {
+        rIdx,
+        descMl: `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetailsPart}`,
+        descEn: `Advance Deposited by Applicant${ddDetailsPart}`,
+        amount: rAmt,
+      };
+    }).filter(Boolean) as Array<{ rIdx: number; descMl: string; descEn: string; amount: number }>;
+  }, [selectedRemittanceIndices, allRemittances]);
+
+  const totalRemittanceAmount = useMemo(() => {
+    return abstractRemittanceRows.reduce((sum, r) => sum + r.amount, 0);
+  }, [abstractRemittanceRows]);
+
+  const siteFinancials = useMemo(() => {
+    return sites.map((s, sIdx) => {
+      if (!s) return null;
+      const sDepth = parseNum(s.totalDepth);
+      const sDrilling = drillingRate * sDepth;
+
+      const sC10Val = parseNum(s.casing10kgPipe);
+      const sC6Raw = parseNum(s.casing6kgPipe);
+      const sPipeUsed = parseNum(s.casingPipeUsed);
+      const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
+
+      const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
+      const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+
+      const sC10 = casing10kgRate * sC10Val;
+      const sC6 = casing6kgRate * sC6Val;
+
+      const rawInner = parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe);
+      const sInnerQty = (s.endCap === 'Yes' && rawInner === 0) ? 1 : rawInner;
+      const sInner = innerCasingRate * sInnerQty;
+
+      const sTotalExpenditure = sDrilling + sC10 + sC6 + sInner;
+
+      // Site subsidy
+      const sAppTypeStr = (applicationType || entry?.applicationType || s.applicationType || '').toLowerCase();
+      const sIsPrivateIrrigation = sAppTypeStr.includes('irrigation') || sAppTypeStr.includes('private_irrigation') || sAppTypeStr.includes('private irrigation');
+      
+      const sYield = Number(s.yieldDischarge) || 0;
+      const sIsYieldZero = sYield === 0 || parseNum(s.yieldDischarge) === 0 || s.yieldDischarge === '0';
+      const sWorkStatusStr = (s.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
+      const sIsWorkFailed = sWorkStatusStr.includes('failed') || sWorkStatusStr.includes('പരാജയ');
+      const sIsFailedOrZeroYield = sIsYieldZero || sIsWorkFailed;
+
+      const sSubsidyDepth = Math.min(sDepth, 120);
+      const sSubsidyRate = sIsFailedOrZeroYield ? 0.75 : 0.50;
+      const sCalculatedSubsidy = (sIsPrivateIrrigation || sIsFailedOrZeroYield || isPrivateWork) 
+        ? (sSubsidyDepth * drillingRate * sSubsidyRate) 
+        : 0;
+
+      let sSiteSubsidy = 0;
+      if (sIsFailedOrZeroYield) {
+        sSiteSubsidy = sCalculatedSubsidy;
+      } else if (sIsPrivateIrrigation) {
+        sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
+          ? Number(s.subsidyAmount)
+          : sCalculatedSubsidy;
+      } else if (isPrivateWork) {
+        sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
+          ? Number(s.subsidyAmount)
+          : sCalculatedSubsidy;
+      } else {
+        sSiteSubsidy = Number(s.subsidyAmount) || 0;
+      }
+
+      const sNetPayable = sTotalExpenditure - sSiteSubsidy;
+      const sName = s.nameOfSite || entry?.applicantName || `Site #${sIdx + 1}`;
+      const sLoc = s.surveyLocation || s.localSelfGovt || '';
+
+      return {
+        sIdx,
+        siteName: sName,
+        location: sLoc,
+        purpose: s.purpose || 'BWC',
+        depth: sDepth,
+        drillingCost: sDrilling,
+        casing10Qty: sC10Val,
+        casing10Cost: sC10,
+        casing6Qty: sC6Val,
+        casing6Cost: sC6,
+        innerQty: sInnerQty,
+        innerCost: sInner,
+        totalExpenditure: sTotalExpenditure,
+        isFailedOrZeroYield: sIsFailedOrZeroYield,
+        subsidyAmount: sSiteSubsidy,
+        netPayable: sNetPayable,
+      };
+    }).filter(Boolean) as Array<{
+      sIdx: number;
+      siteName: string;
+      location: string;
+      purpose: string;
+      depth: number;
+      drillingCost: number;
+      casing10Qty: number;
+      casing10Cost: number;
+      casing6Qty: number;
+      casing6Cost: number;
+      innerQty: number;
+      innerCost: number;
+      totalExpenditure: number;
+      isFailedOrZeroYield: boolean;
+      subsidyAmount: number;
+      netPayable: number;
+    }>;
+  }, [sites, drillingRate, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, entry, isPrivateWork]);
+
+  const totalNetPayableAllSites = useMemo(() => {
+    return siteFinancials.reduce((sum, sf) => sum + sf.netPayable, 0);
+  }, [siteFinancials]);
+
+  const totalExpenditureAllSites = useMemo(() => {
+    return siteFinancials.reduce((sum, sf) => sum + sf.totalExpenditure, 0);
+  }, [siteFinancials]);
+
+  const abstractSiteRows = useMemo(() => {
+    return selectedSiteIndices.map((sIdx) => {
+      const sf = siteFinancials.find(f => f.sIdx === sIdx) || siteFinancials[sIdx];
+      if (!sf) return null;
+
+      return {
+        sIdx,
+        siteName: sf.siteName,
+        location: sf.location,
+        descMl: sf.siteName + (sf.location ? ` (${sf.location})` : ''),
+        descEn: sf.siteName + (sf.location ? ` (${sf.location})` : ''),
+        amount: sf.netPayable,
+      };
+    }).filter(Boolean) as Array<{ sIdx: number; siteName: string; location: string; descMl: string; descEn: string; amount: number }>;
+  }, [selectedSiteIndices, siteFinancials]);
+
+  const totalPaymentAmount = useMemo(() => {
+    return abstractSiteRows.reduce((sum, r) => sum + r.amount, 0);
+  }, [abstractSiteRows]);
+
+  const abstractBalanceAmount = useMemo(() => {
+    return totalRemittanceAmount - totalPaymentAmount;
+  }, [totalRemittanceAmount, totalPaymentAmount]);
+
+  const procNetPayable = useMemo(() => {
+    if (totalPaymentAmount > 0) {
+      return totalPaymentAmount;
+    }
+    if (totalNetPayableAllSites > 0) {
+      return totalNetPayableAllSites;
+    }
+    return netPayableGwd;
+  }, [totalPaymentAmount, totalNetPayableAllSites, netPayableGwd]);
+
+  const procBalanceRefund = useMemo(() => {
+    return advanceDeposit - procNetPayable;
+  }, [advanceDeposit, procNetPayable]);
 
   // Casing pipe label based on diameter
   const casingDiameterLabel = useMemo(() => {
@@ -1909,15 +2129,17 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation) {
+                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield) {
                                 rows.push(
                                   <tr key="subsidy">
                                     <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                     <td className="border border-black py-2 px-2.5" colSpan={3}>
                                       {renderEditableCell('fb_subsidy', 
-                                        isPrivateIrrigation 
-                                          ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
-                                          : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം', 
+                                        isFailedOrZeroYield
+                                          ? 'പരാജയപ്പെട്ട കുഴൽകിണറിനുള്ള നഷ്ടപരിഹാരം (സബ്സിഡി ഉൾപ്പെടെ)'
+                                          : (isPrivateIrrigation 
+                                              ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
+                                              : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം'), 
                                         <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
                                       )}
                                     </td>
@@ -1934,7 +2156,7 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              if (!isDepositWork) {
+                              if (!isDepositWork && !hasMultipleSites) {
                                 rows.push(
                                   <tr key="advance">
                                     <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
@@ -1954,7 +2176,7 @@ export default function PrintableReportModal({
                                   <tr key="balance" className="font-bold bg-gray-100">
                                     <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                     <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                      {balanceRefund >= 0 ? 'തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'അപേക്ഷകനിൽ നിന്ന് ഈടാക്കേണ്ട ബാക്കി തുക'}
+                                      {balanceRefund >= 0 ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
                                     </td>
                                     <td className="border border-black py-2 px-2.5 text-right font-mono">
                                       {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -2098,15 +2320,17 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation) {
+                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield) {
                                 rowsEn.push(
                                   <tr key="subsidy_en">
                                     <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                     <td className="border border-black py-2 px-2.5" colSpan={3}>
                                       {renderEditableCell('fb_en_subsidy', 
-                                        isPrivateIrrigation 
-                                          ? 'Subsidy for Marginal / Small Farmers - 50% of Drilling Charge (up to recommended depth of 120 meters)' 
-                                          : 'Subsidy for Marginal / Small Farmers', 
+                                        isFailedOrZeroYield
+                                          ? 'Compensation for Failed Borewell (including subsidy)'
+                                          : (isPrivateIrrigation 
+                                              ? 'Subsidy for Marginal / Small Farmers - 50% of Drilling Charge (up to recommended depth of 120 meters)' 
+                                              : 'Subsidy for Marginal / Small Farmers'), 
                                         <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
                                       )}
                                     </td>
@@ -2123,7 +2347,7 @@ export default function PrintableReportModal({
                                 </tr>
                               );
 
-                              if (!isDepositWork) {
+                              if (!isDepositWork && !hasMultipleSites) {
                                 rowsEn.push(
                                   <tr key="advance_en">
                                     <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
@@ -2183,6 +2407,83 @@ export default function PrintableReportModal({
           {/* 3. ABSTRACT OF FINAL BILL (FOR MULTIPLE SITES) */}
           {docType === 'abstract_final_bill' && (
             <div className="space-y-4">
+              {/* Selection provision for Remittance and Site details */}
+              <div className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded-lg p-3 space-y-2 text-xs mb-4 no-print">
+                <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                  <span>📋 Select Entries for Abstract of Final Bill</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">Check/uncheck entries to include or exclude from table</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* 2. Remittance Details Selection */}
+                  <div className="space-y-1.5 bg-background p-2.5 rounded border">
+                    <div className="font-semibold text-xs border-b pb-1 flex items-center justify-between text-primary">
+                      <span>2. Remittance Details</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">({selectedRemittanceIndices.length}/{allRemittances.length} included)</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
+                      {allRemittances.map((rem, rIdx) => {
+                        const isChecked = selectedRemittanceIndices.includes(rIdx);
+                        const rAmt = Number(rem.amountRemitted) || Number((rem as any).remittanceAmount) || 0;
+                        const rDate = rem.dateOfRemittance ? formatDateDDMMYYYY(rem.dateOfRemittance) : '';
+                        const rRemarks = rem.remittanceRemarks || (rem as any).ddNo || '';
+                        const label = `Remittance #${rIdx + 1}: ₹${rAmt.toLocaleString('en-IN')} ${rRemarks ? '(DD: ' + rRemarks + ')' : ''} ${rDate ? 'Dated ' + rDate : ''}`;
+                        return (
+                          <label key={rIdx} className="flex items-center gap-2 text-[11px] hover:bg-muted/60 p-1 rounded cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRemittanceIndices(prev => [...prev, rIdx].sort((a,b) => a - b));
+                                } else {
+                                  setSelectedRemittanceIndices(prev => prev.filter(i => i !== rIdx));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <span className="truncate">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. Site Details Selection */}
+                  <div className="space-y-1.5 bg-background p-2.5 rounded border">
+                    <div className="font-semibold text-xs border-b pb-1 flex items-center justify-between text-primary">
+                      <span>3. Site Details</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">({selectedSiteIndices.length}/{sites.length} included)</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
+                      {sites.map((st, sIdx) => {
+                        const isChecked = selectedSiteIndices.includes(sIdx);
+                        const stName = st.nameOfSite || `Site #${sIdx + 1}`;
+                        const stLoc = st.surveyLocation || st.localSelfGovt || '';
+                        const label = `Site #${sIdx + 1}: ${stName} ${stLoc ? '(' + stLoc + ')' : ''}`;
+                        return (
+                          <label key={sIdx} className="flex items-center gap-2 text-[11px] hover:bg-muted/60 p-1 rounded cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedSiteIndices(prev => [...prev, sIdx].sort((a,b) => a - b));
+                                } else {
+                                  setSelectedSiteIndices(prev => prev.filter(i => i !== sIdx));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <span className="truncate">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {lang === 'ml' ? (
                 <>
                   <div className="text-center space-y-1 pb-2 border-b-2 border-black">
@@ -2198,72 +2499,93 @@ export default function PrintableReportModal({
                   <table className="w-full border-collapse border border-black text-xs">
                     <thead>
                       <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                        <td className="border border-black py-1.5 w-10">ക്രമ നമ്പർ</td>
-                        <td className="border border-black py-1.5">സൈറ്റുകളുടെ വിവരങ്ങൾ / സ്ഥലം</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">മുൻകൂർ അടച്ച തുക (രൂപ)</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">ആകെ ചിലവ് (രൂപ)</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">ബാലൻസ് / റിഫണ്ട് (രൂപ)</td>
+                        <td className="border border-black py-1.5 w-12">ക്രമ നമ്പർ</td>
+                        <td className="border border-black py-1.5">വിവരങ്ങൾ</td>
+                        <td className="border border-black py-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
+                        <td className="border border-black py-1.5 w-36 text-right pr-2">ആകെ തുക (രൂപ)</td>
                       </tr>
                     </thead>
                     <tbody>
-                      {abstractRows.map((row, idx) => {
-                        const siteBal = row.deposited - row.expenditure;
+                      {/* 1. Remittance Rows */}
+                      {abstractRemittanceRows.map((row, idx) => {
+                        const isLastRemittance = idx === abstractRemittanceRows.length - 1;
                         return (
-                          <tr key={idx} id={`abs_ml_row_${idx}`}>
+                          <tr key={`rem_ml_${idx}`} id={`abs_ml_rem_row_${idx}`}>
                             <td className="border border-black p-1.5 text-center">{idx + 1}</td>
                             <td className="border border-black p-1.5">
-                              {renderEditableCell(`abs_ml_name_${idx}`, 
-                                <span><strong>{row.siteName}</strong> ({row.location})</span>, 
-                                <div className="flex gap-1">
-                                  <Input className="h-6 text-xs" value={row.siteName} onChange={e => {
-                                    const updated = [...abstractRows];
-                                    updated[idx].siteName = e.target.value;
-                                    setAbstractRows(updated);
-                                  }} />
-                                  <Input className="h-6 text-xs" value={row.location} onChange={e => {
-                                    const updated = [...abstractRows];
-                                    updated[idx].location = e.target.value;
-                                    setAbstractRows(updated);
-                                  }} />
-                                </div>
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_ml_dep_${idx}`, 
-                                row.deposited.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                <Input type="number" className="h-6 text-xs" value={row.deposited} onChange={e => {
-                                  const updated = [...abstractRows];
-                                  updated[idx].deposited = Number(e.target.value);
-                                  setAbstractRows(updated);
+                              {renderEditableCell(`abs_ml_rem_desc_${idx}`,
+                                row.descMl,
+                                <Input className="h-6 text-xs" value={row.descMl} onChange={e => {
+                                  row.descMl = e.target.value;
                                 }} />
                               )}
                             </td>
                             <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_ml_exp_${idx}`, 
-                                row.expenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                <Input type="number" className="h-6 text-xs" value={row.expenditure} onChange={e => {
-                                  const updated = [...abstractRows];
-                                  updated[idx].expenditure = Number(e.target.value);
-                                  setAbstractRows(updated);
+                              {renderEditableCell(`abs_ml_rem_amt_${idx}`,
+                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
+                                  row.amount = Number(e.target.value);
                                 }} />
                               )}
                             </td>
-                            <td className="border border-black p-1.5 text-right font-mono">{siteBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {isLastRemittance ? totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
+                            </td>
                           </tr>
                         );
                       })}
-                      <tr className="font-bold bg-gray-100">
-                        <td className="border border-black p-1.5 text-center" colSpan={2}>ആകെ തുക (GRAND TOTAL)</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalDeposited.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+
+                      {/* 2. Site Rows */}
+                      {abstractSiteRows.map((row, idx) => {
+                        const rowNum = abstractRemittanceRows.length + idx + 1;
+                        const isLastSite = idx === abstractSiteRows.length - 1;
+                        return (
+                          <tr key={`site_ml_${idx}`} id={`abs_ml_site_row_${idx}`}>
+                            <td className="border border-black p-1.5 text-center">{rowNum}</td>
+                            <td className="border border-black p-1.5">
+                              {renderEditableCell(`abs_ml_site_desc_${idx}`,
+                                <strong>{row.descMl}</strong>,
+                                <Input className="h-6 text-xs" value={row.descMl} onChange={e => {
+                                  row.descMl = e.target.value;
+                                }} />
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">
+                              {renderEditableCell(`abs_ml_site_amt_${idx}`,
+                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
+                                  row.amount = Number(e.target.value);
+                                }} />
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {isLastSite ? totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* 3. Balance Row */}
+                      <tr className="font-bold bg-gray-100" id="abs_ml_bal_row">
+                        <td className="border border-black p-1.5 text-center">
+                          {abstractRemittanceRows.length + abstractSiteRows.length + 1}
+                        </td>
+                        <td className="border border-black p-1.5">
+                          {abstractBalanceAmount >= 0 
+                            ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' 
+                            : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
+                        </td>
+                        <td className="border border-black p-1.5 text-right"></td>
+                        <td className="border border-black p-1.5 text-right font-mono">
+                          {Math.abs(abstractBalanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
 
                   {!isDepositWork && (
                     <p className="text-xs font-semibold pt-2">
-                      അടയ്ക്കേണ്ട / തിരികെ നൽകേണ്ട ആകെ ബാലൻസ് തുക അക്ഷരത്തിൽ: <span className="underline">{numberToWordsMalayalam(Math.abs(balanceRefund))}</span>
+                      അടയ്ക്കേണ്ട / തിരികെ നൽകേണ്ട ആകെ ബാലൻസ് തുക അക്ഷരത്തിൽ: <span className="underline">{numberToWordsMalayalam(Math.abs(abstractBalanceAmount))}</span>
                     </p>
                   )}
 
@@ -2286,72 +2608,93 @@ export default function PrintableReportModal({
                   <table className="w-full border-collapse border border-black text-xs">
                     <thead>
                       <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                        <td className="border border-black py-1.5 w-10">Sl No</td>
-                        <td className="border border-black py-1.5">Site Name & Location</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">Deposit Paid (Rs)</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">Expenditure (Rs)</td>
-                        <td className="border border-black py-1.5 w-28 text-right pr-2">Balance Refund (Rs)</td>
+                        <td className="border border-black py-1.5 w-12">Sl No</td>
+                        <td className="border border-black py-1.5">Description</td>
+                        <td className="border border-black py-1.5 w-32 text-right pr-2">Amount (Rs)</td>
+                        <td className="border border-black py-1.5 w-36 text-right pr-2">Total Amount (Rs)</td>
                       </tr>
                     </thead>
                     <tbody>
-                      {abstractRows.map((row, idx) => {
-                        const siteBal = row.deposited - row.expenditure;
+                      {/* 1. Remittance Rows */}
+                      {abstractRemittanceRows.map((row, idx) => {
+                        const isLastRemittance = idx === abstractRemittanceRows.length - 1;
                         return (
-                          <tr key={idx} id={`abs_en_row_${idx}`}>
+                          <tr key={`rem_en_${idx}`} id={`abs_en_rem_row_${idx}`}>
                             <td className="border border-black p-1.5 text-center">{idx + 1}</td>
                             <td className="border border-black p-1.5">
-                              {renderEditableCell(`abs_en_name_${idx}`, 
-                                <span><strong>{row.siteName}</strong> ({row.location})</span>, 
-                                <div className="flex gap-1">
-                                  <Input className="h-6 text-xs" value={row.siteName} onChange={e => {
-                                    const updated = [...abstractRows];
-                                    updated[idx].siteName = e.target.value;
-                                    setAbstractRows(updated);
-                                  }} />
-                                  <Input className="h-6 text-xs" value={row.location} onChange={e => {
-                                    const updated = [...abstractRows];
-                                    updated[idx].location = e.target.value;
-                                    setAbstractRows(updated);
-                                  }} />
-                                </div>
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_en_dep_${idx}`, 
-                                row.deposited.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                <Input type="number" className="h-6 text-xs" value={row.deposited} onChange={e => {
-                                  const updated = [...abstractRows];
-                                  updated[idx].deposited = Number(e.target.value);
-                                  setAbstractRows(updated);
+                              {renderEditableCell(`abs_en_rem_desc_${idx}`,
+                                row.descEn,
+                                <Input className="h-6 text-xs" value={row.descEn} onChange={e => {
+                                  row.descEn = e.target.value;
                                 }} />
                               )}
                             </td>
                             <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_en_exp_${idx}`, 
-                                row.expenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                <Input type="number" className="h-6 text-xs" value={row.expenditure} onChange={e => {
-                                  const updated = [...abstractRows];
-                                  updated[idx].expenditure = Number(e.target.value);
-                                  setAbstractRows(updated);
+                              {renderEditableCell(`abs_en_rem_amt_${idx}`,
+                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
+                                  row.amount = Number(e.target.value);
                                 }} />
                               )}
                             </td>
-                            <td className="border border-black p-1.5 text-right font-mono">{siteBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {isLastRemittance ? totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
+                            </td>
                           </tr>
                         );
                       })}
-                      <tr className="font-bold bg-gray-100">
-                        <td className="border border-black p-1.5 text-center" colSpan={2}>GRAND TOTAL</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalDeposited.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="border border-black p-1.5 text-right font-mono">{absTotalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+
+                      {/* 2. Site Rows */}
+                      {abstractSiteRows.map((row, idx) => {
+                        const rowNum = abstractRemittanceRows.length + idx + 1;
+                        const isLastSite = idx === abstractSiteRows.length - 1;
+                        return (
+                          <tr key={`site_en_${idx}`} id={`abs_en_site_row_${idx}`}>
+                            <td className="border border-black p-1.5 text-center">{rowNum}</td>
+                            <td className="border border-black p-1.5">
+                              {renderEditableCell(`abs_en_site_desc_${idx}`,
+                                <strong>{row.descEn}</strong>,
+                                <Input className="h-6 text-xs" value={row.descEn} onChange={e => {
+                                  row.descEn = e.target.value;
+                                }} />
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono">
+                              {renderEditableCell(`abs_en_site_amt_${idx}`,
+                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
+                                  row.amount = Number(e.target.value);
+                                }} />
+                              )}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {isLastSite ? totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* 3. Balance Row */}
+                      <tr className="font-bold bg-gray-100" id="abs_en_bal_row">
+                        <td className="border border-black p-1.5 text-center">
+                          {abstractRemittanceRows.length + abstractSiteRows.length + 1}
+                        </td>
+                        <td className="border border-black p-1.5">
+                          {abstractBalanceAmount >= 0 
+                            ? 'Balance Amount to be Refunded to Applicant' 
+                            : 'Balance Amount Payable to Department'}
+                        </td>
+                        <td className="border border-black p-1.5 text-right"></td>
+                        <td className="border border-black p-1.5 text-right font-mono">
+                          {Math.abs(abstractBalanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
 
                   {!isDepositWork && (
                     <p className="text-xs font-semibold pt-2">
-                      Net Balance Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(balanceRefund))}</span>
+                      Net Balance Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(abstractBalanceAmount))}</span>
                     </p>
                   )}
 
@@ -2427,18 +2770,18 @@ export default function PrintableReportModal({
                   <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                     {renderEditableCell('proc_para2',
                       <span>
-                        Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
+                        Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
                       </span>,
                       <div className="flex gap-1">
-                        <Input type="number" placeholder="Net Payable" className="h-6 text-[12pt]" value={drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal} onChange={e => setDrillingRate(Number(e.target.value))} />
-                        <Input type="number" placeholder="Refund" className="h-6 text-[12pt]" value={advanceDeposit - netPayableGwd} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        <Input type="number" placeholder="Net Payable" className="h-6 text-[12pt]" value={procNetPayable} onChange={e => setDrillingRate(Number(e.target.value))} />
+                        <Input type="number" placeholder="Refund" className="h-6 text-[12pt]" value={procBalanceRefund} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                       </div>
                     )}
                   </div>
                   <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                     {renderEditableCell('proc_para3',
                       <span>
-                        In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {netPayableGwd.toLocaleString('en-IN')}/- ({numberToWordsEnglish(netPayableGwd)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
+                        In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
                       </span>,
                       <div className="grid grid-cols-4 gap-1">
                         <Input className="h-6 text-[12pt]" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
@@ -2514,7 +2857,7 @@ export default function PrintableReportModal({
                       മേൽ സൂചന പ്രകാരം {localSelfGovt || 'പഞ്ചായത്ത്'} പരിധിയിലെ കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് അടവാക്കിയ തുകയ്ക്ക് പൂർത്തീകരണ റിപ്പോർട്ടും ഫൈനൽ ബില്ലും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.
                     </p>
                     <p>
-                      ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ആകെ ചിലവായ തുക കഴിച്ച് ബാക്കി തുകയായ <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsMalayalam(balanceRefund)})</strong> പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ലഭ്യമാക്കണമെന്ന് താല്പര്യപ്പെടുന്നു.
+                      ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ആകെ ചിലവായ തുക കഴിച്ച് ബാക്കി തുകയായ <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsMalayalam(Math.abs(procBalanceRefund))})</strong> പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ലഭ്യമാക്കണമെന്ന് താല്പര്യപ്പെടുന്നു.
                     </p>
                   </div>
 
@@ -2581,7 +2924,7 @@ export default function PrintableReportModal({
                   </div>
 
                   <p className="text-xs font-semibold pt-2">
-                    ആകെ ബാക്കി ബാലൻസ് തുക: <span className="underline">{numberToWordsMalayalam(Math.abs(balanceRefund))}</span>
+                    ആകെ ബാക്കി ബാലൻസ് തുക: <span className="underline">{numberToWordsMalayalam(Math.abs(procBalanceRefund))}</span>
                   </p>
 
                   <div className="pt-10 text-right text-xs font-bold">
@@ -2610,10 +2953,10 @@ export default function PrintableReportModal({
 
                   <div className="text-xs space-y-2 text-justify leading-relaxed pt-2">
                     <p>
-                      Certified that out of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> deposited for borewell construction works under the {localSelfGovt || 'Panchayat'} scheme, a total sum of <strong>Rs. {totalExpenditure.toLocaleString('en-IN')}/-</strong> has been utilized towards actual construction costs.
+                      Certified that out of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> deposited for borewell construction works under the {localSelfGovt || 'Panchayat'} scheme, a total sum of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong> has been utilized towards actual construction costs.
                     </p>
                     <p>
-                      The unspent balance amount of <strong>Rs. {balanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(balanceRefund)})</strong> is ready for refund.
+                      The unspent balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(Math.abs(procBalanceRefund))})</strong> is ready for refund.
                     </p>
                   </div>
 
