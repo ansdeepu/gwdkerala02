@@ -297,6 +297,13 @@ export default function PrintableReportModal({
   const [ucRef1, setUcRef1] = useState<string>('');
   const [ucRef2, setUcRef2] = useState<string>('');
 
+  useEffect(() => {
+    if (officeAddress) {
+      if (officeAddress.phoneNo) setUcPhone(officeAddress.phoneNo);
+      if (officeAddress.email) setUcEmail(officeAddress.email);
+    }
+  }, [officeAddress]);
+
   // Populate default state from logged-in user, office store, entry, and site
   useEffect(() => {
     const effectiveOffice = entry?.officeLocation || selectedOffice || user?.officeLocation || officeAddress?.officeLocation || 'Pathanamthitta';
@@ -311,7 +318,7 @@ export default function PrintableReportModal({
     }
 
     // District Officer Name from Settings page and Designation from Establishment page
-    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || 'Jiji Thampi';
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     const doStaff = allStaffMembers?.find(s => 
       (doName && s.name?.toLowerCase() === doName.toLowerCase()) || 
       s.roles?.includes('District Officer')
@@ -480,6 +487,7 @@ export default function PrintableReportModal({
     setProceedingsRef1(formatDatesInText(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`));
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
 
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     setUcFrom('ജില്ലാ ഓഫീസർ');
     setUcTo(`അസിസ്റ്റന്റ് എൻജിനീയർ\n${currentSite?.localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`);
     setUcSubject(
@@ -495,8 +503,16 @@ export default function PrintableReportModal({
     setProcPara4(
       `Sanction is also hereby accorded to remit an amount of Rs. ${localNetPayableFinal.toLocaleString('en-IN')}/- (${numberToWordsEnglish(localNetPayableFinal)}) to Department Revenue head 0702-02-800-99-other receipts, being the Borewell construction charges.`
     );
+
+    const stsbAccountText = officeAddress?.stsbAccountNo 
+      ? `into STSB Account No. ${officeAddress.stsbAccountNo}` 
+      : 'into STSB Account';
+    const treasuryText = officeAddress?.nameOfTreasury 
+      ? ` of the District Officer, Ground Water Department, ${district} at Treasury ${officeAddress.nameOfTreasury}` 
+      : ` of the District Officer, Ground Water Department, ${district}`;
+
     setProcPara5(
-      `The expenditure shall be met from the gross amount of Rs. ${depositTotal.toLocaleString('en-IN')}/- deposited by the applicant into STSB Account of the District Officer, Ground Water Department, ${district}.`
+      `The expenditure shall be met from the gross amount of Rs. ${depositTotal.toLocaleString('en-IN')}/- deposited by the applicant ${stsbAccountText}${treasuryText}.`
     );
 
     setUcMlPara1(
@@ -559,7 +575,7 @@ export default function PrintableReportModal({
       };
     }));
 
-  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork]);
+  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork, allStaffMembers, officeAddress?.districtOfficer, officeAddress?.nameOfTreasury, officeAddress?.stsbAccountNo]);
 
   // Derived Calculations
   const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
@@ -1223,7 +1239,10 @@ export default function PrintableReportModal({
     proc_para4: () => setProcPara4(''),
     proc_para5: () => setProcPara5(''),
 
-    uc_contact: () => { setUcPhone('0474 - 2790313'); setUcEmail('gwdklm@gmail.com'); },
+    uc_contact: () => { 
+      setUcPhone(officeAddress?.phoneNo || '0474 - 2790313'); 
+      setUcEmail(officeAddress?.email || 'gwdklm@gmail.com'); 
+    },
     uc_ref: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
     uc_date: () => setOrderDate(new Date().toISOString().split('T')[0]),
     uc_from: () => setUcFrom('ജില്ലാ ഓഫീസർ'),
@@ -1550,7 +1569,8 @@ export default function PrintableReportModal({
           
           {/* 1. COMPLETION REPORT (MALAYALAM & ENGLISH) */}
           {docType === 'completion_report' && (() => {
-            const displayFileNo = fileNo ? (fileNo.toUpperCase().startsWith('GWDKLM') ? fileNo : `GWDKLM/${fileNo}`) : '';
+            const oCode = officeAddress?.officeCode || 'GWDKLM';
+            const displayFileNo = fileNo ? (fileNo.toUpperCase().startsWith(oCode.toUpperCase()) ? fileNo : `${oCode}/${fileNo}`) : '';
             const displayAppType = applicationType ? (applicationType.toLowerCase().includes('deposit') ? applicationType : `${applicationType} - Deposit Works`) : 'Deposit Works';
 
             const meterUnit = lang === 'ml' ? 'മീറ്റർ' : 'meter';
@@ -2094,12 +2114,11 @@ export default function PrintableReportModal({
                       <div className="space-y-4">
                         <div className="text-center space-y-1.5 pb-2 border-b-2 border-black">
                           <h2 className="text-2xl font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                          <h3 className="text-lg font-bold">കുഴൽകിണർ നിർമ്മാണം - പൂർത്തീകരണ റിപ്പോർട്ട്</h3>
-                          <p className="text-xl font-bold">ഫൈനൽ ബിൽ</p>
+                          <h3 className="text-xl font-bold">കുഴൽകിണർ നിർമ്മാണം - ഫൈനൽ ബിൽ</h3>
                         </div>
 
                         <div className="flex flex-col space-y-1 text-base font-semibold py-1">
-                          <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo}</strong></div>
+                          <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo.toUpperCase().startsWith('GWD') ? fileNo : `${officeAddress?.officeCode || 'GWDKLM'}${fileNo}`}</strong></div>
                           <div></div>
                           <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
                         </div>
@@ -2723,31 +2742,34 @@ export default function PrintableReportModal({
 
           {/* 4. PROCEEDINGS (FOR PRIVATE DEPOSIT WORKS) */}
           {docType === 'proceedings' && (
-            <div className="flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm] text-[12pt] leading-[1.5]">
+            <div className="flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1.25cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1.25cm] text-[11pt] leading-[1.5]">
               <style>{`
                 @page {
                   size: A4 portrait;
-                  margin: 0 !important;
+                  margin-top: 1cm !important;
+                  margin-bottom: 1cm !important;
+                  margin-left: 1.75cm !important;
+                  margin-right: 1.25cm !important;
                 }
               `}</style>
               <div className="space-y-4">
                 <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                  <h2 className="text-[14pt] font-bold uppercase tracking-wider">
+                  <h2 className="text-[12pt] font-bold uppercase tracking-wider">
                     PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
                   </h2>
                   {renderEditableCell('proc_officer', 
-                    <p className="text-[12pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
+                    <p className="text-[11pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
                     <div className="flex gap-1">
-                      <Input className="h-6 text-[12pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
-                      <Input className="h-6 text-[12pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
+                      <Input className="h-6 text-[11pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
+                      <Input className="h-6 text-[11pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
                     </div>
                   )}
                 </div>
 
-                <div className="text-[12pt] space-y-3 py-2 leading-[1.5]">
+                <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
                   <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
                     <span className="font-bold">Sub:</span>
-                    {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-[12pt]" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
+                    {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-[11pt]" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
                   </div>
                   <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
                     <span className="font-bold">Ref:</span>
@@ -2757,27 +2779,27 @@ export default function PrintableReportModal({
                         {formatDatesInText(proceedingsRef2)}
                       </div>,
                       <div className="space-y-1">
-                        <Input className="h-6 text-[12pt]" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
-                        <Input className="h-6 text-[12pt]" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-between font-bold border-y border-black py-1 text-[12pt]">
-                  {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[12pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
-                  {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[12pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                <div className="flex justify-between font-bold border-y border-black py-1 text-[11pt]">
+                  {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                  {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
                 </div>
 
-                <div className="text-[12pt] space-y-4 leading-[1.5] text-justify pt-2">
+                <div className="text-[11pt] space-y-4 leading-[1.5] text-justify pt-2">
                   <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                     {renderEditableCell('proc_para1',
                       <span>
                         As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({formatDatesInText(ddDetails)}) for the construction of a borewell at their premises.
                       </span>,
                       <div className="flex gap-1">
-                        <Input type="number" className="h-6 text-[12pt]" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                        <Input className="h-6 text-[12pt]" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                        <Input type="number" className="h-6 text-[11pt]" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        <Input className="h-6 text-[11pt]" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -2787,8 +2809,8 @@ export default function PrintableReportModal({
                         Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
                       </span>,
                       <div className="flex gap-1">
-                        <Input type="number" placeholder="Net Payable" className="h-6 text-[12pt]" value={procNetPayable} onChange={e => setDrillingRate(Number(e.target.value))} />
-                        <Input type="number" placeholder="Refund" className="h-6 text-[12pt]" value={procBalanceRefund} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        <Input type="number" placeholder="Net Payable" className="h-6 text-[11pt]" value={procNetPayable} onChange={e => setDrillingRate(Number(e.target.value))} />
+                        <Input type="number" placeholder="Refund" className="h-6 text-[11pt]" value={procBalanceRefund} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                       </div>
                     )}
                   </div>
@@ -2798,25 +2820,25 @@ export default function PrintableReportModal({
                         In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
                       </span>,
                       <div className="grid grid-cols-4 gap-1">
-                        <Input className="h-6 text-[12pt]" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
-                        <Input className="h-6 text-[12pt]" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
-                        <Input className="h-6 text-[12pt]" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
-                        <Input className="h-6 text-[12pt]" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
                       </div>
                     )}
                   </div>
                   <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                     {renderEditableCell('proc_para5',
                       <span>
-                        The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant into STSB Account of the District Officer, Ground Water Department, {district}.
+                        The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant {officeAddress?.stsbAccountNo ? `into STSB Account No. ${officeAddress.stsbAccountNo}` : 'into STSB Account'} of the District Officer, Ground Water Department, {district}{officeAddress?.nameOfTreasury ? ` at Treasury ${officeAddress.nameOfTreasury}` : ''}.
                       </span>,
-                      <Input type="number" className="h-6 text-[12pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                      <Input type="number" className="h-6 text-[11pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="pt-10 flex justify-between items-end text-[12pt] leading-[1.5]">
+              <div className="pt-10 flex justify-between items-end text-[11pt] leading-[1.5]">
                 <div>
                   <p className="font-bold">Copy to:</p>
                   <p>1. File</p>
@@ -2910,13 +2932,13 @@ export default function PrintableReportModal({
               </div>
 
               {lang === 'ml' ? (
-                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.5cm] pr-[1cm] print:m-0 print:p-0 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1cm] text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
                   <style>{`
                     @page {
                       size: A4 portrait;
                       margin-top: 1cm !important;
                       margin-bottom: 1cm !important;
-                      margin-left: 1.5cm !important;
+                      margin-left: 1.75cm !important;
                       margin-right: 1cm !important;
                     }
                   `}</style>
@@ -2929,10 +2951,47 @@ export default function PrintableReportModal({
                     </div>
 
                     <div className="text-right text-[10pt] space-y-0.5">
-                      <p>ജില്ലാ ഓഫീസറുടെ കാര്യാലയം</p>
-                      <p>ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്</p>
-                      <p>ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.</p>
-                      <p>കൊല്ലം - 691009</p>
+                      {officeAddress?.addressMalayalam ? (
+                        <div className="whitespace-pre-line text-right">
+                          {(() => {
+                            let addr = officeAddress.addressMalayalam;
+                            // Clean split lines for Department and Office Name
+                            addr = addr.replace(/ഭൂജലവകുപ്പ്\s*[\r\n]+\s*ജില്ലា\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
+                            addr = addr.replace(/ഭൂജലവകുപ്പ്\s*\n\s*ജില്ലា\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
+                            
+                            // Check if office is Kollam to intelligently format the exact required address line
+                            if (districtMl === 'കൊല്ലം' || districtMl?.includes('കൊല്ലം') || officeAddress?.officeLocation?.toLowerCase() === 'kollam') {
+                              if (!addr.includes('ഹൈസ്കൂൾ') && !addr.includes('High School')) {
+                                if (addr.includes('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്')) {
+                                  addr = addr.replace('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്', "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                } else {
+                                  addr = addr + "\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.";
+                                }
+                              } else {
+                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*[\r\n]+\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*\n\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                // If they are on separate lines, join them with a newline
+                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
+                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
+                              }
+                              
+                              if (!addr.includes('691009')) {
+                                addr = addr + '\nകൊല്ലം - 691009';
+                              }
+                            }
+                            return addr;
+                          })()}
+                        </div>
+                      ) : (
+                        <>
+                          <p>ജില്ലാ ഓഫീസറുടെ കാര്യാലയം</p>
+                          <p>ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്</p>
+                          <p>ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.</p>
+                          <p>കൊല്ലം - 691009</p>
+                        </>
+                      )}
                       {renderEditableCell('uc_ml_contact', 
                         <div className="text-right">
                           <p>ഫോൺ: {ucPhone}</p>
@@ -3140,13 +3199,13 @@ export default function PrintableReportModal({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.5cm] pr-[1cm] print:m-0 print:p-0 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1cm] text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
                   <style>{`
                     @page {
                       size: A4 portrait;
                       margin-top: 1cm !important;
                       margin-bottom: 1cm !important;
-                      margin-left: 1.5cm !important;
+                      margin-left: 1.75cm !important;
                       margin-right: 1cm !important;
                     }
                   `}</style>
@@ -3159,8 +3218,16 @@ export default function PrintableReportModal({
                     </div>
 
                     <div className="text-right text-[10pt] space-y-0.5">
-                      <p className="font-bold">Office of the District Officer</p>
-                      <p className="font-semibold">Ground Water Department, {district}</p>
+                      {officeAddress?.address ? (
+                        <div className="whitespace-pre-line text-right">
+                          {officeAddress.address}
+                        </div>
+                      ) : (
+                        <>
+                          <p className="font-bold">Office of the District Officer</p>
+                          <p className="font-semibold">Ground Water Department, {district}</p>
+                        </>
+                      )}
                       {renderEditableCell('uc_en_contact', 
                         <div className="text-right">
                           <p>Phone: {ucPhone}</p>

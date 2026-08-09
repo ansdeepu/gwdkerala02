@@ -9,8 +9,25 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  output: 'standalone',
   experimental: {
-    webpackBuildWorker: false,
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+    ],
   },
   productionBrowserSourceMaps: false,
   images: {
@@ -74,10 +91,36 @@ const nextConfig = {
   env: {
     CACHE_BUSTER: `force-rebuild-final-1779123000001`,
   },
+  swcMinify: true,
+  experimental: {
+    webpackBuildWorker: false,
+    cpus: 1,
+    workerThreads: false,
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+    ],
+  },
   webpack: (config, { dev }) => {
     if (!dev) {
-      config.cache = false;
+      config.devtool = false;
       config.parallelism = 1;
+      if (config.optimization) {
+        config.optimization.minimize = true;
+      }
     }
     return config;
   },

@@ -78,7 +78,7 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="w-full max-w-4xl py-6 mt-auto border-t border-border/40 text-center text-xs text-muted-foreground flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-          © {new Date().getFullYear()} Ground Water Department, Government of Kerala. All rights reserved.
+          © 2026 Ground Water Department, Government of Kerala. All rights reserved.
         </div>
         <div className="flex items-center gap-4">
           <span className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</span>
