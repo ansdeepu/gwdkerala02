@@ -480,13 +480,13 @@ export default function PrintableReportModal({
     setProceedingsRef1(formatDatesInText(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`));
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
 
-    setUcFrom(`District Officer, Ground Water Department, ${district}`);
-    setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`);
+    setUcFrom('ജില്ലാ ഓഫീസർ');
+    setUcTo(`അസിസ്റ്റന്റ് എൻജിനീയർ\n${currentSite?.localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`);
     setUcSubject(
-      `ഭൂജല വകുപ്പ്, ${districtMl} - ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് സംബന്ധിച്ച്.`
+      `ഭൂജല വകുപ്പ്, ${districtMl} - ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`
     );
-    setUcRef1(`1. കത്ത് നമ്പർ GWD/${fNo.replace(/\//g, '-')}/2026 തീയതി ${todayFormatted}`);
-    setUcRef2(`2. പൂർത്തീകരണ റിപ്പോർട്ട് & ഫൈനൽ ബിൽ`);
+    setUcRef1(`കത്ത് നമ്പർ GWD/${fNo.replace(/\//g, '-')}/2026 തീയതി ${todayFormatted}`);
+    setUcRef2(`പൂർത്തീകരണ റിപ്പോർട്ട് & ഫൈനൽ ബിൽ`);
 
     const localNetPayableFinal = localNetPayable || (drillingRate * drillingQty) - subsidyAmount;
     const localTotalExpenditureFinal = localTotalExpenditure || (drillingRate * drillingQty);
@@ -500,7 +500,7 @@ export default function PrintableReportModal({
     );
 
     setUcMlPara1(
-      `മേൽ സൂചന പ്രകാരം ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} പരിധിയിലെ കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണം നടത്തുകയും അതിനായി അടവാക്കിയ തുകയ്ക്ക് പൂർത്തീകരണ റിപ്പോർട്ടും ഫൈനൽ ബില്ലും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.`
+      `മേൽ സൂചന പ്രകാരം ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} പരിധിയിലെ കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണം നടത്തുകയും അതിനായി അടവാക്കിയ തുകയ്ക്ക് പൂർത്തീകരണ റിപ്പോർട്ട്, ഫൈനൽ ബില് എന്നിവ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്യുന്നു. ബാലൻസ് തുക തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`
     );
     setUcMlPara2(
       `ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ആകെ ചിലവായ തുക കഴിച്ച് ബാക്കി തുകയായ Rs. ${localBalanceRefund.toLocaleString('en-IN')}/- (${numberToWordsMalayalam(Math.abs(localBalanceRefund))}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ലഭ്യമാക്കണമെന്ന് താല്പര്യപ്പെടുന്നു.`
@@ -776,6 +776,20 @@ export default function PrintableReportModal({
   const abstractBalanceAmount = useMemo(() => {
     return totalRemittanceAmount - totalPaymentAmount;
   }, [totalRemittanceAmount, totalPaymentAmount]);
+
+  const ucSelectedSites = useMemo(() => {
+    return selectedSiteIndices.map(sIdx => {
+      return siteFinancials.find(sf => sf.sIdx === sIdx) || siteFinancials[sIdx];
+    }).filter(Boolean);
+  }, [selectedSiteIndices, siteFinancials]);
+
+  const ucTotalSelectedExpenditure = useMemo(() => {
+    return ucSelectedSites.reduce((sum, sf) => sum + sf.totalExpenditure, 0);
+  }, [ucSelectedSites]);
+
+  const ucBalanceRefund = useMemo(() => {
+    return totalRemittanceAmount - ucTotalSelectedExpenditure;
+  }, [totalRemittanceAmount, ucTotalSelectedExpenditure]);
 
   const procNetPayable = useMemo(() => {
     if (totalPaymentAmount > 0) {
@@ -1212,7 +1226,7 @@ export default function PrintableReportModal({
     uc_contact: () => { setUcPhone('0474 - 2790313'); setUcEmail('gwdklm@gmail.com'); },
     uc_ref: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
     uc_date: () => setOrderDate(new Date().toISOString().split('T')[0]),
-    uc_from: () => setUcFrom(`District Officer, Ground Water Department, ${district}`),
+    uc_from: () => setUcFrom('ജില്ലാ ഓഫീസർ'),
     uc_to: () => setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`),
     uc_sub: () => setUcSubject(`Utilization Certificate for borewell construction works at ${currentSite?.localSelfGovt || 'Panchayat'}`),
     uc_refs: () => { setUcRef1(''); setUcRef2(''); },
@@ -2818,33 +2832,157 @@ export default function PrintableReportModal({
           {/* 5. UTILIZATION CERTIFICATE (FOR DEPOSIT WORKS) */}
           {docType === 'utilization_certificate' && (
             <div className="space-y-4">
+              {/* Selection provision for Remittance and Site details */}
+              <div className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800 rounded-lg p-3 space-y-2 text-xs mb-4 no-print">
+                <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                  <span>📋 Select Entries for Utilization Certificate</span>
+                  <span className="text-[11px] font-normal text-muted-foreground">Check/uncheck entries to include or exclude from table</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* 2. Remittance Details Selection */}
+                  <div className="space-y-1.5 bg-background p-2.5 rounded border">
+                    <div className="font-semibold text-xs border-b pb-1 flex items-center justify-between text-primary">
+                      <span>2. Remittance Details</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">({selectedRemittanceIndices.length}/{allRemittances.length} included)</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
+                      {allRemittances.map((rem, rIdx) => {
+                        const isChecked = selectedRemittanceIndices.includes(rIdx);
+                        const rAmt = Number(rem.amountRemitted) || Number((rem as any).remittanceAmount) || 0;
+                        const rDate = rem.dateOfRemittance ? formatDateDDMMYYYY(rem.dateOfRemittance) : '';
+                        const rRemarks = rem.remittanceRemarks || (rem as any).ddNo || '';
+                        const label = `Remittance #${rIdx + 1}: ₹${rAmt.toLocaleString('en-IN')} ${rRemarks ? '(DD: ' + rRemarks + ')' : ''} ${rDate ? 'Dated ' + rDate : ''}`;
+                        return (
+                          <label key={rIdx} className="flex items-center gap-2 text-[11px] hover:bg-muted/60 p-1 rounded cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRemittanceIndices(prev => [...prev, rIdx].sort((a,b) => a - b));
+                                } else {
+                                  setSelectedRemittanceIndices(prev => prev.filter(i => i !== rIdx));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <span className="truncate">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. Site Details Selection */}
+                  <div className="space-y-1.5 bg-background p-2.5 rounded border">
+                    <div className="font-semibold text-xs border-b pb-1 flex items-center justify-between text-primary">
+                      <span>3. Site Details</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">({selectedSiteIndices.length}/{sites.length} included)</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
+                      {sites.map((st, sIdx) => {
+                        const isChecked = selectedSiteIndices.includes(sIdx);
+                        const stName = st.nameOfSite || `Site #${sIdx + 1}`;
+                        const stLoc = st.surveyLocation || st.localSelfGovt || '';
+                        const label = `Site #${sIdx + 1}: ${stName} ${stLoc ? '(' + stLoc + ')' : ''}`;
+                        return (
+                          <label key={sIdx} className="flex items-center gap-2 text-[11px] hover:bg-muted/60 p-1 rounded cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedSiteIndices(prev => [...prev, sIdx].sort((a,b) => a - b));
+                                } else {
+                                  setSelectedSiteIndices(prev => prev.filter(i => i !== sIdx));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <span className="truncate">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {lang === 'ml' ? (
-                <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസറുടെ കാര്യാലയം, {districtMl}</h2>
-                    {renderEditableCell('uc_ml_contact', 
-                      <p className="text-xs">ഫോൺ: {ucPhone} | ഇ-മെയിൽ: {ucEmail}</p>,
-                      <div className="flex gap-1 justify-center">
-                        <Input className="h-6 text-xs w-36" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
-                        <Input className="h-6 text-xs w-48" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
-                      </div>
+                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.5cm] pr-[1cm] print:m-0 print:p-0 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                  <style>{`
+                    @page {
+                      size: A4 portrait;
+                      margin-top: 1cm !important;
+                      margin-bottom: 1cm !important;
+                      margin-left: 1.5cm !important;
+                      margin-right: 1cm !important;
+                    }
+                  `}</style>
+                  <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
+                    <div>
+                      {renderEditableCell('uc_ml_refNo', 
+                        <span>ഫയൽ നമ്പർ: <span>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</span></span>, 
+                        <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
+                      )}
+                    </div>
+
+                    <div className="text-right text-[10pt] space-y-0.5">
+                      <p>ജില്ലാ ഓഫീസറുടെ കാര്യാലയം</p>
+                      <p>ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്</p>
+                      <p>ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.</p>
+                      <p>കൊല്ലം - 691009</p>
+                      {renderEditableCell('uc_ml_contact', 
+                        <div className="text-right">
+                          <p>ഫോൺ: {ucPhone}</p>
+                          <p>ഇ-മെയിൽ: {ucEmail}</p>
+                        </div>,
+                        <div className="flex flex-col gap-1 items-end">
+                          <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
+                          <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
+                        </div>
+                      )}
+                      {renderEditableCell('uc_ml_date', <p className="pt-0.5">തീയതി: <span>{orderDate}</span></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                    </div>
+                  </div>
+
+                  <div className="text-[10pt] space-y-3 py-1">
+                    <div>
+                      <p className="">പ്രേഷിതൻ</p>
+                      {renderEditableCell('uc_ml_from', 
+                        <div className="pl-8 whitespace-pre-line">{ucFrom || 'ജില്ലാ ഓഫീസർ'}</div>, 
+                        <Textarea className="min-h-[40px] text-xs p-1" value={ucFrom} onChange={e => setUcFrom(e.target.value)} />
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="">സ്വീകർത്താവ്</p>
+                      {renderEditableCell('uc_ml_to', 
+                        <div className="pl-8 whitespace-pre-line">
+                          {ucTo || `അസിസ്റ്റന്റ് എൻജിനീയർ\n${localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`}
+                        </div>, 
+                        <Textarea className="min-h-[50px] text-xs p-1" value={ucTo} onChange={e => setUcTo(e.target.value)} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-[10pt] space-y-2 py-1">
+                    {renderEditableCell('uc_ml_sub', 
+                      <div className="flex items-start">
+                        <span className="shrink-0 font-bold w-[2cm]">വിഷയം:</span>
+                        <span className="flex-grow">{ucSubject}</span>
+                      </div>, 
+                      <Textarea className="min-h-[40px] text-xs p-1" value={ucSubject} onChange={e => setUcSubject(e.target.value)} />
                     )}
-                  </div>
-
-                  <div className="flex justify-between text-xs py-1">
-                    {renderEditableCell('uc_ml_refNo', <span>നമ്പർ: <strong>{fileNo}</strong></span>, <Input className="h-6 text-xs w-36" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
-                    {renderEditableCell('uc_ml_date', <span>തീയതി: <strong>{orderDate}</strong></span>, <Input className="h-6 text-xs w-36" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-                  </div>
-
-                  <div className="text-xs space-y-1">
-                    {renderEditableCell('uc_ml_from', <p><strong>പ്രേഷിതൻ:</strong> {ucFrom || `ജില്ലാ ഓഫീസർ, ഭൂജലവകുപ്പ്, ${districtMl}`}</p>, <Input className="h-6 text-xs" value={ucFrom} onChange={e => setUcFrom(e.target.value)} />)}
-                    {renderEditableCell('uc_ml_to', <p><strong>സ്വീകർത്താവ്:</strong> {ucTo || `അസിസ്റ്റന്റ് എൻജിനീയർ, ${localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`}</p>, <Input className="h-6 text-xs" value={ucTo} onChange={e => setUcTo(e.target.value)} />)}
-                  </div>
-
-                  <div className="text-xs space-y-1 py-1">
-                    {renderEditableCell('uc_ml_sub', <p><strong>വിഷയം:</strong> {ucSubject}</p>, <Textarea className="min-h-[40px] text-xs p-1" value={ucSubject} onChange={e => setUcSubject(e.target.value)} />)}
                     {renderEditableCell('uc_ml_refs', 
-                      <p><strong>സൂചന:</strong> 1. {ucRef1}<br />2. {ucRef2}</p>,
+                      <div className="flex items-start">
+                        <span className="shrink-0 font-bold w-[2cm]">സൂചന:</span>
+                        <div className="flex-grow space-y-0.5">
+                          <p>1. {(ucRef1 || '').replace(/^[0-9]+\.\s*/, '')}</p>
+                          <p>2. {(ucRef2 || '').replace(/^[0-9]+\.\s*/, '')}</p>
+                        </div>
+                      </div>,
                       <div className="space-y-1">
                         <Input className="h-6 text-xs" value={ucRef1} onChange={e => setUcRef1(e.target.value)} />
                         <Input className="h-6 text-xs" value={ucRef2} onChange={e => setUcRef2(e.target.value)} />
@@ -2852,186 +2990,293 @@ export default function PrintableReportModal({
                     )}
                   </div>
 
-                  <div className="text-xs space-y-2 text-justify leading-relaxed">
-                    <p>
-                      മേൽ സൂചന പ്രകാരം {localSelfGovt || 'പഞ്ചായത്ത്'} പരിധിയിലെ കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് അടവാക്കിയ തുകയ്ക്ക് പൂർത്തീകരണ റിപ്പോർട്ടും ഫൈനൽ ബില്ലും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.
-                    </p>
-                    <p>
-                      ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ആകെ ചിലവായ തുക കഴിച്ച് ബാക്കി തുകയായ <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsMalayalam(Math.abs(procBalanceRefund))})</strong> പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ലഭ്യമാക്കണമെന്ന് താല്പര്യപ്പെടുന്നു.
-                    </p>
+                  {/* Covering Letter Paragraph */}
+                  <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] py-2" style={{ lineHeight: '0.75cm' }}>
+                    {(() => {
+                      const lsg = localSelfGovt || currentSite?.localSelfGovt || 'പഞ്ചായത്ത്';
+                      const lsgFull = lsg.includes('പഞ്ചായത്ത്') || lsg.toLowerCase().includes('panchayat') 
+                        ? (lsg.endsWith('ലെ') ? lsg : `${lsg}യിലെ`)
+                        : `${lsg} ഗ്രാമപഞ്ചായത്തിലെ`;
+
+                      const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map(s => ({ siteName: s.nameOfSite || 'സൈറ്റ്', depth: parseNum(s.totalDepth) || 0, yield: parseNum(s.yieldDischarge) || 0, totalExpenditure: 0 }));
+                      const siteNamesStr = activeSites.length > 1
+                        ? `${activeSites.map(s => s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
+                        : (activeSites[0]?.siteName ? `${activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
+
+                      const siteCount = activeSites.length || 1;
+
+                      const remittancePart = siteCount > 1
+                        ? `യഥാക്രമം ${activeSites.map((_, sIdx) => {
+                            const amt = abstractRemittanceRows[sIdx]?.amount ?? (totalRemittanceAmount / siteCount);
+                            return `${Math.round(amt).toLocaleString('en-IN')}/- രൂപ`;
+                          }).join(', ')} അടക്കം ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`
+                        : `ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`;
+
+                      const siteYieldsPart = activeSites.map(s => 
+                        `${s.siteName} കുഴൽകിണറിന് ${s.depth} മീറ്റർ ആഴവും ${s.yield ? `മണിക്കൂറിൽ ${s.yield} ലിറ്റർ ജലലഭ്യതയും` : ''} ഉണ്ട്.`
+                      ).join(' ');
+
+                      const expenditurePart = siteCount > 1
+                        ? `യഥാക്രമം ${activeSites.map(s => `${Math.round(s.totalExpenditure).toLocaleString('en-IN')}/- രൂപ`).join(', ')} അടക്കം ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ`
+                        : `ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ`;
+
+                      const refundWords = numberToWordsMalayalam(Math.abs(ucBalanceRefund));
+
+                      const defaultCoverText = `മേൽ സൂചന (1) പ്രകാരം, ${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ${remittancePart} അടവാക്കിയിട്ടുണ്ട്. സൂചന (2) പ്രകാരം, ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ്ഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. ${siteYieldsPart} ടി കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ${expenditurePart} ചിലവായിട്ടുണ്ട്. ബാലൻസ് തുകയായ ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- രൂപ (${refundWords}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`;
+
+                      return renderEditableCell('uc_ml_cover_letter',
+                        <p className="whitespace-pre-line">{ucMlPara1 || defaultCoverText}</p>,
+                        <Textarea className="min-h-[100px] text-xs p-1" value={ucMlPara1 || defaultCoverText} onChange={e => setUcMlPara1(e.target.value)} />
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-2">
-                    <h4 className="text-center font-bold text-xs underline mb-2">ധനവിനിയോഗ സാക്ഷ്യപത്രം (UTILIZATION CERTIFICATE)</h4>
-                    <table className="w-full border-collapse border border-black text-xs">
+                    <h4 className="text-center font-bold text-[10pt] underline mb-2">ധനവിനിയോഗ സാക്ഷ്യപത്രം (UTILIZATION CERTIFICATE)</h4>
+                    
+                    {/* Paragraph after UTILIZATION CERTIFICATE heading */}
+                    <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pb-2" style={{ lineHeight: '0.75cm' }}>
+                      {(() => {
+                        const lsg = localSelfGovt || currentSite?.localSelfGovt || 'പഞ്ചായത്ത്';
+                        const lsgFull = lsg.includes('പഞ്ചായത്ത്') || lsg.toLowerCase().includes('panchayat') 
+                          ? (lsg.endsWith('ലെ') ? lsg : `${lsg}യിലെ`)
+                          : `${lsg} ഗ്രാമപഞ്ചായത്തിലെ`;
+
+                        const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map(s => ({ siteName: s.nameOfSite || 'സൈറ്റ്' }));
+                        const siteNamesStr = activeSites.length > 1
+                          ? `${activeSites.map(s => s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
+                          : (activeSites[0]?.siteName ? `${activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
+
+                        return (
+                          <p>
+                            {lsgFull} {siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ആകെ <strong>{Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/-</strong> അടവാക്കിയിട്ടുണ്ടെന്നും ടി പ്രവൃത്തികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ച് ആകെ <strong>{Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ</strong> ചിലവായിട്ടുണ്ടെന്നും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.
+                          </p>
+                        );
+                      })()}
+                    </div>
+
+                    <table className="w-full border-collapse border border-black text-[10pt]">
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                          <td className="border border-black p-1.5 w-10">ക്രമ നമ്പർ</td>
-                          <td className="border border-black p-1.5">വിവരണങ്ങൾ / പൂർത്തീകരിച്ച സൈറ്റുകൾ</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">അടവാക്കിയ തുക (രൂപ)</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">ആകെ ചിലവ് (രൂപ)</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">ബാലൻസ് തുക (രൂപ)</td>
+                          <td className="border border-black p-1.5 w-12">ക്രമ നമ്പർ</td>
+                          <td className="border border-black p-1.5">വിവരണങ്ങൾ</td>
+                          <td className="border border-black p-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
+                          <td className="border border-black p-1.5 w-36 text-right pr-2">ആകെ തുക (രൂപ)</td>
                         </tr>
                       </thead>
                       <tbody>
-                        {ucRows.map((row, idx) => {
-                          const siteBal = row.deposited - row.expenditure;
+                        {/* Row 1: Deposit */}
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">1</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾക്ക് വേണ്ടി പഞ്ചായത്ത് അടവാക്കിയ തുക</td>
+                        </tr>
+                        {ucSelectedSites.map((sf, sIdx) => {
+                          const subLetter = String.fromCharCode(97 + sIdx);
+                          const siteDeposit = abstractRemittanceRows[sIdx]?.amount ?? (totalRemittanceAmount / (ucSelectedSites.length || 1));
+                          const remIdx = selectedRemittanceIndices[sIdx] ?? selectedRemittanceIndices[0] ?? 0;
+                          const matchingRem = allRemittances[remIdx];
+                          const remDate = matchingRem?.dateOfRemittance ? formatDateDDMMYYYY(matchingRem.dateOfRemittance) : '12/11/2024';
+                          const displayDesc = `പ്രവൃത്തിയിനത്തിൽ ${remDate}-ന് അടച്ച തുക`;
                           return (
-                            <tr key={idx} id={`uc_ml_row_${idx}`}>
-                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                              <td className="border border-black p-1.5">
-                                {renderEditableCell(`uc_ml_desc_${idx}`, 
-                                  <span>{row.description}</span>, 
-                                  <Input className="h-6 text-xs" value={row.description} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].description = e.target.value;
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(`uc_ml_dep_${idx}`, 
-                                  row.deposited.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                  <Input type="number" className="h-6 text-xs" value={row.deposited} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].deposited = Number(e.target.value);
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(`uc_ml_exp_${idx}`, 
-                                  row.expenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                  <Input type="number" className="h-6 text-xs" value={row.expenditure} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].expenditure = Number(e.target.value);
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{siteBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <tr key={`dep_${sIdx}`}>
+                              <td className="border border-black p-1.5 text-center">{subLetter}.</td>
+                              <td className="border border-black p-1.5 pl-6">{displayDesc}</td>
+                              <td className="border border-black p-1.5 text-right font-mono">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 text-right font-mono"></td>
                             </tr>
                           );
                         })}
+                        {/* Row 2: Total Deposit */}
+                        <tr className="font-bold bg-gray-50">
+                          <td className="border border-black p-1.5 text-center">2</td>
+                          <td className="border border-black p-1.5">ആകെ</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                        {/* Row 3: Expenditure */}
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">3</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
+                        </tr>
+                        {ucSelectedSites.map((sf, sIdx) => {
+                          const subLetter = String.fromCharCode(97 + sIdx);
+                          return (
+                            <tr key={`exp_${sIdx}`}>
+                              <td className="border border-black p-1.5 text-center">{subLetter}.</td>
+                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം</td>
+                              <td className="border border-black p-1.5 text-right font-mono">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                            </tr>
+                          );
+                        })}
+                        {/* Row 4: Total Expenditure */}
+                        <tr className="font-bold bg-gray-50">
+                          <td className="border border-black p-1.5 text-center">4</td>
+                          <td className="border border-black p-1.5">ആകെ</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                        {/* Row 5: Balance Amount */}
                         <tr className="font-bold bg-gray-100">
-                          <td className="border border-black p-1.5 text-center" colSpan={2}>ആകെ (TOTAL)</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalDeposited.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center">5</td>
+                          <td className="border border-black p-1.5">ബാലൻസ് തുക (പഞ്ചായത്തിന് തിരികെ നൽകാനുള്ളത്)</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                        {/* Merged Row for Amount in Words inside table */}
+                        <tr className="font-bold bg-gray-50 text-center">
+                          <td className="border border-black p-1.5" colSpan={4}>
+                            {numberToWordsMalayalam(Math.abs(ucBalanceRefund))}
+                          </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  <p className="text-xs font-semibold pt-2">
-                    ആകെ ബാക്കി ബാലൻസ് തുക: <span className="underline">{numberToWordsMalayalam(Math.abs(procBalanceRefund))}</span>
-                  </p>
-
-                  <div className="pt-10 text-right text-xs font-bold">
+                  <div className="pt-10 text-right text-[10pt] font-bold">
                     <p>വിശ്വസ്തതയോടെ,</p>
                     <br /><br />
                     <p>ജില്ലാ ഓഫീസർ</p>
-                    <p className="font-normal text-[11px]">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</p>
                   </div>
-                </>
+                </div>
               ) : (
-                <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                    <h3 className="text-base font-bold underline">UTILIZATION CERTIFICATE</h3>
+                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.5cm] pr-[1cm] print:m-0 print:p-0 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                  <style>{`
+                    @page {
+                      size: A4 portrait;
+                      margin-top: 1cm !important;
+                      margin-bottom: 1cm !important;
+                      margin-left: 1.5cm !important;
+                      margin-right: 1cm !important;
+                    }
+                  `}</style>
+                  <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
+                    <div>
+                      {renderEditableCell('uc_en_ref', 
+                        <span>Ref No: <strong>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</strong></span>, 
+                        <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
+                      )}
+                    </div>
+
+                    <div className="text-right text-[10pt] space-y-0.5">
+                      <p className="font-bold">Office of the District Officer</p>
+                      <p className="font-semibold">Ground Water Department, {district}</p>
+                      {renderEditableCell('uc_en_contact', 
+                        <div className="text-right">
+                          <p>Phone: {ucPhone}</p>
+                          <p>Email: {ucEmail}</p>
+                        </div>,
+                        <div className="flex flex-col gap-1 items-end">
+                          <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
+                          <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
+                        </div>
+                      )}
+                      {renderEditableCell('uc_en_date', <p className="pt-0.5">Date: <strong>{orderDate}</strong></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                    </div>
                   </div>
 
-                  <div className="flex justify-between text-xs py-1">
-                    {renderEditableCell('uc_en_ref', <span>Ref No: <strong>{fileNo}</strong></span>, <Input className="h-6 text-xs w-36" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
-                    {renderEditableCell('uc_en_date', <span>Date: <strong>{orderDate}</strong></span>, <Input className="h-6 text-xs w-36" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                  <div className="text-[10pt] space-y-3 py-1">
+                    <div>
+                      <p className="font-bold">From</p>
+                      {renderEditableCell('uc_en_from', 
+                        <div className="pl-8 font-semibold whitespace-pre-line">{ucFrom || 'District Officer'}</div>, 
+                        <Textarea className="min-h-[40px] text-xs p-1" value={ucFrom} onChange={e => setUcFrom(e.target.value)} />
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="font-bold">To</p>
+                      {renderEditableCell('uc_en_to', 
+                        <div className="pl-8 font-semibold whitespace-pre-line">
+                          {ucTo || `Assistant Engineer\n${localSelfGovt || 'Gramapanchayat'}`}
+                        </div>, 
+                        <Textarea className="min-h-[50px] text-xs p-1" value={ucTo} onChange={e => setUcTo(e.target.value)} />
+                      )}
+                    </div>
                   </div>
 
-                  <div className="text-xs space-y-1">
-                    {renderEditableCell('uc_en_from', <p><strong>From:</strong> {ucFrom}</p>, <Input className="h-6 text-xs" value={ucFrom} onChange={e => setUcFrom(e.target.value)} />)}
-                    {renderEditableCell('uc_en_to', <p><strong>To:</strong> {ucTo}</p>, <Input className="h-6 text-xs" value={ucTo} onChange={e => setUcTo(e.target.value)} />)}
-                  </div>
-
-                  <div className="text-xs space-y-2 text-justify leading-relaxed pt-2">
+                  <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pt-2" style={{ lineHeight: '0.75cm' }}>
                     <p>
-                      Certified that out of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> deposited for borewell construction works under the {localSelfGovt || 'Panchayat'} scheme, a total sum of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong> has been utilized towards actual construction costs.
-                    </p>
-                    <p>
-                      The unspent balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(Math.abs(procBalanceRefund))})</strong> is ready for refund.
+                      Certified that out of <strong>Rs. {totalRemittanceAmount.toLocaleString('en-IN')}/-</strong> deposited for borewell construction works under the {localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of <strong>Rs. {ucTotalSelectedExpenditure.toLocaleString('en-IN')}/-</strong> has been utilized towards actual construction costs.
                     </p>
                   </div>
 
                   <div className="pt-2">
-                    <table className="w-full border-collapse border border-black text-xs">
+                    <table className="w-full border-collapse border border-black text-[10pt]">
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                          <td className="border border-black p-1.5 w-10">Sl No</td>
-                          <td className="border border-black p-1.5">Description / Completed Sites</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">Deposited (Rs)</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">Expenditure (Rs)</td>
-                          <td className="border border-black p-1.5 w-28 text-right pr-2">Balance (Rs)</td>
+                          <td className="border border-black p-1.5 w-12">Sl No</td>
+                          <td className="border border-black p-1.5">Description</td>
+                          <td className="border border-black p-1.5 w-32 text-right pr-2">Amount (Rs)</td>
+                          <td className="border border-black p-1.5 w-36 text-right pr-2">Total Amount (Rs)</td>
                         </tr>
                       </thead>
                       <tbody>
-                        {ucRows.map((row, idx) => {
-                          const siteBal = row.deposited - row.expenditure;
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">1</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>Amount deposited by Panchayat for borewell construction works</td>
+                        </tr>
+                        {ucSelectedSites.map((sf, sIdx) => {
+                          const subLetter = String.fromCharCode(97 + sIdx);
+                          const siteDeposit = abstractRemittanceRows[sIdx]?.amount ?? (totalRemittanceAmount / (ucSelectedSites.length || 1));
                           return (
-                            <tr key={idx} id={`uc_en_row_${idx}`}>
-                              <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                              <td className="border border-black p-1.5">
-                                {renderEditableCell(`uc_en_desc_${idx}`, 
-                                  <span>{row.description}</span>, 
-                                  <Input className="h-6 text-xs" value={row.description} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].description = e.target.value;
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(`uc_en_dep_${idx}`, 
-                                  row.deposited.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                  <Input type="number" className="h-6 text-xs" value={row.deposited} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].deposited = Number(e.target.value);
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">
-                                {renderEditableCell(`uc_en_exp_${idx}`, 
-                                  row.expenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 }), 
-                                  <Input type="number" className="h-6 text-xs" value={row.expenditure} onChange={e => {
-                                    const updated = [...ucRows];
-                                    updated[idx].expenditure = Number(e.target.value);
-                                    setUcRows(updated);
-                                  }} />
-                                )}
-                              </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{siteBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <tr key={`dep_en_${sIdx}`}>
+                              <td className="border border-black p-1.5 text-center">{subLetter}.</td>
+                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</td>
+                              <td className="border border-black p-1.5 text-right font-mono">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 text-right font-mono"></td>
                             </tr>
                           );
                         })}
+                        <tr className="font-bold bg-gray-50">
+                          <td className="border border-black p-1.5 text-center">2</td>
+                          <td className="border border-black p-1.5">Total</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                          <td className="border border-black p-1.5 text-center">3</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>Total expenditure incurred for borewell construction works</td>
+                        </tr>
+                        {ucSelectedSites.map((sf, sIdx) => {
+                          const subLetter = String.fromCharCode(97 + sIdx);
+                          return (
+                            <tr key={`exp_en_${sIdx}`}>
+                              <td className="border border-black p-1.5 text-center">{subLetter}.</td>
+                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</td>
+                              <td className="border border-black p-1.5 text-right font-mono">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="font-bold bg-gray-50">
+                          <td className="border border-black p-1.5 text-center">4</td>
+                          <td className="border border-black p-1.5">Total</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
                         <tr className="font-bold bg-gray-100">
-                          <td className="border border-black p-1.5 text-center" colSpan={2}>TOTAL</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalDeposited.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center">5</td>
+                          <td className="border border-black p-1.5">Balance amount (to be returned to Panchayat)</td>
+                          <td className="border border-black p-1.5 text-right font-mono"></td>
+                          <td className="border border-black p-1.5 text-right font-mono">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                        {/* Merged row for words */}
+                        <tr className="font-bold bg-gray-50 text-center">
+                          <td className="border border-black p-1.5" colSpan={4}>
+                            (Rupees {numberToWordsEnglish(Math.abs(ucBalanceRefund))} only)
+                          </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  <p className="text-xs font-semibold pt-2">
-                    Net Refund Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(balanceRefund))}</span>
-                  </p>
-
-                  <div className="pt-10 text-right text-xs font-bold">
+                  <div className="pt-10 text-right text-[10pt] font-bold">
                     <p>Yours faithfully,</p>
                     <br /><br />
                     <p>District Officer</p>
-                    <p className="font-normal text-[11px]">Ground Water Department, {district}</p>
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}

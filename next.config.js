@@ -9,6 +9,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    webpackBuildWorker: false,
+  },
+  productionBrowserSourceMaps: false,
   images: {
     remotePatterns: [
       {
@@ -70,7 +74,11 @@ const nextConfig = {
   env: {
     CACHE_BUSTER: `force-rebuild-final-1779123000001`,
   },
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = false;
+      config.parallelism = 1;
+    }
     return config;
   },
 };

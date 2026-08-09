@@ -63,9 +63,27 @@ export function numberToWordsMalayalam(amount: number): string {
     60: 'അറുപത്', 70: 'എഴുപത്', 80: 'എൺപത്', 90: 'തൊണ്ണൂറ്', 100: 'നൂറ്'
   };
 
-  let num = Math.floor(Math.abs(amount));
+  function convertUnder100(n: number): string {
+    if (n <= 0) return '';
+    if (units[n]) return units[n];
 
-  // Simple phonetic builder for Indian numbering format in Malayalam
+    const tens = Math.floor(n / 10) * 10;
+    const ones = n % 10;
+    const onesStr = units[ones] || '';
+
+    if (tens === 20) return `ഇരുപത്തി${onesStr}`;
+    if (tens === 30) return `മുപ്പത്തി${onesStr}`;
+    if (tens === 40) return `നാൽപ്പത്തി${onesStr}`;
+    if (tens === 50) return `അമ്പത്തി${onesStr}`;
+    if (tens === 60) return `അറുപത്തി${onesStr}`;
+    if (tens === 70) return `എഴുപത്തി${onesStr}`;
+    if (tens === 80) return `എൺപത്തി${onesStr}`;
+    if (tens === 90) return `തൊണ്ണൂറ്റി${onesStr}`;
+
+    return String(n);
+  }
+
+  let num = Math.floor(Math.abs(amount));
   let parts: string[] = [];
 
   const crore = Math.floor(num / 10000000);
@@ -81,39 +99,49 @@ export function numberToWordsMalayalam(amount: number): string {
   num %= 100;
 
   if (crore > 0) {
-    parts.push(`${crore > 1 ? units[crore] || crore : 'ഒരു'} കോടി`);
+    if (crore === 1) parts.push('ഒരു കോടി');
+    else parts.push(`${convertUnder100(crore)} കോടി`);
   }
   if (lakh > 0) {
     if (lakh === 1) parts.push('ഒരു ലക്ഷത്തി');
-    else if (lakh === 2) parts.push('രണ്ട് ലക്ഷത്തി');
-    else parts.push(`${units[lakh] || lakh} ലക്ഷത്തി`);
+    else parts.push(`${convertUnder100(lakh)} ലക്ഷത്തി`);
   }
   if (thousand > 0) {
     if (thousand === 1) parts.push('ഒരു ആയിരത്തി');
-    else if (thousand === 20) parts.push('ഇരുപതിനായിരത്തി');
-    else parts.push(`${units[thousand] || thousand} ആയിരത്തി`);
+    else parts.push(`${convertUnder100(thousand)} ആയിരത്തി`);
   }
   if (hundred > 0) {
-    if (hundred === 1) parts.push('ഇരുനൂറ്റി'); // e.g. 100 or 200 modifier
-    else if (hundred === 2) parts.push('ഇരുനൂറ്റി');
-    else parts.push(`${units[hundred] || hundred} നൂറ്റി`);
+    const hundredExact = num === 0;
+    const hundredMapExact: Record<number, string> = {
+      1: 'നൂറ്',
+      2: 'ഇരുനൂറ്',
+      3: 'മൂന്നൂറ്',
+      4: 'നാനൂറ്',
+      5: 'അഞ്ഞൂറ്',
+      6: 'അറനൂറ്',
+      7: 'എഴുന്നൂറ്',
+      8: 'എണ്ണൂറ്',
+      9: 'തൊള്ളായിരം'
+    };
+    const hundredMapModifier: Record<number, string> = {
+      1: 'നൂറ്റി',
+      2: 'ഇരുനൂറ്റി',
+      3: 'മൂന്നൂറ്റി',
+      4: 'നാനൂറ്റി',
+      5: 'അഞ്ഞൂറ്റി',
+      6: 'അറനൂറ്റി',
+      7: 'എഴുന്നൂറ്റി',
+      8: 'എണ്ണൂറ്റി',
+      9: 'തൊള്ളായിരത്തി'
+    };
+    if (hundredExact) {
+      parts.push(hundredMapExact[hundred] || `${convertUnder100(hundred)} നൂറ്`);
+    } else {
+      parts.push(hundredMapModifier[hundred] || `${convertUnder100(hundred)} നൂറ്റി`);
+    }
   }
   if (num > 0) {
-    if (units[num]) {
-      parts.push(units[num]);
-    } else {
-      const tens = Math.floor(num / 10) * 10;
-      const ones = num % 10;
-      if (tens === 20) parts.push(`ഇരുപത്തി${units[ones] || ones}`);
-      else if (tens === 30) parts.push(`മുപ്പത്തി${units[ones] || ones}`);
-      else if (tens === 40) parts.push(`നാൽപ്പത്തി${units[ones] || ones}`);
-      else if (tens === 50) parts.push(`അമ്പത്തി${units[ones] || ones}`);
-      else if (tens === 60) parts.push(`അറുപത്തി${units[ones] || ones}`);
-      else if (tens === 70) parts.push(`എഴുപത്തി${units[ones] || ones}`);
-      else if (tens === 80) parts.push(`എൺപത്തി${units[ones] || ones}`);
-      else if (tens === 90) parts.push(`തൊണ്ണൂറ്റി${units[ones] || ones}`);
-      else parts.push(String(num));
-    }
+    parts.push(convertUnder100(num));
   }
 
   const str = parts.join(' ').replace(/\s+/g, ' ').trim();
