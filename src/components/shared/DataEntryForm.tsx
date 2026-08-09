@@ -828,7 +828,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     if (hasReappropriations) {
       setReappAccordionValue("reappropriation-details");
     } else {
-      setReappAccordionValue(undefined);
+      setReappAccordionValue("");
     }
   }, [hasReappropriations]);
 

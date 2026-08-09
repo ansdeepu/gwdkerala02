@@ -1,0 +1,6 @@
+#!/bin/bash
+sed -i 's/setCasing10kgQty(c10);/setCasing10kgQty(c10);\n      setCasing8kgQty(c8);/g' src/components/database/PrintableReportModal.tsx
+sed -i 's/const casing10kgTotal = casing10kgRate \* casing10kgQty;/const casing10kgTotal = casing10kgRate \* casing10kgQty;\n  const casing8kgTotal = casing8kgRate \* casing8kgQty;/g' src/components/database/PrintableReportModal.tsx
+sed -i 's/const totalExpenditure = drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal;/const totalExpenditure = drillingTotal + casing10kgTotal + casing8kgTotal + casing6kgTotal + innerCasingTotal;/g' src/components/database/PrintableReportModal.tsx
+sed -i 's/const totalCasingMeters = (Number(casing10kgQty) || 0) + (Number(casing6kgQty) || 0) + (Number(innerCasingQty) || 0);/const totalCasingMeters = (Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0) + (Number(innerCasingQty) || 0);/g' src/components/database/PrintableReportModal.tsx
+sed -i 's/casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number((updatedSiteDetails\[originalIndex\] as any).casing8kgPipe) || 0) + (Number(casing6kgQty) || 0)),/casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0)),/g' src/components/database/PrintableReportModal.tsx

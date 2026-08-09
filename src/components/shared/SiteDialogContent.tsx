@@ -86,8 +86,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     applicationType?: string | null;
 }) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
+    const hasExplicitCasing8kg = initialData?.casing8kgPipe !== undefined && initialData?.casing8kgPipe !== null;
     const hasExplicitCasing10kg = initialData?.casing10kgPipe !== undefined && initialData?.casing10kgPipe !== null;
-    const fallbackCasing = (!hasExplicitCasing6kg && !hasExplicitCasing10kg)
+    const fallbackCasing = (!hasExplicitCasing6kg && !hasExplicitCasing8kg && !hasExplicitCasing10kg)
         ? (initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "")
         : "";
     const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : fallbackCasing;
@@ -98,6 +99,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         defaultValues: {
             ...initialData,
             casing6kgPipe: initialCasing6kg ?? "",
+            casing8kgPipe: initialData?.casing8kgPipe ?? "",
             casing10kgPipe: initialData?.casing10kgPipe ?? "",
             casingPipeUsed: initialData?.casingPipeUsed ?? fallbackCasing,
             surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? "",
@@ -178,6 +180,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [watchedLsg, allLsgConstituencyMaps, setValue, getValues]);
 
     const watchedCasing10kg = watch('casing10kgPipe');
+    const watchedCasing8kg = watch('casing8kgPipe');
     const watchedCasing6kg = watch('casing6kgPipe');
     const watchedInner6kg = watch('innerCasing6kgPipe');
     const watchedInner4kg = watch('innerCasing4kgPipe');
@@ -207,10 +210,11 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     useEffect(() => {
         const v10 = parseFloat(watchedCasing10kg || '0') || 0;
+        const v8 = parseFloat(watchedCasing8kg || '0') || 0;
         const v6 = parseFloat(watchedCasing6kg || '0') || 0;
-        const totalCasing = v10 + v6;
+        const totalCasing = v10 + v8 + v6;
         setValue('casingPipeUsed', totalCasing > 0 ? totalCasing.toString() : '');
-    }, [watchedCasing10kg, watchedCasing6kg, setValue]);
+    }, [watchedCasing10kg, watchedCasing8kg, watchedCasing6kg, setValue]);
 
     useEffect(() => {
         const i6 = parseFloat(watchedInner6kg || '0') || 0;
@@ -350,13 +354,15 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     const handleDialogSubmit = (data: SiteDetailFormData) => {
         const v10 = parseFloat(data.casing10kgPipe || '0') || 0;
+        const v8 = parseFloat(data.casing8kgPipe || '0') || 0;
         const v6 = parseFloat(data.casing6kgPipe || '0') || 0;
-        const totalCasing = v10 + v6;
+        const totalCasing = v10 + v8 + v6;
         const computedCasingUsed = totalCasing > 0 ? totalCasing.toString() : '';
 
         const updatedData = {
             ...data,
             casing6kgPipe: data.casing6kgPipe ?? "",
+            casing8kgPipe: data.casing8kgPipe ?? "",
             casing10kgPipe: data.casing10kgPipe ?? "",
             casingPipeUsed: totalCasing > 0 ? totalCasing.toString() : "",
         };
@@ -659,6 +665,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                             <FormMessage />
                                                                         </FormItem>
                                                                     )} />
+                                                                     <FormField name="casing8kgPipe" control={control} render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel>Casing 8 kg/cm² (m)</FormLabel>
+                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )} />
                                                                      <FormField name="casing6kgPipe" control={control} render={({ field }) => (
                                                                         <FormItem>
                                                                             <FormLabel>Casing 6 kg/cm² (m)</FormLabel>
@@ -863,6 +877,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
+                                                        <FormField name="startDate" control={control} render={({ field }) => <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="dateOfCompletion" control={control} render={({ field }) => <FormItem><FormLabel>Completion Date {isCompletionDateRequired && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="totalExpenditure" control={control} render={({ field }) => <FormItem><FormLabel>Total Expenditure (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         {isPrivateIrrigation && (

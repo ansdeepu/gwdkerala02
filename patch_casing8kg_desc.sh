@@ -1,0 +1,3 @@
+#!/bin/bash
+sed -i 's/setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം \/ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);/setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം \/ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);\n      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം \/ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);/g' src/components/database/PrintableReportModal.tsx
+sed -i 's/setFbDescCasing10En(`${casingDiaEn} dia 10 kg\/cm² PVC Casing Pipe`);/setFbDescCasing10En(`${casingDiaEn} dia 10 kg\/cm² PVC Casing Pipe`);\n      setFbDescCasing8En(`${casingDiaEn} dia 8 kg\/cm² PVC Casing Pipe`);/g' src/components/database/PrintableReportModal.tsx

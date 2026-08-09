@@ -1,6 +1,5 @@
 
 /** @type {import('next').NextConfig} */
-// FORCE REBUILD: 1779123000001
 const nextConfig = {
   reactStrictMode: true,
   typescript: {
@@ -10,26 +9,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   output: 'standalone',
-  experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      'recharts',
-      'date-fns',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-label',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      '@radix-ui/react-tooltip',
-    ],
-  },
   productionBrowserSourceMaps: false,
+  swcMinify: true,
   images: {
     remotePatterns: [
       {
@@ -88,14 +69,9 @@ const nextConfig = {
       },
     ],
   },
-  env: {
-    CACHE_BUSTER: `force-rebuild-final-1779123000001`,
-  },
-  swcMinify: true,
   experimental: {
-    webpackBuildWorker: false,
-    cpus: 1,
     workerThreads: false,
+    cpus: 1,
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -115,12 +91,9 @@ const nextConfig = {
     ],
   },
   webpack: (config, { dev }) => {
+    config.devtool = false;
     if (!dev) {
-      config.devtool = false;
       config.parallelism = 1;
-      if (config.optimization) {
-        config.optimization.minimize = true;
-      }
     }
     return config;
   },

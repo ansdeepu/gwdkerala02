@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -i 's/casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails\[originalIndex\].casing10kgPipe ?? ""),/casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails\[originalIndex\].casing10kgPipe ?? ""),\'$'\n''          casing8kgPipe: casing8kgQty !== undefined && casing8kgQty !== null ? String(casing8kgQty) : ((updatedSiteDetails\[originalIndex\] as any).casing8kgPipe ?? ""),/g' src/components/database/PrintableReportModal.tsx

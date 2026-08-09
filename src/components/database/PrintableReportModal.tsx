@@ -210,6 +210,7 @@ export default function PrintableReportModal({
   const [diameter, setDiameter] = useState<string>('Ø 110 മില്ലീമീറ്റർ (Ø 4.5")');
   const [depthMeter, setDepthMeter] = useState<number>(0);
   const [casing10kgQty, setCasing10kgQty] = useState<number>(0);
+  const [casing8kgQty, setCasing8kgQty] = useState<number>(0);
   const [casing6kgQty, setCasing6kgQty] = useState<number>(0);
   const [innerCasingQty, setInnerCasingQty] = useState<number>(0);
   const [endCap, setEndCap] = useState<string>('No');
@@ -234,11 +235,13 @@ export default function PrintableReportModal({
   // Final Bill row descriptions
   const [fbDescDrillingMl, setFbDescDrillingMl] = useState<string>('110 മില്ലീമീറ്റർ വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്');
   const [fbDescCasing10Ml, setFbDescCasing10Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
+  const [fbDescCasing8Ml, setFbDescCasing8Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescCasing6Ml, setFbDescCasing6Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescInnerMl, setFbDescInnerMl] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില');
 
   const [fbDescDrillingEn, setFbDescDrillingEn] = useState<string>('Drilling charges for 110 mm dia borewell');
   const [fbDescCasing10En, setFbDescCasing10En] = useState<string>('140 mm dia 10 kg/cm² PVC Casing Pipe');
+  const [fbDescCasing8En, setFbDescCasing8En] = useState<string>('140 mm dia 8 kg/cm² PVC Casing Pipe');
   const [fbDescCasing6En, setFbDescCasing6En] = useState<string>('140 mm dia 6 kg/cm² PVC Casing Pipe');
   const [fbDescInnerEn, setFbDescInnerEn] = useState<string>('140 mm PVC Cap / Inner Casing');
 
@@ -267,6 +270,7 @@ export default function PrintableReportModal({
   // Financial & Rates editable values
   const [drillingRate, setDrillingRate] = useState<number>(390);
   const [casing10kgRate, setCasing10kgRate] = useState<number>(960);
+  const [casing8kgRate, setCasing8kgRate] = useState<number>(464.53);
   const [casing6kgRate, setCasing6kgRate] = useState<number>(580);
   const [innerCasingRate, setInnerCasingRate] = useState<number>(225);
   
@@ -390,19 +394,22 @@ export default function PrintableReportModal({
       setDiameter(currentSite.diameter || 'Ø 110 മില്ലീമീറ്റർ');
 
       const c10 = parseNum(currentSite.casing10kgPipe);
+      const c8 = parseNum((currentSite as any).casing8kgPipe);
       const rawC6 = parseNum(currentSite.casing6kgPipe);
       const rawPipeUsed = parseNum(currentSite.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite.surveyRecommendedCasingPipe);
 
       const is6kgDefined = currentSite.casing6kgPipe !== undefined && currentSite.casing6kgPipe !== null;
       const is10kgDefined = currentSite.casing10kgPipe !== undefined && currentSite.casing10kgPipe !== null;
+      const is8kgDefined = (currentSite as any).casing8kgPipe !== undefined && (currentSite as any).casing8kgPipe !== null;
 
       let c6 = rawC6;
-      if (!is6kgDefined && !is10kgDefined && c10 === 0 && c6 === 0) {
+      if (!is6kgDefined && !is8kgDefined && !is10kgDefined && c10 === 0 && c8 === 0 && c6 === 0) {
         c6 = rawPipeUsed || rawSurveyCasing || 0;
       }
 
       setCasing10kgQty(c10);
+      setCasing8kgQty(c8);
       setCasing6kgQty(c6);
       const innerQty = parseNum(currentSite.innerCasingPipe) || parseNum(currentSite.innerCasing6kgPipe) || parseNum(currentSite.innerCasing4kgPipe);
       setInnerCasingQty(innerQty);
@@ -423,7 +430,7 @@ export default function PrintableReportModal({
       setRigUsed(rigStr);
 
       setContractorName(currentSite.contractorName || '');
-      setPeriodFrom(currentSite.dateOfCommencement || '');
+      setPeriodFrom((currentSite as any).startDate || (currentSite as any).dateOfCommencement || '');
       setPeriodTo(currentSite.dateOfCompletion || '');
       setRemarks(currentSite.drillingRemarks || currentSite.workRemarks || '');
 
@@ -444,11 +451,13 @@ export default function PrintableReportModal({
 
       setFbDescDrillingMl(`${drillingDia} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്`);
       setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
       setFbDescCasing6Ml(`${casingDia} വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
       setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
 
       setFbDescDrillingEn(`Drilling charges for ${drillingDiaEn} dia borewell`);
       setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
+      setFbDescCasing8En(`${casingDiaEn} dia 8 kg/cm² PVC Casing Pipe`);
       setFbDescCasing6En(`${casingDiaEn} dia 6 kg/cm² PVC Casing Pipe`);
       setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
 
@@ -475,9 +484,10 @@ export default function PrintableReportModal({
 
       const localDrillingTotal = drillingRate * depth;
       const localCasing10Total = casing10kgRate * c10;
+      const localCasing8Total = casing8kgRate * c8;
       const localCasing6Total = casing6kgRate * c6;
       const localInnerTotal = innerCasingRate * localInnerQty;
-      localTotalExpenditure = localDrillingTotal + localCasing10Total + localCasing6Total + localInnerTotal;
+      localTotalExpenditure = localDrillingTotal + localCasing10Total + localCasing8Total + localCasing6Total + localInnerTotal;
       localNetPayable = localTotalExpenditure - localSubsidy;
     }
 
@@ -534,17 +544,20 @@ export default function PrintableReportModal({
       const sDepth = parseNum(s.totalDepth);
       const sDrilling = drillingRate * sDepth;
       const sC10Val = parseNum(s.casing10kgPipe);
+      const sC8Val = parseNum((s as any).casing8kgPipe);
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
       const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
       const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
-      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sHas8kg = (s as any).casing8kgPipe !== undefined && (s as any).casing8kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && !sHas8kg && sC10Val === 0 && sC8Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
 
       const sC10 = casing10kgRate * sC10Val;
+      const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
       const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
-      const sCost = sDrilling + sC10 + sC6 + sInner;
+      const sCost = sDrilling + sC10 + sC8 + sC6 + sInner;
       return {
         description: s.nameOfSite || entry?.applicantName || 'Borewell Construction',
         deposited: depositTotal / (sites.length || 1),
@@ -556,17 +569,20 @@ export default function PrintableReportModal({
       const sDepth = parseNum(s.totalDepth);
       const sDrilling = drillingRate * sDepth;
       const sC10Val = parseNum(s.casing10kgPipe);
+      const sC8Val = parseNum((s as any).casing8kgPipe);
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
       const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
       const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
-      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sHas8kg = (s as any).casing8kgPipe !== undefined && (s as any).casing8kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && !sHas8kg && sC10Val === 0 && sC8Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
 
       const sC10 = casing10kgRate * sC10Val;
+      const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
       const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
-      const sCost = sDrilling + sC10 + sC6 + sInner;
+      const sCost = sDrilling + sC10 + sC8 + sC6 + sInner;
       return {
         siteName: s.nameOfSite || '',
         location: s.localSelfGovt || 'LSGD',
@@ -575,7 +591,7 @@ export default function PrintableReportModal({
       };
     }));
 
-  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork, allStaffMembers, officeAddress?.districtOfficer, officeAddress?.nameOfTreasury, officeAddress?.stsbAccountNo]);
+  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing8kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork, allStaffMembers, officeAddress?.districtOfficer, officeAddress?.nameOfTreasury, officeAddress?.stsbAccountNo]);
 
   // Derived Calculations
   const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
@@ -597,11 +613,12 @@ export default function PrintableReportModal({
 
   const drillingTotal = drillingRate * drillingQty;
   const casing10kgTotal = casing10kgRate * casing10kgQty;
+  const casing8kgTotal = casing8kgRate * casing8kgQty;
   const casing6kgTotal = casing6kgRate * casing6kgQty;
   const effectiveInnerCasingQty = (endCap === 'Yes' && innerCasingQty === 0) ? 1 : innerCasingQty;
   const innerCasingTotal = innerCasingRate * effectiveInnerCasingQty;
 
-  const totalExpenditure = drillingTotal + casing10kgTotal + casing6kgTotal + innerCasingTotal;
+  const totalExpenditure = drillingTotal + casing10kgTotal + casing8kgTotal + casing6kgTotal + innerCasingTotal;
   const netPayableGwd = totalExpenditure - effectiveSubsidyAmount;
   const balanceRefund = advanceDeposit - netPayableGwd;
 
@@ -671,22 +688,25 @@ export default function PrintableReportModal({
       const sDrilling = drillingRate * sDepth;
 
       const sC10Val = parseNum(s.casing10kgPipe);
+      const sC8Val = parseNum((s as any).casing8kgPipe);
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
 
       const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
       const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
-      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && sC10Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sHas8kg = (s as any).casing8kgPipe !== undefined && (s as any).casing8kgPipe !== null;
+      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && !sHas8kg && sC10Val === 0 && sC8Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
 
       const sC10 = casing10kgRate * sC10Val;
+      const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
 
       const rawInner = parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe);
       const sInnerQty = (s.endCap === 'Yes' && rawInner === 0) ? 1 : rawInner;
       const sInner = innerCasingRate * sInnerQty;
 
-      const sTotalExpenditure = sDrilling + sC10 + sC6 + sInner;
+      const sTotalExpenditure = sDrilling + sC10 + sC8 + sC6 + sInner;
 
       // Site subsidy
       const sAppTypeStr = (applicationType || entry?.applicationType || s.applicationType || '').toLowerCase();
@@ -732,6 +752,8 @@ export default function PrintableReportModal({
         drillingCost: sDrilling,
         casing10Qty: sC10Val,
         casing10Cost: sC10,
+        casing8Qty: sC8Val,
+        casing8Cost: sC8,
         casing6Qty: sC6Val,
         casing6Cost: sC6,
         innerQty: sInnerQty,
@@ -750,6 +772,8 @@ export default function PrintableReportModal({
       drillingCost: number;
       casing10Qty: number;
       casing10Cost: number;
+      casing8Qty: number;
+      casing8Cost: number;
       casing6Qty: number;
       casing6Cost: number;
       innerQty: number;
@@ -759,7 +783,7 @@ export default function PrintableReportModal({
       subsidyAmount: number;
       netPayable: number;
     }>;
-  }, [sites, drillingRate, casing10kgRate, casing6kgRate, innerCasingRate, applicationType, entry, isPrivateWork]);
+  }, [sites, drillingRate, casing10kgRate, casing8kgRate, casing6kgRate, innerCasingRate, applicationType, entry, isPrivateWork]);
 
   const totalNetPayableAllSites = useMemo(() => {
     return siteFinancials.reduce((sum, sf) => sum + sf.netPayable, 0);
@@ -1099,14 +1123,16 @@ export default function PrintableReportModal({
           constituency: constituency || updatedSiteDetails[originalIndex].constituency,
           totalDepth: depthMeter !== undefined && depthMeter !== null ? String(depthMeter) : updatedSiteDetails[originalIndex].totalDepth,
           casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails[originalIndex].casing10kgPipe ?? ""),
+          casing8kgPipe: casing8kgQty !== undefined && casing8kgQty !== null ? String(casing8kgQty) : ((updatedSiteDetails[originalIndex] as any).casing8kgPipe ?? ""),
           casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[originalIndex].casing6kgPipe ?? ""),
-          casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing6kgQty) || 0)),
+          casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0)),
           yieldDischarge: yieldLph || updatedSiteDetails[originalIndex].yieldDischarge,
           zoneDetails: waterStruckZone || updatedSiteDetails[originalIndex].zoneDetails,
           waterLevel: staticWaterLevel || updatedSiteDetails[originalIndex].waterLevel,
           drillingRemarks: remarks || updatedSiteDetails[originalIndex].drillingRemarks,
           workRemarks: remarks || updatedSiteDetails[originalIndex].workRemarks,
-          dateOfCommencement: periodFrom || updatedSiteDetails[originalIndex].dateOfCommencement,
+          startDate: periodFrom || (updatedSiteDetails[originalIndex] as any).startDate || (updatedSiteDetails[originalIndex] as any).dateOfCommencement,
+          dateOfCommencement: periodFrom || (updatedSiteDetails[originalIndex] as any).startDate || (updatedSiteDetails[originalIndex] as any).dateOfCommencement,
           dateOfCompletion: periodTo || updatedSiteDetails[originalIndex].dateOfCompletion,
         };
       }
@@ -1146,14 +1172,17 @@ export default function PrintableReportModal({
     cr_ob: () => setActualOverburden(currentSite?.surveyOB ? String(currentSite.surveyOB) : (currentSite?.surveyRecommendedOB ? String(currentSite.surveyRecommendedOB) : '')),
     cr_casingDetails: () => {
       const c10 = parseNum(currentSite?.casing10kgPipe);
+      const c8 = parseNum((currentSite as any)?.casing8kgPipe);
       const rawC6 = parseNum(currentSite?.casing6kgPipe);
       const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
       const is6kgDefined = currentSite?.casing6kgPipe !== undefined && currentSite?.casing6kgPipe !== null;
       const is10kgDefined = currentSite?.casing10kgPipe !== undefined && currentSite?.casing10kgPipe !== null;
-      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      const is8kgDefined = (currentSite as any)?.casing8kgPipe !== undefined && (currentSite as any)?.casing8kgPipe !== null;
+      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && !is8kgDefined && c10 === 0 && c8 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
 
       setCasing10kgQty(c10);
+      setCasing8kgQty(c8);
       setCasing6kgQty(c6);
       setInnerCasingQty(parseNum(currentSite?.innerCasingPipe) || parseNum(currentSite?.innerCasing6kgPipe) || parseNum(currentSite?.innerCasing4kgPipe));
       setPilotDrillingDepth(currentSite?.pilotDrillingDepth || '');
@@ -1165,7 +1194,7 @@ export default function PrintableReportModal({
     cr_yield: () => setYieldLph(Number(currentSite?.yieldDischarge) || 0),
     cr_zone: () => setWaterStruckZone(currentSite?.zoneDetails || ''),
     cr_swl: () => setStaticWaterLevel((currentSite?.waterLevel !== undefined && currentSite?.waterLevel !== null && currentSite?.waterLevel !== '') ? currentSite.waterLevel : ''),
-    cr_period: () => { setPeriodFrom(currentSite?.dateOfCommencement || ''); setPeriodTo(currentSite?.dateOfCompletion || ''); },
+    cr_period: () => { setPeriodFrom((currentSite as any)?.startDate || (currentSite as any)?.dateOfCommencement || ''); setPeriodTo(currentSite?.dateOfCompletion || ''); },
     cr_remarks: () => setRemarks(currentSite?.drillingRemarks || currentSite?.workRemarks || ''),
     cr_contractor: () => setContractorName(currentSite?.contractorName || ''),
 
@@ -1184,10 +1213,14 @@ export default function PrintableReportModal({
       const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
       const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
       setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
       setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
+      setFbDescCasing8En(`${casingDiaEn} dia 8 kg/cm² PVC Casing Pipe`);
     },
     fb_r2: () => setCasing10kgRate(960),
     fb_q2: () => setCasing10kgQty(parseNum(currentSite?.casing10kgPipe)),
+    fb_r2_8: () => setCasing8kgRate(464.53),
+    fb_q2_8: () => setCasing8kgQty(parseNum((currentSite as any)?.casing8kgPipe)),
     fb_desc_casing6: () => {
       const diaVal = currentSite?.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');
@@ -1199,12 +1232,14 @@ export default function PrintableReportModal({
     fb_r3: () => setCasing6kgRate(580),
     fb_q3: () => {
       const c10 = parseNum(currentSite?.casing10kgPipe);
+      const c8 = parseNum((currentSite as any)?.casing8kgPipe);
       const rawC6 = parseNum(currentSite?.casing6kgPipe);
       const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
       const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
       const is6kgDefined = currentSite?.casing6kgPipe !== undefined && currentSite?.casing6kgPipe !== null;
       const is10kgDefined = currentSite?.casing10kgPipe !== undefined && currentSite?.casing10kgPipe !== null;
-      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && c10 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      const is8kgDefined = (currentSite as any)?.casing8kgPipe !== undefined && (currentSite as any)?.casing8kgPipe !== null;
+      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && !is8kgDefined && c10 === 0 && c8 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
       setCasing6kgQty(c6);
     },
     fb_desc_inner: () => {
@@ -1536,6 +1571,14 @@ export default function PrintableReportModal({
                 <Input className="h-8 text-xs" type="number" value={casing10kgQty} onChange={(e) => setCasing10kgQty(Number(e.target.value))} />
               </div>
               <div>
+                <Label className="text-[11px]">Casing 8kg Rate (Rs/m)</Label>
+                <Input className="h-8 text-xs" type="number" value={casing8kgRate} onChange={(e) => setCasing8kgRate(Number(e.target.value))} />
+              </div>
+              <div>
+                <Label className="text-[11px]">Casing 8kg Qty (m)</Label>
+                <Input className="h-8 text-xs" type="number" value={casing8kgQty} onChange={(e) => setCasing8kgQty(Number(e.target.value))} />
+              </div>
+              <div>
                 <Label className="text-[11px]">Casing 6kg Rate (Rs/m)</Label>
                 <Input className="h-8 text-xs" type="number" value={casing6kgRate} onChange={(e) => setCasing6kgRate(Number(e.target.value))} />
               </div>
@@ -1578,7 +1621,7 @@ export default function PrintableReportModal({
             const recOBFormatted = surveyRecommendedOB ? formatMeterValue(surveyRecommendedOB, meterUnit) : '';
             const recDisplay = [recTDFormatted, recOBFormatted].filter(Boolean).join(', ');
 
-            const totalCasingMeters = (Number(casing10kgQty) || 0) + (Number(casing6kgQty) || 0) + (Number(innerCasingQty) || 0);
+            const totalCasingMeters = (Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0) + (Number(innerCasingQty) || 0);
 
             const formattedPeriodFrom = formatDateDDMMYYYY(periodFrom);
             const formattedPeriodTo = formatDateDDMMYYYY(periodTo);
@@ -1695,6 +1738,7 @@ export default function PrintableReportModal({
                                 (() => {
                                   const lines: string[] = [];
                                   if (casing10kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 10 kg/cm² : ${casing10kgQty} മീറ്റർ`);
+                                  if (casing8kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 8 kg/cm² : ${casing8kgQty} മീറ്റർ`);
                                   if (casing6kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 6 kg/cm² : ${casing6kgQty} മീറ്റർ`);
                                   if (innerCasingQty) lines.push(`ഇന്നർ കേസിംഗ് (110 mm, 4 kg/cm²) : ${innerCasingQty} മീറ്റർ`);
                                   if (currentSite?.purpose === 'TWC') {
@@ -1721,6 +1765,7 @@ export default function PrintableReportModal({
                                 })(), 
                                 <div className="grid grid-cols-2 gap-2">
                                   <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="8kg" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
                                   {currentSite?.purpose === 'TWC' && (
@@ -1925,6 +1970,7 @@ export default function PrintableReportModal({
                                 (() => {
                                   const lines: string[] = [];
                                   if (casing10kgQty) lines.push(`${casingDiameterLabel}, 10 kg/cm²: ${casing10kgQty} meter`);
+                                  if (casing8kgQty) lines.push(`${casingDiameterLabel}, 8 kg/cm²: ${casing8kgQty} meter`);
                                   if (casing6kgQty) lines.push(`${casingDiameterLabel}, 6 kg/cm²: ${casing6kgQty} meter`);
                                   if (innerCasingQty) lines.push(`Inner Casing (110 mm, 4 kg/cm²): ${innerCasingQty} meter`);
                                   if (currentSite?.purpose === 'TWC') {
@@ -1949,6 +1995,7 @@ export default function PrintableReportModal({
                                 })(), 
                                 <div className="grid grid-cols-2 gap-2">
                                   <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="8kg" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
                                   {currentSite?.purpose === 'TWC' && (
@@ -2081,6 +2128,19 @@ export default function PrintableReportModal({
                       total: casing10kgTotal
                     },
                     {
+                      qty: casing8kgQty,
+                      descId: 'fb_desc_casing8_ml',
+                      descValue: fbDescCasing8Ml,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing8Ml} onChange={e => setFbDescCasing8Ml(e.target.value)} />,
+                      rateId: 'fb_r2_8',
+                      rateValue: casing8kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing8kgRate} onChange={e => setCasing8kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q2_8',
+                      qtyText: `${casing8kgQty} മീറ്റർ`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />,
+                      total: casing8kgTotal
+                    },
+                    {
                       qty: casing6kgQty,
                       descId: 'fb_desc_casing6_ml',
                       descValue: fbDescCasing6Ml,
@@ -2171,7 +2231,7 @@ export default function PrintableReportModal({
                                         isFailedOrZeroYield
                                           ? 'പരാജയപ്പെട്ട കുഴൽകിണറിനുള്ള നഷ്ടപരിഹാരം (സബ്സിഡി ഉൾപ്പെടെ)'
                                           : (isPrivateIrrigation 
-                                              ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%  (ശുപാർശ ചെയ്ത ആഴമായ 120 മീറ്റര് വരെ മാത്രം)' 
+                                              ? 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള സബ്സിഡി - ഡ്രില്ലിംഗ് ചാർജിന്റെ 50%' 
                                               : 'നാമമാത്ര / ചെറുകിട കർഷകർക്കുള്ള ധനസഹായം'), 
                                         <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
                                       )}
@@ -2270,6 +2330,19 @@ export default function PrintableReportModal({
                       qtyText: `${casing10kgQty} m`,
                       qtyEl: <Input type="number" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />,
                       total: casing10kgTotal
+                    },
+                    {
+                      qty: casing8kgQty,
+                      descId: 'fb_desc_casing8_en',
+                      descValue: fbDescCasing8En,
+                      descEl: <Input className="h-6 text-xs" value={fbDescCasing8En} onChange={e => setFbDescCasing8En(e.target.value)} />,
+                      rateId: 'fb_en_r2_8',
+                      rateValue: casing8kgRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={casing8kgRate} onChange={e => setCasing8kgRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q2_8',
+                      qtyText: `${casing8kgQty} m`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />,
+                      total: casing8kgTotal
                     },
                     {
                       qty: casing6kgQty,

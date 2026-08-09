@@ -145,19 +145,19 @@ export function GlobalSearchCommand({
     });
 
     // 3. Agency / Rig Registrations
-    allAgencyApplications.forEach((app) => {
+    (allAgencyApplications as any[]).forEach((app) => {
       const appNo = (app.applicationNumber || '').toLowerCase();
       const agency = (app.agencyName || '').toLowerCase();
       const owner = (app.ownerName || '').toLowerCase();
       const regNo = (app.registrationNumber || '').toLowerCase();
       const gst = (app.gstNumber || '').toLowerCase();
       
-      const rigMatch = app.rigs?.some((r) =>
+      const rigMatch = app.rigs?.some((r: any) =>
         (r.registrationNumber || '').toLowerCase().includes(q) ||
         (r.vehicleNumber || '').toLowerCase().includes(q) ||
         (r.rigType || '').toLowerCase().includes(q)
       );
-
+      
       if (
         appNo.includes(q) ||
         agency.includes(q) ||
@@ -181,10 +181,10 @@ export function GlobalSearchCommand({
     });
 
     // 4. e-Tenders
-    allE_tenders.forEach((et) => {
+    (allE_tenders as any[]).forEach((et) => {
       const tNo = (et.tenderNo || '').toLowerCase();
       const work = (et.workName || '').toLowerCase();
-      const bidderMatch = et.bidders?.some((b) => (b.bidderName || '').toLowerCase().includes(q));
+      const bidderMatch = et.bidders?.some((b: any) => (b.bidderName || '').toLowerCase().includes(q));
 
       if (tNo.includes(q) || work.includes(q) || bidderMatch) {
         matched.push({
@@ -201,7 +201,7 @@ export function GlobalSearchCommand({
     });
 
     // 5. Vehicles & Rigs
-    allDepartmentVehicles.concat(allHiredVehicles as any).forEach((v) => {
+    (allDepartmentVehicles.concat(allHiredVehicles as any) as any[]).forEach((v) => {
       const reg = (v.vehicleNo || v.registrationNo || '').toLowerCase();
       const make = (v.makeModel || v.vehicleType || '').toLowerCase();
       const driver = (v.driverName || '').toLowerCase();
