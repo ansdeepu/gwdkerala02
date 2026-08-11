@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
 import { printDocument, copyRichHtml } from "@/lib/print-utils";
+import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
 import { 
   type DataEntryFormData, 
   type SiteDetailFormData, 
@@ -141,6 +142,7 @@ export default function PrintableReportModal({
   const [lang, setLang] = useState<LanguageMode>('ml');
   const [docType, setDocType] = useState<ReportDocType>(initialDocType);
   const [isCopying, setIsCopying] = useState<boolean>(false);
+  const [printSettings, setPrintSettings] = useState<PrintStyleSettings>(DEFAULT_PRINT_STYLES);
 
   useEffect(() => {
     if (initialDocType) {
@@ -590,6 +592,78 @@ export default function PrintableReportModal({
         expenditure: sCost,
       };
     }));
+
+    // Apply saved overrides if present on entry
+    const savedOverrides: Record<string, any> = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
+    if (savedOverrides.fileNo) setFileNo(savedOverrides.fileNo);
+    if (savedOverrides.applicantName) setApplicantName(savedOverrides.applicantName);
+    if (savedOverrides.applicantAddress) setApplicantAddress(savedOverrides.applicantAddress);
+    if (savedOverrides.applicationType) setApplicationType(savedOverrides.applicationType);
+
+    if (savedOverrides.orderNo) setOrderNo(savedOverrides.orderNo);
+    if (savedOverrides.orderDate) setOrderDate(savedOverrides.orderDate);
+    if (savedOverrides.refLetterNo) setRefLetterNo(savedOverrides.refLetterNo);
+    if (savedOverrides.refLetterDate) setRefLetterDate(savedOverrides.refLetterDate);
+
+    if (savedOverrides.advanceDeposit !== undefined) setAdvanceDeposit(savedOverrides.advanceDeposit);
+    if (savedOverrides.ddDetails !== undefined) setDdDetails(savedOverrides.ddDetails);
+
+    if (savedOverrides.drillingRate !== undefined) setDrillingRate(savedOverrides.drillingRate);
+    if (savedOverrides.casing10kgRate !== undefined) setCasing10kgRate(savedOverrides.casing10kgRate);
+    if (savedOverrides.casing8kgRate !== undefined) setCasing8kgRate(savedOverrides.casing8kgRate);
+    if (savedOverrides.casing6kgRate !== undefined) setCasing6kgRate(savedOverrides.casing6kgRate);
+    if (savedOverrides.innerCasingRate !== undefined) setInnerCasingRate(savedOverrides.innerCasingRate);
+    if (savedOverrides.drillingQty !== undefined) setDrillingQty(savedOverrides.drillingQty);
+    if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(savedOverrides.subsidyAmount);
+
+    if (savedOverrides.fbDescDrillingMl) setFbDescDrillingMl(savedOverrides.fbDescDrillingMl);
+    if (savedOverrides.fbDescCasing10Ml) setFbDescCasing10Ml(savedOverrides.fbDescCasing10Ml);
+    if (savedOverrides.fbDescCasing8Ml) setFbDescCasing8Ml(savedOverrides.fbDescCasing8Ml);
+    if (savedOverrides.fbDescCasing6Ml) setFbDescCasing6Ml(savedOverrides.fbDescCasing6Ml);
+    if (savedOverrides.fbDescInnerMl) setFbDescInnerMl(savedOverrides.fbDescInnerMl);
+
+    if (savedOverrides.fbDescDrillingEn) setFbDescDrillingEn(savedOverrides.fbDescDrillingEn);
+    if (savedOverrides.fbDescCasing10En) setFbDescCasing10En(savedOverrides.fbDescCasing10En);
+    if (savedOverrides.fbDescCasing8En) setFbDescCasing8En(savedOverrides.fbDescCasing8En);
+    if (savedOverrides.fbDescCasing6En) setFbDescCasing6En(savedOverrides.fbDescCasing6En);
+    if (savedOverrides.fbDescInnerEn) setFbDescInnerEn(savedOverrides.fbDescInnerEn);
+
+    if (savedOverrides.bankAccountNo) setBankAccountNo(savedOverrides.bankAccountNo);
+    if (savedOverrides.bankIfsc) setBankIfsc(savedOverrides.bankIfsc);
+    if (savedOverrides.bankName) setBankName(savedOverrides.bankName);
+    if (savedOverrides.bankBranch) setBankBranch(savedOverrides.bankBranch);
+
+    if (savedOverrides.proceedingsSubject) setProceedingsSubject(savedOverrides.proceedingsSubject);
+    if (savedOverrides.proceedingsRef1) setProceedingsRef1(savedOverrides.proceedingsRef1);
+    if (savedOverrides.proceedingsRef2) setProceedingsRef2(savedOverrides.proceedingsRef2);
+    if (savedOverrides.procPara4) setProcPara4(savedOverrides.procPara4);
+    if (savedOverrides.procPara5) setProcPara5(savedOverrides.procPara5);
+
+    if (savedOverrides.ucPhone) setUcPhone(savedOverrides.ucPhone);
+    if (savedOverrides.ucEmail) setUcEmail(savedOverrides.ucEmail);
+    if (savedOverrides.ucFrom) setUcFrom(savedOverrides.ucFrom);
+    if (savedOverrides.ucTo) setUcTo(savedOverrides.ucTo);
+    if (savedOverrides.ucSubject) setUcSubject(savedOverrides.ucSubject);
+    if (savedOverrides.ucRef1) setUcRef1(savedOverrides.ucRef1);
+    if (savedOverrides.ucRef2) setUcRef2(savedOverrides.ucRef2);
+    if (savedOverrides.ucMlPara1) setUcMlPara1(savedOverrides.ucMlPara1);
+    if (savedOverrides.ucMlPara2) setUcMlPara2(savedOverrides.ucMlPara2);
+    if (savedOverrides.ucEnPara1) setUcEnPara1(savedOverrides.ucEnPara1);
+    if (savedOverrides.ucEnPara2) setUcEnPara2(savedOverrides.ucEnPara2);
+
+    if (savedOverrides.district) setDistrict(savedOverrides.district);
+    if (savedOverrides.districtMl) setDistrictMl(savedOverrides.districtMl);
+    if (savedOverrides.subOfficeLocation) setSubOfficeLocation(savedOverrides.subOfficeLocation);
+    if (savedOverrides.subOfficeLocationMl) setSubOfficeLocationMl(savedOverrides.subOfficeLocationMl);
+    if (savedOverrides.officerName) setOfficerName(savedOverrides.officerName);
+    if (savedOverrides.officerDesignation) setOfficerDesignation(savedOverrides.officerDesignation);
+
+    if (savedOverrides.selectedRemittanceIndices && Array.isArray(savedOverrides.selectedRemittanceIndices)) {
+      setSelectedRemittanceIndices(savedOverrides.selectedRemittanceIndices);
+    }
+    if (savedOverrides.selectedSiteIndices && Array.isArray(savedOverrides.selectedSiteIndices)) {
+      setSelectedSiteIndices(savedOverrides.selectedSiteIndices);
+    }
 
   }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing8kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork, allStaffMembers, officeAddress?.districtOfficer, officeAddress?.nameOfTreasury, officeAddress?.stsbAccountNo]);
 
@@ -1060,14 +1134,25 @@ export default function PrintableReportModal({
   const handlePrint = () => {
     setEditingRow(null);
     const docTitle = getReportDocumentTitle(docType, fileNo || entry?.fileNo);
-    printDocument('printable-report-document', docTitle);
+    printDocument('printable-report-document', docTitle, {
+      pageMargins: getPageMarginsCss(printSettings),
+      fontSize: printSettings.fontSize,
+      lineHeight: printSettings.lineSpacing,
+      englishFont: printSettings.englishFont,
+      malayalamFont: printSettings.malayalamFont,
+    });
   };
 
   const handleCopyRichHtml = async () => {
     setEditingRow(null);
     setIsCopying(true);
     try {
-      const success = await copyRichHtml('printable-report-document');
+      const success = await copyRichHtml('printable-report-document', {
+        fontSize: printSettings.fontSize,
+        lineHeight: printSettings.lineSpacing,
+        englishFont: printSettings.englishFont,
+        malayalamFont: printSettings.malayalamFont,
+      });
       if (success) {
         toast({
           title: "Copied successfully",
@@ -1112,38 +1197,122 @@ export default function PrintableReportModal({
     setEditingRow(null);
     try {
       const updatedSiteDetails = [...(entry.siteDetails || [])];
-      const originalIndex = entry.siteDetails?.findIndex(s => s === currentSite) ?? -1;
-      if (originalIndex !== -1 && updatedSiteDetails[originalIndex]) {
-        updatedSiteDetails[originalIndex] = {
-          ...updatedSiteDetails[originalIndex],
-          contractorName: contractorName || updatedSiteDetails[originalIndex].contractorName,
-          latitude: latitude ? Number(latitude) : updatedSiteDetails[originalIndex].latitude,
-          longitude: longitude ? Number(longitude) : updatedSiteDetails[originalIndex].longitude,
-          localSelfGovt: localSelfGovt || updatedSiteDetails[originalIndex].localSelfGovt,
-          constituency: constituency || updatedSiteDetails[originalIndex].constituency,
-          totalDepth: depthMeter !== undefined && depthMeter !== null ? String(depthMeter) : updatedSiteDetails[originalIndex].totalDepth,
-          casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails[originalIndex].casing10kgPipe ?? ""),
-          casing8kgPipe: casing8kgQty !== undefined && casing8kgQty !== null ? String(casing8kgQty) : ((updatedSiteDetails[originalIndex] as any).casing8kgPipe ?? ""),
-          casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[originalIndex].casing6kgPipe ?? ""),
+      const originalIndex = entry.siteDetails?.findIndex(s => s === currentSite) ?? (selectedSiteIndex >= 0 ? selectedSiteIndex : 0);
+      const targetIndex = originalIndex !== -1 ? originalIndex : 0;
+
+      if (updatedSiteDetails[targetIndex]) {
+        updatedSiteDetails[targetIndex] = {
+          ...updatedSiteDetails[targetIndex],
+          nameOfSite: siteName || updatedSiteDetails[targetIndex].nameOfSite,
+          contractorName: contractorName || updatedSiteDetails[targetIndex].contractorName,
+          latitude: latitude ? Number(latitude) : updatedSiteDetails[targetIndex].latitude,
+          longitude: longitude ? Number(longitude) : updatedSiteDetails[targetIndex].longitude,
+          localSelfGovt: localSelfGovt || updatedSiteDetails[targetIndex].localSelfGovt,
+          constituency: constituency || updatedSiteDetails[targetIndex].constituency,
+          totalDepth: depthMeter !== undefined && depthMeter !== null ? String(depthMeter) : updatedSiteDetails[targetIndex].totalDepth,
+          casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails[targetIndex].casing10kgPipe ?? ""),
+          casing8kgPipe: casing8kgQty !== undefined && casing8kgQty !== null ? String(casing8kgQty) : ((updatedSiteDetails[targetIndex] as any).casing8kgPipe ?? ""),
+          casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[targetIndex].casing6kgPipe ?? ""),
           casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0)),
-          yieldDischarge: yieldLph || updatedSiteDetails[originalIndex].yieldDischarge,
-          zoneDetails: waterStruckZone || updatedSiteDetails[originalIndex].zoneDetails,
-          waterLevel: staticWaterLevel || updatedSiteDetails[originalIndex].waterLevel,
-          drillingRemarks: remarks || updatedSiteDetails[originalIndex].drillingRemarks,
-          workRemarks: remarks || updatedSiteDetails[originalIndex].workRemarks,
-          startDate: periodFrom || (updatedSiteDetails[originalIndex] as any).startDate || (updatedSiteDetails[originalIndex] as any).dateOfCommencement,
-          dateOfCommencement: periodFrom || (updatedSiteDetails[originalIndex] as any).startDate || (updatedSiteDetails[originalIndex] as any).dateOfCommencement,
-          dateOfCompletion: periodTo || updatedSiteDetails[originalIndex].dateOfCompletion,
+          yieldDischarge: yieldLph !== undefined && yieldLph !== null && yieldLph !== '' ? String(yieldLph) : (updatedSiteDetails[targetIndex].yieldDischarge !== undefined && updatedSiteDetails[targetIndex].yieldDischarge !== null ? String(updatedSiteDetails[targetIndex].yieldDischarge) : ""),
+          zoneDetails: waterStruckZone || updatedSiteDetails[targetIndex].zoneDetails,
+          waterLevel: staticWaterLevel !== undefined && staticWaterLevel !== null && staticWaterLevel !== '' ? String(staticWaterLevel) : (updatedSiteDetails[targetIndex].waterLevel !== undefined && updatedSiteDetails[targetIndex].waterLevel !== null ? String(updatedSiteDetails[targetIndex].waterLevel) : ""),
+          drillingRemarks: remarks || updatedSiteDetails[targetIndex].drillingRemarks,
+          workRemarks: remarks || updatedSiteDetails[targetIndex].workRemarks,
+          startDate: periodFrom || (updatedSiteDetails[targetIndex] as any).startDate || (updatedSiteDetails[targetIndex] as any).dateOfCommencement,
+          dateOfCommencement: periodFrom || (updatedSiteDetails[targetIndex] as any).startDate || (updatedSiteDetails[targetIndex] as any).dateOfCommencement,
+          dateOfCompletion: periodTo || updatedSiteDetails[targetIndex].dateOfCompletion,
+          diameter: diameter || updatedSiteDetails[targetIndex].diameter,
+          surveyOB: actualOverburden || updatedSiteDetails[targetIndex].surveyOB,
+          surveyRecommendedOB: actualOverburden || updatedSiteDetails[targetIndex].surveyRecommendedOB,
+          pilotDrillingDepth: pilotDrillingDepth || updatedSiteDetails[targetIndex].pilotDrillingDepth,
+          surveyPlainPipe: surveyPlainPipe || updatedSiteDetails[targetIndex].surveyPlainPipe,
+          surveySlottedPipe: surveySlottedPipe || updatedSiteDetails[targetIndex].surveySlottedPipe,
+          outerCasingPipe: outerCasingPipe || updatedSiteDetails[targetIndex].outerCasingPipe,
+          surveyRecommendedTD: surveyRecommendedTD || updatedSiteDetails[targetIndex].surveyRecommendedTD,
+          surveyLocation: surveyLocation || updatedSiteDetails[targetIndex].surveyLocation,
+          typeOfRig: rigUsed || updatedSiteDetails[targetIndex].typeOfRig,
         };
       }
 
+      const reportOverrides: Record<string, any> = {
+        ...((entry as any)?.reportOverrides || (entry as any)?.printOverrides || {}),
+        fileNo,
+        applicantName,
+        applicantAddress,
+        applicationType,
+
+        drillingRate,
+        casing10kgRate,
+        casing8kgRate,
+        casing6kgRate,
+        innerCasingRate,
+        drillingQty,
+        subsidyAmount,
+        advanceDeposit,
+        ddDetails,
+
+        fbDescDrillingMl,
+        fbDescCasing10Ml,
+        fbDescCasing8Ml,
+        fbDescCasing6Ml,
+        fbDescInnerMl,
+        fbDescDrillingEn,
+        fbDescCasing10En,
+        fbDescCasing8En,
+        fbDescCasing6En,
+        fbDescInnerEn,
+
+        orderNo,
+        orderDate,
+        refLetterNo,
+        refLetterDate,
+        bankAccountNo,
+        bankIfsc,
+        bankName,
+        bankBranch,
+        proceedingsSubject,
+        proceedingsRef1,
+        proceedingsRef2,
+        procPara4,
+        procPara5,
+
+        ucPhone,
+        ucEmail,
+        ucFrom,
+        ucTo,
+        ucSubject,
+        ucRef1,
+        ucRef2,
+        ucMlPara1,
+        ucMlPara2,
+        ucEnPara1,
+        ucEnPara2,
+
+        selectedRemittanceIndices,
+        selectedSiteIndices,
+
+        district,
+        districtMl,
+        subOfficeLocation,
+        subOfficeLocationMl,
+        officerName,
+        officerDesignation,
+      };
+
       const updatedEntry: DataEntryFormData = {
         ...entry,
+        fileNo: fileNo || entry.fileNo,
+        applicantName: applicantName || entry.applicantName,
+        applicantAddress: applicantAddress || entry.applicantAddress,
+        applicationType: (applicationType as any) || entry.applicationType,
         siteDetails: updatedSiteDetails,
+        reportOverrides,
+        printOverrides: reportOverrides,
       };
 
       await onSave(updatedEntry);
-      toast({ title: "Changes Saved", description: "Edited data saved to Firebase database successfully." });
+      toast({ title: "Changes Saved", description: "Edited data saved to database successfully." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Save Failed", description: err.message || "Could not save changes." });
     } finally {
@@ -1341,27 +1510,25 @@ export default function PrintableReportModal({
         </div>
 
         {isEditing && (
-          <div className="mt-1 p-1.5 bg-blue-50/90 dark:bg-blue-950/60 rounded border border-blue-200 dark:border-blue-800 print:hidden shadow-xs">
-            <div className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1 flex items-center justify-between">
+          <div className="mt-1.5 p-2 bg-blue-50/95 dark:bg-blue-950/70 rounded-md border border-blue-200 dark:border-blue-800 print:hidden shadow-xs space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-blue-800 dark:text-blue-300 border-b border-blue-200 dark:border-blue-800 pb-1">
               <span>Change Item / വിവരങ്ങൾ തിരുത്തുക:</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="flex-1 min-w-0">{editControl}</div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="ghost"
-                  className="h-6 w-6 text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-900/60 shrink-0 border border-green-300"
+                  className="h-6 px-2 text-[11px] font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-900/60 border border-green-300 gap-1"
                   onClick={() => setEditingRow(null)}
                   title="Done editing"
                 >
                   <Check className="h-3.5 w-3.5" />
+                  <span>Done</span>
                 </Button>
                 {resetFn && (
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="ghost"
-                    className="h-6 w-6 text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/60 shrink-0 border border-amber-300"
+                    className="h-6 px-2 text-[11px] font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/60 border border-amber-300 gap-1"
                     onClick={() => {
                       handleReset();
                       setEditingRow(null);
@@ -1369,9 +1536,26 @@ export default function PrintableReportModal({
                     title="Reset row to original data"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Reset</span>
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Display full current data for complete context */}
+            <div className="bg-white/90 dark:bg-slate-900/90 p-2 rounded border border-blue-100 dark:border-blue-900/60 text-gray-800 dark:text-gray-200 text-xs leading-relaxed max-h-48 overflow-y-auto">
+              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block uppercase tracking-wider mb-1">
+                Full Displayed Data / പൂർണ്ണ വിവരങ്ങൾ:
+              </span>
+              <div className="font-normal">{displayContent}</div>
+            </div>
+
+            {/* Edit controls for changing item */}
+            <div className="pt-0.5">
+              <span className="text-[10px] font-bold text-blue-900 dark:text-blue-200 block uppercase tracking-wider mb-1">
+                Edit Fields / വിവരങ്ങൾ മാറ്റുക:
+              </span>
+              <div className="flex-1 min-w-0">{editControl}</div>
             </div>
           </div>
         )}
@@ -1398,7 +1582,15 @@ export default function PrintableReportModal({
             </div>
 
             {/* Language Selector & Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <PrintStyleToolbar
+                settings={printSettings}
+                onSettingsChange={setPrintSettings}
+                hasMalayalam={lang === 'ml' || true}
+                hasEnglish={lang === 'en' || true}
+                buttonText="Print Settings & Fonts"
+              />
+
               <Tabs value={lang} onValueChange={(val) => setLang(val as LanguageMode)} className="w-auto">
                 <TabsList className="grid grid-cols-2 w-36">
                   <TabsTrigger value="ml" className="text-xs font-semibold">മലയാളം</TabsTrigger>
@@ -1608,7 +1800,7 @@ export default function PrintableReportModal({
         </div>
 
         {/* PRINTABLE DOCUMENT CANVAS */}
-        <div id="printable-report-document" className="bg-white text-black p-6 sm:p-10 border shadow-sm font-sans rounded-none print:border-none print:shadow-none print:p-0 print:m-0 text-[13px] leading-relaxed">
+        <div id="printable-report-document" className="bg-white text-black border shadow-sm font-sans rounded-none print:border-none print:shadow-none print:p-0 print:m-0" style={getPrintContainerStyle(printSettings)}>
           
           {/* 1. COMPLETION REPORT (MALAYALAM & ENGLISH) */}
           {docType === 'completion_report' && (() => {
@@ -1627,7 +1819,7 @@ export default function PrintableReportModal({
             const formattedPeriodTo = formatDateDDMMYYYY(periodTo);
 
             return (
-              <div className="completion-report flex flex-col justify-between min-h-[255mm] space-y-2 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm]">
+              <div className="completion-report flex flex-col justify-between min-h-[255mm] space-y-2">
                 {lang === 'ml' ? (
                   <>
                     <div>
@@ -2097,7 +2289,7 @@ export default function PrintableReportModal({
 
           {/* 2. FINAL BILL (MALAYALAM & ENGLISH) */}
           {docType === 'final_bill' && (
-            <div className="final-bill flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1.5cm] pb-[1.5cm] pl-[2.54cm] pr-[2cm] print:m-0 print:pt-[1.5cm] print:pb-[1.5cm] print:pl-[2.54cm] print:pr-[2cm]">
+            <div className="final-bill flex flex-col justify-between min-h-[255mm] space-y-4">
               {lang === 'ml' ? (
                 (() => {
                   const itemsMl = [
@@ -2815,14 +3007,11 @@ export default function PrintableReportModal({
 
           {/* 4. PROCEEDINGS (FOR PRIVATE DEPOSIT WORKS) */}
           {docType === 'proceedings' && (
-            <div className="flex flex-col justify-between min-h-[255mm] space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1.25cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1.25cm] text-[11pt] leading-[1.5]">
+            <div className="flex flex-col justify-between min-h-[255mm] space-y-4 text-[11pt] leading-[1.5]">
               <style>{`
                 @page {
                   size: A4 portrait;
-                  margin-top: 1cm !important;
-                  margin-bottom: 1cm !important;
-                  margin-left: 1.75cm !important;
-                  margin-right: 1.25cm !important;
+                  margin: ${getPageMarginsCss(printSettings)} !important;
                 }
               `}</style>
               <div className="space-y-4">
@@ -2870,9 +3059,15 @@ export default function PrintableReportModal({
                       <span>
                         As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({formatDatesInText(ddDetails)}) for the construction of a borewell at their premises.
                       </span>,
-                      <div className="flex gap-1">
-                        <Input type="number" className="h-6 text-[11pt]" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                        <Input className="h-6 text-[11pt]" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Advance Deposit Amount (₹):</label>
+                          <Input type="number" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">DD / Remittance Details:</label>
+                          <Input className="h-7 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2881,9 +3076,15 @@ export default function PrintableReportModal({
                       <span>
                         Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. The balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.
                       </span>,
-                      <div className="flex gap-1">
-                        <Input type="number" placeholder="Net Payable" className="h-6 text-[11pt]" value={procNetPayable} onChange={e => setDrillingRate(Number(e.target.value))} />
-                        <Input type="number" placeholder="Refund" className="h-6 text-[11pt]" value={procBalanceRefund} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Net Department Expenditure (₹):</label>
+                          <Input type="number" placeholder="Net Expenditure" className="h-7 text-xs" value={procNetPayable} onChange={e => setDrillingRate(Number(e.target.value))} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Balance Refund Amount (₹):</label>
+                          <Input type="number" placeholder="Refund Amount" className="h-7 text-xs" value={procBalanceRefund} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2892,11 +3093,23 @@ export default function PrintableReportModal({
                       <span>
                         In these circumstances, sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>. Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
                       </span>,
-                      <div className="grid grid-cols-4 gap-1">
-                        <Input className="h-6 text-[11pt]" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
-                        <Input className="h-6 text-[11pt]" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
-                        <Input className="h-6 text-[11pt]" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
-                        <Input className="h-6 text-[11pt]" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Bank Account No:</label>
+                          <Input className="h-7 text-xs" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">IFSC Code:</label>
+                          <Input className="h-7 text-xs" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Bank Name:</label>
+                          <Input className="h-7 text-xs" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Branch:</label>
+                          <Input className="h-7 text-xs" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -3005,14 +3218,11 @@ export default function PrintableReportModal({
               </div>
 
               {lang === 'ml' ? (
-                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1cm] text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                <div className="flex flex-col space-y-4 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
                   <style>{`
                     @page {
                       size: A4 portrait;
-                      margin-top: 1cm !important;
-                      margin-bottom: 1cm !important;
-                      margin-left: 1.75cm !important;
-                      margin-right: 1cm !important;
+                      margin: ${getPageMarginsCss(printSettings)} !important;
                     }
                   `}</style>
                   <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
@@ -3179,10 +3389,11 @@ export default function PrintableReportModal({
                           ? `${activeSites.map(s => s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
                           : (activeSites[0]?.siteName ? `${activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
 
-                        return (
-                          <p>
-                            {lsgFull} {siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ആകെ <strong>{Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/-</strong> അടവാക്കിയിട്ടുണ്ടെന്നും ടി പ്രവൃത്തികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ച് ആകെ <strong>{Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ</strong> ചിലവായിട്ടുണ്ടെന്നും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.
-                          </p>
+                        const defaultCertText = `${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- അടവാക്കിയിട്ടുണ്ടെന്നും ടി പ്രവൃത്തികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ച് ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ ചിലവായിട്ടുണ്ടെന്നും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.`;
+
+                        return renderEditableCell('uc_ml_cert_para',
+                          <p className="whitespace-pre-line">{ucMlPara2 || defaultCertText}</p>,
+                          <Textarea className="min-h-[90px] text-xs p-1.5" value={ucMlPara2 || defaultCertText} onChange={e => setUcMlPara2(e.target.value)} />
                         );
                       })()}
                     </div>
@@ -3200,7 +3411,12 @@ export default function PrintableReportModal({
                         {/* Row 1: Deposit */}
                         <tr>
                           <td className="border border-black p-1.5 text-center">1</td>
-                          <td className="border border-black p-1.5 font-bold" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾക്ക് വേണ്ടി പഞ്ചായത്ത് അടവാക്കിയ തുക</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>
+                            {renderEditableCell('uc_ml_tbl_dep_title',
+                              <span>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾക്ക് വേണ്ടി പഞ്ചായത്ത് അടവാക്കിയ തുക</span>,
+                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                            )}
+                          </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
@@ -3212,8 +3428,23 @@ export default function PrintableReportModal({
                           return (
                             <tr key={`dep_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6">{displayDesc}</td>
-                              <td className="border border-black p-1.5 text-right font-mono">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                                {renderEditableCell(`uc_ml_dep_row_${sIdx}`,
+                                  <div className="flex justify-between items-center w-full">
+                                    <span>{displayDesc}</span>
+                                    <span className="font-mono pr-2">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                  </div>,
+                                  <div className="flex gap-2">
+                                    <Input className="h-7 text-xs flex-1" value={displayDesc} readOnly />
+                                    <Input type="number" className="h-7 text-xs w-36" value={siteDeposit} onChange={e => {
+                                      const newRows = [...abstractRemittanceRows];
+                                      if (!newRows[sIdx]) newRows[sIdx] = { desc: displayDesc, amount: siteDeposit };
+                                      newRows[sIdx].amount = Number(e.target.value);
+                                      setAbstractRemittanceRows(newRows);
+                                    }} />
+                                  </div>
+                                )}
+                              </td>
                               <td className="border border-black p-1.5 text-right font-mono"></td>
                             </tr>
                           );
@@ -3223,20 +3454,40 @@ export default function PrintableReportModal({
                           <td className="border border-black p-1.5 text-center">2</td>
                           <td className="border border-black p-1.5">ആകെ</td>
                           <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-right font-mono">
+                            {renderEditableCell('uc_ml_tot_dep',
+                              <span>{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
+                              <Input type="number" className="h-7 text-xs w-36 ml-auto" value={totalRemittanceAmount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                            )}
+                          </td>
                         </tr>
                         {/* Row 3: Expenditure */}
                         <tr>
                           <td className="border border-black p-1.5 text-center">3</td>
-                          <td className="border border-black p-1.5 font-bold" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>
+                            {renderEditableCell('uc_ml_tbl_exp_title',
+                              <span>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</span>,
+                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                            )}
+                          </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
                           return (
                             <tr key={`exp_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം</td>
-                              <td className="border border-black p-1.5 text-right font-mono">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                                {renderEditableCell(`uc_ml_exp_row_${sIdx}`,
+                                  <div className="flex justify-between items-center w-full">
+                                    <span>{sf.siteName} {sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം</span>
+                                    <span className="font-mono pr-2">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                  </div>,
+                                  <div className="flex gap-2">
+                                    <Input className="h-7 text-xs flex-1" value={`${sf.siteName} ${sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം`} readOnly />
+                                    <Input type="number" className="h-7 text-xs w-36" value={sf.totalExpenditure} readOnly />
+                                  </div>
+                                )}
+                              </td>
                               <td className="border border-black p-1.5 text-right font-mono"></td>
                             </tr>
                           );
@@ -3272,14 +3523,11 @@ export default function PrintableReportModal({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col space-y-4 -m-6 sm:-m-10 pt-[1cm] pb-[1cm] pl-[1.75cm] pr-[1cm] print:m-0 print:pt-[1cm] print:pb-[1cm] print:pl-[1.75cm] print:pr-[1cm] text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
+                <div className="flex flex-col space-y-4 text-[10pt] leading-[0.75cm]" style={{ lineHeight: '0.75cm' }}>
                   <style>{`
                     @page {
                       size: A4 portrait;
-                      margin-top: 1cm !important;
-                      margin-bottom: 1cm !important;
-                      margin-left: 1.75cm !important;
-                      margin-right: 1cm !important;
+                      margin: ${getPageMarginsCss(printSettings)} !important;
                     }
                   `}</style>
                   <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
@@ -3336,9 +3584,14 @@ export default function PrintableReportModal({
                   </div>
 
                   <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pt-2" style={{ lineHeight: '0.75cm' }}>
-                    <p>
-                      Certified that out of <strong>Rs. {totalRemittanceAmount.toLocaleString('en-IN')}/-</strong> deposited for borewell construction works under the {localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of <strong>Rs. {ucTotalSelectedExpenditure.toLocaleString('en-IN')}/-</strong> has been utilized towards actual construction costs.
-                    </p>
+                    {(() => {
+                      const defaultEnCertText = `Certified that out of Rs. ${totalRemittanceAmount.toLocaleString('en-IN')}/- deposited for borewell construction works under the ${localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of Rs. ${ucTotalSelectedExpenditure.toLocaleString('en-IN')}/- has been utilized towards actual construction costs.`;
+
+                      return renderEditableCell('uc_en_cert_para',
+                        <p className="whitespace-pre-line">{ucEnPara1 || defaultEnCertText}</p>,
+                        <Textarea className="min-h-[80px] text-xs p-1.5" value={ucEnPara1 || defaultEnCertText} onChange={e => setUcEnPara1(e.target.value)} />
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-2">
@@ -3354,7 +3607,12 @@ export default function PrintableReportModal({
                       <tbody>
                         <tr>
                           <td className="border border-black p-1.5 text-center">1</td>
-                          <td className="border border-black p-1.5 font-bold" colSpan={3}>Amount deposited by Panchayat for borewell construction works</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>
+                            {renderEditableCell('uc_en_tbl_dep_title',
+                              <span>Amount deposited by Panchayat for borewell construction works</span>,
+                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                            )}
+                          </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
@@ -3362,8 +3620,23 @@ export default function PrintableReportModal({
                           return (
                             <tr key={`dep_en_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</td>
-                              <td className="border border-black p-1.5 text-right font-mono">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                                {renderEditableCell(`uc_en_dep_row_${sIdx}`,
+                                  <div className="flex justify-between items-center w-full">
+                                    <span>{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</span>
+                                    <span className="font-mono pr-2">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                  </div>,
+                                  <div className="flex gap-2">
+                                    <Input className="h-7 text-xs flex-1" value={`${sf.siteName} ${sf.location ? `(${sf.location})` : ''} Borewell Construction`} readOnly />
+                                    <Input type="number" className="h-7 text-xs w-36" value={siteDeposit} onChange={e => {
+                                      const newRows = [...abstractRemittanceRows];
+                                      if (!newRows[sIdx]) newRows[sIdx] = { desc: sf.siteName, amount: siteDeposit };
+                                      newRows[sIdx].amount = Number(e.target.value);
+                                      setAbstractRemittanceRows(newRows);
+                                    }} />
+                                  </div>
+                                )}
+                              </td>
                               <td className="border border-black p-1.5 text-right font-mono"></td>
                             </tr>
                           );

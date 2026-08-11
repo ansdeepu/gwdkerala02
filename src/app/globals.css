@@ -1,5 +1,12 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anek+Malayalam:wght@300;400;500;600;700&family=Chilanka&family=Gayathri:wght@400;700&family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Mandaram';
+  src: local('Mandaram'), local('Mandaram Regular'), local('Mandaram-Regular'), local('Manjari'), url('https://fonts.gstatic.com/s/manjari/v14/A61zT24GmgK39I9C24R7.woff2') format('woff2');
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -418,4 +425,57 @@
   .print-only {
     display: block !important;
   }
+}
+
+/* Printable Report Font Family & Multi-tier Font Size Enforcement */
+#printable-report-document,
+#print-checklist-content,
+#selection-notice-content,
+.print-container-wrapper {
+  font-family: var(--print-font-family, inherit) !important;
+  font-size: var(--print-body-font-size, 11pt);
+  line-height: var(--print-line-height, 1.4);
+}
+
+#printable-report-document *,
+#print-checklist-content *,
+#selection-notice-content *,
+.print-container-wrapper * {
+  font-family: inherit !important;
+}
+
+#printable-report-document h1,
+#printable-report-document h2,
+#print-checklist-content h1,
+#print-checklist-content h2,
+#selection-notice-content h1,
+#selection-notice-content h2,
+.print-main-heading {
+  font-size: var(--print-heading-font-size, 15pt) !important;
+}
+
+#printable-report-document h3,
+#printable-report-document h4,
+#printable-report-document th,
+#print-checklist-content h3,
+#print-checklist-content h4,
+#print-checklist-content th,
+#selection-notice-content h3,
+#selection-notice-content h4,
+#selection-notice-content th,
+.print-sub-heading {
+  font-size: var(--print-subheading-font-size, 13pt) !important;
+}
+
+#printable-report-document p,
+#printable-report-document td,
+#printable-report-document span,
+#print-checklist-content p,
+#print-checklist-content td,
+#print-checklist-content span,
+#selection-notice-content p,
+#selection-notice-content td,
+#selection-notice-content span,
+.print-body-text {
+  font-size: var(--print-body-font-size, 11pt);
 }

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings2, CloudCheck, Copy, FileSpreadsheet, ClipboardCopy } from 'lucide-react';
 import { cn, getDistrictMalayalam } from '@/lib/utils';
 import { printDocument, copyRichHtml } from '@/lib/print-utils';
+import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from '@/components/shared/PrintStyleToolbar';
 import { getFirestore, collectionGroup, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -116,6 +117,7 @@ export default function RigChecklistPrintPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [isCopying, setIsCopying] = useState(false);
+    const [printSettings, setPrintSettings] = useState<PrintStyleSettings>(DEFAULT_PRINT_STYLES);
 
     useEffect(() => {
         if (!id || id === 'new') {
@@ -926,7 +928,12 @@ export default function RigChecklistPrintPage() {
     const handleCopyRichHtml = async () => {
         setIsCopying(true);
         try {
-            const success = await copyRichHtml('print-checklist-content');
+            const success = await copyRichHtml('print-checklist-content', {
+                fontSize: printSettings.fontSize,
+                lineHeight: printSettings.lineSpacing,
+                englishFont: printSettings.englishFont,
+                malayalamFont: printSettings.malayalamFont,
+            });
             if (success) {
                 toast({
                     title: "Copied successfully",
@@ -1250,6 +1257,14 @@ export default function RigChecklistPrintPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
+                        <PrintStyleToolbar
+                            settings={printSettings}
+                            onSettingsChange={setPrintSettings}
+                            hasMalayalam={true}
+                            hasEnglish={true}
+                            buttonText="Margins & Fonts"
+                        />
+
                         <Button 
                             variant="outline" 
                             size="sm" 
@@ -1289,7 +1304,17 @@ export default function RigChecklistPrintPage() {
                             Save
                         </Button>
 
-                        <Button size="sm" onClick={() => printDocument('print-checklist-content', isRenewal ? 'Rig Renewal Checklist' : 'Rig Registration Checklist', '1.2cm 1.5cm 1.2cm 1.5cm')} className="h-8 text-xs px-2.5 bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button 
+                            size="sm" 
+                            onClick={() => printDocument('print-checklist-content', isRenewal ? 'Rig Renewal Checklist' : 'Rig Registration Checklist', {
+                                pageMargins: getPageMarginsCss(printSettings),
+                                fontSize: printSettings.fontSize,
+                                lineHeight: printSettings.lineSpacing,
+                                englishFont: printSettings.englishFont,
+                                malayalamFont: printSettings.malayalamFont,
+                            })} 
+                            className="h-8 text-xs px-2.5 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
                             <Printer className="mr-1.5 h-3.5 w-3.5" /> Print
                         </Button>
 
@@ -1362,7 +1387,7 @@ export default function RigChecklistPrintPage() {
                 @media print {
                     @page {
                         size: A4 portrait;
-                        margin: 1.2cm 1.5cm 1.2cm 1.5cm !important;
+                        margin: ${getPageMarginsCss(printSettings)} !important;
                     }
                     body {
                         background: #ffffff !important;
@@ -1370,7 +1395,7 @@ export default function RigChecklistPrintPage() {
                     }
                 }
             `}</style>
-            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border border-black shadow-md p-10 md:p-14 text-black font-sans leading-relaxed print:border-0 print:shadow-none print:p-6 print:m-0 print:max-w-full" style={{ color: '#000000' }}>
+            <div id="print-checklist-content" className="max-w-4xl mx-auto bg-white border border-black shadow-md text-black font-sans print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-full" style={getPrintContainerStyle(printSettings)}>
                 
                 {/* Government Header */}
                 <div className="text-center space-y-2 pb-6 border-b-2 border-black mb-8 text-black">

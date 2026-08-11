@@ -155,8 +155,13 @@ export default function WorkOrderPrintPage() {
                               <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
                           </td>
                           <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5' }}>
-                              <p style={{ margin: 0, padding: 0 }}>{(officeAddress?.officeNameMalayalam || '').replace('ഭൂജലവകുപ്പ്', '').replace(',', '').trim()}</p>
-                              <p style={{ margin: 0, padding: 0 }}>{officeAddress?.addressMalayalam || ''}</p>
+                              {(() => {
+                                  const addrMalayalam = officeAddress?.addressMalayalam || "ജില്ലാ ഓഫീസറുടെ കാര്യാലയം\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ, തേവള്ളി പി. ഓ.\nകൊല്ലം - 691009";
+                                  const lines = addrMalayalam.split('\n').map(l => l.trim()).filter(Boolean);
+                                  return lines.map((line, idx) => (
+                                      <p key={idx} style={{ margin: 0, padding: 0 }}>{line}</p>
+                                  ));
+                              })()}
                               <p style={{ margin: 0, padding: 0 }}>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
                               <p style={{ margin: 0, padding: 0 }}>ഇമെയിൽ: {officeAddress?.email || ''}</p>
                               <p style={{ margin: 0, padding: 0 }}>തീയതി: {formatDateSafe(tender.dateWorkOrder) || '__________'}</p>

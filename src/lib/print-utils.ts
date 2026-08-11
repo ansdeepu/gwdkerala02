@@ -1,13 +1,41 @@
 // src/lib/print-utils.ts
 
+export interface ExtendedPrintOptions {
+  pageMargins?: string;
+  fontSize?: string;
+  bodyFontSize?: string;
+  headingFontSize?: string;
+  subheadingFontSize?: string;
+  lineHeight?: string;
+  englishFont?: string;
+  malayalamFont?: string;
+}
+
 /**
  * Utility to reliably trigger print across both direct browser windows and iframe preview environments.
  */
-export const printDocument = (elementId: string, title: string = '', pageMargins: string = '1.2cm 1.5cm 1.2cm 1.5cm') => {
+export const printDocument = (
+  elementId: string, 
+  title: string = '', 
+  optionsOrMargins: string | ExtendedPrintOptions = '1.2cm 1.5cm 1.2cm 1.5cm'
+) => {
   if (typeof window === 'undefined') return;
 
   const originalTitle = document.title;
   if (title) document.title = title;
+
+  const options: ExtendedPrintOptions = typeof optionsOrMargins === 'string'
+    ? { pageMargins: optionsOrMargins }
+    : optionsOrMargins;
+
+  const pageMargins = options.pageMargins || '1.2cm 1.5cm 1.2cm 1.5cm';
+  const bodyFontSize = options.bodyFontSize || options.fontSize || '11pt';
+  const headingFontSize = options.headingFontSize || '15pt';
+  const subheadingFontSize = options.subheadingFontSize || '13pt';
+  const lineHeight = options.lineHeight || '1.4';
+  const engFont = options.englishFont || 'Times New Roman';
+  const malFont = options.malayalamFont || 'Mandaram';
+  const fontStack = `'${engFont}', '${malFont}', 'Mandaram', 'Manjari', 'Noto Sans Malayalam', sans-serif`;
 
   const showIframePrintHelp = () => {
     const existingHelp = document.getElementById('iframe-print-help-banner');
@@ -160,7 +188,33 @@ export const printDocument = (elementId: string, title: string = '', pageMargins
         margin: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        font-family: 'Times New Roman', 'Suruma', 'Kartika', serif, system-ui, sans-serif !important;
+        font-size: ${bodyFontSize} !important;
+        line-height: ${lineHeight} !important;
+        font-family: ${fontStack} !important;
+      }
+
+      .print-target-element * {
+        font-family: ${fontStack} !important;
+      }
+
+      .print-target-element h1,
+      .print-target-element h2,
+      .print-target-element .print-main-heading {
+        font-size: ${headingFontSize} !important;
+      }
+
+      .print-target-element h3,
+      .print-target-element h4,
+      .print-target-element th,
+      .print-target-element .print-sub-heading {
+        font-size: ${subheadingFontSize} !important;
+      }
+
+      .print-target-element p,
+      .print-target-element td,
+      .print-target-element li,
+      .print-target-element span {
+        font-size: ${bodyFontSize} !important;
       }
       
       /* Hide all buttons, toolbars, modal footers/headers, and custom non-printable sections */
@@ -221,7 +275,7 @@ export const printDocument = (elementId: string, title: string = '', pageMargins
  * Utility to copy the inner content of a report with its formatting as Rich HTML.
  * This can be pasted directly into editors like e-Office, Word, or Gmail while preserving styles, headings, and tables.
  */
-export const copyRichHtml = async (elementId: string): Promise<boolean> => {
+export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOptions): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
 
   const element = document.getElementById(elementId);
@@ -229,6 +283,14 @@ export const copyRichHtml = async (elementId: string): Promise<boolean> => {
     console.error(`Element with id ${elementId} not found`);
     return false;
   }
+
+  const bodyFontSize = options?.bodyFontSize || options?.fontSize || '11pt';
+  const headingFontSize = options?.headingFontSize || '15pt';
+  const subheadingFontSize = options?.subheadingFontSize || '13pt';
+  const lineHeight = options?.lineHeight || '1.4';
+  const engFont = options?.englishFont || 'Times New Roman';
+  const malFont = options?.malayalamFont || 'Mandaram';
+  const fontStack = `'${engFont}', '${malFont}', 'Mandaram', 'Manjari', 'Noto Sans Malayalam', sans-serif`;
 
   // Preserve form input values in DOM before capturing HTML
   const inputs = element.querySelectorAll('input, textarea, select');
@@ -260,10 +322,13 @@ export const copyRichHtml = async (elementId: string): Promise<boolean> => {
   const styles = `
     <style>
       table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000000 !important; margin: 12px 0 !important; }
-      th, td { border: 1px solid #000000 !important; padding: 6px 10px !important; text-align: left; vertical-align: top; }
-      th { background-color: #f2f2f2 !important; font-weight: bold !important; }
-      p, div { margin: 0 0 10px 0; }
-      body { font-family: 'Times New Roman', serif, system-ui, sans-serif !important; font-size: 11pt !important; line-height: 1.5 !important; color: #000000 !important; }
+      th, td { border: 1px solid #000000 !important; padding: 6px 10px !important; text-align: left; vertical-align: top; font-size: ${bodyFontSize} !important; }
+      th { background-color: #f2f2f2 !important; font-weight: bold !important; font-size: ${subheadingFontSize} !important; }
+      h1, h2, .print-main-heading { font-size: ${headingFontSize} !important; font-weight: bold !important; }
+      h3, h4, .print-sub-heading { font-size: ${subheadingFontSize} !important; font-weight: bold !important; }
+      p, div { margin: 0 0 10px 0; font-size: ${bodyFontSize} !important; }
+      body { font-family: ${fontStack} !important; font-size: ${bodyFontSize} !important; line-height: ${lineHeight} !important; color: #000000 !important; }
+      * { font-family: ${fontStack} !important; }
       .text-right { text-align: right !important; }
       .text-center { text-align: center !important; }
       .text-justify { text-align: justify !important; }
@@ -277,7 +342,7 @@ export const copyRichHtml = async (elementId: string): Promise<boolean> => {
   `;
 
   // Wrap inside standard HTML template for clipboard pasting
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><div style="background: white; color: black; font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5;">${contentHtml}</div></body></html>`;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><div style="background: white; color: black; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight};">${contentHtml}</div></body></html>`;
 
   try {
     const htmlBlob = new Blob([fullHtml], { type: 'text/html' });

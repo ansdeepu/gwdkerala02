@@ -35,6 +35,11 @@ export type UserRole = typeof userRoleOptions[number];
 // --- End User & Auth Schemas ---
 
 
+export const flexibleStringSchema = z.preprocess(
+  (val) => (val === null || val === undefined ? val : String(val)),
+  z.string().optional().nullable()
+);
+
 export const optionalNumber = (errorMessage: string = "Must be a valid number.") =>
   z.preprocess((val) => {
     if (val === null || val === undefined || val === "") return undefined;
@@ -459,22 +464,22 @@ export const SiteDetailSchema = z.object({
   accessibleRig: z.string().optional().nullable(),
   tsAmount: optionalNumber(),
   tenderNo: z.string().optional().nullable(),
-  diameter: z.string().optional().nullable(),
-  pilotDrillingDepth: z.string().optional().nullable(),
-  totalDepth: optionalNumber(),
-  casingPipeUsed: z.string().optional().nullable(),
-  casing10kgPipe: z.string().optional().nullable(),
-  casing8kgPipe: z.string().optional().nullable(),
-  casing6kgPipe: z.string().optional().nullable(),
-  outerCasingPipe: z.string().optional().nullable(),
-  outerCasingPressure: z.string().optional().nullable(),
-  innerCasing6kgPipe: z.string().optional().nullable(),
-  innerCasing4kgPipe: z.string().optional().nullable(),
-  innerCasingPipe: z.string().optional().nullable(),
-  yieldDischarge: z.string().optional().nullable(),
-  zoneDetails: z.string().optional().nullable(),
-  waterLevel: z.string().optional().nullable(),
-  endCap: z.string().optional().nullable(),
+  diameter: flexibleStringSchema,
+  pilotDrillingDepth: flexibleStringSchema,
+  totalDepth: z.preprocess((val) => (val === null || val === undefined || val === "" ? null : typeof val === "string" && !isNaN(Number(val)) ? Number(val) : val), optionalNumber()),
+  casingPipeUsed: flexibleStringSchema,
+  casing10kgPipe: flexibleStringSchema,
+  casing8kgPipe: flexibleStringSchema,
+  casing6kgPipe: flexibleStringSchema,
+  outerCasingPipe: flexibleStringSchema,
+  outerCasingPressure: flexibleStringSchema,
+  innerCasing6kgPipe: flexibleStringSchema,
+  innerCasing4kgPipe: flexibleStringSchema,
+  innerCasingPipe: flexibleStringSchema,
+  yieldDischarge: flexibleStringSchema,
+  zoneDetails: flexibleStringSchema,
+  waterLevel: flexibleStringSchema,
+  endCap: flexibleStringSchema,
   drillingRemarks: z.string().optional().nullable().default(""),
   developingRemarks: z.string().optional().nullable().default(""),
   schemeRemarks: z.string().optional().nullable().default(""),
@@ -595,6 +600,8 @@ export const DataEntrySchema = z.object({
     invalid_type_error: "Please select a valid file status."
   }),
   remarks: z.string().optional().nullable(),
+  reportOverrides: z.record(z.any()).optional().nullable(),
+  printOverrides: z.record(z.any()).optional().nullable(),
 }).superRefine((data, ctx) => {
   // This validation should only apply if there's a financial commitment via site estimates.
   const hasSitesWithEstimates = data.siteDetails?.some(site => site.estimateAmount && site.estimateAmount > 0);

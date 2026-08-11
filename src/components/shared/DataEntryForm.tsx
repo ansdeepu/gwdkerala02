@@ -1116,11 +1116,35 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             moduleType={currentModuleKey}
             initialDocType={printModalDocType}
             isFullPage={true}
-            onSave={(updatedEntry) => {
-              if (updatedEntry.siteDetails) {
-                setValue('siteDetails', updatedEntry.siteDetails, { shouldDirty: true });
+            onSave={async (updatedEntry) => {
+              const currentValues = getValues();
+              const fullUpdatedData: DataEntryFormData = {
+                ...currentValues,
+                ...updatedEntry,
+                fileNo: updatedEntry.fileNo || currentValues.fileNo,
+                applicantName: updatedEntry.applicantName || currentValues.applicantName,
+                applicantAddress: updatedEntry.applicantAddress || currentValues.applicantAddress,
+                applicationType: updatedEntry.applicationType || currentValues.applicationType,
+                siteDetails: updatedEntry.siteDetails || currentValues.siteDetails,
+                reportOverrides: (updatedEntry as any).reportOverrides || (currentValues as any).reportOverrides || {},
+                printOverrides: (updatedEntry as any).printOverrides || (currentValues as any).printOverrides || {},
+              };
+
+              const docId = fileIdToEdit || (initialData as any)?.id || (currentValues as any)?.id;
+              if (docId) {
+                try {
+                  await updateFileEntry(docId, fullUpdatedData);
+                  reset(fullUpdatedData);
+                  toast({ title: "Saved to Database!", description: "Report edits saved directly to database." });
+                } catch (err: any) {
+                  console.error("Error saving report directly to DB:", err);
+                  reset(fullUpdatedData);
+                  toast({ title: "Saved to Form Draft", description: "Changes updated in form draft." });
+                }
+              } else {
+                reset(fullUpdatedData);
+                toast({ title: "Saved to Form Draft", description: "Save the file to create in database." });
               }
-              toast({ title: "Report updates saved back to form!" });
             }}
           />
         </div>
