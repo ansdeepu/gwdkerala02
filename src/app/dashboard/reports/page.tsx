@@ -1,4 +1,3 @@
-
 // src/app/dashboard/reports/page.tsx
 "use client";
 
@@ -7,19 +6,17 @@ import ReportTable from "@/components/reports/ReportTable";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useFileEntries } from "@/hooks/useFileEntries";
 import { usePageHeader } from "@/hooks/usePageHeader";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import PaginationControls from "@/components/shared/PaginationControls";
 import { useAuth } from "@/hooks/useAuth";
-import type { SiteWorkStatus, DataEntryFormData, ApplicationType, SitePurpose } from '@/lib/schemas';
+import type { SiteWorkStatus, DataEntryFormData, ApplicationType } from '@/lib/schemas';
 import { 
   applicationTypeDisplayMap,
   fileStatusOptions, 
   siteWorkStatusOptions, 
-  sitePurposeOptions, 
   applicationTypeOptions, 
   constituencyOptions,
   LOGGING_PUMPING_TEST_PURPOSE_OPTIONS,
-  typeOfWellOptions,
 } from '@/lib/schemas';
 import { format, parseISO, startOfDay, endOfDay, isValid, parse } from "date-fns";
 import {
@@ -39,8 +36,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDataStore } from '@/hooks/use-data-store';
-import { RotateCcw, Loader2, FileDown, Eye, Search, Layers, CheckCircle, Link as LinkIcon } from 'lucide-react';
+import { RotateCcw, Loader2, FileDown, Search, Layers, CheckCircle, CheckSquare, Square, Filter } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
+import { MultiSelectFilter } from "@/components/reports/MultiSelectFilter";
 import { 
     PRIVATE_APPLICATION_TYPES, 
     COLLECTOR_APPLICATION_TYPES, 
@@ -61,7 +59,6 @@ export interface FlattenedReportRow {
   totalRemittance: string;
   balance: string;
   id?: string;
-  // All other potential fields for export
   [key: string]: any;
 }
 
@@ -80,92 +77,171 @@ const dataSourceOptions: { value: DataSource; label: string }[] = [
     { value: 'ars', label: 'ARS' },
 ];
 
-const reportFieldDefinitions = [
-    // Base Identity Fields
-    { id: 'fileNo', label: 'File No.', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'applicantName', label: 'Applicant Name', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'fileFirstRemittanceDate', label: 'Date of Remittance/Sanction', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'applicationType', label: 'Application Type', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'fileStatus', label: 'File Status', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'siteName', label: 'Site Name', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'sitePurpose', label: 'Service/Purpose', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'siteWorkStatus', label: 'Work Status', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    
-    // Core Financials
-    { id: 'totalRemittance', label: 'Total Remittance (₹)', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'siteTotalExpenditure', label: 'Site Total Expenditure (₹)', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'balance', label: 'Balance (₹)', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    
-    // Geographical & Responsibility
-    { id: 'lsg', label: 'Local Self Govt.', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'constituency', label: 'Constituency', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'supervisor', label: 'Supervisor', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'latitude', label: 'Latitude', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
-    { id: 'longitude', label: 'Longitude', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+export interface ReportFieldDefinition {
+  id: string;
+  label: string;
+  category: string;
+  sources: string[];
+}
 
-    // Technical Details (Drilling)
-    { id: 'diameter', label: 'Diameter (mm)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'totalDepth', label: 'Total Depth (m)', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'yield', label: 'Yield/Discharge (LPH)', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'waterLevel', label: 'Static Water Level (m)', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'endCap', label: 'End Cap', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'casingPipeUsed', label: 'Casing Pipe (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'outerCasingPipe', label: 'Outer Casing (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'innerCasingPipe', label: 'Inner Casing (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'surveyRecommendedPlainPipe', label: 'Plain Pipe (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'surveyRecommendedSlottedPipe', label: 'Slotted Pipe (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'surveyRecommendedMsCasingPipe', label: 'MS Casing Pipe (m)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'zoneDetails', label: 'Zone Details', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
-    
-    // Investigation Specific
-    { id: 'typeOfWell', label: 'Type of Well', sources: ['gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'nameOfInvestigator', label: 'Investigator', sources: ['gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'dateOfInvestigation', label: 'Investigation Date', sources: ['gwInvestigation', 'loggingPumpingTest'] },
-    { id: 'feasibility', label: 'Feasibility (Yes/No)', sources: ['gwInvestigation'] },
-    { id: 'vesRequired', label: 'VES Required', sources: ['gwInvestigation'] },
-    { id: 'vesInvestigator', label: 'VES Investigator', sources: ['gwInvestigation'] },
-    { id: 'vesDate', label: 'VES Date', sources: ['gwInvestigation'] },
-    { id: 'descriptionOfWork', label: 'Description of Work', sources: ['loggingPumpingTest'] },
-    { id: 'hydrogeologicalRemarks', label: 'Hydrogeological Remarks', sources: ['gwInvestigation'] },
-    { id: 'geophysicalRemarks', label: 'Geophysical Remarks', sources: ['gwInvestigation'] },
-    
-    // Implementation & Scheme
-    { id: 'typeOfRig', label: 'Type of Rig Unit', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'contractorName', label: 'Contractor', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'pumpDetails', label: 'Pump Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'noOfTapConnections', label: 'Tap Connections', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'waterTankCapacity', label: 'Tank Capacity (L)', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-    { id: 'noOfBeneficiary', label: 'No. of Beneficiaries', sources: ['depositWorks', 'private', 'collector', 'planFund', 'ars'] },
-    { id: 'remarks', label: 'Remarks/Notes', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+export const reportFieldDefinitions: ReportFieldDefinition[] = [
+  // 1. File & Applicant Details
+  { id: 'fileNo', label: 'File No.', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'applicantName', label: 'Applicant Name', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'phoneNo', label: 'Primary Phone No.', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'secondaryMobileNo', label: 'Secondary Phone No.', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'emailId', label: 'Email Address', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'category', label: 'Applicant Category', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'applicationType', label: 'Application Type', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'fileStatus', label: 'File Status', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'officeLocation', label: 'Office Location', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'remarks', label: 'File Remarks / Notes', category: 'File & Applicant Details', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
 
-    // ARS Specific
-    { id: 'arsBlock', label: 'ARS Block', sources: ['ars'] },
-    { id: 'arsTypeOfScheme', label: 'ARS Scheme Type', sources: ['ars'] },
-    { id: 'arsNumberOfStructures', label: 'ARS No. of Structures', sources: ['ars'] },
-    { id: 'arsStorageCapacity', label: 'ARS Storage Capacity (m³)', sources: ['ars'] },
-    { id: 'arsNumberOfFillings', label: 'ARS No. of Fillings', sources: ['ars'] },
-    { id: 'arsAsTsDetails', label: 'ARS AS/TS Details', sources: ['ars'] },
-    { id: 'tsAmount', label: 'ARS TS Amount (₹)', sources: ['ars'] },
-    { id: 'arsTenderNo', label: 'ARS Tender No', sources: ['ars'] },
-    { id: 'arsAwardedAmount', label: 'ARS Awarded Amount (₹)', sources: ['ars'] },
+  // 2. Location & Administration
+  { id: 'siteName', label: 'Site Name', category: 'Location & Administration', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'lsg', label: 'Local Self Govt. (LSG)', category: 'Location & Administration', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'constituency', label: 'Constituency (LAC)', category: 'Location & Administration', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'latitude', label: 'Latitude', category: 'Location & Administration', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'longitude', label: 'Longitude', category: 'Location & Administration', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'plotArea', label: 'Plot Area', category: 'Location & Administration', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'supervisor', label: 'Assigned Supervisor', category: 'Location & Administration', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+
+  // 3. Financial, Remittance & Payment Details
+  { id: 'estimateAmount', label: 'Estimate Amount (₹)', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'totalRemittance', label: 'Total Remittance (₹)', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'fileFirstRemittanceDate', label: 'Date of Remittance / Sanction', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'remittanceAccount', label: 'Remitted Account Head', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'remittanceRemarks', label: 'Remittance Remarks', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'totalPaymentAllEntries', label: 'Total Payment Made (₹)', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'siteTotalExpenditure', label: 'Site Expenditure (₹)', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'balance', label: 'Balance (₹)', category: 'Financial & Remittance', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'subsidyAmount', label: 'Subsidy Amount (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'tsAmount', label: 'TS Amount (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund', 'ars'] },
+  { id: 'tenderNo', label: 'Tender No.', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund', 'ars'] },
+  { id: 'contractorsPayment', label: 'Contractor Payment (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'gst', label: 'GST Amount (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'incomeTax', label: 'Income Tax (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'kbcwb', label: 'KBCWB Cess (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'refundToParty', label: 'Refund Amount (₹)', category: 'Financial & Remittance', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+
+  // 4. Service & Work Status
+  { id: 'sitePurpose', label: 'Service / Purpose', category: 'Service & Work Status', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'siteWorkStatus', label: 'Site Work Status', category: 'Service & Work Status', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'startDate', label: 'Work Start Date', category: 'Service & Work Status', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'dateOfCompletion', label: 'Work Completion Date', category: 'Service & Work Status', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+  { id: 'siteConditions', label: 'Site Conditions / Accessibility', category: 'Service & Work Status', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'accessibleRig', label: 'Accessible Rig Type', category: 'Service & Work Status', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'workRemarks', label: 'Work Remarks / Notes', category: 'Service & Work Status', sources: ['all', 'depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest', 'ars'] },
+
+  // 5. Technical & Drilling Specifications
+  { id: 'typeOfWell', label: 'Type of Well', category: 'Technical & Drilling Specifications', sources: ['gwInvestigation', 'loggingPumpingTest', 'depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'diameter', label: 'Diameter (mm)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'pilotDrillingDepth', label: 'Pilot Drilling Depth (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'totalDepth', label: 'Total Depth (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'yield', label: 'Yield / Discharge (LPH)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'waterLevel', label: 'Static Water Level (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'endCap', label: 'End Cap Details', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'zoneDetails', label: 'Water Bearing Zone Details', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund', 'gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'casingPipeUsed', label: 'Casing Pipe Used (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'casing10kgPipe', label: 'Casing Pipe 10kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'casing8kgPipe', label: 'Casing Pipe 8kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'casing6kgPipe', label: 'Casing Pipe 6kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'outerCasingPipe', label: 'Outer Casing Pipe (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'outerCasingPressure', label: 'Outer Casing Pressure', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'innerCasingPipe', label: 'Inner Casing Pipe (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'innerCasing6kgPipe', label: 'Inner Casing 6kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'innerCasing4kgPipe', label: 'Inner Casing 4kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'drillingRemarks', label: 'Drilling Remarks', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'developingRemarks', label: 'Developing Remarks', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+
+  // 6. Survey Details
+  { id: 'surveyOB', label: 'Survey Overburden (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyLocation', label: 'Survey Location', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyPlainPipe', label: 'Survey Plain Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveySlottedPipe', label: 'Survey Slotted Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRemarks', label: 'Survey Remarks', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedDiameter', label: 'Survey Rec. Diameter', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedTD', label: 'Survey Rec. Total Depth (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedOB', label: 'Survey Rec. Overburden (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedCasingPipe', label: 'Survey Rec. Casing Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedPlainPipe', label: 'Survey Rec. Plain Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedSlottedPipe', label: 'Survey Rec. Slotted Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'surveyRecommendedMsCasingPipe', label: 'Survey Rec. MS Casing Pipe (m)', category: 'Survey Details', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+
+  // 7. Equipment, Scheme & Infrastructure
+  { id: 'typeOfRig', label: 'Type of Rig Unit', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'contractorName', label: 'Contractor Name', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'pumpDetails', label: 'Pump Details', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'pumpingLineLength', label: 'Pumping Line Length (m)', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'deliveryLineLength', label: 'Delivery Line Length (m)', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'waterTankCapacity', label: 'Water Tank Capacity (L)', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'noOfTapConnections', label: 'Tap Connections Count', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'noOfBeneficiary', label: 'No. of Beneficiaries', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund', 'ars'] },
+  { id: 'descriptionOfWork', label: 'Description of Work', category: 'Equipment, Scheme & Infrastructure', sources: ['loggingPumpingTest', 'depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'schemeRemarks', label: 'Scheme Remarks', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'implementationRemarks', label: 'Implementation Remarks', category: 'Equipment, Scheme & Infrastructure', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+
+  // 8. Investigation Details
+  { id: 'nameOfInvestigator', label: 'Investigator Name', category: 'Investigation Details', sources: ['gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'dateOfInvestigation', label: 'Investigation Date', category: 'Investigation Details', sources: ['gwInvestigation', 'loggingPumpingTest'] },
+  { id: 'feasibility', label: 'Feasibility (Yes/No)', category: 'Investigation Details', sources: ['gwInvestigation'] },
+  { id: 'vesRequired', label: 'VES Required', category: 'Investigation Details', sources: ['gwInvestigation'] },
+  { id: 'vesInvestigator', label: 'VES Investigator', category: 'Investigation Details', sources: ['gwInvestigation'] },
+  { id: 'vesDate', label: 'VES Date', category: 'Investigation Details', sources: ['gwInvestigation'] },
+  { id: 'hydrogeologicalRemarks', label: 'Hydrogeological Remarks', category: 'Investigation Details', sources: ['gwInvestigation'] },
+  { id: 'geophysicalRemarks', label: 'Geophysical Remarks', category: 'Investigation Details', sources: ['gwInvestigation'] },
+
+  // 9. ARS Details
+  { id: 'arsBlock', label: 'ARS Block', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsPanchayath', label: 'ARS Panchayath', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsTypeOfScheme', label: 'ARS Scheme Type', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsNumberOfStructures', label: 'ARS No. of Structures', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsStorageCapacity', label: 'ARS Storage Capacity (m³)', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsNumberOfFillings', label: 'ARS No. of Fillings', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsAsTsDetails', label: 'ARS AS/TS Details', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsSanctionedDate', label: 'ARS Sanctioned Date', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsTenderNo', label: 'ARS Tender No', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsTenderedAmount', label: 'ARS Tendered Amount (₹)', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsAwardedAmount', label: 'ARS Awarded Amount (₹)', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsContractorName', label: 'ARS Contractor Name', category: 'ARS Details', sources: ['ars'] },
+  { id: 'arsStatus', label: 'ARS Status', category: 'ARS Details', sources: ['ars'] },
 ];
+
+const DEFAULT_EXPORT_FIELDS = ['fileNo', 'applicantName', 'siteName', 'fileFirstRemittanceDate', 'applicationType', 'fileStatus', 'sitePurpose', 'siteWorkStatus', 'totalRemittance', 'siteTotalExpenditure', 'balance'];
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;
   if (dateValue instanceof Date && isValid(dateValue)) {
     return dateValue;
   }
-  if (typeof dateValue === 'string') {
-    let parsed = parseISO(dateValue);
-    if (isValid(parsed)) return parsed;
-    parsed = parse(dateValue, 'yyyy-MM-dd', new Date());
-    if (isValid(parsed)) return parsed;
+  if (typeof dateValue === 'object' && dateValue !== null) {
+    if (typeof (dateValue as any).toDate === 'function') {
+      const parsed = (dateValue as any).toDate();
+      if (isValid(parsed)) return parsed;
+    }
+    if (typeof (dateValue as any).seconds === 'number') {
+      const parsed = new Date((dateValue as any).seconds * 1000);
+      if (isValid(parsed)) return parsed;
+    }
   }
-  if (typeof dateValue === 'object' && (dateValue as any).toDate) {
-    const parsed = (dateValue as any).toDate();
+  if (typeof dateValue === 'string' && dateValue.trim() !== '') {
+    const trimmed = dateValue.trim();
+    let parsed = parseISO(trimmed);
+    if (isValid(parsed)) return parsed;
+    parsed = parse(trimmed, 'yyyy-MM-dd', new Date());
+    if (isValid(parsed)) return parsed;
+    parsed = parse(trimmed, 'dd/MM/yyyy', new Date());
+    if (isValid(parsed)) return parsed;
+    parsed = parse(trimmed, 'dd-MM-yyyy', new Date());
     if (isValid(parsed)) return parsed;
   }
   return null;
+};
+
+const isAll = (filterArr: string[] | string) => {
+  if (!filterArr) return true;
+  if (typeof filterArr === 'string') return filterArr === 'all';
+  return filterArr.length === 0 || filterArr.includes('all');
 };
 
 export default function ReportsPage() {
@@ -186,17 +262,18 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); 
-  const [serviceTypeFilter, setServiceTypeFilter] = useState("all"); 
-  const [workCategoryFilter, setWorkCategoryFilter] = useState("all");
   const [dateFilterType, setDateFilterType] = useState<"remittance" | "completion" | "payment" | "all">("all");
   const [currentPage, setCurrentPage] = useState(1);
   
-  const [applicationTypeFilter, setApplicationTypeFilter] = useState("all");
-  const [typeOfRigFilter, setTypeOfRigFilter] = useState("all");
-  const [constituencyFilter, setConstituencyFilter] = useState("all");
-  const [applicantNameFilter, setApplicantNameFilter] = useState("all");
-  const [lsgFilter, setLsgFilter] = useState("all");
+  // Multi-select filters
+  const [statusFilter, setStatusFilter] = useState<string[]>(["all"]); 
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<string[]>(["all"]); 
+  const [workCategoryFilter, setWorkCategoryFilter] = useState<string[]>(["all"]);
+  const [applicationTypeFilter, setApplicationTypeFilter] = useState<string[]>(["all"]);
+  const [typeOfRigFilter, setTypeOfRigFilter] = useState<string[]>(["all"]);
+  const [constituencyFilter, setConstituencyFilter] = useState<string[]>(["all"]);
+  const [applicantNameFilter, setApplicantNameFilter] = useState<string[]>(["all"]);
+  const [lsgFilter, setLsgFilter] = useState<string[]>(["all"]);
 
   const [currentDate, setCurrentDate] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string | null>(null);
@@ -204,8 +281,10 @@ export default function ReportsPage() {
   const [viewItem, setViewItem] = useState<DataEntryFormData | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
+  // Export Customization state
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [selectedExportFields, setSelectedExportFields] = useState<string[]>(['fileNo', 'applicantName', 'siteName', 'siteWorkStatus', 'totalRemittance', 'balance']);
+  const [selectedExportFields, setSelectedExportFields] = useState<string[]>(DEFAULT_EXPORT_FIELDS);
+  const [exportFieldSearch, setExportFieldSearch] = useState("");
 
   useEffect(() => {
     const now = new Date();
@@ -226,7 +305,6 @@ export default function ReportsPage() {
     allArsEntries?.forEach(entry => {
       if (entry.constituency) set.add(entry.constituency);
     });
-    // Add baseline
     constituencyOptions.forEach(c => set.add(c));
     return Array.from(set).filter(Boolean).sort();
   }, [allFileEntries, allArsEntries]);
@@ -247,7 +325,6 @@ export default function ReportsPage() {
     return Array.from(set).filter(Boolean).sort();
   }, [allFileEntries, allArsEntries, allLsgConstituencyMaps]);
 
-
   const matchesDataSource = useCallback((entry: DataEntryFormData, source: DataSource): boolean => {
     if (source === 'all') return true;
     
@@ -261,20 +338,18 @@ export default function ReportsPage() {
     if (source === 'collector') return (COLLECTOR_APPLICATION_TYPES as any).includes(appType);
     if (source === 'private') return (PRIVATE_APPLICATION_TYPES as any).includes(appType);
     if (source === 'planFund') return (PLAN_FUND_APPLICATION_TYPES as any).includes(appType);
-    if (source === 'ars') return false; // ARS is handled separately in filtering logic
+    if (source === 'ars') return false;
     
     return false;
   }, []);
 
   const applicantOptions = useMemo(() => {
       let pool: (DataEntryFormData | any)[] = [];
-      
       if (dataSourceFilter === 'ars') {
-          pool = allArsEntries.map(e => ({ applicantName: 'ARS Scheme' }));
+          pool = allArsEntries.map(() => ({ applicantName: 'ARS Scheme' }));
       } else {
           pool = fileEntries.filter(e => matchesDataSource(e, dataSourceFilter));
       }
-
       const names = pool.map(e => e.applicantName).filter(Boolean);
       return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
   }, [fileEntries, allArsEntries, dataSourceFilter, matchesDataSource]);
@@ -320,15 +395,15 @@ export default function ReportsPage() {
   }, [dataSourceFilter]);
 
   useEffect(() => {
-    setServiceTypeFilter("all");
-    setApplicantNameFilter('all');
-    setApplicationTypeFilter("all");
-    setWorkCategoryFilter("all");
-    setTypeOfRigFilter("all");
-    setLsgFilter("all");
-    setSelectedExportFields(['fileNo', 'applicantName', 'siteName', 'siteWorkStatus', 'totalRemittance', 'balance']);
+    setServiceTypeFilter(["all"]);
+    setApplicantNameFilter(["all"]);
+    setApplicationTypeFilter(["all"]);
+    setWorkCategoryFilter(["all"]);
+    setTypeOfRigFilter(["all"]);
+    setStatusFilter(["all"]);
+    setLsgFilter(["all"]);
+    setConstituencyFilter(["all"]);
   }, [dataSourceFilter]);
-
 
   const applyFilters = useCallback(() => {
     let currentFileEntries = fileEntries.filter(e => matchesDataSource(e, dataSourceFilter));
@@ -340,31 +415,45 @@ export default function ReportsPage() {
 
     const lowerSearchTerm = searchTerm.toLowerCase();
 
+    const fromDate = startDate ? startOfDay(parse(startDate, "yyyy-MM-dd", new Date())) : null;
+    const toDate = endDate ? endOfDay(parse(endDate, "yyyy-MM-dd", new Date())) : null;
+
+    const checkDateInRange = (targetValue: any): boolean => {
+        if (!targetValue) return false;
+        const d = safeParseDate(targetValue);
+        if (!d || !isValid(d)) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+    };
+
     const filterByDate = (entries: any[], isArsPool: boolean) => {
-        if ((!startDate && !endDate) || dateFilterType === 'all') return entries;
-        const from = startDate ? startOfDay(parse(startDate, "yyyy-MM-dd", new Date())) : null;
-        const to = endDate ? endOfDay(parse(endDate, "yyyy-MM-dd", new Date())) : null;
+        if (!startDate && !endDate) return entries;
 
         return entries.filter(entry => {
-            const checkDate = (targetValue: any): boolean => {
-                if (!targetValue) return false;
-                const d = safeParseDate(targetValue);
-                if (!d || !isValid(d)) return false;
-                if (from && d < from) return false;
-                if (to && d > to) return false;
-                return true;
-            };
-
             if (isArsPool) {
-                if (dateFilterType === 'remittance') return checkDate(entry.arsSanctionedDate);
-                if (dateFilterType === 'completion') return checkDate(entry.dateOfCompletion);
-                return true;
+                if (dateFilterType === 'remittance') return checkDateInRange(entry.arsSanctionedDate);
+                if (dateFilterType === 'completion') return checkDateInRange(entry.dateOfCompletion);
+                return checkDateInRange(entry.arsSanctionedDate) || checkDateInRange(entry.dateOfCompletion);
             }
 
-            if (dateFilterType === "remittance") return entry.remittanceDetails?.some((rd: any) => checkDate(rd.dateOfRemittance)) ?? false;
-            if (dateFilterType === "completion") return entry.siteDetails?.some((sd: any) => checkDate(sd.dateOfCompletion)) ?? false;
-            if (dateFilterType === "payment") return entry.paymentDetails?.some((pd: any) => checkDate(pd.dateOfPayment)) ?? false;
-            return true;
+            if (dateFilterType === "remittance") {
+                return entry.remittanceDetails?.some((rd: any) => checkDateInRange(rd.dateOfRemittance)) ?? false;
+            }
+            if (dateFilterType === "completion") {
+                return entry.siteDetails?.some((sd: any) => checkDateInRange(sd.dateOfCompletion)) ?? false;
+            }
+            if (dateFilterType === "payment") {
+                return entry.paymentDetails?.some((pd: any) => checkDateInRange(pd.dateOfPayment)) ?? false;
+            }
+
+            // dateFilterType === "all"
+            const matchRemittance = entry.remittanceDetails?.some((rd: any) => checkDateInRange(rd.dateOfRemittance)) ?? false;
+            const matchCompletion = entry.siteDetails?.some((sd: any) => checkDateInRange(sd.dateOfCompletion)) ?? false;
+            const matchPayment = entry.paymentDetails?.some((pd: any) => checkDateInRange(pd.dateOfPayment)) ?? false;
+            const matchInvestigation = entry.siteDetails?.some((sd: any) => checkDateInRange(sd.dateOfInvestigation) || checkDateInRange(sd.vesDate)) ?? false;
+
+            return matchRemittance || matchCompletion || matchPayment || matchInvestigation;
         });
     };
 
@@ -373,38 +462,45 @@ export default function ReportsPage() {
 
     const applyCommonFilters = (entries: any[], isArsPool: boolean) => {
         return entries.filter(entry => {
-            if (statusFilter !== "all" && !isArsPool && entry.fileStatus !== statusFilter) return false;
-            if (applicantNameFilter !== "all") {
+            if (!isAll(statusFilter) && !isArsPool && !statusFilter.includes(entry.fileStatus)) return false;
+            
+            if (!isAll(applicantNameFilter)) {
                 const name = isArsPool ? 'ARS Scheme' : entry.applicantName;
-                if (name !== applicantNameFilter) return false;
+                if (!applicantNameFilter.includes(name)) return false;
             }
-            if (applicationTypeFilter !== "all") {
-                if (isArsPool && applicationTypeFilter !== 'ARS') return false;
-                if (!isArsPool && entry.applicationType !== applicationTypeFilter) return false;
+
+            if (!isAll(applicationTypeFilter)) {
+                if (isArsPool && !applicationTypeFilter.includes('ARS')) return false;
+                if (!isArsPool && (!entry.applicationType || !applicationTypeFilter.includes(entry.applicationType))) return false;
             }
-            if (constituencyFilter !== "all") {
+
+            if (!isAll(constituencyFilter)) {
                 const match = isArsPool 
-                    ? entry.constituency === constituencyFilter 
-                    : (entry.constituency === constituencyFilter || entry.siteDetails?.some((sd: any) => sd.constituency === constituencyFilter));
+                    ? constituencyFilter.includes(entry.constituency) 
+                    : (constituencyFilter.includes(entry.constituency) || entry.siteDetails?.some((sd: any) => constituencyFilter.includes(sd.constituency)));
                 if (!match) return false;
             }
-            if (lsgFilter !== "all") {
+
+            if (!isAll(lsgFilter)) {
                 const match = isArsPool
-                    ? entry.localSelfGovt === lsgFilter
-                    : entry.siteDetails?.some((sd: any) => sd.localSelfGovt === lsgFilter);
+                    ? lsgFilter.includes(entry.localSelfGovt)
+                    : entry.siteDetails?.some((sd: any) => lsgFilter.includes(sd.localSelfGovt));
                 if (!match) return false;
             }
-            if (workCategoryFilter !== "all") {
-                const match = isArsPool ? entry.arsStatus === workCategoryFilter : entry.siteDetails?.some((sd: any) => sd.workStatus === workCategoryFilter);
+
+            if (!isAll(workCategoryFilter)) {
+                const match = isArsPool ? workCategoryFilter.includes(entry.arsStatus) : entry.siteDetails?.some((sd: any) => workCategoryFilter.includes(sd.workStatus));
                 if (!match) return false;
             }
-            if (serviceTypeFilter !== "all") {
-                const match = isArsPool ? entry.arsTypeOfScheme === serviceTypeFilter : entry.siteDetails?.some((sd: any) => sd.purpose === serviceTypeFilter);
+
+            if (!isAll(serviceTypeFilter)) {
+                const match = isArsPool ? serviceTypeFilter.includes(entry.arsTypeOfScheme) : entry.siteDetails?.some((sd: any) => serviceTypeFilter.includes(sd.purpose));
                 if (!match) return false;
             }
-            if (typeOfRigFilter !== "all") {
+
+            if (!isAll(typeOfRigFilter)) {
                 if (isArsPool) return false;
-                if (!entry.siteDetails?.some((site: any) => site.typeOfRig === typeOfRigFilter)) return false;
+                if (!entry.siteDetails?.some((site: any) => typeOfRigFilter.includes(site.typeOfRig))) return false;
             }
             
             if (lowerSearchTerm) {
@@ -421,6 +517,28 @@ export default function ReportsPage() {
 
     const flattenedRows: FlattenedReportRow[] = [];
 
+    const doesSiteMatchDateFilter = (site: any, entry: any) => {
+        if (!startDate && !endDate) return true;
+
+        if (dateFilterType === 'remittance') {
+            return entry.remittanceDetails?.some((rd: any) => checkDateInRange(rd.dateOfRemittance)) ?? false;
+        }
+        if (dateFilterType === 'completion') {
+            return checkDateInRange(site.dateOfCompletion);
+        }
+        if (dateFilterType === 'payment') {
+            return entry.paymentDetails?.some((pd: any) => checkDateInRange(pd.dateOfPayment)) ?? false;
+        }
+
+        // dateFilterType === 'all'
+        const matchRemittance = entry.remittanceDetails?.some((rd: any) => checkDateInRange(rd.dateOfRemittance)) ?? false;
+        const matchCompletion = checkDateInRange(site.dateOfCompletion);
+        const matchPayment = entry.paymentDetails?.some((pd: any) => checkDateInRange(pd.dateOfPayment)) ?? false;
+        const matchInvestigation = checkDateInRange(site.dateOfInvestigation) || checkDateInRange(site.vesDate);
+
+        return matchRemittance || matchCompletion || matchPayment || matchInvestigation;
+    };
+
     currentFileEntries.forEach(entry => {
         const remittanceDate = entry.remittanceDetails?.[0]?.dateOfRemittance;
         const fileFirstRemittanceDate = remittanceDate ? format(new Date(remittanceDate), "dd/MM/yyyy") : "-";
@@ -429,65 +547,149 @@ export default function ReportsPage() {
 
         if (entry.siteDetails && entry.siteDetails.length > 0) {
             entry.siteDetails.forEach(site => {
-                if (workCategoryFilter !== 'all' && site.workStatus !== workCategoryFilter) return;
-                if (lsgFilter !== 'all' && site.localSelfGovt !== lsgFilter) return;
-                if (constituencyFilter !== 'all' && site.constituency !== constituencyFilter) return;
+                if (!isAll(workCategoryFilter) && !workCategoryFilter.includes(site.workStatus)) return;
+                if (!isAll(lsgFilter) && !lsgFilter.includes(site.localSelfGovt)) return;
+                if (!isAll(constituencyFilter) && !constituencyFilter.includes(site.constituency)) return;
+                if (!isAll(typeOfRigFilter) && !typeOfRigFilter.includes(site.typeOfRig)) return;
+                if (!isAll(serviceTypeFilter) && !serviceTypeFilter.includes(site.purpose)) return;
+                if (!doesSiteMatchDateFilter(site, entry)) return;
+
                 flattenedRows.push({
                     fileNo: entry.fileNo || "-", 
                     applicantName: entry.applicantName || "-", 
+                    phoneNo: entry.phoneNo || "-",
+                    secondaryMobileNo: entry.secondaryMobileNo || "-",
+                    emailId: entry.emailId || "-",
+                    category: entry.category || "-",
                     fileFirstRemittanceDate, 
                     applicationType: entry.applicationType ? applicationTypeDisplayMap[entry.applicationType as ApplicationType] || entry.applicationType : "N/A",
                     fileStatus: entry.fileStatus || "-",
+                    officeLocation: entry.officeLocation || officeAddress?.officeLocation || "-",
+                    remarks: entry.remarks || "-",
+
                     siteName: site.nameOfSite || "-", 
-                    sitePurpose: site.purpose || "-", 
-                    siteWorkStatus: site.workStatus || "-", 
-                    siteTotalExpenditure: (Number(site.totalExpenditure) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-                    totalRemittance, 
-                    balance,
                     lsg: site.localSelfGovt || 'N/A',
                     constituency: site.constituency || 'N/A',
-                    supervisor: site.supervisorName || 'N/A',
                     latitude: site.latitude || 'N/A',
                     longitude: site.longitude || 'N/A',
+                    plotArea: site.plotArea || 'N/A',
+                    supervisor: site.supervisorName || 'N/A',
+
+                    estimateAmount: entry.estimateAmount ? Number(entry.estimateAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00',
+                    totalRemittance, 
+                    remittanceAccount: entry.remittanceDetails?.[0]?.remittedAccount || 'N/A',
+                    remittanceRemarks: entry.remittanceDetails?.map((r: any) => r.remittanceRemarks).filter(Boolean).join('; ') || 'N/A',
+                    totalPaymentAllEntries: entry.totalPaymentAllEntries ? Number(entry.totalPaymentAllEntries).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00',
+                    siteTotalExpenditure: (Number(site.totalExpenditure) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                    balance,
+                    subsidyAmount: site.subsidyAmount || 'N/A',
+                    tsAmount: site.tsAmount || 'N/A',
+                    tenderNo: site.tenderNo || 'N/A',
+                    contractorsPayment: entry.paymentDetails?.[0]?.contractorsPayment || 'N/A',
+                    gst: entry.paymentDetails?.[0]?.gst || 'N/A',
+                    incomeTax: entry.paymentDetails?.[0]?.incomeTax || 'N/A',
+                    kbcwb: entry.paymentDetails?.[0]?.kbcwb || 'N/A',
+                    refundToParty: entry.paymentDetails?.[0]?.refundToParty || 'N/A',
+
+                    sitePurpose: site.purpose || "-", 
+                    siteWorkStatus: site.workStatus || "-", 
+                    startDate: site.startDate ? format(new Date(site.startDate), "dd/MM/yyyy") : 'N/A',
+                    dateOfCompletion: site.dateOfCompletion ? format(new Date(site.dateOfCompletion), "dd/MM/yyyy") : 'N/A',
+                    siteConditions: site.siteConditions || 'N/A',
+                    accessibleRig: site.accessibleRig || 'N/A',
+                    workRemarks: site.workRemarks || 'N/A',
+
+                    typeOfWell: site.typeOfWell || 'N/A',
                     diameter: site.diameter || 'N/A',
+                    pilotDrillingDepth: site.pilotDrillingDepth || 'N/A',
                     totalDepth: site.totalDepth || 'N/A',
                     yield: site.yieldDischarge || 'N/A',
                     waterLevel: site.waterLevel || 'N/A',
                     endCap: site.endCap || 'N/A',
+                    zoneDetails: site.zoneDetails || 'N/A',
                     casingPipeUsed: site.casingPipeUsed || 'N/A',
+                    casing10kgPipe: site.casing10kgPipe || 'N/A',
+                    casing8kgPipe: site.casing8kgPipe || 'N/A',
+                    casing6kgPipe: site.casing6kgPipe || 'N/A',
                     outerCasingPipe: site.outerCasingPipe || 'N/A',
+                    outerCasingPressure: site.outerCasingPressure || 'N/A',
                     innerCasingPipe: site.innerCasingPipe || 'N/A',
+                    innerCasing6kgPipe: site.innerCasing6kgPipe || 'N/A',
+                    innerCasing4kgPipe: site.innerCasing4kgPipe || 'N/A',
+                    drillingRemarks: site.drillingRemarks || 'N/A',
+                    developingRemarks: site.developingRemarks || 'N/A',
+
+                    surveyOB: site.surveyOB || 'N/A',
+                    surveyLocation: site.surveyLocation || 'N/A',
+                    surveyPlainPipe: site.surveyPlainPipe || 'N/A',
+                    surveySlottedPipe: site.surveySlottedPipe || 'N/A',
+                    surveyRemarks: site.surveyRemarks || 'N/A',
+                    surveyRecommendedDiameter: site.surveyRecommendedDiameter || 'N/A',
+                    surveyRecommendedTD: site.surveyRecommendedTD || 'N/A',
+                    surveyRecommendedOB: site.surveyRecommendedOB || 'N/A',
+                    surveyRecommendedCasingPipe: site.surveyRecommendedCasingPipe || 'N/A',
                     surveyRecommendedPlainPipe: site.surveyRecommendedPlainPipe || 'N/A',
                     surveyRecommendedSlottedPipe: site.surveyRecommendedSlottedPipe || 'N/A',
                     surveyRecommendedMsCasingPipe: site.surveyRecommendedMsCasingPipe || 'N/A',
-                    zoneDetails: site.zoneDetails || 'N/A',
-                    typeOfWell: site.typeOfWell || 'N/A',
+
+                    typeOfRig: site.typeOfRig || 'N/A',
+                    contractorName: site.contractorName || 'N/A',
+                    pumpDetails: site.pumpDetails || 'N/A',
+                    pumpingLineLength: site.pumpingLineLength || 'N/A',
+                    deliveryLineLength: site.deliveryLineLength || 'N/A',
+                    waterTankCapacity: site.waterTankCapacity || 'N/A',
+                    noOfTapConnections: site.noOfTapConnections || 'N/A',
+                    noOfBeneficiary: site.noOfBeneficiary || 'N/A',
+                    descriptionOfWork: site.descriptionOfWork || 'N/A',
+                    schemeRemarks: site.schemeRemarks || 'N/A',
+                    implementationRemarks: site.implementationRemarks || 'N/A',
+
                     nameOfInvestigator: site.nameOfInvestigator || 'N/A',
                     dateOfInvestigation: site.dateOfInvestigation ? format(new Date(site.dateOfInvestigation), "dd/MM/yyyy") : 'N/A',
                     feasibility: site.feasibility || 'N/A',
                     vesRequired: site.vesRequired || 'N/A',
                     vesInvestigator: site.vesInvestigator || 'N/A',
                     vesDate: site.vesDate ? format(new Date(site.vesDate), "dd/MM/yyyy") : 'N/A',
-                    descriptionOfWork: site.descriptionOfWork || 'N/A',
                     hydrogeologicalRemarks: site.hydrogeologicalRemarks || 'N/A',
-                    geophysicalRemarks: site.geophysicalRemarks || 'N/A',
-                    typeOfRig: site.typeOfRig || 'N/A',
-                    contractorName: site.contractorName || 'N/A',
-                    pumpDetails: site.pumpDetails || 'N/A',
-                    noOfTapConnections: site.noOfTapConnections || 'N/A',
-                    waterTankCapacity: site.waterTankCapacity || 'N/A',
-                    noOfBeneficiary: site.noOfBeneficiary || 'N/A',
-                    remarks: site.workRemarks || entry.remarks || 'N/A'
+                    geophysicalRemarks: site.geophysicalRemarks || 'N/A'
                 });
             });
         } else {
+            if (startDate || endDate) {
+                const matchRemittance = entry.remittanceDetails?.some((rd: any) => checkDateInRange(rd.dateOfRemittance)) ?? false;
+                const matchPayment = entry.paymentDetails?.some((pd: any) => checkDateInRange(pd.dateOfPayment)) ?? false;
+                if (!matchRemittance && !matchPayment) return;
+            }
             flattenedRows.push({
-                fileNo: entry.fileNo || "-", applicantName: entry.applicantName || "-", fileFirstRemittanceDate, applicationType: entry.applicationType || "-", fileStatus: entry.fileStatus || "-", siteName: "-", sitePurpose: "-", siteWorkStatus: "-", siteTotalExpenditure: "0.00", totalRemittance, balance, remarks: entry.remarks || 'N/A'
+                fileNo: entry.fileNo || "-", 
+                applicantName: entry.applicantName || "-", 
+                phoneNo: entry.phoneNo || "-",
+                secondaryMobileNo: entry.secondaryMobileNo || "-",
+                emailId: entry.emailId || "-",
+                category: entry.category || "-",
+                fileFirstRemittanceDate, 
+                applicationType: entry.applicationType ? applicationTypeDisplayMap[entry.applicationType as ApplicationType] || entry.applicationType : "-",
+                fileStatus: entry.fileStatus || "-", 
+                siteName: "-", 
+                sitePurpose: "-", 
+                siteWorkStatus: "-", 
+                siteTotalExpenditure: "0.00", 
+                totalRemittance, 
+                balance, 
+                remarks: entry.remarks || 'N/A'
             });
         }
     });
 
     currentArsEntries.forEach(entry => {
+        if (startDate || endDate) {
+            const matchSanction = checkDateInRange(entry.arsSanctionedDate);
+            const matchCompletion = checkDateInRange(entry.dateOfCompletion);
+            if (dateFilterType === 'remittance' && !matchSanction) return;
+            if (dateFilterType === 'completion' && !matchCompletion) return;
+            if (dateFilterType === 'all' && !matchSanction && !matchCompletion) return;
+        }
+
         const dateStr = entry.arsSanctionedDate;
         const fileFirstRemittanceDate = dateStr ? format(new Date(dateStr), "dd/MM/yyyy") : "-";
         const totalExpenditure = (Number(entry.totalExpenditure) || 0);
@@ -512,14 +714,17 @@ export default function ReportsPage() {
             longitude: entry.longitude || 'N/A',
             noOfBeneficiary: entry.noOfBeneficiary || 'N/A',
             arsBlock: entry.arsBlock || 'N/A',
+            arsPanchayath: entry.localSelfGovt || 'N/A',
             arsTypeOfScheme: entry.arsTypeOfScheme || 'N/A',
             arsNumberOfStructures: entry.arsNumberOfStructures || 'N/A',
             arsStorageCapacity: entry.arsStorageCapacity || 'N/A',
             arsNumberOfFillings: entry.arsNumberOfFillings || 'N/A',
             arsAsTsDetails: entry.arsAsTsDetails || 'N/A',
-            tsAmount: entry.tsAmount || 'N/A',
+            arsSanctionedDate: entry.arsSanctionedDate ? format(new Date(entry.arsSanctionedDate), "dd/MM/yyyy") : 'N/A',
+            tsAmount: entry.tsAmount ? Number(entry.tsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A',
             arsTenderNo: entry.arsTenderNo || 'N/A',
-            arsAwardedAmount: entry.arsAwardedAmount || 'N/A',
+            arsTenderedAmount: entry.arsTenderedAmount ? Number(entry.arsTenderedAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A',
+            arsAwardedAmount: entry.arsAwardedAmount ? Number(entry.arsAwardedAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A',
             arsContractorName: entry.arsContractorName || 'N/A',
             arsStatus: entry.arsStatus || 'N/A',
             remarks: entry.workRemarks || 'N/A'
@@ -527,7 +732,7 @@ export default function ReportsPage() {
     });
     
     setFilteredReportRows(flattenedRows);
-  }, [fileEntries, allArsEntries, matchesDataSource, dataSourceFilter, searchTerm, statusFilter, serviceTypeFilter, workCategoryFilter, startDate, endDate, dateFilterType, applicationTypeFilter, typeOfRigFilter, constituencyFilter, applicantNameFilter, lsgFilter]);
+  }, [fileEntries, allArsEntries, matchesDataSource, dataSourceFilter, searchTerm, statusFilter, serviceTypeFilter, workCategoryFilter, startDate, endDate, dateFilterType, applicationTypeFilter, typeOfRigFilter, constituencyFilter, applicantNameFilter, lsgFilter, officeAddress]);
 
   useEffect(() => {
     if (!entriesLoading && !authIsLoading) {
@@ -536,17 +741,66 @@ export default function ReportsPage() {
   }, [entriesLoading, authIsLoading, applyFilters]);
 
   const handleResetFilters = () => {
-    setDataSourceFilter("all"); setStartDate(""); setEndDate(""); setSearchTerm(""); setStatusFilter("all"); setServiceTypeFilter("all"); setWorkCategoryFilter("all"); setDateFilterType("all"); setApplicationTypeFilter("all"); setTypeOfRigFilter("all"); setConstituencyFilter("all"); setApplicantNameFilter("all"); setLsgFilter("all");
+    setDataSourceFilter("all"); 
+    setStartDate(""); 
+    setEndDate(""); 
+    setSearchTerm(""); 
+    setDateFilterType("all"); 
+    setStatusFilter(["all"]); 
+    setServiceTypeFilter(["all"]); 
+    setWorkCategoryFilter(["all"]); 
+    setApplicationTypeFilter(["all"]); 
+    setTypeOfRigFilter(["all"]); 
+    setConstituencyFilter(["all"]); 
+    setApplicantNameFilter(["all"]); 
+    setLsgFilter(["all"]);
     router.replace(`/dashboard/reports`, { scroll: false });
   };
 
-  const activeFieldsForExport = useMemo(() => {
-      const currentSource = dataSourceFilter;
-      return reportFieldDefinitions.filter(f => f.sources.includes(currentSource));
-  }, [dataSourceFilter]);
+  // Group fields by category for export modal
+  const categorizedExportFields = useMemo(() => {
+    const map: Record<string, ReportFieldDefinition[]> = {};
+    reportFieldDefinitions.forEach(field => {
+      if (!map[field.category]) {
+        map[field.category] = [];
+      }
+      map[field.category].push(field);
+    });
+    return map;
+  }, []);
+
+  const filteredCategoriesForExport = useMemo(() => {
+    if (!exportFieldSearch.trim()) return categorizedExportFields;
+    const lower = exportFieldSearch.toLowerCase();
+    const result: Record<string, ReportFieldDefinition[]> = {};
+    
+    Object.entries(categorizedExportFields).forEach(([category, fields]) => {
+      const matchingFields = fields.filter(
+        f => f.label.toLowerCase().includes(lower) || f.id.toLowerCase().includes(lower) || category.toLowerCase().includes(lower)
+      );
+      if (matchingFields.length > 0) {
+        result[category] = matchingFields;
+      }
+    });
+    return result;
+  }, [categorizedExportFields, exportFieldSearch]);
+
+  const toggleCategorySelection = (categoryFields: ReportFieldDefinition[]) => {
+    const fieldIds = categoryFields.map(f => f.id);
+    const allSelected = fieldIds.every(id => selectedExportFields.includes(id));
+
+    if (allSelected) {
+      setSelectedExportFields(prev => prev.filter(id => !fieldIds.includes(id)));
+    } else {
+      setSelectedExportFields(prev => Array.from(new Set([...prev, ...fieldIds])));
+    }
+  };
 
   const handleExportExcel = async () => {
-    if (filteredReportRows.length === 0) return;
+    if (filteredReportRows.length === 0) {
+        toast({ title: "No Data", description: "No records match the current filter criteria.", variant: "destructive" });
+        return;
+    }
     if (selectedExportFields.length === 0) {
         toast({ title: "No Fields Selected", description: "Please select at least one field to export.", variant: "destructive" });
         return;
@@ -569,7 +823,7 @@ export default function ReportsPage() {
     });
 
     filteredReportRows.forEach((row, index) => {
-      const values = [index + 1];
+      const values: any[] = [index + 1];
       activeFields.forEach(field => {
         values.push(row[field.id] ?? 'N/A');
       });
@@ -579,7 +833,7 @@ export default function ReportsPage() {
       });
     });
 
-    worksheet.columns.forEach(column => column.width = 20);
+    worksheet.columns.forEach(column => column.width = 22);
     
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -613,125 +867,109 @@ export default function ReportsPage() {
                 <div className="space-y-1.5">
                     <Label className="text-xs font-semibold flex items-center gap-1.5"><Layers className="h-3 w-3" />Data Source</Label>
                     <Select value={dataSourceFilter} onValueChange={(v) => setDataSourceFilter(v as DataSource)}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Select Data Source" /></SelectTrigger>
-                        <SelectContent>{dataSourceOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Data Source" /></SelectTrigger>
+                        <SelectContent>{dataSourceOptions.map(opt => <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Filter by Name of Applicant</Label>
-                    <Select value={applicantNameFilter} onValueChange={setApplicantNameFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Select Applicant" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Applicants</SelectItem>
-                            {applicantOptions.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
-                        </SelectContent>
-                    </Select>
-                </div>
+
+                <MultiSelectFilter
+                    label="Filter by Name of Applicant"
+                    placeholder="All Applicants"
+                    options={applicantOptions.map(name => ({ value: name, label: name }))}
+                    selectedValues={applicantNameFilter}
+                    onChange={setApplicantNameFilter}
+                />
+
                 <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Date Type for Range</Label>
                     <Select value={dateFilterType} onValueChange={(v: any) => setDateFilterType(v)}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Select Date Type" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">-- Clear Date Type --</SelectItem>
-                            <SelectItem value="remittance">Date of Remittance / Sanction</SelectItem>
-                            <SelectItem value="completion">Date of Completion</SelectItem>
-                            <SelectItem value="payment">Date of Payment</SelectItem>
+                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Date Type" /></SelectTrigger>
+                        <SelectContent className="text-xs">
+                            <SelectItem value="all" className="text-xs">-- Clear Date Type --</SelectItem>
+                            <SelectItem value="remittance" className="text-xs">Date of Remittance / Sanction</SelectItem>
+                            <SelectItem value="completion" className="text-xs">Date of Completion</SelectItem>
+                            <SelectItem value="payment" className="text-xs">Date of Payment</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
+
                 <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">From Date</Label>
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9"/>
+                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-9 text-xs"/>
                 </div>
+
                 <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">To Date</Label>
-                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9"/>
+                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9 text-xs"/>
                 </div>
 
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Service/Purpose</Label>
-                    <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Filter by Service" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Services</SelectItem>
-                            {availableServiceOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Application Type</Label>
-                    <Select value={applicationTypeFilter} onValueChange={setApplicationTypeFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="All Application Types" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Application Types</SelectItem>
-                            {uniqueApplicationTypeOptions.map(o => <SelectItem key={o} value={o}>{applicationTypeDisplayMap[o as ApplicationType] || o}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Type of Rig (Site)</Label>
-                    <Select value={typeOfRigFilter} onValueChange={setTypeOfRigFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="All Rig Types" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Rig Types</SelectItem>
-                            {rigOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">File Status</Label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Filter Status" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All File Statuses</SelectItem>
-                            {fileStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Work Category (Site Status)</Label>
-                    <Select value={workCategoryFilter} onValueChange={setWorkCategoryFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Filter Category" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {siteWorkStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <MultiSelectFilter
+                    label="Service / Purpose"
+                    placeholder="All Services"
+                    options={availableServiceOptions.map(p => ({ value: p, label: p }))}
+                    selectedValues={serviceTypeFilter}
+                    onChange={setServiceTypeFilter}
+                />
 
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Local Self Govt.</Label>
-                    <Select value={lsgFilter} onValueChange={setLsgFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="All LSGs" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All LSGs</SelectItem>
-                            {dynamicLsgs.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <MultiSelectFilter
+                    label="Application Type"
+                    placeholder="All Application Types"
+                    options={uniqueApplicationTypeOptions.map(o => ({ value: o, label: applicationTypeDisplayMap[o as ApplicationType] || o }))}
+                    selectedValues={applicationTypeFilter}
+                    onChange={setApplicationTypeFilter}
+                />
 
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Constituency (LAC)</Label>
-                    <Select value={constituencyFilter} onValueChange={setConstituencyFilter}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Filter Constituency" /></SelectTrigger>
-                        <SelectContent className="max-h-80">
-                            <SelectItem value="all">All Constituencies</SelectItem>
-                            {[...dynamicConstituencies].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <MultiSelectFilter
+                    label="Type of Rig (Site)"
+                    placeholder="All Rig Types"
+                    options={rigOptions.map(o => ({ value: o, label: o }))}
+                    selectedValues={typeOfRigFilter}
+                    onChange={setTypeOfRigFilter}
+                />
+
+                <MultiSelectFilter
+                    label="File Status"
+                    placeholder="All File Statuses"
+                    options={fileStatusOptions.map(s => ({ value: s, label: s }))}
+                    selectedValues={statusFilter}
+                    onChange={setStatusFilter}
+                />
+
+                <MultiSelectFilter
+                    label="Work Category (Site Status)"
+                    placeholder="All Categories"
+                    options={siteWorkStatusOptions.map(s => ({ value: s, label: s }))}
+                    selectedValues={workCategoryFilter}
+                    onChange={setWorkCategoryFilter}
+                />
+
+                <MultiSelectFilter
+                    label="Local Self Govt."
+                    placeholder="All LSGs"
+                    options={dynamicLsgs.map(l => ({ value: l, label: l }))}
+                    selectedValues={lsgFilter}
+                    onChange={setLsgFilter}
+                />
+
+                <MultiSelectFilter
+                    label="Constituency (LAC)"
+                    placeholder="All Constituencies"
+                    options={dynamicConstituencies.map(c => ({ value: c, label: c }))}
+                    selectedValues={constituencyFilter}
+                    onChange={setConstituencyFilter}
+                />
 
                 <div className="space-y-1.5 lg:col-span-2">
                     <Label className="text-xs font-semibold">Global Search</Label>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Global search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-9" />
+                        <Input placeholder="Global search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-9 text-xs" />
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 flex items-center gap-2">
-                    <Button variant="secondary" onClick={handleResetFilters} size="sm" className="flex-1"><RotateCcw className="mr-2 h-4 w-4" />Reset</Button>
-                    <Button onClick={() => setIsExportDialogOpen(true)} size="sm" className="flex-1"><FileDown className="mr-2 h-4 w-4" />Export Excel</Button>
+                <div className="lg:col-span-1 flex items-center gap-2">
+                    <Button variant="secondary" onClick={handleResetFilters} size="sm" className="flex-1 text-xs"><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Reset</Button>
+                    <Button onClick={() => setIsExportDialogOpen(true)} size="sm" className="flex-1 text-xs bg-primary hover:bg-primary/90"><FileDown className="mr-1.5 h-3.5 w-3.5" />Export Excel</Button>
                 </div>
             </div>
         </CardContent>
@@ -746,7 +984,10 @@ export default function ReportsPage() {
          <div className="relative max-h-[70vh] overflow-auto">
             <ReportTable data={paginatedReportRows} onViewDetailsClick={handleOpenViewDialog} currentPage={currentPage} itemsPerPage={ITEMS_PER_PAGE} />
           </div>
-          <CardFooter className="p-4 border-t flex items-center justify-center">
+          <CardFooter className="p-4 border-t flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Showing {filteredReportRows.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredReportRows.length)} of {filteredReportRows.length} entries
+              </div>
               {totalPages > 1 && <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />}
           </CardFooter>
       </Card>
@@ -761,47 +1002,147 @@ export default function ReportsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Customize Report Export Dialog */}
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-2xl flex flex-col p-0">
+        <DialogContent className="sm:max-w-4xl flex flex-col p-0 max-h-[90vh]">
           <DialogHeader className="p-6 pb-4 border-b">
-            <DialogTitle>Customize Report Export</DialogTitle>
-            <DialogDescription>
-                Available fields for <strong>{dataSourceOptions.find(o => o.value === dataSourceFilter)?.label}</strong>.
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-primary" /> Customize Report Export
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-1">
+                  Select full available fields to include in your customized Excel spreadsheet report ({selectedExportFields.length} of {reportFieldDefinitions.length} fields selected).
+                </DialogDescription>
+              </div>
+            </div>
+            
+            {/* Action Bar & Search inside Modal */}
+            <div className="mt-4 flex flex-wrap items-center gap-2 pt-2 border-t">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input 
+                  placeholder="Search fields or categories..." 
+                  value={exportFieldSearch} 
+                  onChange={(e) => setExportFieldSearch(e.target.value)}
+                  className="pl-8 h-8 text-xs" 
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs gap-1"
+                onClick={() => setSelectedExportFields(reportFieldDefinitions.map(f => f.id))}
+              >
+                <CheckSquare className="h-3.5 w-3.5" /> Select All ({reportFieldDefinitions.length})
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs gap-1"
+                onClick={() => setSelectedExportFields(DEFAULT_EXPORT_FIELDS)}
+              >
+                Reset Default Fields
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs gap-1 text-destructive hover:text-destructive"
+                onClick={() => setSelectedExportFields([])}
+              >
+                <Square className="h-3.5 w-3.5" /> Deselect All
+              </Button>
+            </div>
           </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-[50vh]">
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activeFieldsForExport.map((field) => (
-                  <div key={field.id} className="flex items-center space-x-3 p-3 rounded-md border bg-secondary/10 hover:bg-secondary/20 transition-colors">
-                    <Checkbox 
-                      id={`export-field-${field.id}`}
-                      checked={selectedExportFields.includes(field.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedExportFields(prev => [...prev, field.id]);
-                        } else {
-                          setSelectedExportFields(prev => prev.filter(id => id !== field.id));
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`export-field-${field.id}`} className="flex-1 cursor-pointer font-medium text-sm">
-                      {field.label}
-                    </Label>
+
+          <div className="flex-1 overflow-hidden p-0">
+            <ScrollArea className="h-[55vh] px-6 py-4">
+              <div className="space-y-6">
+                {Object.entries(filteredCategoriesForExport).map(([category, fields]) => {
+                  const categoryFieldIds = fields.map(f => f.id);
+                  const isCategoryAllSelected = categoryFieldIds.every(id => selectedExportFields.includes(id));
+                  const isCategorySomeSelected = categoryFieldIds.some(id => selectedExportFields.includes(id)) && !isCategoryAllSelected;
+
+                  return (
+                    <div key={category} className="space-y-2 border rounded-lg p-4 bg-card shadow-sm">
+                      <div className="flex items-center justify-between pb-2 border-b">
+                        <div 
+                          className="flex items-center space-x-2 cursor-pointer select-none"
+                          onClick={() => toggleCategorySelection(fields)}
+                        >
+                          <Checkbox 
+                            id={`cat-${category}`}
+                            checked={isCategoryAllSelected ? true : isCategorySomeSelected ? "indeterminate" : false}
+                            onCheckedChange={() => toggleCategorySelection(fields)}
+                          />
+                          <Label htmlFor={`cat-${category}`} className="font-bold text-sm cursor-pointer text-foreground">
+                            {category}
+                          </Label>
+                        </div>
+                        <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {fields.filter(f => selectedExportFields.includes(f.id)).length} / {fields.length} selected
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                        {fields.map((field) => {
+                          const isSelected = selectedExportFields.includes(field.id);
+                          return (
+                            <div 
+                              key={field.id} 
+                              className={`flex items-center space-x-2.5 p-2 rounded-md border text-xs cursor-pointer transition-all ${
+                                isSelected ? 'bg-primary/10 border-primary/40 font-medium text-primary' : 'bg-background hover:bg-muted/50 border-border text-muted-foreground'
+                              }`}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedExportFields(prev => prev.filter(id => id !== field.id));
+                                } else {
+                                  setSelectedExportFields(prev => [...prev, field.id]);
+                                }
+                              }}
+                            >
+                              <Checkbox 
+                                id={`export-field-${field.id}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedExportFields(prev => [...prev, field.id]);
+                                  } else {
+                                    setSelectedExportFields(prev => prev.filter(id => id !== field.id));
+                                  }
+                                }}
+                              />
+                              <Label 
+                                htmlFor={`export-field-${field.id}`} 
+                                className="flex-1 cursor-pointer truncate font-medium text-xs text-foreground"
+                              >
+                                {field.label}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {Object.keys(filteredCategoriesForExport).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">No fields matching &quot;{exportFieldSearch}&quot; found.</p>
                   </div>
-                ))}
+                )}
               </div>
             </ScrollArea>
           </div>
-          <DialogFooter className="p-6 pt-4 border-t flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedExportFields(activeFieldsForExport.map(f => f.id))}>Select All</Button>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedExportFields([])}>Deselect All</Button>
+
+          <DialogFooter className="p-4 border-t flex items-center justify-between bg-muted/20">
+            <div className="text-xs font-semibold text-muted-foreground">
+              Total Columns to Export: <span className="text-foreground font-bold">{selectedExportFields.length}</span>
             </div>
             <div className="flex items-center gap-2">
-                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                <Button onClick={handleExportExcel}>
-                    <CheckCircle className="mr-2 h-4 w-4" /> Export Excel
+                <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                <Button onClick={handleExportExcel} size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
+                    <CheckCircle className="h-4 w-4" /> Export Excel
                 </Button>
             </div>
           </DialogFooter>
@@ -810,23 +1151,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-const DetailRow = ({ label, value }: { label: string; value: any }) => {
-  if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
-      return null;
-  }
-  let displayValue = String(value);
-  const isDate = label.toLowerCase().includes('date') || label.toLowerCase().includes('validity');
-  if (isDate) {
-      const date = safeParseDate(value);
-      displayValue = date ? format(date, 'dd/MM/yyyy') : 'N/A';
-  } else if (typeof value === 'number') {
-      displayValue = value.toLocaleString('en-IN');
-  }
-  return (
-      <div className="flex flex-col">
-          <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-          <dd className="text-sm font-semibold">{displayValue}</dd>
-      </div>
-  );
-};
