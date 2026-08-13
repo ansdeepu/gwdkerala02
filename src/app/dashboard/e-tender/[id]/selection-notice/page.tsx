@@ -76,10 +76,14 @@ export default function SelectionNoticePrintPage() {
     
     const hasRejectedBids = useMemo(() => tender.bidders?.some(b => b.status === 'Rejected'), [tender.bidders]);
     
+    const actualQuotedAmount = useMemo(() => {
+        return (hasRejectedBids && tender.agreedAmount) ? tender.agreedAmount : (l1Bidder?.quotedAmount ?? tender.contractAmount);
+    }, [hasRejectedBids, tender.agreedAmount, l1Bidder?.quotedAmount, tender.contractAmount]);
+
     const contractAmount = useMemo(() => {
         if (tender.amountType === 'Tender Amount') return tender.estimateAmount;
-        return (hasRejectedBids && tender.agreedAmount) ? tender.agreedAmount : l1Bidder?.quotedAmount;
-    }, [tender.amountType, tender.estimateAmount, hasRejectedBids, tender.agreedAmount, l1Bidder?.quotedAmount]);
+        return actualQuotedAmount;
+    }, [tender.amountType, tender.estimateAmount, actualQuotedAmount]);
 
     // --- Dynamic Calculation Logic ---
     
@@ -110,12 +114,17 @@ export default function SelectionNoticePrintPage() {
         return logic.threshold;
     }, [additionalPerformanceGuaranteeDescription]);
     
+    const hasExplicitApg = tender.additionalPerformanceGuaranteeAmount !== undefined && 
+                           tender.additionalPerformanceGuaranteeAmount !== null && 
+                           tender.additionalPerformanceGuaranteeAmount > 0;
+
     const isApgRequired = useMemo(() => {
-        if (!tender.estimateAmount || !contractAmount) return false;
-        if (contractAmount >= tender.estimateAmount) return false;
-        const percentageDifference = (tender.estimateAmount - contractAmount) / tender.estimateAmount;
+        if (hasExplicitApg) return true;
+        if (!tender.estimateAmount || !actualQuotedAmount) return false;
+        if (actualQuotedAmount >= tender.estimateAmount) return false;
+        const percentageDifference = (tender.estimateAmount - actualQuotedAmount) / tender.estimateAmount;
         return percentageDifference > apgThreshold;
-    }, [tender.estimateAmount, contractAmount, apgThreshold]);
+    }, [hasExplicitApg, tender.estimateAmount, actualQuotedAmount, apgThreshold]);
 
     const performanceGuarantee = useMemo(() => {
         if (!contractAmount) return tender.performanceGuaranteeAmount ?? 0;
@@ -123,11 +132,15 @@ export default function SelectionNoticePrintPage() {
     }, [contractAmount, tender.performanceGuaranteeAmount]);
 
     const additionalPerformanceGuarantee = useMemo(() => {
-        if (!isApgRequired || !tender.estimateAmount || !contractAmount) return tender.additionalPerformanceGuaranteeAmount ?? 0;
-        const excessPercentage = ((tender.estimateAmount - contractAmount) / tender.estimateAmount) - apgThreshold;
+        if (hasExplicitApg) {
+            return tender.additionalPerformanceGuaranteeAmount!;
+        }
+        if (!isApgRequired || !tender.estimateAmount || !actualQuotedAmount) return 0;
+        const percentageDifference = (tender.estimateAmount - actualQuotedAmount) / tender.estimateAmount;
+        const excessPercentage = percentageDifference - apgThreshold;
         const apg = excessPercentage * tender.estimateAmount;
         return Math.ceil(apg / 100) * 100;
-    }, [isApgRequired, tender.estimateAmount, contractAmount, apgThreshold, tender.additionalPerformanceGuaranteeAmount]);
+    }, [hasExplicitApg, isApgRequired, tender.estimateAmount, actualQuotedAmount, apgThreshold, tender.additionalPerformanceGuaranteeAmount]);
 
     const stampPaperValue = useMemo(() => {
         // Prefer calculated value to ensure correctness even if stale in DB
@@ -135,11 +148,20 @@ export default function SelectionNoticePrintPage() {
     }, [calculatedStampPaperValue]);
     
     const excessPercentageText = useMemo(() => {
-        if (!isApgRequired || !tender.estimateAmount || !contractAmount) return '0';
-        const percentageDifference = (tender.estimateAmount - contractAmount) / tender.estimateAmount;
-        const excessPercentage = (percentageDifference - apgThreshold) * 100;
-        return excessPercentage.toFixed(2);
-    }, [isApgRequired, tender.estimateAmount, contractAmount, apgThreshold]);
+        if (!tender.estimateAmount || tender.estimateAmount <= 0) return '0';
+        if (actualQuotedAmount && actualQuotedAmount < tender.estimateAmount) {
+            const percentageDifference = (tender.estimateAmount - actualQuotedAmount) / tender.estimateAmount;
+            if (percentageDifference > apgThreshold) {
+                const excessPercentage = (percentageDifference - apgThreshold) * 100;
+                return excessPercentage.toFixed(2);
+            }
+        }
+        if (hasExplicitApg) {
+            const calculatedPercentage = (tender.additionalPerformanceGuaranteeAmount! / tender.estimateAmount) * 100;
+            return calculatedPercentage.toFixed(2);
+        }
+        return '0';
+    }, [tender.estimateAmount, actualQuotedAmount, apgThreshold, hasExplicitApg, tender.additionalPerformanceGuaranteeAmount]);
 
 
         const MainContent = () => {

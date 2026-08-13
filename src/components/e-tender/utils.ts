@@ -254,6 +254,105 @@ export const formatDateSafe = (date: any, includeTime: boolean = false, isReceip
     return format(d, includeTime ? 'dd/MM/yyyy, hh:mm a' : 'dd/MM/yyyy');
 };
 
+export const parseStampPaperLogic = (description?: string | null) => {
+    const desc = description || "Stamp paper worth Rs. 100/- for every Rs. 1,00,000/- (0.1%) of the contract amount subject to a minimum of Rs. 200/- and maximum of Rs. 1,00,000/-.";
+    const rateBasisMatch = desc.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
+    const minMatch = desc.match(/(?:minimum|min)(?:\s*of)?\s*[₹Rs\.]?\s*([\d,]+)/i);
+    const maxMatch = desc.match(/(?:maximum|max)(?:\s*of)?\s*[₹Rs\.]?\s*([\d,]+)/i);
+    
+    const parseNumber = (str: string | undefined) => str ? parseInt(str.replace(/,/g, ''), 10) : undefined;
+
+    const result = {
+        rate: rateBasisMatch ? parseNumber(rateBasisMatch[1]) : 100,
+        basis: rateBasisMatch ? parseNumber(rateBasisMatch[2]) : 100000,
+        min: minMatch ? parseNumber(minMatch[1]) : 200,
+        max: maxMatch ? parseNumber(maxMatch[1]) : 100000,
+    };
+
+    if (result.rate === 1 && result.basis === 100000) {
+        result.rate = 100;
+    }
+
+    return result;
+};
+
+export const calculateStampPaperValue = (amount?: number | null, description?: string | null): number => {
+    const logic = parseStampPaperLogic(description);
+    const { rate, basis, min, max } = logic;
+    if (amount === undefined || amount === null || amount <= 0) return min ?? 0;
+    
+    const duty = Math.ceil(amount / (basis || 100000)) * (rate || 100); 
+    const roundedDuty = Math.ceil(duty / 100) * 100;
+    return Math.max(min ?? 0, Math.min(roundedDuty, max ?? Infinity));
+};
+
+export const parseAdditionalPerformanceGuaranteeLogic = (description: string) => {
+    const betweenMatch = description.match(/between\s+([\d.]+)%\s*(?:to|and)\s*([\d.]+)%/i);
+    const upToMatch = description.match(/up\s*to\s*([\d.]+)%|below\s*upto\s*([\d.]+)%/i);
+    const moreThanMatch = description.match(/more\s+than\s+([\d.]+)%/i);
+
+    if (betweenMatch) {
+        const lower = parseFloat(betweenMatch[1]);
+        const threshold = lower > 10 ? 0.10 : lower / 100;
+        return { threshold };
+    }
+    if (upToMatch) return { threshold: parseFloat(upToMatch[1] || upToMatch[2]) / 100 };
+    if (moreThanMatch) return { threshold: parseFloat(moreThanMatch[1]) / 100 };
+    
+    return { threshold: 0.10 }; 
+};
+
+export const calculateAdditionalPG = (
+    estimateAmount?: number | null, 
+    tenderAmount?: number | null, 
+    description?: string | null
+): number => {
+    if (!estimateAmount || !tenderAmount || tenderAmount >= estimateAmount) return 0;
+    
+    const desc = description || "Additional Performance Guarantee is the additional amount to be deposited for unbalanced price ie, for works quoted below estimate rate. Government decided to do away with additional performance guarantee for all works quoted below upto 10% of the estimate rate. Additional performance guarantee will be required if works quoted between 11% to 25% below estimate rate.";
+    const logic = parseAdditionalPerformanceGuaranteeLogic(desc);
+    const percentageDifference = (estimateAmount - tenderAmount) / estimateAmount;
+    
+    if (percentageDifference > logic.threshold) {
+        const excessPercentage = percentageDifference - logic.threshold;
+        const additionalPG = excessPercentage * estimateAmount;
+        return Math.ceil(additionalPG / 100) * 100;
+    }
+    return 0;
+};
+
+export const calculateSelectionNoticeValues = (params: {
+    tender: any;
+    bidders?: any[];
+    l1Amount?: number | null;
+}) => {
+    const { tender, bidders, l1Amount } = params;
+    const acceptedBidders = (bidders || tender.bidders || []).filter((b: any) => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
+    const l1Bidder = acceptedBidders.length > 0 ? acceptedBidders.reduce((lowest: any, current: any) => (current.quotedAmount! < lowest.quotedAmount!) ? current : lowest) : null;
+    
+    const hasRejectedBids = (bidders || tender.bidders || []).some((b: any) => b.status === 'Rejected');
+    const effectiveL1Amount = l1Amount !== undefined && l1Amount !== null 
+        ? l1Amount 
+        : (hasRejectedBids && tender.agreedAmount ? tender.agreedAmount : l1Bidder?.quotedAmount);
+
+    const baseAmountType = tender.amountType || 'Contract Amount';
+    const baseAmount = baseAmountType === 'Tender Amount' ? tender.estimateAmount : (effectiveL1Amount ?? tender.contractAmount ?? undefined);
+
+    const pgDesc = tender.performanceGuaranteeDescription || "5% of contract amount";
+    const pgRateMatch = pgDesc.match(/(\d+)%/);
+    const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
+
+    const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
+    const stamp = calculateStampPaperValue(baseAmount, tender.stampPaperDescription);
+    const additionalPg = calculateAdditionalPG(tender.estimateAmount, effectiveL1Amount, tender.additionalPerformanceGuaranteeDescription);
+
+    return {
+        performanceGuaranteeAmount: pg,
+        additionalPerformanceGuaranteeAmount: additionalPg,
+        stampPaperAmount: stamp,
+    };
+};
+
 export const getStatusBadgeClass = (status?: E_tenderStatus): string => {
     if (!status) return "";
     switch (status) {

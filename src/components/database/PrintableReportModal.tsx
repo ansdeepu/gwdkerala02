@@ -214,6 +214,9 @@ export default function PrintableReportModal({
   const [casing10kgQty, setCasing10kgQty] = useState<number>(0);
   const [casing8kgQty, setCasing8kgQty] = useState<number>(0);
   const [casing6kgQty, setCasing6kgQty] = useState<number>(0);
+  const [outerCasingQty, setOuterCasingQty] = useState<number>(0);
+  const [innerCasing6kgQty, setInnerCasing6kgQty] = useState<number>(0);
+  const [innerCasing4kgQty, setInnerCasing4kgQty] = useState<number>(0);
   const [innerCasingQty, setInnerCasingQty] = useState<number>(0);
   const [endCap, setEndCap] = useState<string>('No');
   const [yieldLph, setYieldLph] = useState<number>(0);
@@ -239,13 +242,21 @@ export default function PrintableReportModal({
   const [fbDescCasing10Ml, setFbDescCasing10Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescCasing8Ml, setFbDescCasing8Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescCasing6Ml, setFbDescCasing6Ml] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില');
+  const [fbDescOuterMl, setFbDescOuterMl] = useState<string>('200 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഔട്ടര് കെയ്സിംഗ് പൈപ്പിന്റെ വില');
+  const [fbDescInner6Ml, setFbDescInner6Ml] = useState<string>('110 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഇന്നർ കെയ്സിംഗ് പൈപ്പിന്റെ വില');
+  const [fbDescInner4Ml, setFbDescInner4Ml] = useState<string>('110 മില്ലീമീറ്റർ വ്യാസമുള്ള 4 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഇന്നർ കെയ്സിംഗ് പൈപ്പിന്റെ വില');
   const [fbDescInnerMl, setFbDescInnerMl] = useState<string>('140 മില്ലീമീറ്റർ വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില');
+  const [fbDescInnerPipeMl, setFbDescInnerPipeMl] = useState<string>('110 mm വ്യാസമുള്ള ഇന്നർ കെയ്സിംഗ് പൈപ്പിന്റെ വില');
 
   const [fbDescDrillingEn, setFbDescDrillingEn] = useState<string>('Drilling charges for 110 mm dia borewell');
   const [fbDescCasing10En, setFbDescCasing10En] = useState<string>('140 mm dia 10 kg/cm² PVC Casing Pipe');
   const [fbDescCasing8En, setFbDescCasing8En] = useState<string>('140 mm dia 8 kg/cm² PVC Casing Pipe');
   const [fbDescCasing6En, setFbDescCasing6En] = useState<string>('140 mm dia 6 kg/cm² PVC Casing Pipe');
+  const [fbDescOuterEn, setFbDescOuterEn] = useState<string>('200 mm dia 6 kg/cm² PVC Outer Casing Pipe');
+  const [fbDescInner6En, setFbDescInner6En] = useState<string>('110 mm dia 6 kg/cm² PVC Inner Casing Pipe');
+  const [fbDescInner4En, setFbDescInner4En] = useState<string>('110 mm dia 4 kg/cm² PVC Inner Casing Pipe');
   const [fbDescInnerEn, setFbDescInnerEn] = useState<string>('140 mm PVC Cap / Inner Casing');
+  const [fbDescInnerPipeEn, setFbDescInnerPipeEn] = useState<string>('110 mm dia Inner Casing Pipe');
 
   // Sanction Proceedings additional paragraph states
   const [procPara4, setProcPara4] = useState<string>('');
@@ -274,6 +285,9 @@ export default function PrintableReportModal({
   const [casing10kgRate, setCasing10kgRate] = useState<number>(960);
   const [casing8kgRate, setCasing8kgRate] = useState<number>(464.53);
   const [casing6kgRate, setCasing6kgRate] = useState<number>(580);
+  const [outerCasingRate, setOuterCasingRate] = useState<number>(960);
+  const [innerCasing6kgRate, setInnerCasing6kgRate] = useState<number>(580);
+  const [innerCasing4kgRate, setInnerCasing4kgRate] = useState<number>(225);
   const [innerCasingRate, setInnerCasingRate] = useState<number>(225);
   
   const [drillingQty, setDrillingQty] = useState<number>(0);
@@ -413,8 +427,14 @@ export default function PrintableReportModal({
       setCasing10kgQty(c10);
       setCasing8kgQty(c8);
       setCasing6kgQty(c6);
-      const innerQty = parseNum(currentSite.innerCasingPipe) || parseNum(currentSite.innerCasing6kgPipe) || parseNum(currentSite.innerCasing4kgPipe);
-      setInnerCasingQty(innerQty);
+      const outerQty = parseNum(currentSite.outerCasingPipe);
+      const in6Qty = parseNum(currentSite.innerCasing6kgPipe);
+      const rawIn4Qty = parseNum(currentSite.innerCasing4kgPipe);
+      const in4Qty = rawIn4Qty > 0 ? rawIn4Qty : (!in6Qty ? parseNum(currentSite.innerCasingPipe) : 0);
+      setOuterCasingQty(outerQty);
+      setInnerCasing6kgQty(in6Qty);
+      setInnerCasing4kgQty(in4Qty);
+      setInnerCasingQty((!in6Qty && !rawIn4Qty) ? parseNum(currentSite.innerCasingPipe) : 0);
 
       setEndCap(currentSite.endCap || 'No');
 
@@ -482,13 +502,14 @@ export default function PrintableReportModal({
       setSubsidyAmount(localSubsidy);
 
       const localEndCap = currentSite.endCap || 'No';
-      const localInnerQty = (localEndCap === 'Yes' && innerQty === 0) ? 1 : innerQty;
-
       const localDrillingTotal = drillingRate * depth;
       const localCasing10Total = casing10kgRate * c10;
       const localCasing8Total = casing8kgRate * c8;
       const localCasing6Total = casing6kgRate * c6;
-      const localInnerTotal = innerCasingRate * localInnerQty;
+      const localOuterTotal = outerCasingRate * outerQty;
+      const localInner6Total = innerCasing6kgRate * in6Qty;
+      const localInner4Total = innerCasing4kgRate * (in4Qty || (localEndCap === 'Yes' && in6Qty === 0 ? 1 : 0));
+      const localInnerTotal = localOuterTotal + localInner6Total + localInner4Total;
       localTotalExpenditure = localDrillingTotal + localCasing10Total + localCasing8Total + localCasing6Total + localInnerTotal;
       localNetPayable = localTotalExpenditure - localSubsidy;
     }
@@ -527,19 +548,10 @@ export default function PrintableReportModal({
       `The expenditure shall be met from the gross amount of Rs. ${depositTotal.toLocaleString('en-IN')}/- deposited by the applicant ${stsbAccountText}${treasuryText}.`
     );
 
-    setUcMlPara1(
-      `മേൽ സൂചന പ്രകാരം ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} പരിധിയിലെ കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണം നടത്തുകയും അതിനായി അടവാക്കിയ തുകയ്ക്ക് പൂർത്തീകരണ റിപ്പോർട്ട്, ഫൈനൽ ബില് എന്നിവ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്യുന്നു. ബാലൻസ് തുക തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`
-    );
-    setUcMlPara2(
-      `ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ആകെ ചിലവായ തുക കഴിച്ച് ബാക്കി തുകയായ Rs. ${localBalanceRefund.toLocaleString('en-IN')}/- (${numberToWordsMalayalam(Math.abs(localBalanceRefund))}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ലഭ്യമാക്കണമെന്ന് താല്പര്യപ്പെടുന്നു.`
-    );
-
-    setUcEnPara1(
-      `Certified that out of Rs. ${depositTotal.toLocaleString('en-IN')}/- deposited for borewell construction works under the ${currentSite?.localSelfGovt || 'Panchayat'} scheme, a total sum of Rs. ${localTotalExpenditureFinal.toLocaleString('en-IN')}/- has been utilized towards actual construction costs.`
-    );
-    setUcEnPara2(
-      `The unspent balance amount of Rs. ${localBalanceRefund.toLocaleString('en-IN')}/- (${numberToWordsEnglish(Math.abs(localBalanceRefund))}) is ready for refund.`
-    );
+    setUcMlPara1('');
+    setUcMlPara2('');
+    setUcEnPara1('');
+    setUcEnPara2('');
 
     // Initialize dynamic collections
     setUcRows(sites.map(s => {
@@ -558,7 +570,10 @@ export default function PrintableReportModal({
       const sC10 = casing10kgRate * sC10Val;
       const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
-      const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
+      const sIn6_1 = parseNum(s.innerCasing6kgPipe);
+      const sIn4Raw_1 = parseNum(s.innerCasing4kgPipe);
+      const sIn4_1 = sIn4Raw_1 > 0 ? sIn4Raw_1 : (!sIn6_1 ? parseNum(s.innerCasingPipe) : 0);
+      const sInner = (innerCasing6kgRate * sIn6_1) + (innerCasing4kgRate * sIn4_1) + ((s.endCap === 'Yes' && sIn6_1 === 0 && sIn4_1 === 0) ? innerCasingRate : 0);
       const sCost = sDrilling + sC10 + sC8 + sC6 + sInner;
       return {
         description: s.nameOfSite || entry?.applicantName || 'Borewell Construction',
@@ -583,8 +598,11 @@ export default function PrintableReportModal({
       const sC10 = casing10kgRate * sC10Val;
       const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
-      const sInner = innerCasingRate * (parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe));
-      const sCost = sDrilling + sC10 + sC8 + sC6 + sInner;
+      const sIn6_2 = parseNum(s.innerCasing6kgPipe);
+      const sIn4Raw_2 = parseNum(s.innerCasing4kgPipe);
+      const sIn4_2 = sIn4Raw_2 > 0 ? sIn4Raw_2 : (!sIn6_2 ? parseNum(s.innerCasingPipe) : 0);
+      const sInner2 = (innerCasing6kgRate * sIn6_2) + (innerCasing4kgRate * sIn4_2) + ((s.endCap === 'Yes' && sIn6_2 === 0 && sIn4_2 === 0) ? innerCasingRate : 0);
+      const sCost = sDrilling + sC10 + sC8 + sC6 + sInner2;
       return {
         siteName: s.nameOfSite || '',
         location: s.localSelfGovt || 'LSGD',
@@ -612,21 +630,47 @@ export default function PrintableReportModal({
     if (savedOverrides.casing10kgRate !== undefined) setCasing10kgRate(savedOverrides.casing10kgRate);
     if (savedOverrides.casing8kgRate !== undefined) setCasing8kgRate(savedOverrides.casing8kgRate);
     if (savedOverrides.casing6kgRate !== undefined) setCasing6kgRate(savedOverrides.casing6kgRate);
+    if (savedOverrides.outerCasingRate !== undefined) setOuterCasingRate(savedOverrides.outerCasingRate);
+    if (savedOverrides.innerCasing6kgRate !== undefined) setInnerCasing6kgRate(savedOverrides.innerCasing6kgRate);
+    if (savedOverrides.innerCasing4kgRate !== undefined) setInnerCasing4kgRate(savedOverrides.innerCasing4kgRate);
     if (savedOverrides.innerCasingRate !== undefined) setInnerCasingRate(savedOverrides.innerCasingRate);
-    if (savedOverrides.drillingQty !== undefined) setDrillingQty(savedOverrides.drillingQty);
+
+    const siteOv = savedOverrides.siteOverrides?.[selectedSiteIndex] || (selectedSiteIndex === 0 ? savedOverrides : {});
+
+    if (siteOv.drillingQty !== undefined) setDrillingQty(siteOv.drillingQty);
+    if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(siteOv.casing10kgQty);
+    if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(siteOv.casing8kgQty);
+    if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(siteOv.casing6kgQty);
+    if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(siteOv.outerCasingQty);
+    if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(siteOv.innerCasing6kgQty);
+    if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(siteOv.innerCasing4kgQty);
+    if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(siteOv.innerCasingQty);
+    if (siteOv.depthMeter !== undefined) setDepthMeter(siteOv.depthMeter);
+    if (siteOv.actualOverburden !== undefined) setActualOverburden(siteOv.actualOverburden);
+    if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(siteOv.pilotDrillingDepth);
+    if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(siteOv.surveyPlainPipe);
+    if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(siteOv.surveySlottedPipe);
+    if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(siteOv.outerCasingPipe);
+    if (siteOv.endCap !== undefined) setEndCap(siteOv.endCap);
+    if (siteOv.yieldLph !== undefined) setYieldLph(siteOv.yieldLph);
+
     if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(savedOverrides.subsidyAmount);
 
     if (savedOverrides.fbDescDrillingMl) setFbDescDrillingMl(savedOverrides.fbDescDrillingMl);
     if (savedOverrides.fbDescCasing10Ml) setFbDescCasing10Ml(savedOverrides.fbDescCasing10Ml);
     if (savedOverrides.fbDescCasing8Ml) setFbDescCasing8Ml(savedOverrides.fbDescCasing8Ml);
     if (savedOverrides.fbDescCasing6Ml) setFbDescCasing6Ml(savedOverrides.fbDescCasing6Ml);
+    if (savedOverrides.fbDescOuterMl) setFbDescOuterMl(savedOverrides.fbDescOuterMl);
     if (savedOverrides.fbDescInnerMl) setFbDescInnerMl(savedOverrides.fbDescInnerMl);
+    if (savedOverrides.fbDescInnerPipeMl) setFbDescInnerPipeMl(savedOverrides.fbDescInnerPipeMl);
 
     if (savedOverrides.fbDescDrillingEn) setFbDescDrillingEn(savedOverrides.fbDescDrillingEn);
     if (savedOverrides.fbDescCasing10En) setFbDescCasing10En(savedOverrides.fbDescCasing10En);
     if (savedOverrides.fbDescCasing8En) setFbDescCasing8En(savedOverrides.fbDescCasing8En);
     if (savedOverrides.fbDescCasing6En) setFbDescCasing6En(savedOverrides.fbDescCasing6En);
+    if (savedOverrides.fbDescOuterEn) setFbDescOuterEn(savedOverrides.fbDescOuterEn);
     if (savedOverrides.fbDescInnerEn) setFbDescInnerEn(savedOverrides.fbDescInnerEn);
+    if (savedOverrides.fbDescInnerPipeEn) setFbDescInnerPipeEn(savedOverrides.fbDescInnerPipeEn);
 
     if (savedOverrides.bankAccountNo) setBankAccountNo(savedOverrides.bankAccountNo);
     if (savedOverrides.bankIfsc) setBankIfsc(savedOverrides.bankIfsc);
@@ -689,12 +733,20 @@ export default function PrintableReportModal({
   const casing10kgTotal = casing10kgRate * casing10kgQty;
   const casing8kgTotal = casing8kgRate * casing8kgQty;
   const casing6kgTotal = casing6kgRate * casing6kgQty;
-  const effectiveInnerCasingQty = (endCap === 'Yes' && innerCasingQty === 0) ? 1 : innerCasingQty;
-  const innerCasingTotal = innerCasingRate * effectiveInnerCasingQty;
+  const outerCasingTotal = outerCasingRate * outerCasingQty;
+  const innerCasing6kgTotal = innerCasing6kgRate * innerCasing6kgQty;
 
-  const totalExpenditure = drillingTotal + casing10kgTotal + casing8kgTotal + casing6kgTotal + innerCasingTotal;
+  const effectiveInner4kgQty = innerCasing4kgQty > 0 
+    ? innerCasing4kgQty 
+    : ((!innerCasing6kgQty && innerCasingQty > 0) ? innerCasingQty : 0);
+  const effectiveInnerCasingQty = effectiveInner4kgQty;
+  const innerCasing4kgTotal = innerCasing4kgRate * effectiveInner4kgQty;
+  const capTotal = endCap === 'Yes' ? innerCasingRate : 0;
+  const innerCasingTotal = innerCasing6kgTotal + innerCasing4kgTotal + capTotal;
+
+  const totalExpenditure = drillingTotal + casing10kgTotal + casing8kgTotal + casing6kgTotal + outerCasingTotal + innerCasing6kgTotal + innerCasing4kgTotal + capTotal;
   const netPayableGwd = totalExpenditure - effectiveSubsidyAmount;
-  const balanceRefund = advanceDeposit - netPayableGwd;
+  const balanceRefund = advanceDeposit - Math.round(netPayableGwd);
 
   // Remittances collection for Abstract selection
   const allRemittances = useMemo(() => {
@@ -776,9 +828,11 @@ export default function PrintableReportModal({
       const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
 
-      const rawInner = parseNum(s.innerCasingPipe) || parseNum(s.innerCasing6kgPipe) || parseNum(s.innerCasing4kgPipe);
-      const sInnerQty = (s.endCap === 'Yes' && rawInner === 0) ? 1 : rawInner;
-      const sInner = innerCasingRate * sInnerQty;
+      const sIn6_3 = parseNum(s.innerCasing6kgPipe);
+      const sIn4Raw_3 = parseNum(s.innerCasing4kgPipe);
+      const sIn4_3 = sIn4Raw_3 > 0 ? sIn4Raw_3 : (!sIn6_3 ? parseNum(s.innerCasingPipe) : 0);
+      const sInnerQty = sIn6_3 + sIn4_3;
+      const sInner = (innerCasing6kgRate * sIn6_3) + (innerCasing4kgRate * sIn4_3) + ((s.endCap === 'Yes' && sIn6_3 === 0 && sIn4_3 === 0) ? innerCasingRate : 0);
 
       const sTotalExpenditure = sDrilling + sC10 + sC8 + sC6 + sInner;
 
@@ -1235,8 +1289,32 @@ export default function PrintableReportModal({
         };
       }
 
+      const existingOverrides = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
+      const prevSiteOverrides = existingOverrides.siteOverrides || {};
+
       const reportOverrides: Record<string, any> = {
-        ...((entry as any)?.reportOverrides || (entry as any)?.printOverrides || {}),
+        ...existingOverrides,
+        siteOverrides: {
+          ...prevSiteOverrides,
+          [selectedSiteIndex]: {
+            drillingQty,
+            casing10kgQty,
+            casing8kgQty,
+            casing6kgQty,
+            outerCasingQty,
+            innerCasing6kgQty,
+            innerCasing4kgQty,
+            innerCasingQty,
+            depthMeter,
+            actualOverburden,
+            pilotDrillingDepth,
+            surveyPlainPipe,
+            surveySlottedPipe,
+            outerCasingPipe,
+            endCap,
+            yieldLph,
+          }
+        },
         fileNo,
         applicantName,
         applicantAddress,
@@ -1246,8 +1324,20 @@ export default function PrintableReportModal({
         casing10kgRate,
         casing8kgRate,
         casing6kgRate,
+        outerCasingRate,
+        innerCasing6kgRate,
+        innerCasing4kgRate,
         innerCasingRate,
+
         drillingQty,
+        casing10kgQty,
+        casing8kgQty,
+        casing6kgQty,
+        outerCasingQty,
+        innerCasing6kgQty,
+        innerCasing4kgQty,
+        innerCasingQty,
+
         subsidyAmount,
         advanceDeposit,
         ddDetails,
@@ -1256,12 +1346,17 @@ export default function PrintableReportModal({
         fbDescCasing10Ml,
         fbDescCasing8Ml,
         fbDescCasing6Ml,
+        fbDescOuterMl,
         fbDescInnerMl,
+        fbDescInnerPipeMl,
+
         fbDescDrillingEn,
         fbDescCasing10En,
         fbDescCasing8En,
         fbDescCasing6En,
+        fbDescOuterEn,
         fbDescInnerEn,
+        fbDescInnerPipeEn,
 
         orderNo,
         orderDate,
@@ -1353,7 +1448,9 @@ export default function PrintableReportModal({
       setCasing10kgQty(c10);
       setCasing8kgQty(c8);
       setCasing6kgQty(c6);
-      setInnerCasingQty(parseNum(currentSite?.innerCasingPipe) || parseNum(currentSite?.innerCasing6kgPipe) || parseNum(currentSite?.innerCasing4kgPipe));
+      const in6Reset = parseNum(currentSite?.innerCasing6kgPipe);
+      const in4Reset = parseNum(currentSite?.innerCasing4kgPipe);
+      setInnerCasingQty((!in6Reset && !in4Reset) ? parseNum(currentSite?.innerCasingPipe) : 0);
       setPilotDrillingDepth(currentSite?.pilotDrillingDepth || '');
       setSurveyPlainPipe(currentSite?.surveyPlainPipe || '');
       setSurveySlottedPipe(currentSite?.surveySlottedPipe || '');
@@ -1419,8 +1516,16 @@ export default function PrintableReportModal({
       setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
       setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
     },
-    fb_r4: () => setInnerCasingRate(225),
-    fb_q4: () => setInnerCasingQty(Number(currentSite?.innerCasingPipe) || Number(currentSite?.innerCasing6kgPipe) || Number(currentSite?.innerCasing4kgPipe) || 0),
+    fb_r_outer: () => setOuterCasingRate(960),
+    fb_q_outer: () => setOuterCasingQty(parseNum(currentSite?.outerCasingPipe)),
+    fb_en_r_outer: () => setOuterCasingRate(960),
+    fb_en_q_outer: () => setOuterCasingQty(parseNum(currentSite?.outerCasingPipe)),
+    fb_desc_outer: () => {
+      setFbDescOuterMl('200 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഔട്ടര് കെയ്സിംഗ് പൈപ്പിന്റെ വില');
+      setFbDescOuterEn('200 mm dia 6 kg/cm² PVC Outer Casing Pipe');
+    },
+    fb_desc_outer_ml: () => setFbDescOuterMl('200 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഔട്ടര് കെയ്സിംഗ് പൈപ്പിന്റെ വില'),
+    fb_desc_outer_en: () => setFbDescOuterEn('200 mm dia 6 kg/cm² PVC Outer Casing Pipe'),
     fb_subsidy: () => setSubsidyAmount(0),
     fb_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
 
@@ -1736,64 +1841,129 @@ export default function PrintableReportModal({
               <span>🛠️ Fine-tune Report Numbers, Rates & Bank Details</span>
               <span className="text-muted-foreground font-normal">Click to edit global details</span>
             </summary>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t mt-2">
+            <div className="space-y-3 pt-3 border-t mt-2">
+              {/* General & Drilling */}
               <div>
-                <Label className="text-[11px]">File No.</Label>
-                <Input className="h-8 text-xs" value={fileNo} onChange={(e) => setFileNo(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Drilling Rate (Rs/m)</Label>
-                <Input className="h-8 text-xs" type="number" value={drillingRate} onChange={(e) => setDrillingRate(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Drilling Depth (m)</Label>
-                <Input className="h-8 text-xs" type="number" value={drillingQty} onChange={(e) => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Advance Deposit (Rs)</Label>
-                <Input className="h-8 text-xs" type="number" value={advanceDeposit} onChange={(e) => setAdvanceDeposit(Number(e.target.value))} />
-              </div>
-
-              <div>
-                <Label className="text-[11px]">Casing 10kg Rate (Rs/m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing10kgRate} onChange={(e) => setCasing10kgRate(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Casing 10kg Qty (m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing10kgQty} onChange={(e) => setCasing10kgQty(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Casing 8kg Rate (Rs/m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing8kgRate} onChange={(e) => setCasing8kgRate(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Casing 8kg Qty (m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing8kgQty} onChange={(e) => setCasing8kgQty(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Casing 6kg Rate (Rs/m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing6kgRate} onChange={(e) => setCasing6kgRate(Number(e.target.value))} />
-              </div>
-              <div>
-                <Label className="text-[11px]">Casing 6kg Qty (m)</Label>
-                <Input className="h-8 text-xs" type="number" value={casing6kgQty} onChange={(e) => setCasing6kgQty(Number(e.target.value))} />
+                <span className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">General & Drilling</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div>
+                    <Label className="text-[11px]">File No.</Label>
+                    <Input className="h-8 text-xs" value={fileNo} onChange={(e) => setFileNo(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Drilling Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={drillingRate} onChange={(e) => setDrillingRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Drilling Depth (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={drillingQty} onChange={(e) => { const v = Number(e.target.value); setDrillingQty(v); setDepthMeter(v); }} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Advance Deposit (Rs)</Label>
+                    <Input className="h-8 text-xs" type="number" value={advanceDeposit} onChange={(e) => setAdvanceDeposit(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Subsidy Amount (Rs)</Label>
+                    <Input className="h-8 text-xs" type="number" value={subsidyAmount} onChange={(e) => setSubsidyAmount(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Contractor Name (if tender)</Label>
+                    <Input className="h-8 text-xs" value={contractorName} onChange={(e) => setContractorName(e.target.value)} />
+                  </div>
+                </div>
               </div>
 
+              {/* Main & Outer Casing Pipes */}
               <div>
-                <Label className="text-[11px]">Subsidy Amount (Rs)</Label>
-                <Input className="h-8 text-xs" type="number" value={subsidyAmount} onChange={(e) => setSubsidyAmount(Number(e.target.value))} />
+                <span className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Outer & PVC Casing Pipes</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div>
+                    <Label className="text-[11px]">Casing 10kg Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing10kgRate} onChange={(e) => setCasing10kgRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Casing 10kg Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing10kgQty} onChange={(e) => setCasing10kgQty(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Casing 8kg Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing8kgRate} onChange={(e) => setCasing8kgRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Casing 8kg Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing8kgQty} onChange={(e) => setCasing8kgQty(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Casing 6kg Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing6kgRate} onChange={(e) => setCasing6kgRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Casing 6kg Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={casing6kgQty} onChange={(e) => setCasing6kgQty(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Outer Casing Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={outerCasingRate} onChange={(e) => setOuterCasingRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Outer Casing Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={outerCasingQty} onChange={(e) => setOuterCasingQty(Number(e.target.value))} />
+                  </div>
+                </div>
               </div>
+
+              {/* Inner Casing Pipes & Cap */}
               <div>
-                <Label className="text-[11px]">Contractor Name (if tender)</Label>
-                <Input className="h-8 text-xs" value={contractorName} onChange={(e) => setContractorName(e.target.value)} />
+                <span className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Inner Casing Pipes & Cap</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div>
+                    <Label className="text-[11px]">Inner Casing 6kg Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasing6kgRate} onChange={(e) => setInnerCasing6kgRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Inner Casing 6kg Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasing6kgQty} onChange={(e) => setInnerCasing6kgQty(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Inner Casing 4kg Rate (Rs/m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasing4kgRate} onChange={(e) => setInnerCasing4kgRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Inner Casing 4kg Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasing4kgQty} onChange={(e) => setInnerCasing4kgQty(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Inner Casing Cap Rate (Rs)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasingRate} onChange={(e) => setInnerCasingRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Inner Casing General Qty (m)</Label>
+                    <Input className="h-8 text-xs" type="number" value={innerCasingQty} onChange={(e) => setInnerCasingQty(Number(e.target.value))} />
+                  </div>
+                </div>
               </div>
+
+              {/* Bank & Refund Details */}
               <div>
-                <Label className="text-[11px]">Bank Account No (Refund)</Label>
-                <Input className="h-8 text-xs" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)} placeholder="e.g. 85829024542" />
-              </div>
-              <div>
-                <Label className="text-[11px]">IFSC & Bank Branch</Label>
-                <Input className="h-8 text-xs" value={bankIfsc} onChange={(e) => setBankIfsc(e.target.value)} placeholder="e.g. SBIN0012880, SBI" />
+                <span className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider block mb-1">Bank & Refund Details</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div>
+                    <Label className="text-[11px]">Bank Account No (Refund)</Label>
+                    <Input className="h-8 text-xs" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)} placeholder="e.g. 85829024542" />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">IFSC Code</Label>
+                    <Input className="h-8 text-xs" value={bankIfsc} onChange={(e) => setBankIfsc(e.target.value)} placeholder="e.g. SBIN0012880" />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Bank Name</Label>
+                    <Input className="h-8 text-xs" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. SBI" />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Bank Branch</Label>
+                    <Input className="h-8 text-xs" value={bankBranch} onChange={(e) => setBankBranch(e.target.value)} placeholder="e.g. Pathanamthitta Main" />
+                  </div>
+                </div>
               </div>
             </div>
           </details>
@@ -1932,16 +2102,16 @@ export default function PrintableReportModal({
                                   if (casing10kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 10 kg/cm² : ${casing10kgQty} മീറ്റർ`);
                                   if (casing8kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 8 kg/cm² : ${casing8kgQty} മീറ്റർ`);
                                   if (casing6kgQty) lines.push(`${casingDiameterLabel} വ്യാസം, 6 kg/cm² : ${casing6kgQty} മീറ്റർ`);
-                                  if (innerCasingQty) lines.push(`ഇന്നർ കേസിംഗ് (110 mm, 4 kg/cm²) : ${innerCasingQty} മീറ്റർ`);
                                   if (currentSite?.purpose === 'TWC') {
                                     if (pilotDrillingDepth) lines.push(`പൈലറ്റ് ഡ്രില്ലിംഗ് ആഴം: ${formatMeterValue(pilotDrillingDepth, 'മീറ്റർ')}`);
                                     if (surveyPlainPipe) lines.push(`പ്ലെയിൻ പൈപ്പ് (Plain Pipe): ${formatMeterValue(surveyPlainPipe, 'മീറ്റർ')}`);
                                     if (surveySlottedPipe) lines.push(`സ്ലോട്ടഡ് പൈപ്പ് (Slotted Pipe): ${formatMeterValue(surveySlottedPipe, 'മീറ്റർ')}`);
                                     if (outerCasingPipe) lines.push(`എം.എസ് കേസിംഗ് (MS Casing): ${formatMeterValue(outerCasingPipe, 'മീറ്റർ')}`);
                                   }
+                                  const mainCasingTotal = (casing10kgQty || 0) + (casing8kgQty || 0) + (casing6kgQty || 0);
                                   return (
                                     <span>
-                                      : {totalCasingMeters ? `${totalCasingMeters} മീറ്റർ` : ''}
+                                      : {mainCasingTotal ? `${mainCasingTotal} മീറ്റർ` : ''}
                                       {lines.length > 0 && (
                                         <span className="ml-4 inline-block align-top">
                                           {lines.map((line, idx) => (
@@ -1959,7 +2129,6 @@ export default function PrintableReportModal({
                                   <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="8kg" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
-                                  <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
                                   {currentSite?.purpose === 'TWC' && (
                                     <>
                                       <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
@@ -1972,8 +2141,50 @@ export default function PrintableReportModal({
                               )}
                             </td>
                           </tr>
+                          <tr className="border-b border-gray-300" id="cr_row_innerCasing">
+                            <td className="py-2 px-2 font-bold text-black align-top">15. ഉപയോഗിച്ച ഇന്നര് കേസിംഗ് പൈപ്പ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_innerCasing', 
+                                (() => {
+                                  const lines: string[] = [];
+                                  if (innerCasing6kgQty) lines.push(`110 mm വ്യാസം, 6 kg/cm² : ${innerCasing6kgQty} മീറ്റർ`);
+                                  if (innerCasing4kgQty) lines.push(`110 mm വ്യാസം, 4 kg/cm² : ${innerCasing4kgQty} മീറ്റർ`);
+                                  else if (!innerCasing6kgQty && innerCasingQty) lines.push(`110 mm വ്യാസം, 4 kg/cm² : ${innerCasingQty} മീറ്റർ`);
+                                  const totalInner = (innerCasing6kgQty || 0) + (innerCasing4kgQty || 0) + ((!innerCasing6kgQty && !innerCasing4kgQty) ? (innerCasingQty || 0) : 0);
+                                  return (
+                                    <span>
+                                      : {totalInner ? `${totalInner} മീറ്റർ` : 'ഇല്ല'}
+                                      {lines.length > 0 && (
+                                        <span className="ml-4 inline-block align-top">
+                                          {lines.map((line, idx) => (
+                                            <React.Fragment key={idx}>
+                                              {idx > 0 && <br />}
+                                              {line}
+                                            </React.Fragment>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })(), 
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input type="number" placeholder="Inner 6kg" className="h-6 text-xs" value={innerCasing6kgQty} onChange={e => setInnerCasing6kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="Inner 4kg" className="h-6 text-xs" value={innerCasing4kgQty} onChange={e => setInnerCasing4kgQty(Number(e.target.value))} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_row_outerCasing">
+                            <td className="py-2 px-2 font-bold text-black align-top">16. ഉപയോഗിച്ച ഔട്ടര്  കേസിംഗ് പൈപ്പ്</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_outerCasing', 
+                                `: ${outerCasingQty ? `${outerCasingQty} മീറ്റർ (200 mm വ്യാസം, 6 kg/cm²)` : 'ഇല്ല'}`, 
+                                <Input type="number" placeholder="Outer 200mm" className="h-6 text-xs w-32" value={outerCasingQty} onChange={e => setOuterCasingQty(Number(e.target.value))} />
+                              )}
+                            </td>
+                          </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">15. കുഴൽകിണറിന്റെ അടപ്പിന്റെ വിവരം (End Cap)</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">17. കുഴൽകിണറിന്റെ അടപ്പിന്റെ വിവരം (End Cap)</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} വ്യാസം` : 'ഇല്ല'}`, 
                                 <Select value={endCap} onValueChange={setEndCap}>
@@ -1987,25 +2198,25 @@ export default function PrintableReportModal({
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">16. ജലലഭ്യത (മണിക്കൂറിൽ)</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">18. ജലലഭ്യത (മണിക്കൂറിൽ)</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_yield', `: ${yieldLph ? `${yieldLph} ലിറ്റർ പ്രതി മണിക്കൂർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">17. ജലം ലഭിച്ച മേഖല</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">19. ജലം ലഭിച്ച മേഖല</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_zone', `: ${waterStruckZone ? (waterStruckZone.includes('മീറ്റർ') || waterStruckZone.includes('meter') ? waterStruckZone : `${waterStruckZone} മീറ്റർ`) : ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">18. ജലനിരപ്പ് (ഭൂനിരപ്പിൽ നിന്ന് താഴേക്ക്)</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">20. ജലനിരപ്പ് (ഭൂനിരപ്പിൽ നിന്ന് താഴേക്ക്)</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_swl', `: ${staticWaterLevel !== '' && staticWaterLevel !== null && staticWaterLevel !== undefined ? `${staticWaterLevel} മീറ്റർ` : ''}`, <Input className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(e.target.value)} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">19. പ്രവർത്തന കാലയളവ്</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">21. പ്രവർത്തന കാലയളവ്</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} മുതൽ ${formattedPeriodTo} വരെ` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
                                 <div className="flex gap-1">
@@ -2016,14 +2227,14 @@ export default function PrintableReportModal({
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">20. കുറിപ്പ്</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">22. കുറിപ്പ്</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_remarks', `: ${remarks || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
                             </td>
                           </tr>
                           {!isDeptRigWork && (
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold text-black align-top">21. കോൺട്രാക്ടറുടെ പേര്</td>
+                              <td className="py-2 px-2 font-bold text-black align-top">23. കോൺട്രാക്ടറുടെ പേര്</td>
                               <td className="py-2 px-2 text-black align-top">
                                 {renderEditableCell('cr_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
                               </td>
@@ -2164,32 +2375,33 @@ export default function PrintableReportModal({
                                   if (casing10kgQty) lines.push(`${casingDiameterLabel}, 10 kg/cm²: ${casing10kgQty} meter`);
                                   if (casing8kgQty) lines.push(`${casingDiameterLabel}, 8 kg/cm²: ${casing8kgQty} meter`);
                                   if (casing6kgQty) lines.push(`${casingDiameterLabel}, 6 kg/cm²: ${casing6kgQty} meter`);
-                                  if (innerCasingQty) lines.push(`Inner Casing (110 mm, 4 kg/cm²): ${innerCasingQty} meter`);
                                   if (currentSite?.purpose === 'TWC') {
                                     if (pilotDrillingDepth) lines.push(`Pilot Drilling Depth: ${formatMeterValue(pilotDrillingDepth)}`);
                                     if (surveyPlainPipe) lines.push(`Plain Pipe: ${formatMeterValue(surveyPlainPipe)}`);
                                     if (surveySlottedPipe) lines.push(`Slotted Pipe: ${formatMeterValue(surveySlottedPipe)}`);
                                     if (outerCasingPipe) lines.push(`MS Casing: ${formatMeterValue(outerCasingPipe)}`);
                                   }
-                                  if (lines.length > 0) {
-                                    return (
-                                      <span>
-                                        : {lines[0]}
-                                        {lines.slice(1).map((line, idx) => (
-                                          <React.Fragment key={idx}>
-                                            <br />&nbsp; {line}
-                                          </React.Fragment>
-                                        ))}
-                                      </span>
-                                    );
-                                  }
-                                  return <span>: {totalCasingMeters ? `${totalCasingMeters} meter` : ''}</span>;
+                                  const mainCasingTotal = (casing10kgQty || 0) + (casing8kgQty || 0) + (casing6kgQty || 0);
+                                  return (
+                                    <span>
+                                      : {mainCasingTotal ? `${mainCasingTotal} meter` : ''}
+                                      {lines.length > 0 && (
+                                        <span className="ml-4 inline-block align-top">
+                                          {lines.map((line, idx) => (
+                                            <React.Fragment key={idx}>
+                                              {idx > 0 && <br />}
+                                              {line}
+                                            </React.Fragment>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
                                 })(), 
                                 <div className="grid grid-cols-2 gap-2">
                                   <Input type="number" placeholder="10kg" className="h-6 text-xs" value={casing10kgQty} onChange={e => setCasing10kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="8kg" className="h-6 text-xs" value={casing8kgQty} onChange={e => setCasing8kgQty(Number(e.target.value))} />
                                   <Input type="number" placeholder="6kg" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />
-                                  <Input type="number" placeholder="Inner" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />
                                   {currentSite?.purpose === 'TWC' && (
                                     <>
                                       <Input placeholder="Pilot Depth" className="h-6 text-xs" value={pilotDrillingDepth} onChange={e => setPilotDrillingDepth(e.target.value)} />
@@ -2202,8 +2414,50 @@ export default function PrintableReportModal({
                               )}
                             </td>
                           </tr>
+                          <tr className="border-b border-gray-300" id="cr_en_row_innerCasing">
+                            <td className="py-2 px-2 font-bold text-black align-top">15. Inner Casing Pipe Lowered</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_innerCasing', 
+                                (() => {
+                                  const lines: string[] = [];
+                                  if (innerCasing6kgQty) lines.push(`110 mm dia, 6 kg/cm²: ${innerCasing6kgQty} meter`);
+                                  if (innerCasing4kgQty) lines.push(`110 mm dia, 4 kg/cm²: ${innerCasing4kgQty} meter`);
+                                  else if (!innerCasing6kgQty && innerCasingQty) lines.push(`110 mm dia, 4 kg/cm²: ${innerCasingQty} meter`);
+                                  const totalInner = (innerCasing6kgQty || 0) + (innerCasing4kgQty || 0) + ((!innerCasing6kgQty && !innerCasing4kgQty) ? (innerCasingQty || 0) : 0);
+                                  return (
+                                    <span>
+                                      : {totalInner ? `${totalInner} meter` : 'Nil'}
+                                      {lines.length > 0 && (
+                                        <span className="ml-4 inline-block align-top">
+                                          {lines.map((line, idx) => (
+                                            <React.Fragment key={idx}>
+                                              {idx > 0 && <br />}
+                                              {line}
+                                            </React.Fragment>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })(), 
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input type="number" placeholder="Inner 6kg" className="h-6 text-xs" value={innerCasing6kgQty} onChange={e => setInnerCasing6kgQty(Number(e.target.value))} />
+                                  <Input type="number" placeholder="Inner 4kg" className="h-6 text-xs" value={innerCasing4kgQty} onChange={e => setInnerCasing4kgQty(Number(e.target.value))} />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-300" id="cr_en_row_outerCasing">
+                            <td className="py-2 px-2 font-bold text-black align-top">16. Outer Casing Pipe Lowered</td>
+                            <td className="py-2 px-2 text-black align-top">
+                              {renderEditableCell('cr_en_outerCasing', 
+                                `: ${outerCasingQty ? `${outerCasingQty} meter (200 mm dia, 6 kg/cm²)` : 'Nil'}`, 
+                                <Input type="number" placeholder="Outer 200mm" className="h-6 text-xs w-32" value={outerCasingQty} onChange={e => setOuterCasingQty(Number(e.target.value))} />
+                              )}
+                            </td>
+                          </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">15. End Cap Details</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">17. End Cap Details</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_endCap', `: ${endCap === 'Yes' ? `1 No., ${casingDiameterLabel} diameter` : 'Nil'}`, 
                                 <Select value={endCap} onValueChange={setEndCap}>
@@ -2217,25 +2471,25 @@ export default function PrintableReportModal({
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">16. Average Yield</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">18. Average Yield</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_yield', `: ${yieldLph ? `${yieldLph} Litres Per Hour (LPH)` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">17. Water Struck Zone</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">19. Water Struck Zone</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_zone', `: ${waterStruckZone ? (waterStruckZone.toLowerCase().includes('meter') ? waterStruckZone : `${waterStruckZone} meters`) : ''}`, <Input className="h-6 text-xs" value={waterStruckZone} onChange={e => setWaterStruckZone(e.target.value)} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">18. Static Water Level</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">20. Static Water Level</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_swl', `: ${staticWaterLevel !== '' && staticWaterLevel !== null && staticWaterLevel !== undefined ? `${staticWaterLevel} meters below ground level` : ''}`, <Input className="h-6 text-xs w-28" value={staticWaterLevel} onChange={e => setStaticWaterLevel(e.target.value)} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">19. Period of Work</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">21. Period of Work</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_period', `: ${formattedPeriodFrom && formattedPeriodTo ? `${formattedPeriodFrom} to ${formattedPeriodTo}` : (formattedPeriodFrom || formattedPeriodTo || '')}`, 
                                 <div className="flex gap-1">
@@ -2246,14 +2500,14 @@ export default function PrintableReportModal({
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
-                            <td className="py-2 px-2 font-bold text-black align-top">20. Remarks</td>
+                            <td className="py-2 px-2 font-bold text-black align-top">22. Remarks</td>
                             <td className="py-2 px-2 text-black align-top">
                               {renderEditableCell('cr_en_remarks', `: ${remarks || ''}`, <Textarea className="min-h-[40px] text-xs p-1" value={remarks} onChange={e => setRemarks(e.target.value)} />)}
                             </td>
                           </tr>
                           {!isDeptRigWork && (
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold text-black align-top">21. Name of Contractor</td>
+                              <td className="py-2 px-2 font-bold text-black align-top">23. Name of Contractor</td>
                               <td className="py-2 px-2 text-black align-top">
                                 {renderEditableCell('cr_en_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
                               </td>
@@ -2345,8 +2599,48 @@ export default function PrintableReportModal({
                       qtyEl: <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />,
                       total: casing6kgTotal
                     },
+                    ...(outerCasingQty > 0 ? [{
+                      qty: outerCasingQty,
+                      descId: 'fb_desc_outer_ml',
+                      descValue: fbDescOuterMl,
+                      descEl: <Input className="h-6 text-xs" value={fbDescOuterMl} onChange={e => setFbDescOuterMl(e.target.value)} />,
+                      rateId: 'fb_r_outer',
+                      rateValue: outerCasingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={outerCasingRate} onChange={e => setOuterCasingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_q_outer',
+                      qtyText: `${outerCasingQty} മീറ്റർ`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={outerCasingQty} onChange={e => setOuterCasingQty(Number(e.target.value))} />,
+                      total: outerCasingTotal
+                    }] : []),
+                    ...((() => {
+                      const totalInnerMeters = (innerCasing6kgQty || 0) + (innerCasing4kgQty || 0) + ((!innerCasing6kgQty && !innerCasing4kgQty) ? (innerCasingQty || 0) : 0);
+                      const activeRate = innerCasing6kgQty > 0 ? innerCasing6kgRate : (innerCasing4kgQty > 0 ? innerCasing4kgRate : innerCasingRate);
+                      return totalInnerMeters > 0 ? [{
+                        qty: totalInnerMeters,
+                        descId: 'fb_desc_inner_pipe_ml',
+                        descValue: fbDescInnerPipeMl,
+                        descEl: <Input className="h-6 text-xs" value={fbDescInnerPipeMl} onChange={e => setFbDescInnerPipeMl(e.target.value)} />,
+                        rateId: 'fb_r_inner_pipe',
+                        rateValue: activeRate.toFixed(2),
+                        rateEl: <Input type="number" className="h-6 text-xs" value={activeRate} onChange={e => {
+                          const val = Number(e.target.value);
+                          if (innerCasing6kgQty > 0) setInnerCasing6kgRate(val);
+                          else if (innerCasing4kgQty > 0) setInnerCasing4kgRate(val);
+                          else setInnerCasingRate(val);
+                        }} />,
+                        qtyId: 'fb_q_inner_pipe',
+                        qtyText: `${totalInnerMeters} മീറ്റർ`,
+                        qtyEl: <Input type="number" className="h-6 text-xs" value={totalInnerMeters} onChange={e => {
+                          const val = Number(e.target.value);
+                          if (innerCasing6kgQty > 0) setInnerCasing6kgQty(val);
+                          else if (innerCasing4kgQty > 0) setInnerCasing4kgQty(val);
+                          else setInnerCasingQty(val);
+                        }} />,
+                        total: innerCasing6kgTotal + innerCasing4kgTotal
+                      }] : [];
+                    })()),
                     {
-                      qty: effectiveInnerCasingQty,
+                      qty: endCap === 'Yes' ? 1 : 0,
                       descId: 'fb_desc_inner_ml',
                       descValue: fbDescInnerMl,
                       descEl: <Input className="h-6 text-xs" value={fbDescInnerMl} onChange={e => setFbDescInnerMl(e.target.value)} />,
@@ -2354,9 +2648,9 @@ export default function PrintableReportModal({
                       rateValue: innerCasingRate.toFixed(2),
                       rateEl: <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />,
                       qtyId: 'fb_q4',
-                      qtyText: `${effectiveInnerCasingQty} എണ്ണം`,
-                      qtyEl: <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />,
-                      total: innerCasingTotal
+                      qtyText: `${endCap === 'Yes' ? 1 : 0} എണ്ണം`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={endCap === 'Yes' ? 1 : 0} onChange={e => {}} />,
+                      total: endCap === 'Yes' ? innerCasingRate : 0
                     }
                   ];
                   const activeItemsMl = itemsMl.filter(item => item.qty > 0);
@@ -2410,11 +2704,11 @@ export default function PrintableReportModal({
                                 <tr key="total_exp" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(totalExpenditure).toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
-                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield) {
+                              if (isPrivateWork && (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield)) {
                                 rows.push(
                                   <tr key="subsidy">
                                     <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
@@ -2437,7 +2731,7 @@ export default function PrintableReportModal({
                                 <tr key="net_payable" className="font-bold">
                                   <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(netPayableGwd).toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
@@ -2549,8 +2843,48 @@ export default function PrintableReportModal({
                       qtyEl: <Input type="number" className="h-6 text-xs" value={casing6kgQty} onChange={e => setCasing6kgQty(Number(e.target.value))} />,
                       total: casing6kgTotal
                     },
+                    ...(outerCasingQty > 0 ? [{
+                      qty: outerCasingQty,
+                      descId: 'fb_desc_outer_en',
+                      descValue: fbDescOuterEn,
+                      descEl: <Input className="h-6 text-xs" value={fbDescOuterEn} onChange={e => setFbDescOuterEn(e.target.value)} />,
+                      rateId: 'fb_en_r_outer',
+                      rateValue: outerCasingRate.toFixed(2),
+                      rateEl: <Input type="number" className="h-6 text-xs" value={outerCasingRate} onChange={e => setOuterCasingRate(Number(e.target.value))} />,
+                      qtyId: 'fb_en_q_outer',
+                      qtyText: `${outerCasingQty} m`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={outerCasingQty} onChange={e => setOuterCasingQty(Number(e.target.value))} />,
+                      total: outerCasingTotal
+                    }] : []),
+                    ...((() => {
+                      const totalInnerMeters = (innerCasing6kgQty || 0) + (innerCasing4kgQty || 0) + ((!innerCasing6kgQty && !innerCasing4kgQty) ? (innerCasingQty || 0) : 0);
+                      const activeRate = innerCasing6kgQty > 0 ? innerCasing6kgRate : (innerCasing4kgQty > 0 ? innerCasing4kgRate : innerCasingRate);
+                      return totalInnerMeters > 0 ? [{
+                        qty: totalInnerMeters,
+                        descId: 'fb_desc_inner_pipe_en',
+                        descValue: fbDescInnerPipeEn,
+                        descEl: <Input className="h-6 text-xs" value={fbDescInnerPipeEn} onChange={e => setFbDescInnerPipeEn(e.target.value)} />,
+                        rateId: 'fb_en_r_inner_pipe',
+                        rateValue: activeRate.toFixed(2),
+                        rateEl: <Input type="number" className="h-6 text-xs" value={activeRate} onChange={e => {
+                          const val = Number(e.target.value);
+                          if (innerCasing6kgQty > 0) setInnerCasing6kgRate(val);
+                          else if (innerCasing4kgQty > 0) setInnerCasing4kgRate(val);
+                          else setInnerCasingRate(val);
+                        }} />,
+                        qtyId: 'fb_en_q_inner_pipe',
+                        qtyText: `${totalInnerMeters} m`,
+                        qtyEl: <Input type="number" className="h-6 text-xs" value={totalInnerMeters} onChange={e => {
+                          const val = Number(e.target.value);
+                          if (innerCasing6kgQty > 0) setInnerCasing6kgQty(val);
+                          else if (innerCasing4kgQty > 0) setInnerCasing4kgQty(val);
+                          else setInnerCasingQty(val);
+                        }} />,
+                        total: innerCasing6kgTotal + innerCasing4kgTotal
+                      }] : [];
+                    })()),
                     {
-                      qty: effectiveInnerCasingQty,
+                      qty: endCap === 'Yes' ? 1 : 0,
                       descId: 'fb_desc_inner_en',
                       descValue: fbDescInnerEn,
                       descEl: <Input className="h-6 text-xs" value={fbDescInnerEn} onChange={e => setFbDescInnerEn(e.target.value)} />,
@@ -2558,9 +2892,9 @@ export default function PrintableReportModal({
                       rateValue: innerCasingRate.toFixed(2),
                       rateEl: <Input type="number" className="h-6 text-xs" value={innerCasingRate} onChange={e => setInnerCasingRate(Number(e.target.value))} />,
                       qtyId: 'fb_en_q4',
-                      qtyText: `${effectiveInnerCasingQty} No`,
-                      qtyEl: <Input type="number" className="h-6 text-xs" value={innerCasingQty} onChange={e => setInnerCasingQty(Number(e.target.value))} />,
-                      total: innerCasingTotal
+                      qtyText: `${endCap === 'Yes' ? 1 : 0} No`,
+                      qtyEl: <Input type="number" className="h-6 text-xs" value={endCap === 'Yes' ? 1 : 0} onChange={e => {}} />,
+                      total: endCap === 'Yes' ? innerCasingRate : 0
                     }
                   ];
                   const activeItemsEn = itemsEn.filter(item => item.qty > 0);
@@ -2614,11 +2948,11 @@ export default function PrintableReportModal({
                                 <tr key="total_exp_en" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>Total Expenditure Incurred</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(totalExpenditure).toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
-                              if (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield) {
+                              if (isPrivateWork && (effectiveSubsidyAmount > 0 || isPrivateIrrigation || isFailedOrZeroYield)) {
                                 rowsEn.push(
                                   <tr key="subsidy_en">
                                     <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
@@ -2641,7 +2975,7 @@ export default function PrintableReportModal({
                                 <tr key="net_payable_en" className="font-bold">
                                   <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{netPayableGwd.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(netPayableGwd).toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
@@ -2799,47 +3133,15 @@ export default function PrintableReportModal({
                       <tr className="bg-gray-100 border-b border-black text-center font-bold">
                         <td className="border border-black py-1.5 w-12">ക്രമ നമ്പർ</td>
                         <td className="border border-black py-1.5">വിവരങ്ങൾ</td>
-                        <td className="border border-black py-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
-                        <td className="border border-black py-1.5 w-36 text-right pr-2">ആകെ തുക (രൂപ)</td>
+                        <td className="border border-black py-1.5 w-36 text-right pr-2">തുക (രൂപ)</td>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* 1. Remittance Rows */}
-                      {abstractRemittanceRows.map((row, idx) => {
-                        const isLastRemittance = idx === abstractRemittanceRows.length - 1;
-                        return (
-                          <tr key={`rem_ml_${idx}`} id={`abs_ml_rem_row_${idx}`}>
-                            <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell(`abs_ml_rem_desc_${idx}`,
-                                row.descMl,
-                                <Input className="h-6 text-xs" value={row.descMl} onChange={e => {
-                                  row.descMl = e.target.value;
-                                }} />
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_ml_rem_amt_${idx}`,
-                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
-                                  row.amount = Number(e.target.value);
-                                }} />
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {isLastRemittance ? totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
-                            </td>
-                          </tr>
-                        );
-                      })}
-
-                      {/* 2. Site Rows */}
+                      {/* Site Rows Only */}
                       {abstractSiteRows.map((row, idx) => {
-                        const rowNum = abstractRemittanceRows.length + idx + 1;
-                        const isLastSite = idx === abstractSiteRows.length - 1;
                         return (
                           <tr key={`site_ml_${idx}`} id={`abs_ml_site_row_${idx}`}>
-                            <td className="border border-black p-1.5 text-center">{rowNum}</td>
+                            <td className="border border-black p-1.5 text-center">{idx + 1}</td>
                             <td className="border border-black p-1.5">
                               {renderEditableCell(`abs_ml_site_desc_${idx}`,
                                 <strong>{row.descMl}</strong>,
@@ -2856,26 +3158,20 @@ export default function PrintableReportModal({
                                 }} />
                               )}
                             </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {isLastSite ? totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
-                            </td>
                           </tr>
                         );
                       })}
 
-                      {/* 3. Balance Row */}
+                      {/* Grand Total Row */}
                       <tr className="font-bold bg-gray-100" id="abs_ml_bal_row">
                         <td className="border border-black p-1.5 text-center">
-                          {abstractRemittanceRows.length + abstractSiteRows.length + 1}
+                          {abstractSiteRows.length + 1}
                         </td>
-                        <td className="border border-black p-1.5">
-                          {abstractBalanceAmount >= 0 
-                            ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' 
-                            : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
+                        <td className="border border-black p-1.5 font-bold">
+                          Grand Total
                         </td>
-                        <td className="border border-black p-1.5 text-right"></td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {Math.abs(abstractBalanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <td className="border border-black p-1.5 text-right font-mono font-bold">
+                          {totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     </tbody>
@@ -2908,47 +3204,15 @@ export default function PrintableReportModal({
                       <tr className="bg-gray-100 border-b border-black text-center font-bold">
                         <td className="border border-black py-1.5 w-12">Sl No</td>
                         <td className="border border-black py-1.5">Description</td>
-                        <td className="border border-black py-1.5 w-32 text-right pr-2">Amount (Rs)</td>
-                        <td className="border border-black py-1.5 w-36 text-right pr-2">Total Amount (Rs)</td>
+                        <td className="border border-black py-1.5 w-36 text-right pr-2">Amount (Rs)</td>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* 1. Remittance Rows */}
-                      {abstractRemittanceRows.map((row, idx) => {
-                        const isLastRemittance = idx === abstractRemittanceRows.length - 1;
-                        return (
-                          <tr key={`rem_en_${idx}`} id={`abs_en_rem_row_${idx}`}>
-                            <td className="border border-black p-1.5 text-center">{idx + 1}</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell(`abs_en_rem_desc_${idx}`,
-                                row.descEn,
-                                <Input className="h-6 text-xs" value={row.descEn} onChange={e => {
-                                  row.descEn = e.target.value;
-                                }} />
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {renderEditableCell(`abs_en_rem_amt_${idx}`,
-                                row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-                                <Input type="number" className="h-6 text-xs" value={row.amount} onChange={e => {
-                                  row.amount = Number(e.target.value);
-                                }} />
-                              )}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {isLastRemittance ? totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
-                            </td>
-                          </tr>
-                        );
-                      })}
-
-                      {/* 2. Site Rows */}
+                      {/* Site Rows Only */}
                       {abstractSiteRows.map((row, idx) => {
-                        const rowNum = abstractRemittanceRows.length + idx + 1;
-                        const isLastSite = idx === abstractSiteRows.length - 1;
                         return (
                           <tr key={`site_en_${idx}`} id={`abs_en_site_row_${idx}`}>
-                            <td className="border border-black p-1.5 text-center">{rowNum}</td>
+                            <td className="border border-black p-1.5 text-center">{idx + 1}</td>
                             <td className="border border-black p-1.5">
                               {renderEditableCell(`abs_en_site_desc_${idx}`,
                                 <strong>{row.descEn}</strong>,
@@ -2965,26 +3229,20 @@ export default function PrintableReportModal({
                                 }} />
                               )}
                             </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {isLastSite ? totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}
-                            </td>
                           </tr>
                         );
                       })}
 
-                      {/* 3. Balance Row */}
+                      {/* Grand Total Row */}
                       <tr className="font-bold bg-gray-100" id="abs_en_bal_row">
                         <td className="border border-black p-1.5 text-center">
-                          {abstractRemittanceRows.length + abstractSiteRows.length + 1}
+                          {abstractSiteRows.length + 1}
                         </td>
-                        <td className="border border-black p-1.5">
-                          {abstractBalanceAmount >= 0 
-                            ? 'Balance Amount to be Refunded to Applicant' 
-                            : 'Balance Amount Payable to Department'}
+                        <td className="border border-black p-1.5 font-bold">
+                          Grand Total
                         </td>
-                        <td className="border border-black p-1.5 text-right"></td>
-                        <td className="border border-black p-1.5 text-right font-mono">
-                          {Math.abs(abstractBalanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <td className="border border-black p-1.5 text-right font-mono font-bold">
+                          {totalPaymentAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     </tbody>
@@ -3428,33 +3686,32 @@ export default function PrintableReportModal({
                           return (
                             <tr key={`dep_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                              <td className="border border-black p-1.5 pl-6">
                                 {renderEditableCell(`uc_ml_dep_row_${sIdx}`,
-                                  <div className="flex justify-between items-center w-full">
-                                    <span>{displayDesc}</span>
-                                    <span className="font-mono pr-2">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                  </div>,
-                                  <div className="flex gap-2">
-                                    <Input className="h-7 text-xs flex-1" value={displayDesc} readOnly />
-                                    <Input type="number" className="h-7 text-xs w-36" value={siteDeposit} onChange={e => {
-                                      const newRows = [...abstractRemittanceRows];
-                                      if (!newRows[sIdx]) newRows[sIdx] = { desc: displayDesc, amount: siteDeposit };
-                                      newRows[sIdx].amount = Number(e.target.value);
-                                      setAbstractRemittanceRows(newRows);
-                                    }} />
-                                  </div>
+                                  <span>{displayDesc}</span>,
+                                  <Input className="h-7 text-xs" value={displayDesc} readOnly />
                                 )}
                               </td>
-                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {renderEditableCell(`uc_ml_dep_amt_${sIdx}`,
+                                  siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                  <Input type="number" className="h-7 text-xs w-28 ml-auto" value={siteDeposit} onChange={e => {
+                                    const newRows = [...abstractRemittanceRows];
+                                    if (!newRows[sIdx]) newRows[sIdx] = { desc: displayDesc, amount: siteDeposit };
+                                    newRows[sIdx].amount = Number(e.target.value);
+                                    setAbstractRemittanceRows(newRows);
+                                  }} />
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5"></td>
                             </tr>
                           );
                         })}
                         {/* Row 2: Total Deposit */}
                         <tr className="font-bold bg-gray-50">
-                          <td className="border border-black p-1.5 text-center">2</td>
-                          <td className="border border-black p-1.5">ആകെ</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">
+                          <td className="border border-black p-1.5 text-center font-bold">2</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>ആകെ</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">
                             {renderEditableCell('uc_ml_tot_dep',
                               <span>{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
                               <Input type="number" className="h-7 text-xs w-36 ml-auto" value={totalRemittanceAmount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
@@ -3473,38 +3730,34 @@ export default function PrintableReportModal({
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
+                          const siteExpDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം`;
                           return (
                             <tr key={`exp_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                              <td className="border border-black p-1.5 pl-6">
                                 {renderEditableCell(`uc_ml_exp_row_${sIdx}`,
-                                  <div className="flex justify-between items-center w-full">
-                                    <span>{sf.siteName} {sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം</span>
-                                    <span className="font-mono pr-2">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                  </div>,
-                                  <div className="flex gap-2">
-                                    <Input className="h-7 text-xs flex-1" value={`${sf.siteName} ${sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം`} readOnly />
-                                    <Input type="number" className="h-7 text-xs w-36" value={sf.totalExpenditure} readOnly />
-                                  </div>
+                                  <span>{siteExpDesc}</span>,
+                                  <Input className="h-7 text-xs" value={siteExpDesc} readOnly />
                                 )}
                               </td>
-                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </td>
+                              <td className="border border-black p-1.5"></td>
                             </tr>
                           );
                         })}
                         {/* Row 4: Total Expenditure */}
                         <tr className="font-bold bg-gray-50">
-                          <td className="border border-black p-1.5 text-center">4</td>
-                          <td className="border border-black p-1.5">ആകെ</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">4</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>ആകെ</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         </tr>
                         {/* Row 5: Balance Amount */}
                         <tr className="font-bold bg-gray-100">
-                          <td className="border border-black p-1.5 text-center">5</td>
-                          <td className="border border-black p-1.5">ബാലൻസ് തുക (പഞ്ചായത്തിന് തിരികെ നൽകാനുള്ളത്)</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">5</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>ബാലൻസ് തുക (പഞ്ചായത്തിന് തിരികെ നൽകാനുള്ളത്)</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         </tr>
                         {/* Merged Row for Amount in Words inside table */}
                         <tr className="font-bold bg-gray-50 text-center">
@@ -3617,35 +3870,35 @@ export default function PrintableReportModal({
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
                           const siteDeposit = abstractRemittanceRows[sIdx]?.amount ?? (totalRemittanceAmount / (ucSelectedSites.length || 1));
+                          const depDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} Borewell Construction Deposit`;
                           return (
                             <tr key={`dep_en_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6" colSpan={2}>
+                              <td className="border border-black p-1.5 pl-6">
                                 {renderEditableCell(`uc_en_dep_row_${sIdx}`,
-                                  <div className="flex justify-between items-center w-full">
-                                    <span>{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</span>
-                                    <span className="font-mono pr-2">{siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                  </div>,
-                                  <div className="flex gap-2">
-                                    <Input className="h-7 text-xs flex-1" value={`${sf.siteName} ${sf.location ? `(${sf.location})` : ''} Borewell Construction`} readOnly />
-                                    <Input type="number" className="h-7 text-xs w-36" value={siteDeposit} onChange={e => {
-                                      const newRows = [...abstractRemittanceRows];
-                                      if (!newRows[sIdx]) newRows[sIdx] = { desc: sf.siteName, amount: siteDeposit };
-                                      newRows[sIdx].amount = Number(e.target.value);
-                                      setAbstractRemittanceRows(newRows);
-                                    }} />
-                                  </div>
+                                  <span>{depDesc}</span>,
+                                  <Input className="h-7 text-xs" value={depDesc} readOnly />
                                 )}
                               </td>
-                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {renderEditableCell(`uc_en_dep_amt_${sIdx}`,
+                                  siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                  <Input type="number" className="h-7 text-xs w-28 ml-auto" value={siteDeposit} onChange={e => {
+                                    const newRows = [...abstractRemittanceRows];
+                                    if (!newRows[sIdx]) newRows[sIdx] = { desc: sf.siteName, amount: siteDeposit };
+                                    newRows[sIdx].amount = Number(e.target.value);
+                                    setAbstractRemittanceRows(newRows);
+                                  }} />
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5"></td>
                             </tr>
                           );
                         })}
                         <tr className="font-bold bg-gray-50">
-                          <td className="border border-black p-1.5 text-center">2</td>
-                          <td className="border border-black p-1.5">Total</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">2</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>Total</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">{totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                           <td className="border border-black p-1.5 text-center">3</td>
@@ -3658,21 +3911,19 @@ export default function PrintableReportModal({
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
                               <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</td>
                               <td className="border border-black p-1.5 text-right font-mono">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                              <td className="border border-black p-1.5 text-right font-mono"></td>
+                              <td className="border border-black p-1.5"></td>
                             </tr>
                           );
                         })}
                         <tr className="font-bold bg-gray-50">
-                          <td className="border border-black p-1.5 text-center">4</td>
-                          <td className="border border-black p-1.5">Total</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">4</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>Total</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">{ucTotalSelectedExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         </tr>
                         <tr className="font-bold bg-gray-100">
-                          <td className="border border-black p-1.5 text-center">5</td>
-                          <td className="border border-black p-1.5">Balance amount (to be returned to Panchayat)</td>
-                          <td className="border border-black p-1.5 text-right font-mono"></td>
-                          <td className="border border-black p-1.5 text-right font-mono">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-1.5 text-center font-bold">5</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={2}>Balance amount (to be returned to Panchayat)</td>
+                          <td className="border border-black p-1.5 text-right font-mono font-bold">{Math.abs(ucBalanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         </tr>
                         {/* Merged row for words */}
                         <tr className="font-bold bg-gray-50 text-center">

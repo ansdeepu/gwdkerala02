@@ -16,7 +16,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2, Save, Edit, PlusCircle, Trash2, FileText, Building, GitBranch, FolderOpen, ScrollText, Download, Users, Bell, ArrowLeft, Link as LinkIcon, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { toDateOrNull, formatDateSafe, getStatusBadgeClass } from './utils';
+import { toDateOrNull, formatDateSafe, getStatusBadgeClass, calculateSelectionNoticeValues } from './utils';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -247,6 +247,23 @@ export default function TenderDetails() {
         reset(tender);
     }, [tender, reset]);
 
+    const syncSelectionNoticeWithBidders = (updatedBidders: Bidder[]) => {
+        const currentFormValues = getValues();
+        const snValues = calculateSelectionNoticeValues({
+            tender: {
+                ...tender,
+                ...currentFormValues,
+            },
+            bidders: updatedBidders,
+        });
+
+        setValue('performanceGuaranteeAmount', snValues.performanceGuaranteeAmount, { shouldDirty: true, shouldValidate: true });
+        setValue('additionalPerformanceGuaranteeAmount', snValues.additionalPerformanceGuaranteeAmount, { shouldDirty: true, shouldValidate: true });
+        setValue('stampPaperAmount', snValues.stampPaperAmount, { shouldDirty: true, shouldValidate: true });
+
+        return snValues;
+    };
+
     const handleBidderSave = (bidderData: Bidder) => {
         const current = getValues('bidders') || [];
         let updated: Bidder[];
@@ -260,7 +277,15 @@ export default function TenderDetails() {
         } else {
             updated = current;
         }
-        updateTender({ bidders: updated });
+
+        const snValues = syncSelectionNoticeWithBidders(updated);
+
+        updateTender({
+            bidders: updated,
+            performanceGuaranteeAmount: snValues.performanceGuaranteeAmount,
+            additionalPerformanceGuaranteeAmount: snValues.additionalPerformanceGuaranteeAmount,
+            stampPaperAmount: snValues.stampPaperAmount,
+        });
         setActiveModal(null);
         setModalData(null);
     };
@@ -269,7 +294,15 @@ export default function TenderDetails() {
         removeBidder(index);
         const current = getValues('bidders') || [];
         const updated = current.filter((_, i) => i !== index);
-        updateTender({ bidders: updated });
+
+        const snValues = syncSelectionNoticeWithBidders(updated);
+
+        updateTender({
+            bidders: updated,
+            performanceGuaranteeAmount: snValues.performanceGuaranteeAmount,
+            additionalPerformanceGuaranteeAmount: snValues.additionalPerformanceGuaranteeAmount,
+            stampPaperAmount: snValues.stampPaperAmount,
+        });
     };
 
     const handleCorrigendumSave = (corrigendumData: Corrigendum) => {

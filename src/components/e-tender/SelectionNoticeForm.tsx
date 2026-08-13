@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Save, X, Info } from 'lucide-react';
 import { SelectionNoticeDetailsSchema, type E_tenderFormData, type SelectionNoticeDetailsFormData } from '@/lib/schemas/eTenderSchema';
-import { formatDateForInput, toDateOrNull, getRateDetailForDate } from './utils';
+import { formatDateForInput, toDateOrNull, getRateDetailForDate, parseStampPaperLogic, calculateStampPaperValue, parseAdditionalPerformanceGuaranteeLogic, calculateAdditionalPG } from './utils';
 import { useDataStore, defaultRateDescriptions } from '@/hooks/use-data-store';
 import { useTenderData } from './TenderDataContext';
 import { cn } from '@/lib/utils';
@@ -24,48 +24,6 @@ interface SelectionNoticeFormProps {
     l1Amount?: number | null;
     hasRejectedBids?: boolean;
 }
-
-const parseStampPaperLogic = (description: string) => {
-    const rateBasisMatch = description.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
-    const minMatch = description.match(/(?:minimum|min)(?:\s*of)?\s*[₹Rs\.]?\s*([\d,]+)/i);
-    const maxMatch = description.match(/(?:maximum|max)(?:\s*of)?\s*[₹Rs\.]?\s*([\d,]+)/i);
-    
-    const parseNumber = (str: string | undefined) => str ? parseInt(str.replace(/,/g, ''), 10) : undefined;
-
-    const result = {
-        rate: rateBasisMatch ? parseNumber(rateBasisMatch[1]) : 100,
-        basis: rateBasisMatch ? parseNumber(rateBasisMatch[2]) : 100000,
-        min: minMatch ? parseNumber(minMatch[1]) : 200,
-        max: maxMatch ? parseNumber(maxMatch[1]) : 100000,
-    };
-
-    if (result.rate === 1 && result.basis === 100000) {
-        result.rate = 100;
-    }
-
-    return result;
-};
-
-const parseAdditionalPerformanceGuaranteeLogic = (description: string) => {
-    const betweenMatch = description.match(/between\s+([\d.]+)%\s*(?:to|and)\s*([\d.]+)%/i);
-    const upToMatch = description.match(/up\s*to\s*([\d.]+)%/i);
-    const moreThanMatch = description.match(/more\s+than\s+([\d.]+)%/i);
-
-    if (betweenMatch) {
-        const lower = parseFloat(betweenMatch[1]);
-        const threshold = lower > 10 ? 0.10 : lower / 100;
-        return { threshold };
-    }
-    if (upToMatch) {
-        return { threshold: parseFloat(upToMatch[1]) / 100 };
-    }
-    if (moreThanMatch) {
-        return { threshold: parseFloat(moreThanMatch[1]) / 100 };
-    }
-    
-    return { threshold: 0.10 }; 
-};
-
 
 export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, l1Amount, hasRejectedBids }: SelectionNoticeFormProps) {
     const { tender } = useTenderData();
@@ -98,28 +56,12 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         return tender?.additionalPerformanceGuaranteeDescription || additionalPerformanceGuaranteeDetail?.description || defaultRateDescriptions.additionalPerformanceGuarantee;
     }, [tender?.additionalPerformanceGuaranteeDescription, additionalPerformanceGuaranteeDetail]);
 
-    const calculateStampPaperValue = useCallback((amount?: number | null): number => {
-        const logic = parseStampPaperLogic(stampPaperDescription);
-        const { rate, basis, min, max } = logic;
-        if (amount === undefined || amount === null || amount <= 0) return min ?? 0;
-        
-        const duty = Math.ceil(amount / (basis || 100000)) * (rate || 100); 
-        const roundedDuty = Math.ceil(duty / 100) * 100;
-        return Math.max(min ?? 0, Math.min(roundedDuty, max ?? Infinity));
+    const calculateStampPaper = useCallback((amount?: number | null): number => {
+        return calculateStampPaperValue(amount, stampPaperDescription);
     }, [stampPaperDescription]);
 
-    const calculateAdditionalPG = useCallback((estimateAmount?: number | null, tenderAmount?: number | null): number => {
-        if (!estimateAmount || !tenderAmount || tenderAmount >= estimateAmount) return 0;
-        
-        const logic = parseAdditionalPerformanceGuaranteeLogic(additionalPerformanceGuaranteeDescription);
-        const percentageDifference = (estimateAmount - tenderAmount) / estimateAmount;
-        
-        if (percentageDifference > logic.threshold) {
-            const excessPercentage = percentageDifference - logic.threshold;
-            const additionalPG = excessPercentage * estimateAmount;
-            return Math.ceil(additionalPG / 100) * 100;
-        }
-        return 0;
+    const calculateAPG = useCallback((estimateAmount?: number | null, tenderAmount?: number | null): number => {
+        return calculateAdditionalPG(estimateAmount, tenderAmount, additionalPerformanceGuaranteeDescription);
     }, [additionalPerformanceGuaranteeDescription]);
 
 
@@ -131,10 +73,10 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
 
         const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
-        const stamp = calculateStampPaperValue(baseAmount);
+        const stamp = calculateStampPaper(baseAmount);
 
         const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
-        const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
+        const additionalPg = calculateAPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
 
         return {
             selectionNoticeDate: formatDateForInput(tender?.selectionNoticeDate),
@@ -149,7 +91,7 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                 : stamp,
             amountType: baseAmountType,
         };
-    }, [tender, l1Amount, performanceGuaranteeDescription, calculateStampPaperValue, calculateAdditionalPG]);
+    }, [tender, l1Amount, performanceGuaranteeDescription, calculateStampPaper, calculateAPG]);
 
     const form = useForm<SelectionNoticeDetailsFormData>({
         resolver: zodResolver(SelectionNoticeDetailsSchema),
@@ -204,9 +146,9 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
                                             const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
                                             const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
                                             const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
-                                            const stamp = calculateStampPaperValue(baseAmount);
+                                            const stamp = calculateStampPaper(baseAmount);
                                             const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
-                                            const additionalPg = calculateAdditionalPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
+                                            const additionalPg = calculateAPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
                                             
                                             setValue('performanceGuaranteeAmount', pg, { shouldValidate: true, shouldDirty: true });
                                             setValue('additionalPerformanceGuaranteeAmount', additionalPg, { shouldValidate: true, shouldDirty: true });
