@@ -635,42 +635,61 @@ export default function PrintableReportModal({
     if (savedOverrides.innerCasing4kgRate !== undefined) setInnerCasing4kgRate(savedOverrides.innerCasing4kgRate);
     if (savedOverrides.innerCasingRate !== undefined) setInnerCasingRate(savedOverrides.innerCasingRate);
 
-    const siteOv = savedOverrides.siteOverrides?.[selectedSiteIndex] || (selectedSiteIndex === 0 ? savedOverrides : {});
+    // Site-specific overrides lookup
+    const rawSiteIndex = entry.siteDetails?.findIndex((s: any) => s === currentSite || (s.nameOfSite && currentSite?.nameOfSite && s.nameOfSite === currentSite.nameOfSite)) ?? -1;
+    const siteId = (currentSite as any)?.id;
+    const siteOv = (siteId && savedOverrides.siteOverrides?.[siteId])
+      || (savedOverrides.siteOverrides && savedOverrides.siteOverrides[selectedSiteIndex])
+      || (rawSiteIndex >= 0 && savedOverrides.siteOverrides ? savedOverrides.siteOverrides[rawSiteIndex] : undefined)
+      || (sites.length <= 1 && selectedSiteIndex === 0 && !savedOverrides.siteOverrides ? savedOverrides : undefined);
 
-    if (siteOv.drillingQty !== undefined) setDrillingQty(siteOv.drillingQty);
-    if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(siteOv.casing10kgQty);
-    if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(siteOv.casing8kgQty);
-    if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(siteOv.casing6kgQty);
-    if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(siteOv.outerCasingQty);
-    if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(siteOv.innerCasing6kgQty);
-    if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(siteOv.innerCasing4kgQty);
-    if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(siteOv.innerCasingQty);
-    if (siteOv.depthMeter !== undefined) setDepthMeter(siteOv.depthMeter);
-    if (siteOv.actualOverburden !== undefined) setActualOverburden(siteOv.actualOverburden);
-    if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(siteOv.pilotDrillingDepth);
-    if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(siteOv.surveyPlainPipe);
-    if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(siteOv.surveySlottedPipe);
-    if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(siteOv.outerCasingPipe);
-    if (siteOv.endCap !== undefined) setEndCap(siteOv.endCap);
-    if (siteOv.yieldLph !== undefined) setYieldLph(siteOv.yieldLph);
+    if (siteOv) {
+      if (siteOv.drillingQty !== undefined) setDrillingQty(siteOv.drillingQty);
+      if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(siteOv.casing10kgQty);
+      if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(siteOv.casing8kgQty);
+      if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(siteOv.casing6kgQty);
+      if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(siteOv.outerCasingQty);
+      if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(siteOv.innerCasing6kgQty);
+      if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(siteOv.innerCasing4kgQty);
+      if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(siteOv.innerCasingQty);
+      if (siteOv.depthMeter !== undefined) setDepthMeter(siteOv.depthMeter);
+      if (siteOv.actualOverburden !== undefined) setActualOverburden(siteOv.actualOverburden);
+      if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(siteOv.pilotDrillingDepth);
+      if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(siteOv.surveyPlainPipe);
+      if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(siteOv.surveySlottedPipe);
+      if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(siteOv.outerCasingPipe);
+      if (siteOv.endCap !== undefined) setEndCap(siteOv.endCap);
+      if (siteOv.yieldLph !== undefined) setYieldLph(siteOv.yieldLph);
+      if (siteOv.staticWaterLevel !== undefined) setStaticWaterLevel(siteOv.staticWaterLevel);
+      if (siteOv.waterStruckZone !== undefined) setWaterStruckZone(siteOv.waterStruckZone);
+      if (siteOv.diameter !== undefined) setDiameter(siteOv.diameter);
+      if (siteOv.siteName !== undefined) setSiteName(siteOv.siteName);
+      if (siteOv.localSelfGovt !== undefined) setLocalSelfGovt(siteOv.localSelfGovt);
+      if (siteOv.constituency !== undefined) setConstituency(siteOv.constituency);
+      if (siteOv.contractorName !== undefined) setContractorName(siteOv.contractorName);
+      if (siteOv.periodFrom !== undefined) setPeriodFrom(siteOv.periodFrom);
+      if (siteOv.periodTo !== undefined) setPeriodTo(siteOv.periodTo);
+      if (siteOv.remarks !== undefined) setRemarks(siteOv.remarks);
+      if (siteOv.rigUsed !== undefined) setRigUsed(siteOv.rigUsed);
+
+      if (siteOv.fbDescDrillingMl) setFbDescDrillingMl(siteOv.fbDescDrillingMl);
+      if (siteOv.fbDescCasing10Ml) setFbDescCasing10Ml(siteOv.fbDescCasing10Ml);
+      if (siteOv.fbDescCasing8Ml) setFbDescCasing8Ml(siteOv.fbDescCasing8Ml);
+      if (siteOv.fbDescCasing6Ml) setFbDescCasing6Ml(siteOv.fbDescCasing6Ml);
+      if (siteOv.fbDescOuterMl) setFbDescOuterMl(siteOv.fbDescOuterMl);
+      if (siteOv.fbDescInnerMl) setFbDescInnerMl(siteOv.fbDescInnerMl);
+      if (siteOv.fbDescInnerPipeMl) setFbDescInnerPipeMl(siteOv.fbDescInnerPipeMl);
+
+      if (siteOv.fbDescDrillingEn) setFbDescDrillingEn(siteOv.fbDescDrillingEn);
+      if (siteOv.fbDescCasing10En) setFbDescCasing10En(siteOv.fbDescCasing10En);
+      if (siteOv.fbDescCasing8En) setFbDescCasing8En(siteOv.fbDescCasing8En);
+      if (siteOv.fbDescCasing6En) setFbDescCasing6En(siteOv.fbDescCasing6En);
+      if (siteOv.fbDescOuterEn) setFbDescOuterEn(siteOv.fbDescOuterEn);
+      if (siteOv.fbDescInnerEn) setFbDescInnerEn(siteOv.fbDescInnerEn);
+      if (siteOv.fbDescInnerPipeEn) setFbDescInnerPipeEn(siteOv.fbDescInnerPipeEn);
+    }
 
     if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(savedOverrides.subsidyAmount);
-
-    if (savedOverrides.fbDescDrillingMl) setFbDescDrillingMl(savedOverrides.fbDescDrillingMl);
-    if (savedOverrides.fbDescCasing10Ml) setFbDescCasing10Ml(savedOverrides.fbDescCasing10Ml);
-    if (savedOverrides.fbDescCasing8Ml) setFbDescCasing8Ml(savedOverrides.fbDescCasing8Ml);
-    if (savedOverrides.fbDescCasing6Ml) setFbDescCasing6Ml(savedOverrides.fbDescCasing6Ml);
-    if (savedOverrides.fbDescOuterMl) setFbDescOuterMl(savedOverrides.fbDescOuterMl);
-    if (savedOverrides.fbDescInnerMl) setFbDescInnerMl(savedOverrides.fbDescInnerMl);
-    if (savedOverrides.fbDescInnerPipeMl) setFbDescInnerPipeMl(savedOverrides.fbDescInnerPipeMl);
-
-    if (savedOverrides.fbDescDrillingEn) setFbDescDrillingEn(savedOverrides.fbDescDrillingEn);
-    if (savedOverrides.fbDescCasing10En) setFbDescCasing10En(savedOverrides.fbDescCasing10En);
-    if (savedOverrides.fbDescCasing8En) setFbDescCasing8En(savedOverrides.fbDescCasing8En);
-    if (savedOverrides.fbDescCasing6En) setFbDescCasing6En(savedOverrides.fbDescCasing6En);
-    if (savedOverrides.fbDescOuterEn) setFbDescOuterEn(savedOverrides.fbDescOuterEn);
-    if (savedOverrides.fbDescInnerEn) setFbDescInnerEn(savedOverrides.fbDescInnerEn);
-    if (savedOverrides.fbDescInnerPipeEn) setFbDescInnerPipeEn(savedOverrides.fbDescInnerPipeEn);
 
     if (savedOverrides.bankAccountNo) setBankAccountNo(savedOverrides.bankAccountNo);
     if (savedOverrides.bankIfsc) setBankIfsc(savedOverrides.bankIfsc);
@@ -709,7 +728,7 @@ export default function PrintableReportModal({
       setSelectedSiteIndices(savedOverrides.selectedSiteIndices);
     }
 
-  }, [entry, currentSite, selectedSiteIndex, moduleType, district, districtMl, drillingRate, drillingQty, subsidyAmount, sites, casing10kgRate, casing8kgRate, casing6kgRate, innerCasingRate, applicationType, officeAddress?.officeCode, isPrivateWork, allStaffMembers, officeAddress?.districtOfficer, officeAddress?.nameOfTreasury, officeAddress?.stsbAccountNo]);
+  }, [entry, currentSite, selectedSiteIndex, moduleType, sites, isPrivateWork, officeAddress?.officeCode]);
 
   // Derived Calculations
   const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
@@ -804,17 +823,23 @@ export default function PrintableReportModal({
   }, [selectedRemittanceIndices, allRemittances]);
 
   const totalRemittanceAmount = useMemo(() => {
-    return abstractRemittanceRows.reduce((sum, r) => sum + r.amount, 0);
-  }, [abstractRemittanceRows]);
+    const sum = abstractRemittanceRows.reduce((sum, r) => sum + r.amount, 0);
+    return sum > 0 ? sum : (advanceDeposit || 0);
+  }, [abstractRemittanceRows, advanceDeposit]);
 
   const siteFinancials = useMemo(() => {
     return sites.map((s, sIdx) => {
       if (!s) return null;
-      const sDepth = parseNum(s.totalDepth);
-      const sDrilling = drillingRate * sDepth;
 
-      const sC10Val = parseNum(s.casing10kgPipe);
-      const sC8Val = parseNum((s as any).casing8kgPipe);
+      // If this is the currently active/viewed site in Final Bill, use the live state values
+      const isCurrentActive = sIdx === selectedSiteIndex;
+
+      const sDepth = isCurrentActive ? (drillingQty || depthMeter || 0) : parseNum(s.totalDepth);
+      const sDrillingR = drillingRate;
+      const sDrilling = sDrillingR * sDepth;
+
+      const sC10Val = isCurrentActive ? casing10kgQty : parseNum(s.casing10kgPipe);
+      const sC8Val = isCurrentActive ? casing8kgQty : parseNum((s as any).casing8kgPipe);
       const sC6Raw = parseNum(s.casing6kgPipe);
       const sPipeUsed = parseNum(s.casingPipeUsed);
       const sSurveyCasing = parseNum(s.surveyRecommendedCasingPipe);
@@ -822,25 +847,29 @@ export default function PrintableReportModal({
       const sHas6kg = s.casing6kgPipe !== undefined && s.casing6kgPipe !== null;
       const sHas10kg = s.casing10kgPipe !== undefined && s.casing10kgPipe !== null;
       const sHas8kg = (s as any).casing8kgPipe !== undefined && (s as any).casing8kgPipe !== null;
-      const sC6Val = sHas6kg ? sC6Raw : (!sHas10kg && !sHas8kg && sC10Val === 0 && sC8Val === 0 ? (sPipeUsed || sSurveyCasing) : 0);
+      const sC6Val = isCurrentActive ? casing6kgQty : (sHas6kg ? sC6Raw : (!sHas10kg && !sHas8kg && sC10Val === 0 && sC8Val === 0 ? (sPipeUsed || sSurveyCasing) : 0));
+
+      const sOuterVal = isCurrentActive ? outerCasingQty : parseNum((s as any).outerCasingPipe);
 
       const sC10 = casing10kgRate * sC10Val;
       const sC8 = casing8kgRate * sC8Val;
       const sC6 = casing6kgRate * sC6Val;
+      const sOuter = outerCasingRate * sOuterVal;
 
-      const sIn6_3 = parseNum(s.innerCasing6kgPipe);
-      const sIn4Raw_3 = parseNum(s.innerCasing4kgPipe);
-      const sIn4_3 = sIn4Raw_3 > 0 ? sIn4Raw_3 : (!sIn6_3 ? parseNum(s.innerCasingPipe) : 0);
+      const sIn6_3 = isCurrentActive ? innerCasing6kgQty : parseNum(s.innerCasing6kgPipe);
+      const sIn4Raw_3 = isCurrentActive ? innerCasing4kgQty : parseNum(s.innerCasing4kgPipe);
+      const sIn4_3 = sIn4Raw_3 > 0 ? sIn4Raw_3 : ((!sIn6_3 && !isCurrentActive) ? parseNum(s.innerCasingPipe) : (isCurrentActive && !innerCasing6kgQty && innerCasingQty > 0 ? innerCasingQty : 0));
       const sInnerQty = sIn6_3 + sIn4_3;
-      const sInner = (innerCasing6kgRate * sIn6_3) + (innerCasing4kgRate * sIn4_3) + ((s.endCap === 'Yes' && sIn6_3 === 0 && sIn4_3 === 0) ? innerCasingRate : 0);
+      const sCapYes = isCurrentActive ? (endCap === 'Yes') : (s.endCap === 'Yes');
+      const sInner = (innerCasing6kgRate * sIn6_3) + (innerCasing4kgRate * sIn4_3) + (sCapYes ? innerCasingRate : 0);
 
-      const sTotalExpenditure = sDrilling + sC10 + sC8 + sC6 + sInner;
+      const sTotalExpenditure = sDrilling + sC10 + sC8 + sC6 + sOuter + sInner;
 
       // Site subsidy
       const sAppTypeStr = (applicationType || entry?.applicationType || s.applicationType || '').toLowerCase();
       const sIsPrivateIrrigation = sAppTypeStr.includes('irrigation') || sAppTypeStr.includes('private_irrigation') || sAppTypeStr.includes('private irrigation');
       
-      const sYield = Number(s.yieldDischarge) || 0;
+      const sYield = isCurrentActive ? yieldLph : (Number(s.yieldDischarge) || 0);
       const sIsYieldZero = sYield === 0 || parseNum(s.yieldDischarge) === 0 || s.yieldDischarge === '0';
       const sWorkStatusStr = (s.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
       const sIsWorkFailed = sWorkStatusStr.includes('failed') || sWorkStatusStr.includes('പരാജയ');
@@ -853,21 +882,26 @@ export default function PrintableReportModal({
         : 0;
 
       let sSiteSubsidy = 0;
-      if (sIsFailedOrZeroYield) {
-        sSiteSubsidy = sCalculatedSubsidy;
-      } else if (sIsPrivateIrrigation) {
-        sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
-          ? Number(s.subsidyAmount)
-          : sCalculatedSubsidy;
-      } else if (isPrivateWork) {
-        sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
-          ? Number(s.subsidyAmount)
-          : sCalculatedSubsidy;
+      if (isCurrentActive) {
+        sSiteSubsidy = effectiveSubsidyAmount;
       } else {
-        sSiteSubsidy = Number(s.subsidyAmount) || 0;
+        if (sIsFailedOrZeroYield) {
+          sSiteSubsidy = sCalculatedSubsidy;
+        } else if (sIsPrivateIrrigation) {
+          sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
+            ? Number(s.subsidyAmount)
+            : sCalculatedSubsidy;
+        } else if (isPrivateWork) {
+          sSiteSubsidy = (s.subsidyAmount !== undefined && s.subsidyAmount !== null && Number(s.subsidyAmount) > 0)
+            ? Number(s.subsidyAmount)
+            : sCalculatedSubsidy;
+        } else {
+          sSiteSubsidy = Number(s.subsidyAmount) || 0;
+        }
       }
 
-      const sNetPayable = sTotalExpenditure - sSiteSubsidy;
+      const sNetPayableRaw = sTotalExpenditure - sSiteSubsidy;
+      const sNetPayable = Math.round(sNetPayableRaw);
       const sName = s.nameOfSite || entry?.applicantName || `Site #${sIdx + 1}`;
       const sLoc = s.surveyLocation || s.localSelfGovt || '';
 
@@ -884,12 +918,15 @@ export default function PrintableReportModal({
         casing8Cost: sC8,
         casing6Qty: sC6Val,
         casing6Cost: sC6,
+        outerQty: sOuterVal,
+        outerCost: sOuter,
         innerQty: sInnerQty,
         innerCost: sInner,
         totalExpenditure: sTotalExpenditure,
         isFailedOrZeroYield: sIsFailedOrZeroYield,
         subsidyAmount: sSiteSubsidy,
         netPayable: sNetPayable,
+        netPayableRaw: sNetPayableRaw,
       };
     }).filter(Boolean) as Array<{
       sIdx: number;
@@ -904,14 +941,43 @@ export default function PrintableReportModal({
       casing8Cost: number;
       casing6Qty: number;
       casing6Cost: number;
+      outerQty: number;
+      outerCost: number;
       innerQty: number;
       innerCost: number;
       totalExpenditure: number;
       isFailedOrZeroYield: boolean;
       subsidyAmount: number;
       netPayable: number;
+      netPayableRaw: number;
     }>;
-  }, [sites, drillingRate, casing10kgRate, casing8kgRate, casing6kgRate, innerCasingRate, applicationType, entry, isPrivateWork]);
+  }, [
+    sites,
+    selectedSiteIndex,
+    drillingRate,
+    drillingQty,
+    depthMeter,
+    casing10kgRate,
+    casing10kgQty,
+    casing8kgRate,
+    casing8kgQty,
+    casing6kgRate,
+    casing6kgQty,
+    outerCasingRate,
+    outerCasingQty,
+    innerCasing6kgRate,
+    innerCasing6kgQty,
+    innerCasing4kgRate,
+    innerCasing4kgQty,
+    innerCasingRate,
+    innerCasingQty,
+    endCap,
+    yieldLph,
+    effectiveSubsidyAmount,
+    applicationType,
+    entry,
+    isPrivateWork
+  ]);
 
   const totalNetPayableAllSites = useMemo(() => {
     return siteFinancials.reduce((sum, sf) => sum + sf.netPayable, 0);
@@ -952,11 +1018,11 @@ export default function PrintableReportModal({
   }, [selectedSiteIndices, siteFinancials]);
 
   const ucTotalSelectedExpenditure = useMemo(() => {
-    return ucSelectedSites.reduce((sum, sf) => sum + sf.totalExpenditure, 0);
+    return ucSelectedSites.reduce((sum, sf) => sum + Math.round(sf.subsidyAmount > 0 ? sf.netPayable : sf.totalExpenditure), 0);
   }, [ucSelectedSites]);
 
   const ucBalanceRefund = useMemo(() => {
-    return totalRemittanceAmount - ucTotalSelectedExpenditure;
+    return Math.round(totalRemittanceAmount) - ucTotalSelectedExpenditure;
   }, [totalRemittanceAmount, ucTotalSelectedExpenditure]);
 
   const procNetPayable = useMemo(() => {
@@ -1292,29 +1358,61 @@ export default function PrintableReportModal({
       const existingOverrides = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
       const prevSiteOverrides = existingOverrides.siteOverrides || {};
 
+      const currentSiteOverrideData = {
+        drillingQty,
+        casing10kgQty,
+        casing8kgQty,
+        casing6kgQty,
+        outerCasingQty,
+        innerCasing6kgQty,
+        innerCasing4kgQty,
+        innerCasingQty,
+        depthMeter,
+        actualOverburden,
+        pilotDrillingDepth,
+        surveyPlainPipe,
+        surveySlottedPipe,
+        outerCasingPipe,
+        endCap,
+        yieldLph,
+        staticWaterLevel,
+        waterStruckZone,
+        diameter,
+        siteName,
+        contractorName,
+        periodFrom,
+        periodTo,
+        remarks,
+        rigUsed,
+        localSelfGovt,
+        constituency,
+        fbDescDrillingMl,
+        fbDescCasing10Ml,
+        fbDescCasing8Ml,
+        fbDescCasing6Ml,
+        fbDescOuterMl,
+        fbDescInnerMl,
+        fbDescInnerPipeMl,
+        fbDescDrillingEn,
+        fbDescCasing10En,
+        fbDescCasing8En,
+        fbDescCasing6En,
+        fbDescOuterEn,
+        fbDescInnerEn,
+        fbDescInnerPipeEn,
+      };
+
+      const siteId = (currentSite as any)?.id;
+      const updatedSiteOverrides = {
+        ...prevSiteOverrides,
+        [selectedSiteIndex]: currentSiteOverrideData,
+        ...(targetIndex !== -1 ? { [targetIndex]: currentSiteOverrideData } : {}),
+        ...(siteId ? { [siteId]: currentSiteOverrideData } : {}),
+      };
+
       const reportOverrides: Record<string, any> = {
         ...existingOverrides,
-        siteOverrides: {
-          ...prevSiteOverrides,
-          [selectedSiteIndex]: {
-            drillingQty,
-            casing10kgQty,
-            casing8kgQty,
-            casing6kgQty,
-            outerCasingQty,
-            innerCasing6kgQty,
-            innerCasing4kgQty,
-            innerCasingQty,
-            depthMeter,
-            actualOverburden,
-            pilotDrillingDepth,
-            surveyPlainPipe,
-            surveySlottedPipe,
-            outerCasingPipe,
-            endCap,
-            yieldLph,
-          }
-        },
+        siteOverrides: updatedSiteOverrides,
         fileNo,
         applicantName,
         applicantAddress,
@@ -1329,34 +1427,9 @@ export default function PrintableReportModal({
         innerCasing4kgRate,
         innerCasingRate,
 
-        drillingQty,
-        casing10kgQty,
-        casing8kgQty,
-        casing6kgQty,
-        outerCasingQty,
-        innerCasing6kgQty,
-        innerCasing4kgQty,
-        innerCasingQty,
-
         subsidyAmount,
         advanceDeposit,
         ddDetails,
-
-        fbDescDrillingMl,
-        fbDescCasing10Ml,
-        fbDescCasing8Ml,
-        fbDescCasing6Ml,
-        fbDescOuterMl,
-        fbDescInnerMl,
-        fbDescInnerPipeMl,
-
-        fbDescDrillingEn,
-        fbDescCasing10En,
-        fbDescCasing8En,
-        fbDescCasing6En,
-        fbDescOuterEn,
-        fbDescInnerEn,
-        fbDescInnerPipeEn,
 
         orderNo,
         orderDate,
@@ -1394,6 +1467,34 @@ export default function PrintableReportModal({
         officerName,
         officerDesignation,
       };
+
+      // Only save top-level drillingQty and descriptions if single-site
+      if (sites.length <= 1) {
+        reportOverrides.drillingQty = drillingQty;
+        reportOverrides.casing10kgQty = casing10kgQty;
+        reportOverrides.casing8kgQty = casing8kgQty;
+        reportOverrides.casing6kgQty = casing6kgQty;
+        reportOverrides.outerCasingQty = outerCasingQty;
+        reportOverrides.innerCasing6kgQty = innerCasing6kgQty;
+        reportOverrides.innerCasing4kgQty = innerCasing4kgQty;
+        reportOverrides.innerCasingQty = innerCasingQty;
+
+        reportOverrides.fbDescDrillingMl = fbDescDrillingMl;
+        reportOverrides.fbDescCasing10Ml = fbDescCasing10Ml;
+        reportOverrides.fbDescCasing8Ml = fbDescCasing8Ml;
+        reportOverrides.fbDescCasing6Ml = fbDescCasing6Ml;
+        reportOverrides.fbDescOuterMl = fbDescOuterMl;
+        reportOverrides.fbDescInnerMl = fbDescInnerMl;
+        reportOverrides.fbDescInnerPipeMl = fbDescInnerPipeMl;
+
+        reportOverrides.fbDescDrillingEn = fbDescDrillingEn;
+        reportOverrides.fbDescCasing10En = fbDescCasing10En;
+        reportOverrides.fbDescCasing8En = fbDescCasing8En;
+        reportOverrides.fbDescCasing6En = fbDescCasing6En;
+        reportOverrides.fbDescOuterEn = fbDescOuterEn;
+        reportOverrides.fbDescInnerEn = fbDescInnerEn;
+        reportOverrides.fbDescInnerPipeEn = fbDescInnerPipeEn;
+      }
 
       const updatedEntry: DataEntryFormData = {
         ...entry,
@@ -1471,28 +1572,89 @@ export default function PrintableReportModal({
       setFbDescDrillingMl(`${isDia150 ? '150 മില്ലീമീറ്റർ' : '110 മില്ലീമീറ്റർ'} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്`);
       setFbDescDrillingEn(`Drilling charges for ${isDia150 ? '150 mm' : '110 mm'} dia borewell`);
     },
+    fb_desc_drilling_ml: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      setFbDescDrillingMl(`${isDia150 ? '150 മില്ലീമീറ്റർ' : '110 മില്ലീമീറ്റർ'} വ്യാസമുള്ള കുഴൽകിണറിന്റെ ഡ്രില്ലിംഗ് ചാർജ്`);
+    },
+    fb_desc_drilling_en: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      setFbDescDrillingEn(`Drilling charges for ${isDia150 ? '150 mm' : '110 mm'} dia borewell`);
+    },
     fb_r1: () => setDrillingRate(390),
     fb_q1: () => { const d = Number(currentSite?.totalDepth) || 0; setDrillingQty(d); setDepthMeter(d); },
+    fb_en_r1: () => setDrillingRate(390),
+    fb_en_q1: () => { const d = Number(currentSite?.totalDepth) || 0; setDrillingQty(d); setDepthMeter(d); },
+
     fb_desc_casing10: () => {
       const diaVal = currentSite?.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');
       const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
       const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
       setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
-      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
       setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
-      setFbDescCasing8En(`${casingDiaEn} dia 8 kg/cm² PVC Casing Pipe`);
+    },
+    fb_desc_casing10_ml: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      setFbDescCasing10Ml(`${casingDia} വ്യാസമുള്ള 10 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+    },
+    fb_desc_casing10_en: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescCasing10En(`${casingDiaEn} dia 10 kg/cm² PVC Casing Pipe`);
     },
     fb_r2: () => setCasing10kgRate(960),
     fb_q2: () => setCasing10kgQty(parseNum(currentSite?.casing10kgPipe)),
+    fb_en_r2: () => setCasing10kgRate(960),
+    fb_en_q2: () => setCasing10kgQty(parseNum(currentSite?.casing10kgPipe)),
+
+    fb_desc_casing8: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing8En(`${casingDiaEn} dia 8 kg/cm² PVC Casing Pipe`);
+    },
+    fb_desc_casing8_ml: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      setFbDescCasing8Ml(`${casingDia} വ്യാസമുള്ള 8 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+    },
+    fb_desc_casing8_en: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescCasing8En(`${casingDiaEn} dia 8 kg/cm² PVC Casing Pipe`);
+    },
     fb_r2_8: () => setCasing8kgRate(464.53),
     fb_q2_8: () => setCasing8kgQty(parseNum((currentSite as any)?.casing8kgPipe)),
+    fb_en_r2_8: () => setCasing8kgRate(464.53),
+    fb_en_q2_8: () => setCasing8kgQty(parseNum((currentSite as any)?.casing8kgPipe)),
+
     fb_desc_casing6: () => {
       const diaVal = currentSite?.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');
       const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
       const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
       setFbDescCasing6Ml(`${casingDia} വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+      setFbDescCasing6En(`${casingDiaEn} dia 6 kg/cm² PVC Casing Pipe`);
+    },
+    fb_desc_casing6_ml: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      setFbDescCasing6Ml(`${casingDia} വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+    },
+    fb_desc_casing6_en: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
       setFbDescCasing6En(`${casingDiaEn} dia 6 kg/cm² PVC Casing Pipe`);
     },
     fb_r3: () => setCasing6kgRate(580),
@@ -1508,14 +1670,20 @@ export default function PrintableReportModal({
       const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && !is8kgDefined && c10 === 0 && c8 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
       setCasing6kgQty(c6);
     },
-    fb_desc_inner: () => {
-      const diaVal = currentSite?.diameter || '110';
-      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
-      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
-      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
-      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
-      setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
+    fb_en_r3: () => setCasing6kgRate(580),
+    fb_en_q3: () => {
+      const c10 = parseNum(currentSite?.casing10kgPipe);
+      const c8 = parseNum((currentSite as any)?.casing8kgPipe);
+      const rawC6 = parseNum(currentSite?.casing6kgPipe);
+      const rawPipeUsed = parseNum(currentSite?.casingPipeUsed);
+      const rawSurveyCasing = parseNum(currentSite?.surveyRecommendedCasingPipe);
+      const is6kgDefined = currentSite?.casing6kgPipe !== undefined && currentSite?.casing6kgPipe !== null;
+      const is10kgDefined = currentSite?.casing10kgPipe !== undefined && currentSite?.casing10kgPipe !== null;
+      const is8kgDefined = (currentSite as any)?.casing8kgPipe !== undefined && (currentSite as any)?.casing8kgPipe !== null;
+      const c6 = is6kgDefined ? rawC6 : (!is10kgDefined && !is8kgDefined && c10 === 0 && c8 === 0 ? (rawPipeUsed || rawSurveyCasing) : 0);
+      setCasing6kgQty(c6);
     },
+
     fb_r_outer: () => setOuterCasingRate(960),
     fb_q_outer: () => setOuterCasingQty(parseNum(currentSite?.outerCasingPipe)),
     fb_en_r_outer: () => setOuterCasingRate(960),
@@ -1526,8 +1694,77 @@ export default function PrintableReportModal({
     },
     fb_desc_outer_ml: () => setFbDescOuterMl('200 മില്ലീമീറ്റർ വ്യാസമുള്ള 6 കി.ഗ്രാം /ച. സെ. മീ. പിവിസി ഔട്ടര് കെയ്സിംഗ് പൈപ്പിന്റെ വില'),
     fb_desc_outer_en: () => setFbDescOuterEn('200 mm dia 6 kg/cm² PVC Outer Casing Pipe'),
+
+    // Inner Casing Pipe Resets (110 mm)
+    fb_r_inner_pipe: () => {
+      setInnerCasing6kgRate(580);
+      setInnerCasing4kgRate(464.53);
+      setInnerCasingRate(450);
+    },
+    fb_q_inner_pipe: () => {
+      const in6Reset = parseNum(currentSite?.innerCasing6kgPipe);
+      const in4Reset = parseNum(currentSite?.innerCasing4kgPipe);
+      const inGeneric = parseNum(currentSite?.innerCasingPipe);
+      setInnerCasing6kgQty(in6Reset);
+      setInnerCasing4kgQty(in4Reset);
+      setInnerCasingQty((!in6Reset && !in4Reset) ? inGeneric : 0);
+    },
+    fb_desc_inner_pipe_ml: () => {
+      const in6Reset = parseNum(currentSite?.innerCasing6kgPipe);
+      const in4Reset = parseNum(currentSite?.innerCasing4kgPipe);
+      const innerWeight = in6Reset > 0 ? '6 കി.ഗ്രാം /ച. സെ. മീ.' : (in4Reset > 0 ? '4 കി.ഗ്രാം /ച. സെ. മീ.' : '6 കി.ഗ്രാം /ച. സെ. മീ.');
+      setFbDescInnerPipeMl(`110 മില്ലീമീറ്റർ വ്യാസമുള്ള ${innerWeight} പിവിസി ഇന്നർ കെയ്സിംഗ് പൈപ്പിന്റെ വില`);
+    },
+    fb_en_r_inner_pipe: () => {
+      setInnerCasing6kgRate(580);
+      setInnerCasing4kgRate(464.53);
+      setInnerCasingRate(450);
+    },
+    fb_en_q_inner_pipe: () => {
+      const in6Reset = parseNum(currentSite?.innerCasing6kgPipe);
+      const in4Reset = parseNum(currentSite?.innerCasing4kgPipe);
+      const inGeneric = parseNum(currentSite?.innerCasingPipe);
+      setInnerCasing6kgQty(in6Reset);
+      setInnerCasing4kgQty(in4Reset);
+      setInnerCasingQty((!in6Reset && !in4Reset) ? inGeneric : 0);
+    },
+    fb_desc_inner_pipe_en: () => {
+      const in6Reset = parseNum(currentSite?.innerCasing6kgPipe);
+      const in4Reset = parseNum(currentSite?.innerCasing4kgPipe);
+      const innerWeight = in6Reset > 0 ? '6 kg/cm²' : (in4Reset > 0 ? '4 kg/cm²' : '6 kg/cm²');
+      setFbDescInnerPipeEn(`110 mm dia ${innerWeight} PVC Inner Casing Pipe`);
+    },
+
+    // End Cap / Cap Resets
+    fb_r4: () => setInnerCasingRate(450),
+    fb_q4: () => setEndCap(currentSite?.endCap || 'No'),
+    fb_en_r4: () => setInnerCasingRate(450),
+    fb_en_q4: () => setEndCap(currentSite?.endCap || 'No'),
+    fb_desc_inner: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
+      setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
+    },
+    fb_desc_inner_ml: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDia = isDia150 ? '180 മില്ലീമീറ്റർ' : '140 മില്ലീമീറ്റർ';
+      setFbDescInnerMl(`${casingDia} വ്യാസമുള്ള പിവിസി കുഴൽകിണർ അടപ്പിന്റെ വില`);
+    },
+    fb_desc_inner_en: () => {
+      const diaVal = currentSite?.diameter || '110';
+      const isDia150 = diaVal.includes('150') || diaVal.includes('6');
+      const casingDiaEn = isDia150 ? '180 mm' : '140 mm';
+      setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
+    },
+
     fb_subsidy: () => setSubsidyAmount(0),
+    fb_en_subsidy: () => setSubsidyAmount(0),
     fb_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
+    fb_en_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
 
     // Proceedings & UC resets
     proc_officer: () => setDistrict(entry?.officeLocation || selectedOffice || 'Pathanamthitta'),
@@ -1558,6 +1795,10 @@ export default function PrintableReportModal({
     uc_to: () => setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`),
     uc_sub: () => setUcSubject(`Utilization Certificate for borewell construction works at ${currentSite?.localSelfGovt || 'Panchayat'}`),
     uc_refs: () => { setUcRef1(''); setUcRef2(''); },
+    uc_cover_letter: () => setUcMlPara1(''),
+    uc_cert_para: () => { setUcMlPara2(''); setUcEnPara1(''); },
+    uc_tbl_dep_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || entry?.localSelfGovt || ''),
+    uc_tbl_exp_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || entry?.localSelfGovt || ''),
   };
 
   // Helper function to render inline editable cell / row
@@ -2654,6 +2895,7 @@ export default function PrintableReportModal({
                     }
                   ];
                   const activeItemsMl = itemsMl.filter(item => item.qty > 0);
+                  const siteDisplayMl = currentSite?.nameOfSite || siteName || '';
 
                   return (
                     <div className="flex flex-col justify-between h-full flex-1 space-y-4">
@@ -2665,8 +2907,10 @@ export default function PrintableReportModal({
 
                         <div className="flex flex-col space-y-1 text-base font-semibold py-1">
                           <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo.toUpperCase().startsWith('GWD') ? fileNo : `${officeAddress?.officeCode || 'GWDKLM'}${fileNo}`}</strong></div>
-                          <div></div>
                           <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
+                          {siteDisplayMl && (
+                            <div>സൈറ്റിന്റെ പേര്: <strong className="text-lg">{siteDisplayMl}</strong></div>
+                          )}
                         </div>
 
                         <table className="w-full border-collapse border border-black text-xs">
@@ -2704,7 +2948,7 @@ export default function PrintableReportModal({
                                 <tr key="total_exp" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(totalExpenditure).toLocaleString('en-IN')}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                               );
 
@@ -2722,16 +2966,31 @@ export default function PrintableReportModal({
                                         <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
                                       )}
                                     </td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              }
+
+                              const roundedPayable = Math.round(netPayableGwd);
+                              const roundOffDiff = roundedPayable - netPayableGwd;
+
+                              if (Math.abs(roundOffDiff) >= 0.005) {
+                                rows.push(
+                                  <tr key="round_off">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>Round off</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {roundOffDiff >= 0 ? `+${roundOffDiff.toFixed(2)}` : roundOffDiff.toFixed(2)}
+                                    </td>
                                   </tr>
                                 );
                               }
 
                               rows.push(
-                                <tr key="net_payable" className="font-bold">
+                                <tr key="net_payable" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(netPayableGwd).toLocaleString('en-IN')}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{roundedPayable.toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
@@ -2747,7 +3006,7 @@ export default function PrintableReportModal({
                                         </div>
                                       )}
                                     </td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   </tr>
                                 );
 
@@ -2758,7 +3017,7 @@ export default function PrintableReportModal({
                                       {balanceRefund >= 0 ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
                                     </td>
                                     <td className="border border-black py-2 px-2.5 text-right font-mono">
-                                      {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      {Math.abs(balanceRefund).toLocaleString('en-IN')}
                                     </td>
                                   </tr>
                                 );
@@ -2898,6 +3157,7 @@ export default function PrintableReportModal({
                     }
                   ];
                   const activeItemsEn = itemsEn.filter(item => item.qty > 0);
+                  const siteDisplayEn = currentSite?.nameOfSite || siteName || '';
 
                   return (
                     <div className="flex flex-col justify-between h-full flex-1 space-y-4">
@@ -2909,8 +3169,10 @@ export default function PrintableReportModal({
 
                         <div className="flex flex-col space-y-1 text-base font-semibold py-1">
                           <div>File No: <strong className="text-lg">{fileNo}</strong></div>
-                          <div></div>
                           <div>Applicant: <strong className="text-lg">{applicantName}</strong></div>
+                          {siteDisplayEn && (
+                            <div>Name of Site: <strong className="text-lg">{siteDisplayEn}</strong></div>
+                          )}
                         </div>
 
                         <table className="w-full border-collapse border border-black text-xs">
@@ -2948,7 +3210,7 @@ export default function PrintableReportModal({
                                 <tr key="total_exp_en" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>Total Expenditure Incurred</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(totalExpenditure).toLocaleString('en-IN')}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                               );
 
@@ -2966,16 +3228,31 @@ export default function PrintableReportModal({
                                         <Input type="number" className="h-6 text-xs" value={effectiveSubsidyAmount} onChange={e => setSubsidyAmount(Number(e.target.value))} />
                                       )}
                                     </td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{effectiveSubsidyAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                  </tr>
+                                );
+                              }
+
+                              const roundedPayableEn = Math.round(netPayableGwd);
+                              const roundOffDiffEn = roundedPayableEn - netPayableGwd;
+
+                              if (Math.abs(roundOffDiffEn) >= 0.005) {
+                                rowsEn.push(
+                                  <tr key="round_off_en">
+                                    <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                    <td className="border border-black py-2 px-2.5" colSpan={3}>Round off</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">
+                                      {roundOffDiffEn >= 0 ? `+${roundOffDiffEn.toFixed(2)}` : roundOffDiffEn.toFixed(2)}
+                                    </td>
                                   </tr>
                                 );
                               }
 
                               rowsEn.push(
-                                <tr key="net_payable_en" className="font-bold">
+                                <tr key="net_payable_en" className="font-bold bg-gray-50">
                                   <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                   <td className="border border-black py-2 px-2.5" colSpan={3}>Net Amount Payable to Ground Water Department</td>
-                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{Math.round(netPayableGwd).toLocaleString('en-IN')}</td>
+                                  <td className="border border-black py-2 px-2.5 text-right font-mono">{roundedPayableEn.toLocaleString('en-IN')}</td>
                                 </tr>
                               );
 
@@ -2991,7 +3268,7 @@ export default function PrintableReportModal({
                                         </div>
                                       )}
                                     </td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   </tr>
                                 );
 
@@ -3002,7 +3279,7 @@ export default function PrintableReportModal({
                                       {balanceRefund >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
                                     </td>
                                     <td className="border border-black py-2 px-2.5 text-right font-mono">
-                                      {Math.abs(balanceRefund).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      {Math.abs(balanceRefund).toLocaleString('en-IN')}
                                     </td>
                                   </tr>
                                 );
@@ -3694,7 +3971,7 @@ export default function PrintableReportModal({
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
                                 {renderEditableCell(`uc_ml_dep_amt_${sIdx}`,
-                                  siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                  Math.round(siteDeposit).toLocaleString('en-IN'),
                                   <Input type="number" className="h-7 text-xs w-28 ml-auto" value={siteDeposit} onChange={e => {
                                     const newRows = [...abstractRemittanceRows];
                                     if (!newRows[sIdx]) newRows[sIdx] = { desc: displayDesc, amount: siteDeposit };
@@ -3731,6 +4008,7 @@ export default function PrintableReportModal({
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
                           const siteExpDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം`;
+                          const siteExpAmt = sf.subsidyAmount > 0 ? sf.netPayable : sf.totalExpenditure;
                           return (
                             <tr key={`exp_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
@@ -3741,7 +4019,7 @@ export default function PrintableReportModal({
                                 )}
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
-                                {sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
                               <td className="border border-black p-1.5"></td>
                             </tr>
@@ -3838,7 +4116,7 @@ export default function PrintableReportModal({
 
                   <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pt-2" style={{ lineHeight: '0.75cm' }}>
                     {(() => {
-                      const defaultEnCertText = `Certified that out of Rs. ${totalRemittanceAmount.toLocaleString('en-IN')}/- deposited for borewell construction works under the ${localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of Rs. ${ucTotalSelectedExpenditure.toLocaleString('en-IN')}/- has been utilized towards actual construction costs.`;
+                      const defaultEnCertText = `Certified that out of Rs. ${totalRemittanceAmount.toLocaleString('en-IN')}/- deposited for borewell construction works under the ${localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of Rs. ${ucTotalSelectedExpenditure.toLocaleString('en-IN')}/- has been utilized towards actual construction costs. The balance amount of Rs. ${Math.abs(ucBalanceRefund).toLocaleString('en-IN')}/- (Rupees ${numberToWordsEnglish(Math.abs(ucBalanceRefund))} only) is due for refund to the Panchayat.`;
 
                       return renderEditableCell('uc_en_cert_para',
                         <p className="whitespace-pre-line">{ucEnPara1 || defaultEnCertText}</p>,
@@ -3882,7 +4160,7 @@ export default function PrintableReportModal({
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
                                 {renderEditableCell(`uc_en_dep_amt_${sIdx}`,
-                                  siteDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                                  Math.round(siteDeposit).toLocaleString('en-IN'),
                                   <Input type="number" className="h-7 text-xs w-28 ml-auto" value={siteDeposit} onChange={e => {
                                     const newRows = [...abstractRemittanceRows];
                                     if (!newRows[sIdx]) newRows[sIdx] = { desc: sf.siteName, amount: siteDeposit };
@@ -3902,15 +4180,27 @@ export default function PrintableReportModal({
                         </tr>
                         <tr>
                           <td className="border border-black p-1.5 text-center">3</td>
-                          <td className="border border-black p-1.5 font-bold" colSpan={3}>Total expenditure incurred for borewell construction works</td>
+                          <td className="border border-black p-1.5 font-bold" colSpan={3}>
+                            {renderEditableCell('uc_en_tbl_exp_title',
+                              <span>Total expenditure incurred for borewell construction works</span>,
+                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                            )}
+                          </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
+                          const expDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} Borewell Construction`;
+                          const siteExpAmt = sf.subsidyAmount > 0 ? sf.netPayable : sf.totalExpenditure;
                           return (
                             <tr key={`exp_en_${sIdx}`}>
                               <td className="border border-black p-1.5 text-center">{subLetter}.</td>
-                              <td className="border border-black p-1.5 pl-6">{sf.siteName} {sf.location ? `(${sf.location})` : ''} Borewell Construction</td>
-                              <td className="border border-black p-1.5 text-right font-mono">{sf.totalExpenditure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 pl-6">
+                                {renderEditableCell(`uc_en_exp_row_${sIdx}`,
+                                  <span>{expDesc}</span>,
+                                  <Input className="h-7 text-xs" value={expDesc} readOnly />
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">{siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                               <td className="border border-black p-1.5"></td>
                             </tr>
                           );

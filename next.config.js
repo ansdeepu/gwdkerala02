@@ -8,7 +8,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  output: 'standalone',
   productionBrowserSourceMaps: false,
   swcMinify: true,
   images: {

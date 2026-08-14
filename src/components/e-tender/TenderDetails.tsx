@@ -80,7 +80,7 @@ const WORK_ORDER_CLEAR_DATA: Partial<E_tenderFormData> = {
 };
 
 
-const DetailRow = ({ label, value, subValue, isCurrency = false, align = 'left', isLink = false, isReceiptFormat = false, isOpeningFormat = false }: { label: string; value: any; subValue?: string; isCurrency?: boolean, align?: 'left' | 'center' | 'right', isLink?: boolean, isReceiptFormat?: boolean, isOpeningFormat?: boolean }) => {
+const DetailRow = ({ label, value, subValue, isCurrency = false, noComma = false, align = 'left', isLink = false, isReceiptFormat = false, isOpeningFormat = false }: { label: string; value: any; subValue?: string; isCurrency?: boolean, noComma?: boolean, align?: 'left' | 'center' | 'right', isLink?: boolean, isReceiptFormat?: boolean, isOpeningFormat?: boolean }) => {
     if (value === null || value === undefined || value === '' || (typeof value === 'number' && isNaN(value))) {
         return null;
     }
@@ -103,9 +103,11 @@ const DetailRow = ({ label, value, subValue, isCurrency = false, align = 'left',
         }
     } else if (typeof value === 'number') {
         if (isCurrency) {
-            displayValue = `Rs. ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            displayValue = noComma
+                ? `Rs. ${value.toFixed(2)}`
+                : `Rs. ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         } else {
-            displayValue = value.toLocaleString('en-IN');
+            displayValue = noComma ? `${value}` : value.toLocaleString('en-IN');
         }
     }
 
@@ -499,7 +501,7 @@ export default function TenderDetails() {
         const fee = Number(tenderFormFeeValue);
         if (isNaN(fee) || fee <= 0) return 'Rs. 0.00';
         const gst = fee * 0.18;
-        return `Rs. ${fee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} & Rs. ${gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (GST 18%)`;
+        return `Rs. ${fee.toFixed(2)} & Rs. ${gst.toFixed(2)} (GST 18%)`;
     }, [tenderFormFeeValue]);
 
     const l1Bidder = useMemo(() => {
@@ -565,9 +567,9 @@ export default function TenderDetails() {
                                             <div className="space-y-2">
                                                 <h4 className="text-sm font-medium text-muted-foreground">Financial Details</h4>
                                                 <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                                                    <DetailRow label="Tender Amount (Rs.)" value={watch('estimateAmount')} isCurrency />
+                                                    <DetailRow label="Tender Amount (Rs.)" value={watch('estimateAmount')} isCurrency noComma />
                                                     <DetailRow label="Tender Fee (Rs.)" value={displayTenderFormFee} />
-                                                    <DetailRow label="EMD (Rs.)" value={watch('emd')} isCurrency/>
+                                                    <DetailRow label="EMD (Rs.)" value={watch('emd')} isCurrency noComma />
                                                 </div>
                                             </div>
                                              <div className="space-y-2">
@@ -731,7 +733,7 @@ export default function TenderDetails() {
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">{bidder.address}</p>
                                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
-                                                            <DetailRow label="Quoted Amount" value={bidder.quotedAmount} isCurrency/>
+                                                            <DetailRow label="Quoted Amount" value={bidder.quotedAmount} isCurrency noComma />
                                                             <DetailRow label="Quoted Percentage" value={bidder.quotedPercentage ? `${bidder.quotedPercentage}% ${bidder.aboveBelow || ''}`: ''} />
                                                             {isL1 && bidderEmail && (
                                                                 <DetailRow label="L1 Bidder Email-ID" value={bidderEmail} />
@@ -765,9 +767,9 @@ export default function TenderDetails() {
                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
                                             <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
                                             <DetailRow label="Basis for Calculation" value={watch('amountType')} />
-                                            <DetailRow label="Performance Guarantee" value={watch('performanceGuaranteeAmount')} isCurrency />
-                                            <DetailRow label="Additional PG" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency />
-                                            <DetailRow label="Stamp Paper" value={watch('stampPaperAmount')} isCurrency />
+                                            <DetailRow label="Performance Guarantee" value={watch('performanceGuaranteeAmount')} isCurrency noComma />
+                                            <DetailRow label="Additional PG" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency noComma />
+                                            <DetailRow label="Stamp Paper" value={watch('stampPaperAmount')} isCurrency noComma />
                                         </dl>
                                     </CardContent>
                                 ) : (
@@ -794,17 +796,19 @@ export default function TenderDetails() {
                                             <DetailRow label="Agreement Date" value={watch('agreementDate')} />
                                             <DetailRow label="Date - Work / Supply Order" value={watch('dateWorkOrder')} />
                                             <DetailRow label="Measurer" value={watch('nameOfAssistantEngineer')} subValue={assistantEngineerDesignation} />
-                                            <DetailRow label="Stamp Paper Submitted" value={watch('stampPaperAmountSubmitted')} isCurrency />
+                                            <DetailRow label="Stamp Paper Submitted" value={watch('stampPaperAmountSubmitted')} isCurrency noComma />
                                             <DetailRow 
                                                 label="Performance Guarantee Submitted" 
                                                 value={watch('performanceGuaranteeAmountSubmitted')} 
                                                 isCurrency 
+                                                noComma
                                                 subValue={watch('performanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
                                             />
                                             <DetailRow 
                                                 label="Additional PG Submitted" 
                                                 value={watch('additionalPerformanceGuaranteeAmountSubmitted')} 
                                                 isCurrency 
+                                                noComma
                                                 subValue={watch('additionalPerformanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
                                             />
                                             <DetailRow label="Supervisor 1" value={watch('supervisor1Name')} subValue={supervisor1Designation} />
