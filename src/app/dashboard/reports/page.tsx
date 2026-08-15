@@ -147,7 +147,7 @@ export const reportFieldDefinitions: ReportFieldDefinition[] = [
   { id: 'casing8kgPipe', label: 'Casing Pipe 8kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'casing6kgPipe', label: 'Casing Pipe 6kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'outerCasingPipe', label: 'Outer Casing Pipe (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
-  { id: 'outerCasingPressure', label: 'Outer Casing Pressure', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'outerCasingPressure', label: 'Outer Casing Pressure (kg/cm²)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'innerCasingPipe', label: 'Inner Casing Pipe (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'innerCasing6kgPipe', label: 'Inner Casing 6kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'innerCasing4kgPipe', label: 'Inner Casing 4kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },

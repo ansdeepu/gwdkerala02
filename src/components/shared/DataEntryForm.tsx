@@ -281,7 +281,7 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, formOption
              <div className="grid grid-cols-3 gap-4 items-start">
                 <div className="space-y-2 col-span-1">
                     <Label htmlFor="fileNo">File No *</Label>
-                    <Input id="fileNo" value={data.fileNo || ''} onChange={(e) => handleChange('fileNo', e.target.value)} disabled={isChecking}/>
+                    <Input id="fileNo" placeholder="e.g. 1956/2023" value={data.fileNo || ''} onChange={(e) => handleChange('fileNo', e.target.value)} disabled={isChecking}/>
                     <p className="text-[11px] text-muted-foreground leading-snug">
                         Office code (e.g., GWDKLM) is not required. Enter only number/year (e.g., 1956/2023).
                     </p>
@@ -289,14 +289,14 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, formOption
                 </div>
                 <div className="space-y-2 col-span-2">
                     <Label htmlFor="applicantName">Name & Address of Institution/Applicant *</Label>
-                    <Textarea id="applicantName" value={data.applicantName || ''} onChange={(e) => handleChange('applicantName', e.target.value)} className="min-h-[40px]" disabled={isChecking}/>
+                    <Textarea id="applicantName" placeholder="e.g. The Secretary, Panchayat Office, Village..." value={data.applicantName || ''} onChange={(e) => handleChange('applicantName', e.target.value)} className="min-h-[40px]" disabled={isChecking}/>
                     {errors?.applicantName && <p className="text-xs text-destructive mt-1">{errors.applicantName}</p>}
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2"><Label>Phone No.</Label><Input value={data.phoneNo || ''} onChange={(e) => handleChange('phoneNo', e.target.value)} disabled={isChecking} /></div>
-                <div className="space-y-2"><Label>Secondary Mobile No.</Label><Input value={data.secondaryMobileNo || ''} onChange={(e) => handleChange('secondaryMobileNo', e.target.value)} disabled={isChecking}/></div>
-                <div className="space-y-2"><Label>Email ID</Label><Input type="email" value={data.emailId || ''} onChange={(e) => handleChange('emailId', e.target.value)} disabled={isChecking}/></div>
+                <div className="space-y-2"><Label>Phone No.</Label><Input placeholder="e.g. 9876543210" value={data.phoneNo || ''} onChange={(e) => handleChange('phoneNo', e.target.value)} disabled={isChecking} /></div>
+                <div className="space-y-2"><Label>Secondary Mobile No.</Label><Input placeholder="e.g. 9876543211" value={data.secondaryMobileNo || ''} onChange={(e) => handleChange('secondaryMobileNo', e.target.value)} disabled={isChecking}/></div>
+                <div className="space-y-2"><Label>Email ID</Label><Input type="email" placeholder="e.g. applicant@example.com" value={data.emailId || ''} onChange={(e) => handleChange('emailId', e.target.value)} disabled={isChecking}/></div>
                  <div className="space-y-2">
                     <Label>Type of Application *</Label>
                     {uniqueOptions.length === 1 ? (
@@ -367,6 +367,7 @@ const RemittanceDialogContent = ({ initialData, onConfirm, onCancel, isDeferredF
                                     type="number" 
                                     {...field} 
                                     value={field.value ?? ""} 
+                                    placeholder="e.g. 45000"
                                     onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
                                 />
                             </FormControl>
@@ -501,7 +502,7 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
                                 <FormMessage />
                             </FormItem> 
                         )}/>
-                        <FormField name="amount" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Amount (₹) <span className="text-destructive">*</span></FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )}/>
+                        <FormField name="amount" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Amount (₹) <span className="text-destructive">*</span></FormLabel><FormControl><Input type="number" placeholder="e.g. 25000" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )}/>
                     </div>
                 </div>
                 <FormField name="fileDetails" control={form.control} render={({ field }) => ( 
@@ -589,6 +590,7 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
                                           <FormControl>
                                               <Input 
                                                   type="number" 
+                                                  placeholder="e.g. 5000"
                                                   {...field} 
                                                   value={field.value ?? ""}
                                                   onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
@@ -601,11 +603,11 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
                                       </FormItem>
                                   )}
                               />
-                              <FormField name="contractorsPayment" control={form.control} render={({ field }) => <FormItem><FormLabel>Contractor&apos;s Payment (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
-                              <FormField name="gst" control={form.control} render={({ field }) => <FormItem><FormLabel>GST (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
-                              <FormField name="incomeTax" control={form.control} render={({ field }) => <FormItem><FormLabel>Income Tax (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
-                              <FormField name="kbcwb" control={form.control} render={({ field }) => <FormItem><FormLabel>KBCWB (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
-                              <FormField name="refundToParty" control={form.control} render={({ field }) => <FormItem><FormLabel>Refund to Party (₹)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                              <FormField name="contractorsPayment" control={form.control} render={({ field }) => <FormItem><FormLabel>Contractor&apos;s Payment (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 35000" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                              <FormField name="gst" control={form.control} render={({ field }) => <FormItem><FormLabel>GST (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 6300" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                              <FormField name="incomeTax" control={form.control} render={({ field }) => <FormItem><FormLabel>Income Tax (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 700" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                              <FormField name="kbcwb" control={form.control} render={({ field }) => <FormItem><FormLabel>KBCWB (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 350" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                              <FormField name="refundToParty" control={form.control} render={({ field }) => <FormItem><FormLabel>Refund to Party (₹)</FormLabel><FormControl><Input type="number" placeholder="e.g. 2500" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
                           </div>
                           <Separator />
                           <div className="flex justify-between items-center p-2 rounded-md bg-muted">

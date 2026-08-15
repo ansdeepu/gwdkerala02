@@ -259,7 +259,7 @@ export function MoveCopySiteDialog({ isOpen, onClose, onConfirm, siteName, curre
             <div className="space-y-4 mt-1">
               <div className="flex flex-col sm:flex-row gap-4">
                 <Input 
-                  placeholder="Search file number..." 
+                  placeholder="Search file number (e.g. 101/2024)..." 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
                   className="h-11 bg-secondary/20 border-secondary flex-1"

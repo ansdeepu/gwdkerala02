@@ -383,7 +383,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                 <CardHeader><CardTitle className="text-lg text-primary">Main Details</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField name="nameOfSite" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site <span className="text-destructive">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ""} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="nameOfSite" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site <span className="text-destructive">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ""} placeholder="e.g. Community Borewell / Site Name" readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                         <FormField name="purpose" control={control} render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Purpose <span className="text-destructive">*</span></FormLabel>
@@ -423,8 +423,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                 <FormMessage/>
                                             </FormItem>
                                         )} />
-                                        <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
-                                        <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 8.5241" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 76.9366" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -447,31 +447,31 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
-                                                            <FormField name="surveyRecommendedTD" control={control} render={({ field }) => <FormItem><FormLabel>Total Depth (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="surveyRecommendedTD" control={control} render={({ field }) => <FormItem><FormLabel>Total Depth (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 130.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                             
                                                             {watchedPurpose === 'BWC' && (
                                                              <>
-                                                                 <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
-                                                                 <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                 <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 17.50" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                 <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                              </>
-                                                         )}
+                                                          )}
 
-                                                         {watchedPurpose === 'TWC' && (
+                                                          {watchedPurpose === 'TWC' && (
                                                                 <>
-                                                                    <FormField name="surveyRecommendedPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyRecommendedSlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyRecommendedMsCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyRecommendedPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 24.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyRecommendedSlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyRecommendedMsCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                                 </>
                                                             )}
 
                                                             {watchedPurpose === 'FPW' && (
-                                                                <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
+                                                                <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 15.00" readOnly={isFieldReadOnly(false)}/></FormControl><FormMessage /></FormItem>} />
                                                             )}
                                                             <FormField name="plotArea" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Plot Area (in Cents)</FormLabel>
                                                                     <FormControl>
-                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)}/>
+                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 10.5" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)}/>
                                                                     </FormControl>
                                                                     <FormMessage />
                                                                 </FormItem>
@@ -481,14 +481,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="surveyLocation" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Well Location</FormLabel>
-                                                                    <FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl>
+                                                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="e.g. North-East corner of the plot..." readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
                                                             <FormField name="surveyRemarks" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Investigation Remarks</FormLabel>
-                                                                    <FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl>
+                                                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="e.g. Recommended for 110mm borewell..." readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
@@ -514,9 +514,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )}/>
-                                                        <FormField name="estimateAmount" control={control} render={({ field }) => <FormItem><FormLabel>Estimate Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
-                                                        <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
-                                                        <FormField name="tsAmount" control={control} render={({ field }) => <FormItem><FormLabel>TS Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="estimateAmount" control={control} render={({ field }) => <FormItem><FormLabel>Estimate Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="tsAmount" control={control} render={({ field }) => <FormItem><FormLabel>TS Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         {!isPrivateWork && !isDeptRigWork && (
@@ -654,14 +654,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
-                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 130.00" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                                              {watchedPurpose === 'BWC' && (
                                                                  <>
-                                                                     <FormField name="surveyOB" control={control} render={({ field }) => <FormItem><FormLabel>Actual OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="surveyOB" control={control} render={({ field }) => <FormItem><FormLabel>Actual OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 17.50" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                      <FormField name="casing10kgPipe" control={control} render={({ field }) => (
                                                                         <FormItem>
                                                                             <FormLabel>Casing 10 kg/cm² (m)</FormLabel>
-                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            <FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 0.00" readOnly={isFieldReadOnly(true)}/></FormControl>
                                                                             {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
                                                                             <FormMessage />
                                                                         </FormItem>
@@ -669,7 +669,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                      <FormField name="casing8kgPipe" control={control} render={({ field }) => (
                                                                         <FormItem>
                                                                             <FormLabel>Casing 8 kg/cm² (m)</FormLabel>
-                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            <FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 0.00" readOnly={isFieldReadOnly(true)}/></FormControl>
                                                                             {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
                                                                             <FormMessage />
                                                                         </FormItem>
@@ -677,34 +677,34 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                      <FormField name="casing6kgPipe" control={control} render={({ field }) => (
                                                                         <FormItem>
                                                                             <FormLabel>Casing 6 kg/cm² (m)</FormLabel>
-                                                                            <FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl>
+                                                                            <FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl>
                                                                             {casingDiameterHint && <FormDescription className="text-xs text-muted-foreground font-medium">{casingDiameterHint}</FormDescription>}
                                                                             <FormMessage />
                                                                         </FormItem>
                                                                     )} />
-                                                                     <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Total Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
-                                                                     <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                     <FormField name="outerCasingPressure" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing Pressure</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 6 kg/cm²" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                     <FormField name="innerCasing6kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 6 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                     <FormField name="innerCasing4kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 4 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                     <FormField name="innerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Total Inner Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Total Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Auto-calculated (e.g. 18.00)" readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 15.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="outerCasingPressure" control={control} render={({ field }) => <FormItem><FormLabel>Outer Casing Pressure (kg/cm²)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 6" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasing6kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 6 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasing4kgPipe" control={control} render={({ field }) => <FormItem><FormLabel>Inner Casing 4 kg/cm² (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 6.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                     <FormField name="innerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Total Inner Casing (m)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Auto-calculated (e.g. 18.00)" readOnly={true} className="bg-muted text-muted-foreground font-semibold" /></FormControl><FormMessage /></FormItem>} />
                                                                  </>
                                                             )}
 
                                                             {watchedPurpose === 'TWC' && (
                                                                 <>
-                                                                    <FormField name="pilotDrillingDepth" control={control} render={({ field }) => <FormItem><FormLabel>Pilot Drilling (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="pilotDrillingDepth" control={control} render={({ field }) => <FormItem><FormLabel>Pilot Drilling (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 50.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 30.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                 </>
                                                             )}
 
                                                             {watchedPurpose === 'FPW' && (
-                                                                <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                <FormField name="casingPipeUsed" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 15.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             )}
 
-                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Yield (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Yield (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5000" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="yieldCategory" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Yield Category</FormLabel>
@@ -718,8 +718,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
-                                                            <FormField name="zoneDetails" control={control} render={({ field }) => <FormItem><FormLabel>Zone Details (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="zoneDetails" control={control} render={({ field }) => <FormItem><FormLabel>Zone Details (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder={watchedPurpose === 'TWC' ? "e.g. 45 - 52, 78 - 85" : "e.g. 45 , 78, 85"} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.50" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="endCap" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>End Cap</FormLabel>
@@ -779,8 +779,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
-                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 130.00" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5000" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="yieldCategory" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Discharge Category</FormLabel>
@@ -794,7 +794,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
-                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.50" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="endCap" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>End Cap</FormLabel>
@@ -827,13 +827,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                     <CardHeader><CardTitle className="text-lg text-primary">Scheme Details</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
                                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Well Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="pumpDetails" control={control} render={({ field }) => <FormItem><FormLabel>Pump Details</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="pumpingLineLength" control={control} render={({ field }) => <FormItem><FormLabel>Pumping Line (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="deliveryLineLength" control={control} render={({ field }) => <FormItem><FormLabel>Delivery Line (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="waterTankCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Tank Capacity (L)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="noOfTapConnections" control={control} render={({ field }) => <FormItem><FormLabel># Taps</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Well Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5000" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="pumpDetails" control={control} render={({ field }) => <FormItem><FormLabel>Pump Details</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5 HP Submersible Pump" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="pumpingLineLength" control={control} render={({ field }) => <FormItem><FormLabel>Pumping Line (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 25.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="deliveryLineLength" control={control} render={({ field }) => <FormItem><FormLabel>Delivery Line (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 50.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="waterTankCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Tank Capacity (L)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5000" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="noOfTapConnections" control={control} render={({ field }) => <FormItem><FormLabel># Taps</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 12" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -851,9 +851,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                     <CardHeader><CardTitle className="text-lg text-primary">Scheme Details</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Depth Erected (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Water Level (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Depth Erected (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 35.00" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Water Level (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.50" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -871,10 +871,10 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                     <CardHeader><CardTitle className="text-lg text-primary">Scheme Details</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
                                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                            <FormField name="arsNumberOfStructures" control={control} render={({ field }) => <FormItem><FormLabel>Number of Structures</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="arsStorageCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Storage Capacity (m³)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="arsNumberOfFillings" control={control} render={({ field }) => <FormItem><FormLabel>Number of Fillings</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
-                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="arsNumberOfStructures" control={control} render={({ field }) => <FormItem><FormLabel>Number of Structures</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 2" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="arsStorageCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Storage Capacity (m³)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 250" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="arsNumberOfFillings" control={control} render={({ field }) => <FormItem><FormLabel>Number of Fillings</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 4" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -906,13 +906,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         )} />
                                                         <FormField name="startDate" control={control} render={({ field }) => <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="dateOfCompletion" control={control} render={({ field }) => <FormItem><FormLabel>Completion Date {isCompletionDateRequired && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
-                                                        <FormField name="totalExpenditure" control={control} render={({ field }) => <FormItem><FormLabel>Total Expenditure (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="totalExpenditure" control={control} render={({ field }) => <FormItem><FormLabel>Total Expenditure (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 42500" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         {isPrivateIrrigation && (
                                                             <FormField name="subsidyAmount" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Subsidy Amount (₹)</FormLabel>
                                                                     <FormControl>
-                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} />
+                                                                        <Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 15000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} />
                                                                     </FormControl>
                                                                     <FormMessage />
                                                                 </FormItem>

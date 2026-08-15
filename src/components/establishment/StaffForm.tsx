@@ -290,7 +290,7 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter full name" {...field} value={field.value ?? ''} readOnly={isViewer} />
+                      <Input placeholder="e.g. John Doe" {...field} value={field.value ?? ''} readOnly={isViewer} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -303,7 +303,7 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>Full Name (in Malayalam)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter full name in Malayalam" {...field} value={field.value || ""} readOnly={isViewer} />
+                      <Input placeholder="e.g. ജോൺ ഡോ" {...field} value={field.value || ""} readOnly={isViewer} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -361,7 +361,7 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>PEN</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter PEN" {...field} value={field.value ?? ''} readOnly={isViewer} />
+                      <Input placeholder="e.g. 123456" {...field} value={field.value ?? ''} readOnly={isViewer} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -397,7 +397,7 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter email address" {...field} value={field.value || ""} readOnly={isViewer || userAccountExists} className={cn(userAccountExists && "bg-muted/50")} />
+                      <Input type="email" placeholder="e.g. john.doe@kerala.gov.in" {...field} value={field.value || ""} readOnly={isViewer || userAccountExists} className={cn(userAccountExists && "bg-muted/50")} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -410,7 +410,7 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input type="tel" placeholder="Enter 10 digit phone number" {...field} value={field.value || ""} readOnly={isViewer} />
+                      <Input type="tel" placeholder="e.g. 9876543210" {...field} value={field.value || ""} readOnly={isViewer} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

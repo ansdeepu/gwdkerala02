@@ -218,7 +218,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                     <FormField name="nameOfSite" control={control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Name of Site <span className="text-destructive">*</span></FormLabel>
-                                            <FormControl><Input {...field} value={field.value ?? ''} readOnly={isFieldDisabled('nameOfSite')} /></FormControl>
+                                            <FormControl><Input placeholder="e.g. Near Govt High School, Ward 4" {...field} value={field.value ?? ''} readOnly={isFieldDisabled('nameOfSite')} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -255,8 +255,8 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                             <FormMessage/>
                                         </FormItem>
                                     )} />
-                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('latitude')} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('longitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('latitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('longitude')} /></FormControl><FormMessage /></FormItem>} />
                                 </CardContent>
                             </Card>
 
@@ -299,7 +299,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                     <FormField name="hydrogeologicalRemarks" control={control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Hydrogeological Remarks</FormLabel>
-                                            <FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldDisabled('hydrogeologicalRemarks')} /></FormControl>
+                                            <FormControl><Textarea placeholder="Hydrogeological findings & observation..." {...field} value={field.value || ''} readOnly={isFieldDisabled('hydrogeologicalRemarks')} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -347,7 +347,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                             <FormField name="geophysicalRemarks" control={control} render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Geophysical Remarks</FormLabel>
-                                                    <FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldDisabled('geophysicalRemarks')} /></FormControl>
+                                                    <FormControl><Textarea placeholder="Geophysical VES interpretation..." {...field} value={field.value || ''} readOnly={isFieldDisabled('geophysicalRemarks')} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
@@ -381,7 +381,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                                 <FormField name="surveyRecommendedDiameter" control={control} render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Diameter (mm)</FormLabel>
-                                                        <FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedDiameter')} placeholder="Enter diameter" /></FormControl>
+                                                        <FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedDiameter')} placeholder="e.g. 150" /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
@@ -416,33 +416,33 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                             <FormField name="surveyRecommendedTD" control={control} render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Total Depth (m)</FormLabel>
-                                                    <FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedTD')} /></FormControl>
+                                                    <FormControl><Input placeholder="e.g. 120" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedTD')} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
                                             
                                             {watchedTypeOfWell === 'Bore Well' && (
                                                 <>
-                                                    <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedOB')}/></FormControl><FormMessage /></FormItem>} />
-                                                    <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
+                                                    <FormField name="surveyRecommendedOB" control={control} render={({ field }) => <FormItem><FormLabel>OB (m)</FormLabel><FormControl><Input placeholder="e.g. 15.00" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedOB')}/></FormControl><FormMessage /></FormItem>} />
+                                                    <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input placeholder="e.g. 18.50" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
                                                 </>
                                             )}
 
                                             {watchedTypeOfWell === 'Tube Well' && (
                                                 <>
-                                                    <FormField name="surveyRecommendedPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedPlainPipe')}/></FormControl><FormMessage /></FormItem>} />
-                                                    <FormField name="surveyRecommendedSlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedSlottedPipe')}/></FormControl><FormMessage /></FormItem>} />
-                                                    <FormField name="surveyRecommendedMsCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedMsCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
+                                                    <FormField name="surveyRecommendedPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input placeholder="e.g. 40.00" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedPlainPipe')}/></FormControl><FormMessage /></FormItem>} />
+                                                    <FormField name="surveyRecommendedSlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input placeholder="e.g. 20.00" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedSlottedPipe')}/></FormControl><FormMessage /></FormItem>} />
+                                                    <FormField name="surveyRecommendedMsCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input placeholder="e.g. 12.00" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedMsCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
                                                 </>
                                             )}
 
                                             {watchedTypeOfWell === 'Filter Point Well' && (
-                                                <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
+                                                <FormField name="surveyRecommendedCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>Casing Pipe (m)</FormLabel><FormControl><Input placeholder="e.g. 18.50" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRecommendedCasingPipe')}/></FormControl><FormMessage /></FormItem>} />
                                             )}
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField name="surveyLocation" control={control} render={({ field }) => <FormItem><FormLabel>Well Location</FormLabel><FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyLocation')} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
-                                            <FormField name="surveyRemarks" control={control} render={({ field }) => <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRemarks')} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
+                                            <FormField name="surveyLocation" control={control} render={({ field }) => <FormItem><FormLabel>Well Location</FormLabel><FormControl><Textarea placeholder="e.g. North-East corner of property" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyLocation')} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
+                                            <FormField name="surveyRemarks" control={control} render={({ field }) => <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="e.g. Favourable zone identified" {...field} value={field.value || ''} readOnly={isFieldDisabled('surveyRemarks')} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
                                         </div>
                                     </CardContent>
                                 </Card>

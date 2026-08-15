@@ -111,10 +111,10 @@ export function DepartmentVehicleForm({ initialData, onFormSubmit, onClose }: Fo
                 </DialogHeader>
                 <div className="px-6 py-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField name="registrationNumber" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Number</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="model" control={control} render={({ field }) => ( <FormItem><FormLabel>Model</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="typeOfVehicle" control={control} render={({ field }) => ( <FormItem><FormLabel>Type of Vehicle</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="vehicleClass" control={control} render={({ field }) => ( <FormItem><FormLabel>Vehicle Class</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="registrationNumber" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Number</FormLabel><FormControl><Input placeholder="e.g. KL-01-AB-1234" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="model" control={control} render={({ field }) => ( <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g. Mahindra Bolero 2021" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="typeOfVehicle" control={control} render={({ field }) => ( <FormItem><FormLabel>Type of Vehicle</FormLabel><FormControl><Input placeholder="e.g. Light Motor Vehicle" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="vehicleClass" control={control} render={({ field }) => ( <FormItem><FormLabel>Vehicle Class</FormLabel><FormControl><Input placeholder="e.g. LMV / SUV" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                         <FormField name="registrationDate" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Date</FormLabel><FormControl><Input type="date" value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || undefined)}/></FormControl><FormMessage/></FormItem> )}/>
                          <FormField
                             name="rcStatus"
@@ -132,7 +132,7 @@ export function DepartmentVehicleForm({ initialData, onFormSubmit, onClose }: Fo
                                 </FormItem>
                             )}
                         />
-                        <FormField name="fuelConsumptionRate" control={control} render={({ field }) => ( <FormItem><FormLabel>Fuel Consumption Rate</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="fuelConsumptionRate" control={control} render={({ field }) => ( <FormItem><FormLabel>Fuel Consumption Rate</FormLabel><FormControl><Input placeholder="e.g. 12 km/l" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                     </div>
                     <div className="space-y-2 pt-4 border-t">
                         <h4 className="font-medium text-sm text-primary">Certificate Validity</h4>
@@ -227,16 +227,16 @@ export function HiredVehicleForm({ initialData, onFormSubmit, onClose }: FormPro
                     <ScrollArea className="h-full px-6 py-4">
                         <div className="space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField name="registrationNumber" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Number</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                                <FormField name="model" control={control} render={({ field }) => ( <FormItem><FormLabel>Model</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="registrationNumber" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Number</FormLabel><FormControl><Input placeholder="e.g. KL-01-CD-5678" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="model" control={control} render={({ field }) => ( <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="e.g. Toyota Innova 2020" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField name="ownerName" control={control} render={({ field }) => ( <FormItem><FormLabel>Owner Name</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                                <FormField name="ownerAddress" control={control} render={({ field }) => ( <FormItem><FormLabel>Owner Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[40px]" /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="ownerName" control={control} render={({ field }) => ( <FormItem><FormLabel>Owner Name</FormLabel><FormControl><Input placeholder="e.g. John Doe" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="ownerAddress" control={control} render={({ field }) => ( <FormItem><FormLabel>Owner Address</FormLabel><FormControl><Textarea placeholder="e.g. House Name, Street, District" {...field} value={field.value ?? ''} className="min-h-[40px]" /></FormControl><FormMessage/></FormItem> )}/>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField name="agreementValidity" control={control} render={({ field }) => ( <FormItem><FormLabel>Agreement Validity</FormLabel><FormControl><Input type="date" value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || undefined)}/></FormControl><FormMessage/></FormItem> )}/>
-                                <FormField name="vehicleClass" control={control} render={({ field }) => ( <FormItem><FormLabel>Vehicle Class</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="vehicleClass" control={control} render={({ field }) => ( <FormItem><FormLabel>Vehicle Class</FormLabel><FormControl><Input placeholder="e.g. LMV / Sedan" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                                 <FormField name="registrationDate" control={control} render={({ field }) => ( <FormItem><FormLabel>Registration Date</FormLabel><FormControl><Input type="date" value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value || undefined)}/></FormControl><FormMessage/></FormItem> )}/>
                                 <FormField
                                     name="rcStatus"
@@ -254,7 +254,7 @@ export function HiredVehicleForm({ initialData, onFormSubmit, onClose }: FormPro
                                         </FormItem>
                                     )}
                                 />
-                                <FormField name="hireCharges" control={control} render={({ field }) => ( <FormItem><FormLabel>Hire Charges</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage/></FormItem> )}/>
+                                <FormField name="hireCharges" control={control} render={({ field }) => ( <FormItem><FormLabel>Hire Charges</FormLabel><FormControl><Input type="number" placeholder="e.g. 25000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} /></FormControl><FormMessage/></FormItem> )}/>
                             </div>
                             <div className="space-y-2 pt-4 border-t">
                                 <h4 className="font-medium text-sm text-primary">Certificate Validity</h4>
@@ -364,7 +364,7 @@ export function RigCompressorForm({ initialData, onFormSubmit, onClose }: FormPr
                         </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField name="typeOfRigUnit" control={control} render={({ field }) => ( <FormItem><FormLabel>Type of Rig Unit {!isExternal && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="typeOfRigUnit" control={control} render={({ field }) => ( <FormItem><FormLabel>Type of Rig Unit {!isExternal && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input placeholder="e.g. DTH / Rotary Rig" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                         <FormField name="status" control={control} render={({ field }) => ( 
                             <FormItem>
                                 <FormLabel>Status</FormLabel>
@@ -377,16 +377,16 @@ export function RigCompressorForm({ initialData, onFormSubmit, onClose }: FormPr
                                 <FormMessage/>
                             </FormItem>
                         )}/>
-                        <FormField name="fuelConsumption" control={control} render={({ field }) => ( <FormItem><FormLabel>Fuel Consumption</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="fuelConsumption" control={control} render={({ field }) => ( <FormItem><FormLabel>Fuel Consumption</FormLabel><FormControl><Input placeholder="e.g. 25 L/hr" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField name="rigVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Rig Vehicle Reg. No</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="compressorVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Compressor Vehicle Reg. No</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="supportingVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Supporting Vehicle Reg. No</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="rigVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Rig Vehicle Reg. No</FormLabel><FormControl><Input placeholder="e.g. KL-01-EF-9012" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="compressorVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Compressor Vehicle Reg. No</FormLabel><FormControl><Input placeholder="e.g. KL-01-GH-3456" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="supportingVehicleRegNo" control={control} render={({ field }) => ( <FormItem><FormLabel>Supporting Vehicle Reg. No</FormLabel><FormControl><Input placeholder="e.g. KL-01-IJ-7890" {...field} value={field.value ?? ''} /></FormControl><FormMessage/></FormItem> )}/>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField name="compressorDetails" control={control} render={({ field }) => ( <FormItem><FormLabel>Compressor Details</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[80px]" /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="remarks" control={control} render={({ field }) => ( <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[80px]" /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="compressorDetails" control={control} render={({ field }) => ( <FormItem><FormLabel>Compressor Details</FormLabel><FormControl><Textarea placeholder="e.g. ELGI 1100 CFM @ 300 PSI" {...field} value={field.value ?? ''} className="min-h-[80px]" /></FormControl><FormMessage/></FormItem> )}/>
+                        <FormField name="remarks" control={control} render={({ field }) => ( <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea placeholder="e.g. Good working condition" {...field} value={field.value ?? ''} className="min-h-[80px]" /></FormControl><FormMessage/></FormItem> )}/>
                     </div>
                 </div>
                 <DialogFooter className="p-6 pt-4">

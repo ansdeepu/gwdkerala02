@@ -152,7 +152,7 @@ export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, o
                                     <FormField name="nameOfSite" control={control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Name of Site <span className="text-destructive">*</span></FormLabel>
-                                            <FormControl><Input {...field} value={field.value ?? ''} readOnly={isFieldReadOnly('nameOfSite')} /></FormControl>
+                                            <FormControl><Input placeholder="e.g. Near Govt High School, Ward 4" {...field} value={field.value ?? ''} readOnly={isFieldReadOnly('nameOfSite')} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -195,8 +195,8 @@ export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, o
                                             <FormMessage/>
                                         </FormItem>
                                     )} />
-                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('latitude')} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('longitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('latitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('longitude')} /></FormControl><FormMessage /></FormItem>} />
                                 </CardContent>
                             </Card>
 
