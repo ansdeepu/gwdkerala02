@@ -305,6 +305,14 @@ export const PaymentDetailSchema = z.object({
 });
 export type PaymentDetailFormData = z.infer<typeof PaymentDetailSchema>;
 
+export const yieldCategoryOptions = [
+  "Dry Well",
+  "Low Yield",
+  "Medium Yield",
+  "High Yield"
+] as const;
+export type YieldCategory = typeof yieldCategoryOptions[number];
+
 export const siteWorkStatusOptions = [
   "Under Process",
   "Additional Fund Awaited",
@@ -477,6 +485,7 @@ export const SiteDetailSchema = z.object({
   innerCasing4kgPipe: flexibleStringSchema,
   innerCasingPipe: flexibleStringSchema,
   yieldDischarge: flexibleStringSchema,
+  yieldCategory: flexibleStringSchema,
   zoneDetails: flexibleStringSchema,
   waterLevel: flexibleStringSchema,
   endCap: flexibleStringSchema,

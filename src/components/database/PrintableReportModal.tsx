@@ -220,6 +220,7 @@ export default function PrintableReportModal({
   const [innerCasingQty, setInnerCasingQty] = useState<number>(0);
   const [endCap, setEndCap] = useState<string>('No');
   const [yieldLph, setYieldLph] = useState<number>(0);
+  const [yieldCategory, setYieldCategory] = useState<string>('');
   const [waterStruckZone, setWaterStruckZone] = useState<string>('');
   const [staticWaterLevel, setStaticWaterLevel] = useState<number | string>('');
   const [rigUsed, setRigUsed] = useState<string>('Disassembled Rig + Atlas Copco Compressor');
@@ -442,6 +443,7 @@ export default function PrintableReportModal({
 
       const yl = Number(currentSite.yieldDischarge) || 0;
       setYieldLph(yl);
+      setYieldCategory(currentSite.yieldCategory || '');
 
       setWaterStruckZone(currentSite.zoneDetails || '');
 
@@ -663,6 +665,7 @@ export default function PrintableReportModal({
       if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(siteOv.outerCasingPipe);
       if (siteOv.endCap !== undefined) setEndCap(siteOv.endCap);
       if (siteOv.yieldLph !== undefined) setYieldLph(siteOv.yieldLph);
+      if (siteOv.yieldCategory !== undefined) setYieldCategory(siteOv.yieldCategory);
       if (siteOv.staticWaterLevel !== undefined) setStaticWaterLevel(siteOv.staticWaterLevel);
       if (siteOv.waterStruckZone !== undefined) setWaterStruckZone(siteOv.waterStruckZone);
       if (siteOv.diameter !== undefined) setDiameter(siteOv.diameter);
@@ -738,7 +741,7 @@ export default function PrintableReportModal({
   const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
   const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
   
-  const isYieldZero = yieldLph === 0 || parseNum(currentSite?.yieldDischarge) === 0 || currentSite?.yieldDischarge === '0' || currentSite?.yieldDischarge === 0;
+  const isYieldZero = yieldCategory === 'Dry Well' || currentSite?.yieldCategory === 'Dry Well' || yieldLph === 0 || parseNum(currentSite?.yieldDischarge) === 0 || currentSite?.yieldDischarge === '0' || currentSite?.yieldDischarge === 0;
   const workStatusStr = (currentSite?.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
   const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
   const isFailedOrZeroYield = isYieldZero || isWorkFailed;
@@ -874,7 +877,7 @@ export default function PrintableReportModal({
       const sIsPrivateIrrigation = sAppTypeStr.includes('irrigation') || sAppTypeStr.includes('private_irrigation') || sAppTypeStr.includes('private irrigation');
       
       const sYield = isCurrentActive ? yieldLph : (Number(s.yieldDischarge) || 0);
-      const sIsYieldZero = sYield === 0 || parseNum(s.yieldDischarge) === 0 || s.yieldDischarge === '0';
+      const sIsYieldZero = (isCurrentActive && yieldCategory === 'Dry Well') || s.yieldCategory === 'Dry Well' || sYield === 0 || parseNum(s.yieldDischarge) === 0 || s.yieldDischarge === '0';
       const sWorkStatusStr = (s.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
       const sIsWorkFailed = sWorkStatusStr.includes('failed') || sWorkStatusStr.includes('പരാജയ');
       const sIsFailedOrZeroYield = sIsYieldZero || sIsWorkFailed;
@@ -977,6 +980,7 @@ export default function PrintableReportModal({
     innerCasingQty,
     endCap,
     yieldLph,
+    yieldCategory,
     effectiveSubsidyAmount,
     applicationType,
     entry,
@@ -1339,6 +1343,7 @@ export default function PrintableReportModal({
           casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[targetIndex].casing6kgPipe ?? ""),
           casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0)),
           yieldDischarge: yieldLph !== undefined && yieldLph !== null && yieldLph !== '' ? String(yieldLph) : (updatedSiteDetails[targetIndex].yieldDischarge !== undefined && updatedSiteDetails[targetIndex].yieldDischarge !== null ? String(updatedSiteDetails[targetIndex].yieldDischarge) : ""),
+          yieldCategory: yieldCategory || (updatedSiteDetails[targetIndex].yieldCategory || ""),
           zoneDetails: waterStruckZone || updatedSiteDetails[targetIndex].zoneDetails,
           waterLevel: staticWaterLevel !== undefined && staticWaterLevel !== null && staticWaterLevel !== '' ? String(staticWaterLevel) : (updatedSiteDetails[targetIndex].waterLevel !== undefined && updatedSiteDetails[targetIndex].waterLevel !== null ? String(updatedSiteDetails[targetIndex].waterLevel) : ""),
           drillingRemarks: remarks || updatedSiteDetails[targetIndex].drillingRemarks,
@@ -1379,6 +1384,7 @@ export default function PrintableReportModal({
         outerCasingPipe,
         endCap,
         yieldLph,
+        yieldCategory,
         staticWaterLevel,
         waterStruckZone,
         diameter,
@@ -2135,6 +2141,24 @@ export default function PrintableReportModal({
                     <Label className="text-[11px]">Contractor Name (if tender)</Label>
                     <Input className="h-8 text-xs" value={contractorName} onChange={(e) => setContractorName(e.target.value)} />
                   </div>
+                  <div>
+                    <Label className="text-[11px]">Yield (LPH)</Label>
+                    <Input className="h-8 text-xs" type="number" value={yieldLph} onChange={(e) => setYieldLph(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Yield Category</Label>
+                    <select
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      value={yieldCategory}
+                      onChange={(e) => setYieldCategory(e.target.value)}
+                    >
+                      <option value="">-- Select Category --</option>
+                      <option value="Dry Well">Dry Well</option>
+                      <option value="Low Yield">Low Yield</option>
+                      <option value="Medium Yield">Medium Yield</option>
+                      <option value="High Yield">High Yield</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -2475,7 +2499,7 @@ export default function PrintableReportModal({
                           <tr className="border-b border-gray-300">
                             <td className="py-2 px-2 font-bold text-black align-top">18. ജലലഭ്യത (മണിക്കൂറിൽ)</td>
                             <td className="py-2 px-2 text-black align-top">
-                              {renderEditableCell('cr_yield', `: ${yieldLph ? `${yieldLph} ലിറ്റർ പ്രതി മണിക്കൂർ` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
+                              {renderEditableCell('cr_yield', `: ${yieldCategory === 'Dry Well' ? 'വരണ്ട കിണർ (Dry Well)' : (yieldLph ? `${yieldLph} ലിറ്റർ പ്രതി മണിക്കൂർ${yieldCategory ? ` (${yieldCategory})` : ''}` : (yieldCategory ? yieldCategory : ''))}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">
@@ -2758,7 +2782,7 @@ export default function PrintableReportModal({
                           <tr className="border-b border-gray-300">
                             <td className="py-2 px-2 font-bold text-black align-top">18. Average Yield</td>
                             <td className="py-2 px-2 text-black align-top">
-                              {renderEditableCell('cr_en_yield', `: ${yieldLph ? `${yieldLph} Litres Per Hour (LPH)` : ''}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
+                              {renderEditableCell('cr_en_yield', `: ${yieldCategory === 'Dry Well' ? 'Dry Well' : (yieldLph ? `${yieldLph} Litres Per Hour (LPH)${yieldCategory ? ` (${yieldCategory})` : ''}` : (yieldCategory ? yieldCategory : ''))}`, <Input type="number" className="h-6 text-xs w-28" value={yieldLph} onChange={e => setYieldLph(Number(e.target.value))} />)}
                             </td>
                           </tr>
                           <tr className="border-b border-gray-300">

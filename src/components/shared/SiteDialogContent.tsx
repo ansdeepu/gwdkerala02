@@ -21,6 +21,7 @@ import {
   siteDiameterOptions,
   siteTypeOfRigOptions,
   siteConditionsOptions,
+  yieldCategoryOptions,
   type Constituency,
   type StaffMember,
   type Bidder,
@@ -704,6 +705,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             )}
 
                                                             <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Yield (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="yieldCategory" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Yield Category</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {yieldCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                             <FormField name="zoneDetails" control={control} render={({ field }) => <FormItem><FormLabel>Zone Details (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="endCap" control={control} render={({ field }) => (
@@ -767,6 +781,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             )}/>
                                                             <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Actual TD (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="yieldDischarge" control={control} render={({ field }) => <FormItem><FormLabel>Discharge (LPH)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="yieldCategory" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Discharge Category</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {yieldCategoryOptions.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                             <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Static Water (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="endCap" control={control} render={({ field }) => (
                                                                 <FormItem>
