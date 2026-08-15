@@ -296,6 +296,7 @@ export default function PrintableReportModal({
   const [ddDetails, setDdDetails] = useState<string>('');
 
   // Bank refund details & Proceedings state
+  const [reportDate, setReportDate] = useState<string>('');
   const [orderNo, setOrderNo] = useState<string>('');
   const [orderDate, setOrderDate] = useState<string>('');
   const [refLetterNo, setRefLetterNo] = useState<string>('');
@@ -373,6 +374,7 @@ export default function PrintableReportModal({
     const yyyy = today.getFullYear();
     const todayFormatted = `${dd}/${mm}/${yyyy}`;
     setOrderDate(todayFormatted);
+    setReportDate(todayFormatted);
 
     const refNo = `AE/1/${fNo}`;
     setRefLetterNo(refNo);
@@ -620,6 +622,7 @@ export default function PrintableReportModal({
 
     if (savedOverrides.orderNo) setOrderNo(savedOverrides.orderNo);
     if (savedOverrides.orderDate) setOrderDate(savedOverrides.orderDate);
+    if (savedOverrides.reportDate) setReportDate(savedOverrides.reportDate);
     if (savedOverrides.refLetterNo) setRefLetterNo(savedOverrides.refLetterNo);
     if (savedOverrides.refLetterDate) setRefLetterDate(savedOverrides.refLetterDate);
 
@@ -671,6 +674,7 @@ export default function PrintableReportModal({
       if (siteOv.periodTo !== undefined) setPeriodTo(siteOv.periodTo);
       if (siteOv.remarks !== undefined) setRemarks(siteOv.remarks);
       if (siteOv.rigUsed !== undefined) setRigUsed(siteOv.rigUsed);
+      if (siteOv.reportDate !== undefined) setReportDate(siteOv.reportDate);
 
       if (siteOv.fbDescDrillingMl) setFbDescDrillingMl(siteOv.fbDescDrillingMl);
       if (siteOv.fbDescCasing10Ml) setFbDescCasing10Ml(siteOv.fbDescCasing10Ml);
@@ -1384,6 +1388,7 @@ export default function PrintableReportModal({
         periodTo,
         remarks,
         rigUsed,
+        reportDate,
         localSelfGovt,
         constituency,
         fbDescDrillingMl,
@@ -1433,6 +1438,7 @@ export default function PrintableReportModal({
 
         orderNo,
         orderDate,
+        reportDate,
         refLetterNo,
         refLetterDate,
         bankAccountNo,
@@ -1517,6 +1523,20 @@ export default function PrintableReportModal({
   };
 
   const rowResetHandlers: Record<string, () => void> = {
+    cr_reportDate: () => {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      setReportDate(`${dd}/${mm}/${yyyy}`);
+    },
+    fb_reportDate: () => {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      setReportDate(`${dd}/${mm}/${yyyy}`);
+    },
     cr_fileNo: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
     cr_applicant: () => { setApplicantName(entry?.applicantName || ''); setApplicantAddress(entry?.applicantAddress || ''); },
     cr_siteName: () => setSiteName(currentSite?.nameOfSite || entry?.applicantName || ''),
@@ -2092,6 +2112,10 @@ export default function PrintableReportModal({
                     <Input className="h-8 text-xs" value={fileNo} onChange={(e) => setFileNo(e.target.value)} />
                   </div>
                   <div>
+                    <Label className="text-[11px]">Report Date (തീയതി)</Label>
+                    <Input className="h-8 text-xs" value={reportDate} onChange={(e) => setReportDate(e.target.value)} placeholder="DD/MM/YYYY" />
+                  </div>
+                  <div>
                     <Label className="text-[11px]">Drilling Rate (Rs/m)</Label>
                     <Input className="h-8 text-xs" type="number" value={drillingRate} onChange={(e) => setDrillingRate(Number(e.target.value))} />
                   </div>
@@ -2234,9 +2258,19 @@ export default function PrintableReportModal({
                 {lang === 'ml' ? (
                   <>
                     <div>
-                      <div className="text-center space-y-1 pb-2 mb-3 border-b-2 border-black">
+                      <div className="text-center space-y-1 pb-2 mb-2 border-b-2 border-black">
                         <h2 className="text-base sm:text-lg font-extrabold tracking-wide">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
                         <h3 className="text-sm sm:text-base font-bold underline">{currentSite?.purpose === 'TWC' ? 'പൂർത്തീകരണറിപ്പോർട്ട് - റ്റ്യൂബ് കിണർ നിർമ്മാണം' : 'പൂർത്തീകരണറിപ്പോർട്ട് - കുഴൽകിണർ നിർമ്മാണം'}</h3>
+                      </div>
+
+                      <div className="flex justify-end text-xs sm:text-[13px] font-semibold mb-2">
+                        <div className="min-w-[180px]">
+                          {renderEditableCell(
+                            'cr_reportDate',
+                            <div className="text-right">തീയതി : <strong>{reportDate}</strong></div>,
+                            <Input className="h-6 text-xs w-32 ml-auto" placeholder="DD/MM/YYYY" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+                          )}
+                        </div>
                       </div>
 
                       <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
@@ -2507,9 +2541,19 @@ export default function PrintableReportModal({
                 ) : (
                   <>
                     <div>
-                      <div className="text-center space-y-1 pb-2 mb-3 border-b-2 border-black">
+                      <div className="text-center space-y-1 pb-2 mb-2 border-b-2 border-black">
                         <h2 className="text-base sm:text-lg font-extrabold tracking-wide uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
                         <h3 className="text-sm sm:text-base font-bold underline">{currentSite?.purpose === 'TWC' ? 'TUBE WELL COMPLETION REPORT' : 'BORE WELL COMPLETION REPORT'}</h3>
+                      </div>
+
+                      <div className="flex justify-end text-xs sm:text-[13px] font-semibold mb-2">
+                        <div className="min-w-[180px]">
+                          {renderEditableCell(
+                            'cr_en_reportDate',
+                            <div className="text-right">Date : <strong>{reportDate}</strong></div>,
+                            <Input className="h-6 text-xs w-32 ml-auto" placeholder="DD/MM/YYYY" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+                          )}
+                        </div>
                       </div>
 
                       <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
@@ -2905,12 +2949,21 @@ export default function PrintableReportModal({
                           <h3 className="text-xl font-bold">കുഴൽകിണർ നിർമ്മാണം - ഫൈനൽ ബിൽ</h3>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-base font-semibold py-1">
-                          <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo.toUpperCase().startsWith('GWD') ? fileNo : `${officeAddress?.officeCode || 'GWDKLM'}${fileNo}`}</strong></div>
-                          <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
-                          {siteDisplayMl && (
-                            <div>സൈറ്റിന്റെ പേര്: <strong className="text-lg">{siteDisplayMl}</strong></div>
-                          )}
+                        <div className="flex justify-between items-start text-base font-semibold py-1">
+                          <div className="flex flex-col space-y-1">
+                            <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo.toUpperCase().startsWith('GWD') ? fileNo : `${officeAddress?.officeCode || 'GWDKLM'}${fileNo}`}</strong></div>
+                            <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
+                            {siteDisplayMl && (
+                              <div>സൈറ്റിന്റെ പേര്: <strong className="text-lg">{siteDisplayMl}</strong></div>
+                            )}
+                          </div>
+                          <div className="min-w-[180px] shrink-0">
+                            {renderEditableCell(
+                              'fb_reportDate',
+                              <div className="text-right">തീയതി : <strong className="text-lg">{reportDate}</strong></div>,
+                              <Input className="h-6 text-xs w-32 ml-auto" placeholder="DD/MM/YYYY" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+                            )}
+                          </div>
                         </div>
 
                         <table className="w-full border-collapse border border-black text-xs">
@@ -3167,12 +3220,21 @@ export default function PrintableReportModal({
                           <h3 className="text-xl font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
                         </div>
 
-                        <div className="flex flex-col space-y-1 text-base font-semibold py-1">
-                          <div>File No: <strong className="text-lg">{fileNo}</strong></div>
-                          <div>Applicant: <strong className="text-lg">{applicantName}</strong></div>
-                          {siteDisplayEn && (
-                            <div>Name of Site: <strong className="text-lg">{siteDisplayEn}</strong></div>
-                          )}
+                        <div className="flex justify-between items-start text-base font-semibold py-1">
+                          <div className="flex flex-col space-y-1">
+                            <div>File No: <strong className="text-lg">{fileNo}</strong></div>
+                            <div>Applicant: <strong className="text-lg">{applicantName}</strong></div>
+                            {siteDisplayEn && (
+                              <div>Name of Site: <strong className="text-lg">{siteDisplayEn}</strong></div>
+                            )}
+                          </div>
+                          <div className="min-w-[180px] shrink-0">
+                            {renderEditableCell(
+                              'fb_en_reportDate',
+                              <div className="text-right">Date : <strong className="text-lg">{reportDate}</strong></div>,
+                              <Input className="h-6 text-xs w-32 ml-auto" placeholder="DD/MM/YYYY" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+                            )}
+                          </div>
                         </div>
 
                         <table className="w-full border-collapse border border-black text-xs">
