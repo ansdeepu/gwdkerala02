@@ -7,8 +7,8 @@ import { app } from '@/lib/firebase';
 import { useAuth, type UserProfile } from './useAuth';
 import type { DataEntryFormData } from '@/lib/schemas/DataEntrySchema';
 import type { ArsEntry } from './useArsEntries';
-import type { StaffMember, LsgConstituencyMap, Designation, Bidder as MasterBidder, DepartmentVehicle, HiredVehicle, RigCompressor, OfficeAddress } from '@/lib/schemas';
-import { designationOptions } from '@/lib/schemas';
+import type { StaffMember, LsgConstituencyMap, Designation, Bidder as MasterBidder, DepartmentVehicle, HiredVehicle, RigCompressor, OfficeAddress, GwdRateItem } from '@/lib/schemas';
+import { designationOptions, DEFAULT_GWD_RATE_ITEMS } from '@/lib/schemas';
 import type { AgencyApplication } from './useAgencyApplications';
 import { toast } from './use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -94,6 +94,7 @@ interface DataStoreContextType {
     allLsgConstituencyMaps: LsgConstituencyMap[];
     allRateDescriptions: Record<RateDescriptionId, string>;
     allRateDescriptionDetails: Record<RateDescriptionId, RateDescriptionDetail>;
+    allGwdRates: GwdRateItem[];
     allBidders: MasterBidder[];
     allE_tenders: E_tender[];
     allDepartmentVehicles: DepartmentVehicle[];
@@ -132,6 +133,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     const [allLsgConstituencyMaps, setAllLsgConstituencyMaps] = useState<LsgConstituencyMap[]>([]);
     const [allRateDescriptions, setAllRateDescriptions] = useState<Record<RateDescriptionId, string>>(defaultRateDescriptions);
     const [allRateDescriptionDetails, setAllRateDescriptionDetails] = useState<Record<RateDescriptionId, RateDescriptionDetail>>({} as Record<RateDescriptionId, RateDescriptionDetail>);
+    const [allGwdRates, setAllGwdRates] = useState<GwdRateItem[]>([]);
     const [allBidders, setAllBidders] = useState<MasterBidder[]>([]);
     const [allE_tenders, setAllE_tenders] = useState<E_tender[]>([]);
     const [allDepartmentVehicles, setAllDepartmentVehicles] = useState<DepartmentVehicle[]>([]);
@@ -145,7 +147,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
 
     const [loadingStates, setLoadingStates] = useState({
-        users: true, files: true, ars: true, staff: true, agencies: true, lsg: true, rates: true, bidders: true, eTenders: true,
+        users: true, files: true, ars: true, staff: true, agencies: true, lsg: true, rates: true, gwdRates: true, bidders: true, eTenders: true,
         departmentVehicles: true, hiredVehicles: true, rigCompressors: true, officeAddress: true, sanctionedStrength: true,
     });
     
@@ -182,14 +184,16 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     useEffect(() => {
         if (!user) {
             setAllRateDescriptions(defaultRateDescriptions);
+            setAllGwdRates([]);
             setAllBidders([]);
             setGlobalOfficeAddresses([]);
-            setLoadingStates(prev => ({ ...prev, rates: false, bidders: false, officeAddress: false }));
+            setLoadingStates(prev => ({ ...prev, rates: false, gwdRates: false, bidders: false, officeAddress: false }));
             return;
         }
         
         const globalCollections: Record<string, { setter: React.Dispatch<React.SetStateAction<any>>, loaderKey: keyof typeof loadingStates, queryFn: () => any }> = {
             rateDescriptions: { setter: setAllRateDescriptions, loaderKey: 'rates', queryFn: () => query(collection(db, 'rateDescriptions')) },
+            gwdRates: { setter: setAllGwdRates, loaderKey: 'gwdRates', queryFn: () => query(collection(db, 'gwdRates'), orderBy('order', 'asc')) },
             officeAddresses: { setter: setGlobalOfficeAddresses, loaderKey: 'officeAddress', queryFn: () => query(collection(db, 'officeAddresses')) },
         };
 
@@ -492,7 +496,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     return (
         <DataStoreContext.Provider value={{
             selectedOffice, setSelectedOffice, allUsers, allFileEntries, allArsEntries, allStaffMembers, allAgencyApplications, allLsgConstituencyMaps, allRateDescriptions,
-            allRateDescriptionDetails,
+            allRateDescriptionDetails, allGwdRates,
             allBidders, allE_tenders, allDepartmentVehicles, allHiredVehicles, allRigCompressors, 
             allSanctionedStrength, updateSanctionedStrength, allOfficeAddresses: globalOfficeAddresses, officeAddress, isLoading,
             searchTerms, setModuleSearchTerm, clearAllSearchTerms,

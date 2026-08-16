@@ -286,6 +286,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 const validBidders = (selectedTender.bidders || []).filter((b: Bidder) => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
                 const l1Bidder = validBidders.length > 0 ? validBidders.reduce((lowest: Bidder, current: Bidder) => (lowest.quotedAmount! < current.quotedAmount!) ? lowest : current) : null;
                 setValue('contractorName', l1Bidder ? `${l1Bidder.name}, ${l1Bidder.address}` : '');
+                
+                if (l1Bidder && l1Bidder.quotedPercentage !== undefined && l1Bidder.quotedPercentage !== null) {
+                    setValue('quotedPercentage', `${l1Bidder.quotedPercentage}% ${l1Bidder.aboveBelow || ''}`.trim());
+                } else {
+                    setValue('quotedPercentage', '');
+                }
 
                 const staffIdentities: string[] = [];
                 const addStaffInfo = (name?: string | null) => {
@@ -312,6 +318,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 setValue('contractorName', '');
                 setValue('supervisorName', '');
                 setValue('supervisorUid', undefined);
+                setValue('quotedPercentage', '');
             }
         }
     }, [watchedTenderNo, isTenderSelected, isQuotation, allE_tenders, allStaffMembers, setValue, isPrivateWork, isDeptRigWork]);
@@ -433,7 +440,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                 <Card>
                                                     <CardHeader><CardTitle className="text-lg text-primary">Investigation Details (Recommended)</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
-                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                             <FormField name="surveyRecommendedDiameter" control={control} render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Diameter (mm)</FormLabel>
@@ -518,7 +525,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="tsAmount" control={control} render={({ field }) => <FormItem><FormLabel>TS Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                         {!isPrivateWork && !isDeptRigWork && (
                                                             <>
                                                                 <FormField name="tenderNo" control={control} render={({ field }) => (
@@ -532,6 +539,22 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                                 {(allE_tenders || []).filter(t => t.eTenderNo).map(t => <SelectItem key={t.id} value={t.eTenderNo!}>{t.eTenderNo}</SelectItem>)}
                                                                             </SelectContent>
                                                                         </Select>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )} />
+                                                                <FormField name="quotedPercentage" control={control} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Quoted Percentage of L1</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input 
+                                                                                type="text" 
+                                                                                {...field} 
+                                                                                value={field.value ?? ''} 
+                                                                                readOnly={isTenderSelected || isFieldReadOnly(false)} 
+                                                                                className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted")} 
+                                                                                placeholder="e.g. 10% Below"
+                                                                            />
+                                                                        </FormControl>
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )} />
@@ -566,7 +589,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             </>
                                                         )}
                                                         <FormField name="supervisorName" control={control} render={({ field }) => (
-                                                            <FormItem className={isPrivateWork || isDeptRigWork ? "md:col-span-1" : ""}>
+                                                            <FormItem className={isPrivateWork || isDeptRigWork ? "md:col-span-4" : ""}>
                                                                 <div className="flex justify-between items-center mb-1">
                                                                     <FormLabel>Supervisor</FormLabel>
                                                                     {(isQuotation || isPrivateWork || isDeptRigWork) && !isFieldReadOnly(false) && (
@@ -613,11 +636,11 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     </Select>
                                                                 ) : (
                                                                     <FormControl>
-                                                                        <Input 
+                                                                        <Textarea 
                                                                             {...field} 
                                                                             value={field.value ?? ''} 
                                                                             readOnly={(!isManualSupervisor && isTenderSelected) || isFieldReadOnly(false)} 
-                                                                            className={cn(((!isManualSupervisor && isTenderSelected) || isFieldReadOnly(false)) && "bg-muted")} 
+                                                                            className={cn(((!isManualSupervisor && isTenderSelected) || isFieldReadOnly(false)) && "bg-muted", "min-h-[40px]")} 
                                                                             placeholder={isManualSupervisor ? "Enter external staff name..." : ""}
                                                                         />
                                                                     </FormControl>
@@ -694,9 +717,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             {watchedPurpose === 'TWC' && (
                                                                 <>
                                                                     <FormField name="pilotDrillingDepth" control={control} render={({ field }) => <FormItem><FormLabel>Pilot Drilling (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 50.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 30.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>Slotted Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="reaming12InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 12&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="reaming16InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 16&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="reaming22InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 22&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="assemblyLowered" control={control} render={({ field }) => <FormItem><FormLabel>Assembly Size & Depth</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 200/150 mm to 48 m" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>18&quot; MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 30.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Ribbed Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="bailPlug" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Bail Plug</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 1 No. (0.5m)" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                 </>
                                                             )}
 

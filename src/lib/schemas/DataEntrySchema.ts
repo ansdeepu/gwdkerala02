@@ -472,6 +472,7 @@ export const SiteDetailSchema = z.object({
   accessibleRig: z.string().optional().nullable(),
   tsAmount: optionalNumber(),
   tenderNo: z.string().optional().nullable(),
+  quotedPercentage: flexibleStringSchema,
   diameter: flexibleStringSchema,
   pilotDrillingDepth: flexibleStringSchema,
   totalDepth: z.preprocess((val) => (val === null || val === undefined || val === "" ? null : typeof val === "string" && !isNaN(Number(val)) ? Number(val) : val), optionalNumber()),
@@ -481,6 +482,11 @@ export const SiteDetailSchema = z.object({
   casing6kgPipe: flexibleStringSchema,
   outerCasingPipe: flexibleStringSchema,
   outerCasingPressure: flexibleStringSchema,
+  reaming12InchBit: flexibleStringSchema,
+  reaming16InchBit: flexibleStringSchema,
+  reaming22InchBit: flexibleStringSchema,
+  assemblyLowered: flexibleStringSchema,
+  bailPlug: flexibleStringSchema,
   innerCasing6kgPipe: flexibleStringSchema,
   innerCasing4kgPipe: flexibleStringSchema,
   innerCasingPipe: flexibleStringSchema,
@@ -763,3 +769,54 @@ export const GwdRateItemSchema = GwdRateItemFormDataSchema.extend({
   category: z.enum(gwdRateCategories).optional(),
 });
 export type GwdRateItem = z.infer<typeof GwdRateItemSchema>;
+
+export const DEFAULT_GWD_RATE_ITEMS: Array<{ category: GwdRateCategory; itemName: string; rate: number; order: number }> = [
+    // 1. GW Investigation
+    { category: 'GW Investigation', itemName: 'Groundwater Investigation Charges (General)', rate: 1000, order: 1 },
+    { category: 'GW Investigation', itemName: 'Groundwater Investigation Charges (Agriculture/Marginal)', rate: 500, order: 2 },
+    
+    // 2. Borewell Construction 110 mm dia (4.5")
+    { category: 'Borewell Construction 110 mm dia (4.5")', itemName: '110 mm (4.5") Borewell Drilling Charges (per meter)', rate: 420, order: 1 },
+    { category: 'Borewell Construction 110 mm dia (4.5")', itemName: '140 mm Dia. 10 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 680, order: 2 },
+    { category: 'Borewell Construction 110 mm dia (4.5")', itemName: '140 mm Dia. 8 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 580, order: 3 },
+    { category: 'Borewell Construction 110 mm dia (4.5")', itemName: '140 mm Dia. 6 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 490, order: 4 },
+    { category: 'Borewell Construction 110 mm dia (4.5")', itemName: '140 mm PVC Cap / End Cap Cost', rate: 250, order: 5 },
+
+    // 3. Borewell Construction 150 mm dia (6")
+    { category: 'Borewell Construction 150 mm dia (6")', itemName: '150 mm (6") Borewell Drilling Charges (per meter)', rate: 520, order: 1 },
+    { category: 'Borewell Construction 150 mm dia (6")', itemName: '180 mm Dia. 10 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 950, order: 2 },
+    { category: 'Borewell Construction 150 mm dia (6")', itemName: '180 mm Dia. 8 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 820, order: 3 },
+    { category: 'Borewell Construction 150 mm dia (6")', itemName: '180 mm Dia. 6 kg/cm² PVC Casing Pipe Charges (per meter)', rate: 710, order: 4 },
+    { category: 'Borewell Construction 150 mm dia (6")', itemName: '180 mm PVC Cap / End Cap Cost', rate: 300, order: 5 },
+
+    // 4. Tubewell Construction 150 mm dia (6")
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '150 mm (6") Tubewell Drilling Charges', rate: 2315.00, order: 1 },
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '150 mm Dia. PVC Medium Well Casing Pipe Charges', rate: 838.32, order: 2 },
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '150 mm Dia. PVC Medium Well Screen Pipe Charges', rate: 855.09, order: 3 },
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '150 mm Dia. Bail Plug / Bottom Plug Cost', rate: 98.26, order: 4 },
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '150 mm PVC End Cap Cost', rate: 275, order: 5 },
+    { category: 'Tubewell Construction 150 mm dia (6")', itemName: '450 mm (18") MS Casing Pipe Charges', rate: 8450.00, order: 6 },
+
+    // 5. Tubewell Construction 200 mm dia (8")
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '200 mm (8") Tubewell Drilling Charges', rate: 2980.00, order: 1 },
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '200 mm Dia. PVC Medium Well Casing Pipe Charges', rate: 1193.79, order: 2 },
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '200 mm Dia. PVC Medium Well Screen Pipe Charges', rate: 1378.46, order: 3 },
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '200 mm Dia. Bail Plug / Bottom Plug Cost', rate: 122.56, order: 4 },
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '200 mm PVC End Cap Cost', rate: 400, order: 5 },
+    { category: 'Tubewell Construction 200 mm dia (8")', itemName: '450 mm (18") MS Casing Pipe Charges', rate: 8450.00, order: 6 },
+
+    // 6. Rotary cum DTH Drilling
+    { category: 'Rotary cum DTH Drilling', itemName: 'Rotary cum DTH Combination Drilling Charges (per meter)', rate: 650, order: 1 },
+
+    // 7. Filter Point Well Construction 110 mm (4.5")
+    { category: 'Filter Point Well Construction 110 mm (4.5")', itemName: '110 mm Filter Point Drilling Charges (per meter)', rate: 350, order: 1 },
+    { category: 'Filter Point Well Construction 110 mm (4.5")', itemName: '110 mm Filter Point PVC Pipe Charges (per meter)', rate: 450, order: 2 },
+
+    // 8. Well Developing
+    { category: 'Well Developing', itemName: 'Compressor Development Charges (per hour)', rate: 1200, order: 1 },
+
+    // 9. Logging & Pumping Test
+    { category: 'Logging & Pumping Test', itemName: 'Yield / Step Drawdown Pumping Test Charges', rate: 3500, order: 1 },
+    { category: 'Logging & Pumping Test', itemName: 'Electrical Logging Charges', rate: 2000, order: 2 },
+];
+

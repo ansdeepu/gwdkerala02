@@ -1114,7 +1114,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
           <PrintableReportModal
             isOpen={isPrintModalOpen}
             onClose={() => setIsPrintModalOpen(false)}
-            entry={watch()}
+            entry={getValues()}
             moduleType={currentModuleKey}
             initialDocType={printModalDocType}
             isFullPage={true}
