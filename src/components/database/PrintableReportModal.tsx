@@ -802,7 +802,7 @@ export default function PrintableReportModal({
     if (savedOverrides.fileNo) setFileNo(savedOverrides.fileNo);
     if (savedOverrides.applicantName) {
       setApplicantName(savedOverrides.applicantName);
-    } else if (language === 'ml' && (entry as any)?.applicantNameMl) {
+    } else if (lang === 'ml' && (entry as any)?.applicantNameMl) {
       setApplicantName((entry as any).applicantNameMl);
     } else {
       setApplicantName(entry.applicantName || '');
