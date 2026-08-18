@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { Input } from "@/components/ui/input";
+import { BankSelect } from "@/components/shared/BankSelect";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -327,8 +328,8 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeCo
           <DialogTitle>{pageTitle} Application Details</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-0 space-y-4 flex-1">
-             <div className="grid grid-cols-3 gap-4 items-start">
-                <div className="space-y-2 col-span-1">
+             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+                <div className="space-y-2 col-span-1 md:col-span-1">
                     <Label htmlFor="fileNo">File No *</Label>
                     <Input id="fileNo" value={data.fileNo || ''} onChange={(e) => handleChange('fileNo', e.target.value)} disabled={isChecking}/>
                     <p className="text-[11px] text-muted-foreground leading-snug">
@@ -336,10 +337,14 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeCo
                     </p>
                     {errors.fileNo && <p className="text-xs text-destructive mt-1">{errors.fileNo}</p>}
                 </div>
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 col-span-1 md:col-span-2">
                     <Label htmlFor="applicantName">Name & Address of Institution/Applicant *</Label>
                     <Textarea id="applicantName" value={data.applicantName || ''} onChange={(e) => handleChange('applicantName', e.target.value)} className="min-h-[40px]" disabled={isChecking}/>
                     {errors.applicantName && <p className="text-xs text-destructive mt-1">{errors.applicantName}</p>}
+                </div>
+                <div className="space-y-2 col-span-1 md:col-span-2">
+                    <Label htmlFor="applicantNameMl">Name & Address of Institution/Applicant (Malayalam)</Label>
+                    <Textarea id="applicantNameMl" placeholder="e.g. സെക്രട്ടറി, ഗ്രാമപഞ്ചായത്ത് ഓഫീസ്..." value={data.applicantNameMl || ''} onChange={(e) => handleChange('applicantNameMl', e.target.value)} className="min-h-[40px]" disabled={isChecking}/>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -375,6 +380,24 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeCo
                         </Select>
                     )}
                      {errors.applicationType && <p className="text-xs text-destructive mt-1">{errors.applicationType}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t">
+                <div className="space-y-2">
+                    <Label htmlFor="bankName">Bank Name</Label>
+                    <BankSelect id="bankName" value={data.bankName || ''} onChange={(val) => handleChange('bankName', val)} disabled={isChecking}/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="branch">Branch</Label>
+                    <Input id="branch" placeholder="e.g. Main Branch" value={data.branch || ''} onChange={(e) => handleChange('branch', e.target.value)} disabled={isChecking}/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="bankAccountNo">Bank Account No.</Label>
+                    <Input id="bankAccountNo" placeholder="e.g. 85829024542" value={data.bankAccountNo || ''} onChange={(e) => handleChange('bankAccountNo', e.target.value)} disabled={isChecking}/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="ifsc">IFSC</Label>
+                    <Input id="ifsc" placeholder="e.g. SBIN0012880" value={data.ifsc || ''} onChange={(e) => handleChange('ifsc', e.target.value)} disabled={isChecking}/>
                 </div>
             </div>
         </div>
@@ -765,7 +788,7 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
     if (hasReappropriations) {
       setReappAccordionValue("reappropriation-details");
     } else {
-      setReappAccordionValue(undefined);
+      setReappAccordionValue("");
     }
   }, [hasReappropriations]);
 
@@ -892,11 +915,16 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
         if (type === 'application') {
             setValue("fileNo", data.fileNo, { shouldDirty: true });
             setValue("applicantName", data.applicantName, { shouldDirty: true });
+            setValue("applicantNameMl", data.applicantNameMl || '', { shouldDirty: true });
             setValue("phoneNo", data.phoneNo, { shouldDirty: true });
             setValue("secondaryMobileNo", data.secondaryMobileNo, { shouldDirty: true });
             setValue("emailId", data.emailId, { shouldDirty: true });
             setValue("applicationType", data.applicationType, { shouldDirty: true });
             setValue("category", data.category, { shouldDirty: true });
+            setValue("bankName", data.bankName || '', { shouldDirty: true });
+            setValue("branch", data.branch || '', { shouldDirty: true });
+            setValue("bankAccountNo", data.bankAccountNo || '', { shouldDirty: true });
+            setValue("ifsc", data.ifsc || '', { shouldDirty: true });
         } else if (type === 'remittance') {
             const isEditingRemittance = originalData && originalData.index !== undefined;
             if (isEditingRemittance) {
@@ -975,7 +1003,7 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
     <FormProvider {...form}>
       <div>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">1. Application Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}</CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Applicant Name &amp; Address" value={watch('applicantName')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Category" value={watch('category')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /></div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">1. Application Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}</CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Applicant Name &amp; Address" value={watch('applicantName')} /><DetailRow label="Applicant Name &amp; Address (Malayalam)" value={watch('applicantNameMl')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Category" value={watch('category')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /><DetailRow label="Bank Name" value={watch('bankName')} /><DetailRow label="Branch" value={watch('branch')} /><DetailRow label="Bank Account No." value={watch('bankAccountNo')} /><DetailRow label="IFSC" value={watch('ifsc')} /></div></CardContent></Card>
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{remittanceTitle}</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('remittance', createDefaultRemittanceDetail())} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount (₹)</TableHead><TableHead>Account</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{remittanceFields.length > 0 ? remittanceFields.map((item, index) => (
               <TableRow key={item.id}>
                   <TableCell>{item.dateOfRemittance ? format(new Date(item.dateOfRemittance), 'dd/MM/yyyy') : 'N/A'}</TableCell>

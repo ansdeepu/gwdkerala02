@@ -37,6 +37,7 @@ import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { updateFileEntry } from "@/lib/db";
+import { BankSelect } from "@/components/shared/BankSelect";
 
 export type ReportDocType =
   | 'completion_report'
@@ -353,9 +354,9 @@ export default function PrintableReportModal({
   const [orderDate, setOrderDate] = useState<string>('');
   const [refLetterNo, setRefLetterNo] = useState<string>('');
   const [refLetterDate, setRefLetterDate] = useState<string>('');
-  const [bankAccountNo, setBankAccountNo] = useState<string>('85829024542');
-  const [bankIfsc, setBankIfsc] = useState<string>('SBIN0012880');
-  const [bankName, setBankName] = useState<string>('SBI');
+  const [bankAccountNo, setBankAccountNo] = useState<string>('');
+  const [bankIfsc, setBankIfsc] = useState<string>('');
+  const [bankName, setBankName] = useState<string>('');
   const [bankBranch, setBankBranch] = useState<string>('');
   const [proceedingsSubject, setProceedingsSubject] = useState<string>('');
   const [proceedingsRef1, setProceedingsRef1] = useState<string>('');
@@ -799,7 +800,13 @@ export default function PrintableReportModal({
     // Apply saved overrides if present on entry
     const savedOverrides: Record<string, any> = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
     if (savedOverrides.fileNo) setFileNo(savedOverrides.fileNo);
-    if (savedOverrides.applicantName) setApplicantName(savedOverrides.applicantName);
+    if (savedOverrides.applicantName) {
+      setApplicantName(savedOverrides.applicantName);
+    } else if (language === 'ml' && (entry as any)?.applicantNameMl) {
+      setApplicantName((entry as any).applicantNameMl);
+    } else {
+      setApplicantName(entry.applicantName || '');
+    }
     if (savedOverrides.applicantAddress) setApplicantAddress(savedOverrides.applicantAddress);
     if (savedOverrides.applicationType) setApplicationType(savedOverrides.applicationType);
 
@@ -912,10 +919,34 @@ export default function PrintableReportModal({
 
     if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(savedOverrides.subsidyAmount);
 
-    if (savedOverrides.bankAccountNo) setBankAccountNo(savedOverrides.bankAccountNo);
-    if (savedOverrides.bankIfsc) setBankIfsc(savedOverrides.bankIfsc);
-    if (savedOverrides.bankName) setBankName(savedOverrides.bankName);
-    if (savedOverrides.bankBranch) setBankBranch(savedOverrides.bankBranch);
+    const entryBankAcc = (entry as any)?.bankAccountNo;
+    const entryIfsc = (entry as any)?.ifsc || (entry as any)?.bankIfsc;
+    const entryBankName = (entry as any)?.bankName;
+    const entryBranch = (entry as any)?.branch || (entry as any)?.bankBranch;
+
+    if (savedOverrides.bankAccountNo) {
+      setBankAccountNo(savedOverrides.bankAccountNo);
+    } else if (entryBankAcc) {
+      setBankAccountNo(entryBankAcc);
+    }
+
+    if (savedOverrides.bankIfsc) {
+      setBankIfsc(savedOverrides.bankIfsc);
+    } else if (entryIfsc) {
+      setBankIfsc(entryIfsc);
+    }
+
+    if (savedOverrides.bankName) {
+      setBankName(savedOverrides.bankName);
+    } else if (entryBankName) {
+      setBankName(entryBankName);
+    }
+
+    if (savedOverrides.bankBranch) {
+      setBankBranch(savedOverrides.bankBranch);
+    } else if (entryBranch) {
+      setBankBranch(entryBranch);
+    }
 
     if (savedOverrides.proceedingsSubject) setProceedingsSubject(savedOverrides.proceedingsSubject);
     if (savedOverrides.proceedingsRef1) setProceedingsRef1(savedOverrides.proceedingsRef1);
@@ -2008,8 +2039,12 @@ export default function PrintableReportModal({
         ...entry,
         fileNo: fileNo || entry.fileNo,
         applicantName: applicantName || entry.applicantName,
-        applicantAddress: applicantAddress || entry.applicantAddress,
+        applicantNameMl: (entry as any)?.applicantNameMl,
         applicationType: (applicationType as any) || entry.applicationType,
+        bankAccountNo: bankAccountNo || (entry as any)?.bankAccountNo,
+        ifsc: bankIfsc || (entry as any)?.ifsc,
+        bankName: bankName || (entry as any)?.bankName,
+        branch: bankBranch || (entry as any)?.branch,
         siteDetails: updatedSiteDetails,
         reportOverrides,
         printOverrides: reportOverrides,
@@ -2040,7 +2075,7 @@ export default function PrintableReportModal({
       setReportDate(`${dd}/${mm}/${yyyy}`);
     },
     cr_fileNo: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
-    cr_applicant: () => { setApplicantName(entry?.applicantName || ''); setApplicantAddress(entry?.applicantAddress || ''); },
+    cr_applicant: () => { setApplicantName(entry?.applicantName || ''); setApplicantAddress((entry as any)?.applicantAddress || ''); },
     cr_siteName: () => setSiteName(currentSite?.nameOfSite || entry?.applicantName || ''),
     cr_latLong: () => { setLatitude(currentSite?.latitude ? String(currentSite.latitude) : ''); setLongitude(currentSite?.longitude ? String(currentSite.longitude) : ''); },
     cr_lsgd: () => setLocalSelfGovt(currentSite?.localSelfGovt || ''),
@@ -2303,7 +2338,13 @@ export default function PrintableReportModal({
     proc_ordDate: () => setOrderDate(new Date().toISOString().split('T')[0]),
     proc_para1: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
     proc_para2: () => setProcNetPayableOverride(null),
-    proc_para3: () => setProcNetPayableOverride(null),
+    proc_para3: () => {
+      setProcNetPayableOverride(null);
+      setBankAccountNo(entry?.bankAccountNo || '');
+      setBankIfsc(entry?.ifsc || (entry as any)?.bankIfsc || '');
+      setBankName(entry?.bankName || '');
+      setBankBranch(entry?.branch || (entry as any)?.bankBranch || '');
+    },
     proc_para4: () => setProcPara4(''),
     proc_para5: () => setProcPara5(''),
 
@@ -5077,27 +5118,27 @@ export default function PrintableReportModal({
                     {renderEditableCell('proc_para3',
                       <span>
                         In these circumstances, {procBalanceRefund >= 0 ? (
-                          <>sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '85829024542'}, IFSC: {bankIfsc || 'SBIN0012880'} of {bankName === 'SBI' ? 'State Bank of India' : (bankName || 'State Bank of India')}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>.</>
+                          <>sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '___________'}, IFSC: {bankIfsc || '___________'} of {bankName || '___________'}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>.</>
                         ) : (
                           <>the balance deficit amount of <strong>Rs. {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/- ({numberToWordsEnglish(Math.abs(procBalanceRefund))})</strong> is due from the applicant.</>
                         )} Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
                       </span>,
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded border">
                         <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Bank Account No:</label>
-                          <Input className="h-7 text-xs" placeholder="Account No" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Name:</label>
+                          <BankSelect id="proc_bankName" value={bankName} onChange={val => setBankName(val)} placeholder="Select Bank" />
                         </div>
                         <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">IFSC Code:</label>
-                          <Input className="h-7 text-xs" placeholder="IFSC" value={bankIfsc} onChange={e => setBankIfsc(e.target.value)} />
+                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Branch:</label>
+                          <Input className="h-9 text-xs" placeholder="e.g. Main Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
                         </div>
                         <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Bank Name:</label>
-                          <Input className="h-7 text-xs" placeholder="Bank Name" value={bankName} onChange={e => setBankName(e.target.value)} />
+                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Account No:</label>
+                          <Input className="h-9 text-xs" placeholder="e.g. 85829024542" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
                         </div>
                         <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Branch:</label>
-                          <Input className="h-7 text-xs" placeholder="Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">IFSC Code:</label>
+                          <Input className="h-9 text-xs" placeholder="e.g. SBIN0012880" value={bankIfsc} onChange={e => setBankIfsc(e.target.value.toUpperCase())} />
                         </div>
                       </div>
                     )}
