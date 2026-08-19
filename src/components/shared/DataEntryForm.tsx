@@ -673,6 +673,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const [isReappInfoOpen, setIsReappInfoOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printModalDocType, setPrintModalDocType] = useState<ReportDocType>('completion_report');
+  const [printModalEntry, setPrintModalEntry] = useState<DataEntryFormData | null>(null);
 
   useEffect(() => {
     const printModalParam = searchParams.get("printModal");
@@ -1141,8 +1142,11 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
           
           <PrintableReportModal
             isOpen={isPrintModalOpen}
-            onClose={() => setIsPrintModalOpen(false)}
-            entry={getValues()}
+            onClose={() => {
+              setPrintModalEntry(null);
+              setIsPrintModalOpen(false);
+            }}
+            entry={printModalEntry || getValues()}
             moduleType={currentModuleKey}
             initialDocType={printModalDocType}
             isFullPage={true}
@@ -1159,6 +1163,8 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 reportOverrides: (updatedEntry as any).reportOverrides || (currentValues as any).reportOverrides || {},
                 printOverrides: (updatedEntry as any).printOverrides || (currentValues as any).printOverrides || {},
               };
+
+              setPrintModalEntry(fullUpdatedData);
 
               const docId = fileIdToEdit || (initialData as any)?.id || (currentValues as any)?.id;
               if (docId) {

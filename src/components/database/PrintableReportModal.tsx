@@ -36,7 +36,6 @@ import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWord
 import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { updateFileEntry } from "@/lib/db";
 import { BankSelect } from "@/components/shared/BankSelect";
 
 export type ReportDocType =
@@ -844,135 +843,165 @@ export default function PrintableReportModal({
       || (sites.length <= 1 && selectedSiteIndex === 0 && !savedOverrides.siteOverrides ? savedOverrides : undefined);
 
     if (siteOv) {
-      if (siteOv.drillingQty !== undefined) setDrillingQty(siteOv.drillingQty);
-      if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(siteOv.casing10kgQty);
-      if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(siteOv.casing8kgQty);
-      if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(siteOv.casing6kgQty);
-      if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(siteOv.outerCasingQty);
-      if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(siteOv.innerCasing6kgQty);
-      if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(siteOv.innerCasing4kgQty);
-      if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(siteOv.innerCasingQty);
-      if (siteOv.depthMeter !== undefined) setDepthMeter(siteOv.depthMeter);
-      if (siteOv.actualOverburden !== undefined) setActualOverburden(siteOv.actualOverburden);
-      if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(siteOv.pilotDrillingDepth);
-      if (siteOv.reaming12InchBit !== undefined) setReaming12InchBit(siteOv.reaming12InchBit);
-      if (siteOv.reaming16InchBit !== undefined) setReaming16InchBit(siteOv.reaming16InchBit);
-      if (siteOv.reaming22InchBit !== undefined) setReaming22InchBit(siteOv.reaming22InchBit);
-      if (siteOv.assemblyLowered !== undefined) setAssemblyLowered(siteOv.assemblyLowered);
-      if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(siteOv.surveyPlainPipe);
-      if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(siteOv.surveySlottedPipe);
-      if (siteOv.bailPlug !== undefined) setBailPlug(siteOv.bailPlug);
-      if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(siteOv.outerCasingPipe);
-      if (siteOv.endCap !== undefined) setEndCap(siteOv.endCap);
-      if (siteOv.yieldLph !== undefined) setYieldLph(siteOv.yieldLph);
-      if (siteOv.yieldCategory !== undefined) setYieldCategory(siteOv.yieldCategory);
-      if (siteOv.staticWaterLevel !== undefined) setStaticWaterLevel(siteOv.staticWaterLevel);
-      if (siteOv.waterStruckZone !== undefined) setWaterStruckZone(siteOv.waterStruckZone);
-      if (siteOv.diameter !== undefined) setDiameter(siteOv.diameter);
-      if (siteOv.siteName !== undefined) setSiteName(siteOv.siteName);
-      if (siteOv.localSelfGovt !== undefined) setLocalSelfGovt(siteOv.localSelfGovt);
-      if (siteOv.constituency !== undefined) setConstituency(siteOv.constituency);
-      if (siteOv.contractorName !== undefined) setContractorName(siteOv.contractorName);
-      if (siteOv.periodFrom !== undefined) setPeriodFrom(siteOv.periodFrom);
-      if (siteOv.periodTo !== undefined) setPeriodTo(siteOv.periodTo);
-      if (siteOv.remarks !== undefined) setRemarks(siteOv.remarks);
-      if (siteOv.rigUsed !== undefined) setRigUsed(siteOv.rigUsed);
-      if (siteOv.reportDate !== undefined) setReportDate(siteOv.reportDate);
+      if (siteOv.drillingQty !== undefined) setDrillingQty(Number(siteOv.drillingQty) || 0);
+      if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(Number(siteOv.casing10kgQty) || 0);
+      if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(Number(siteOv.casing8kgQty) || 0);
+      if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(Number(siteOv.casing6kgQty) || 0);
+      if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(Number(siteOv.outerCasingQty) || 0);
+      if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(Number(siteOv.innerCasing6kgQty) || 0);
+      if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(Number(siteOv.innerCasing4kgQty) || 0);
+      if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(Number(siteOv.innerCasingQty) || 0);
+      if (siteOv.depthMeter !== undefined) setDepthMeter(Number(siteOv.depthMeter) || 0);
+      if (siteOv.actualOverburden !== undefined) setActualOverburden(String(siteOv.actualOverburden));
+      if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(String(siteOv.pilotDrillingDepth));
+      if (siteOv.reaming12InchBit !== undefined) setReaming12InchBit(String(siteOv.reaming12InchBit));
+      if (siteOv.reaming16InchBit !== undefined) setReaming16InchBit(String(siteOv.reaming16InchBit));
+      if (siteOv.reaming22InchBit !== undefined) setReaming22InchBit(String(siteOv.reaming22InchBit));
+      if (siteOv.assemblyLowered !== undefined) setAssemblyLowered(String(siteOv.assemblyLowered));
+      if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(String(siteOv.surveyPlainPipe));
+      if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(String(siteOv.surveySlottedPipe));
+      if (siteOv.bailPlug !== undefined) setBailPlug(String(siteOv.bailPlug));
+      if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(String(siteOv.outerCasingPipe));
+      if (siteOv.endCap !== undefined) setEndCap(String(siteOv.endCap));
+      if (siteOv.yieldLph !== undefined) setYieldLph(Number(siteOv.yieldLph) || 0);
+      if (siteOv.yieldCategory !== undefined) setYieldCategory(String(siteOv.yieldCategory));
+      if (siteOv.staticWaterLevel !== undefined) setStaticWaterLevel(String(siteOv.staticWaterLevel));
+      if (siteOv.waterStruckZone !== undefined) setWaterStruckZone(String(siteOv.waterStruckZone));
+      if (siteOv.diameter !== undefined) setDiameter(String(siteOv.diameter));
+      if (siteOv.siteName !== undefined) setSiteName(String(siteOv.siteName));
+      if (siteOv.localSelfGovt !== undefined) setLocalSelfGovt(String(siteOv.localSelfGovt));
+      if (siteOv.constituency !== undefined) setConstituency(String(siteOv.constituency));
+      if (siteOv.contractorName !== undefined) setContractorName(String(siteOv.contractorName));
+      if (siteOv.periodFrom !== undefined) setPeriodFrom(String(siteOv.periodFrom));
+      if (siteOv.periodTo !== undefined) setPeriodTo(String(siteOv.periodTo));
+      if (siteOv.remarks !== undefined) setRemarks(String(siteOv.remarks));
+      if (siteOv.rigUsed !== undefined) setRigUsed(String(siteOv.rigUsed));
+      if (siteOv.reportDate !== undefined) setReportDate(String(siteOv.reportDate));
 
-      if (siteOv.fbDescDrillingMl) setFbDescDrillingMl(siteOv.fbDescDrillingMl);
-      if (siteOv.fbDescCasing10Ml) setFbDescCasing10Ml(siteOv.fbDescCasing10Ml);
-      if (siteOv.fbDescCasing8Ml) setFbDescCasing8Ml(siteOv.fbDescCasing8Ml);
-      if (siteOv.fbDescCasing6Ml) setFbDescCasing6Ml(siteOv.fbDescCasing6Ml);
-      if (siteOv.fbDescOuterMl) setFbDescOuterMl(siteOv.fbDescOuterMl);
-      if (siteOv.fbDescInnerMl) setFbDescInnerMl(siteOv.fbDescInnerMl);
-      if (siteOv.fbDescInnerPipeMl) setFbDescInnerPipeMl(siteOv.fbDescInnerPipeMl);
+      if (siteOv.fbDescDrillingMl !== undefined) setFbDescDrillingMl(siteOv.fbDescDrillingMl);
+      if (siteOv.fbDescCasing10Ml !== undefined) setFbDescCasing10Ml(siteOv.fbDescCasing10Ml);
+      if (siteOv.fbDescCasing8Ml !== undefined) setFbDescCasing8Ml(siteOv.fbDescCasing8Ml);
+      if (siteOv.fbDescCasing6Ml !== undefined) setFbDescCasing6Ml(siteOv.fbDescCasing6Ml);
+      if (siteOv.fbDescOuterMl !== undefined) setFbDescOuterMl(siteOv.fbDescOuterMl);
+      if (siteOv.fbDescInnerMl !== undefined) setFbDescInnerMl(siteOv.fbDescInnerMl);
+      if (siteOv.fbDescInnerPipeMl !== undefined) setFbDescInnerPipeMl(siteOv.fbDescInnerPipeMl);
 
-      if (siteOv.fbDescDrillingEn) setFbDescDrillingEn(siteOv.fbDescDrillingEn);
-      if (siteOv.fbDescCasing10En) setFbDescCasing10En(siteOv.fbDescCasing10En);
-      if (siteOv.fbDescCasing8En) setFbDescCasing8En(siteOv.fbDescCasing8En);
-      if (siteOv.fbDescCasing6En) setFbDescCasing6En(siteOv.fbDescCasing6En);
-      if (siteOv.fbDescOuterEn) setFbDescOuterEn(siteOv.fbDescOuterEn);
-      if (siteOv.fbDescInnerEn) setFbDescInnerEn(siteOv.fbDescInnerEn);
-      if (siteOv.fbDescInnerPipeEn) setFbDescInnerPipeEn(siteOv.fbDescInnerPipeEn);
+      if (siteOv.fbDescDrillingEn !== undefined) setFbDescDrillingEn(siteOv.fbDescDrillingEn);
+      if (siteOv.fbDescCasing10En !== undefined) setFbDescCasing10En(siteOv.fbDescCasing10En);
+      if (siteOv.fbDescCasing8En !== undefined) setFbDescCasing8En(siteOv.fbDescCasing8En);
+      if (siteOv.fbDescCasing6En !== undefined) setFbDescCasing6En(siteOv.fbDescCasing6En);
+      if (siteOv.fbDescOuterEn !== undefined) setFbDescOuterEn(siteOv.fbDescOuterEn);
+      if (siteOv.fbDescInnerEn !== undefined) setFbDescInnerEn(siteOv.fbDescInnerEn);
+      if (siteOv.fbDescInnerPipeEn !== undefined) setFbDescInnerPipeEn(siteOv.fbDescInnerPipeEn);
 
-      if (siteOv.twcDrillingQty !== undefined) setTwcDrillingQty(siteOv.twcDrillingQty);
-      if (siteOv.twcPvcCasingQty !== undefined) setTwcPvcCasingQty(siteOv.twcPvcCasingQty);
-      if (siteOv.twcPvcScreenQty !== undefined) setTwcPvcScreenQty(siteOv.twcPvcScreenQty);
-      if (siteOv.twcBailPlugQty !== undefined) setTwcBailPlugQty(siteOv.twcBailPlugQty);
-      if (siteOv.twcEndCapQty !== undefined) setTwcEndCapQty(siteOv.twcEndCapQty);
-      if (siteOv.twcMsCasingQty !== undefined) setTwcMsCasingQty(siteOv.twcMsCasingQty);
+      if (siteOv.twcDrillingQty !== undefined) setTwcDrillingQty(Number(siteOv.twcDrillingQty) || 0);
+      if (siteOv.twcPvcCasingQty !== undefined) setTwcPvcCasingQty(Number(siteOv.twcPvcCasingQty) || 0);
+      if (siteOv.twcPvcScreenQty !== undefined) setTwcPvcScreenQty(Number(siteOv.twcPvcScreenQty) || 0);
+      if (siteOv.twcBailPlugQty !== undefined) setTwcBailPlugQty(Number(siteOv.twcBailPlugQty) || 0);
+      if (siteOv.twcEndCapQty !== undefined) setTwcEndCapQty(Number(siteOv.twcEndCapQty) || 0);
+      if (siteOv.twcMsCasingQty !== undefined) setTwcMsCasingQty(Number(siteOv.twcMsCasingQty) || 0);
 
-      if (siteOv.fbDescTwcDrillingMl) setFbDescTwcDrillingMl(siteOv.fbDescTwcDrillingMl);
-      if (siteOv.fbDescTwcPvcCasingMl) setFbDescTwcPvcCasingMl(siteOv.fbDescTwcPvcCasingMl);
-      if (siteOv.fbDescTwcPvcScreenMl) setFbDescTwcPvcScreenMl(siteOv.fbDescTwcPvcScreenMl);
-      if (siteOv.fbDescTwcBailPlugMl) setFbDescTwcBailPlugMl(siteOv.fbDescTwcBailPlugMl);
-      if (siteOv.fbDescTwcEndCapMl) setFbDescTwcEndCapMl(siteOv.fbDescTwcEndCapMl);
-      if (siteOv.fbDescTwcMsCasingMl) setFbDescTwcMsCasingMl(siteOv.fbDescTwcMsCasingMl);
+      if (siteOv.fbDescTwcDrillingMl !== undefined) setFbDescTwcDrillingMl(siteOv.fbDescTwcDrillingMl);
+      if (siteOv.fbDescTwcPvcCasingMl !== undefined) setFbDescTwcPvcCasingMl(siteOv.fbDescTwcPvcCasingMl);
+      if (siteOv.fbDescTwcPvcScreenMl !== undefined) setFbDescTwcPvcScreenMl(siteOv.fbDescTwcPvcScreenMl);
+      if (siteOv.fbDescTwcBailPlugMl !== undefined) setFbDescTwcBailPlugMl(siteOv.fbDescTwcBailPlugMl);
+      if (siteOv.fbDescTwcEndCapMl !== undefined) setFbDescTwcEndCapMl(siteOv.fbDescTwcEndCapMl);
+      if (siteOv.fbDescTwcMsCasingMl !== undefined) setFbDescTwcMsCasingMl(siteOv.fbDescTwcMsCasingMl);
 
-      if (siteOv.fbDescTwcDrillingEn) setFbDescTwcDrillingEn(siteOv.fbDescTwcDrillingEn);
-      if (siteOv.fbDescTwcPvcCasingEn) setFbDescTwcPvcCasingEn(siteOv.fbDescTwcPvcCasingEn);
-      if (siteOv.fbDescTwcPvcScreenEn) setFbDescTwcPvcScreenEn(siteOv.fbDescTwcPvcScreenEn);
-      if (siteOv.fbDescTwcBailPlugEn) setFbDescTwcBailPlugEn(siteOv.fbDescTwcBailPlugEn);
-      if (siteOv.fbDescTwcEndCapEn) setFbDescTwcEndCapEn(siteOv.fbDescTwcEndCapEn);
-      if (siteOv.fbDescTwcMsCasingEn) setFbDescTwcMsCasingEn(siteOv.fbDescTwcMsCasingEn);
+      if (siteOv.fbDescTwcDrillingEn !== undefined) setFbDescTwcDrillingEn(siteOv.fbDescTwcDrillingEn);
+      if (siteOv.fbDescTwcPvcCasingEn !== undefined) setFbDescTwcPvcCasingEn(siteOv.fbDescTwcPvcCasingEn);
+      if (siteOv.fbDescTwcPvcScreenEn !== undefined) setFbDescTwcPvcScreenEn(siteOv.fbDescTwcPvcScreenEn);
+      if (siteOv.fbDescTwcBailPlugEn !== undefined) setFbDescTwcBailPlugEn(siteOv.fbDescTwcBailPlugEn);
+      if (siteOv.fbDescTwcEndCapEn !== undefined) setFbDescTwcEndCapEn(siteOv.fbDescTwcEndCapEn);
+      if (siteOv.fbDescTwcMsCasingEn !== undefined) setFbDescTwcMsCasingEn(siteOv.fbDescTwcMsCasingEn);
     }
 
-    if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(savedOverrides.subsidyAmount);
+    if (savedOverrides.fbDescDrillingMl !== undefined) setFbDescDrillingMl(savedOverrides.fbDescDrillingMl);
+    if (savedOverrides.fbDescCasing10Ml !== undefined) setFbDescCasing10Ml(savedOverrides.fbDescCasing10Ml);
+    if (savedOverrides.fbDescCasing8Ml !== undefined) setFbDescCasing8Ml(savedOverrides.fbDescCasing8Ml);
+    if (savedOverrides.fbDescCasing6Ml !== undefined) setFbDescCasing6Ml(savedOverrides.fbDescCasing6Ml);
+    if (savedOverrides.fbDescOuterMl !== undefined) setFbDescOuterMl(savedOverrides.fbDescOuterMl);
+    if (savedOverrides.fbDescInnerMl !== undefined) setFbDescInnerMl(savedOverrides.fbDescInnerMl);
+    if (savedOverrides.fbDescInnerPipeMl !== undefined) setFbDescInnerPipeMl(savedOverrides.fbDescInnerPipeMl);
+
+    if (savedOverrides.fbDescDrillingEn !== undefined) setFbDescDrillingEn(savedOverrides.fbDescDrillingEn);
+    if (savedOverrides.fbDescCasing10En !== undefined) setFbDescCasing10En(savedOverrides.fbDescCasing10En);
+    if (savedOverrides.fbDescCasing8En !== undefined) setFbDescCasing8En(savedOverrides.fbDescCasing8En);
+    if (savedOverrides.fbDescCasing6En !== undefined) setFbDescCasing6En(savedOverrides.fbDescCasing6En);
+    if (savedOverrides.fbDescOuterEn !== undefined) setFbDescOuterEn(savedOverrides.fbDescOuterEn);
+    if (savedOverrides.fbDescInnerEn !== undefined) setFbDescInnerEn(savedOverrides.fbDescInnerEn);
+    if (savedOverrides.fbDescInnerPipeEn !== undefined) setFbDescInnerPipeEn(savedOverrides.fbDescInnerPipeEn);
+
+    if (savedOverrides.fbDescTwcDrillingMl !== undefined) setFbDescTwcDrillingMl(savedOverrides.fbDescTwcDrillingMl);
+    if (savedOverrides.fbDescTwcPvcCasingMl !== undefined) setFbDescTwcPvcCasingMl(savedOverrides.fbDescTwcPvcCasingMl);
+    if (savedOverrides.fbDescTwcPvcScreenMl !== undefined) setFbDescTwcPvcScreenMl(savedOverrides.fbDescTwcPvcScreenMl);
+    if (savedOverrides.fbDescTwcBailPlugMl !== undefined) setFbDescTwcBailPlugMl(savedOverrides.fbDescTwcBailPlugMl);
+    if (savedOverrides.fbDescTwcEndCapMl !== undefined) setFbDescTwcEndCapMl(savedOverrides.fbDescTwcEndCapMl);
+    if (savedOverrides.fbDescTwcMsCasingMl !== undefined) setFbDescTwcMsCasingMl(savedOverrides.fbDescTwcMsCasingMl);
+
+    if (savedOverrides.fbDescTwcDrillingEn !== undefined) setFbDescTwcDrillingEn(savedOverrides.fbDescTwcDrillingEn);
+    if (savedOverrides.fbDescTwcPvcCasingEn !== undefined) setFbDescTwcPvcCasingEn(savedOverrides.fbDescTwcPvcCasingEn);
+    if (savedOverrides.fbDescTwcPvcScreenEn !== undefined) setFbDescTwcPvcScreenEn(savedOverrides.fbDescTwcPvcScreenEn);
+    if (savedOverrides.fbDescTwcBailPlugEn !== undefined) setFbDescTwcBailPlugEn(savedOverrides.fbDescTwcBailPlugEn);
+    if (savedOverrides.fbDescTwcEndCapEn !== undefined) setFbDescTwcEndCapEn(savedOverrides.fbDescTwcEndCapEn);
+    if (savedOverrides.fbDescTwcMsCasingEn !== undefined) setFbDescTwcMsCasingEn(savedOverrides.fbDescTwcMsCasingEn);
+
+    if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(Number(savedOverrides.subsidyAmount) || 0);
 
     const entryBankAcc = (entry as any)?.bankAccountNo;
     const entryIfsc = (entry as any)?.ifsc || (entry as any)?.bankIfsc;
     const entryBankName = (entry as any)?.bankName;
     const entryBranch = (entry as any)?.branch || (entry as any)?.bankBranch;
 
-    if (savedOverrides.bankAccountNo) {
+    if (savedOverrides.bankAccountNo !== undefined) {
       setBankAccountNo(savedOverrides.bankAccountNo);
     } else if (entryBankAcc) {
       setBankAccountNo(entryBankAcc);
     }
 
-    if (savedOverrides.bankIfsc) {
+    if (savedOverrides.bankIfsc !== undefined) {
       setBankIfsc(savedOverrides.bankIfsc);
     } else if (entryIfsc) {
       setBankIfsc(entryIfsc);
     }
 
-    if (savedOverrides.bankName) {
+    if (savedOverrides.bankName !== undefined) {
       setBankName(savedOverrides.bankName);
     } else if (entryBankName) {
       setBankName(entryBankName);
     }
 
-    if (savedOverrides.bankBranch) {
+    if (savedOverrides.bankBranch !== undefined) {
       setBankBranch(savedOverrides.bankBranch);
     } else if (entryBranch) {
       setBankBranch(entryBranch);
     }
 
-    if (savedOverrides.proceedingsSubject) setProceedingsSubject(savedOverrides.proceedingsSubject);
-    if (savedOverrides.proceedingsRef1) setProceedingsRef1(savedOverrides.proceedingsRef1);
-    if (savedOverrides.proceedingsRef2) setProceedingsRef2(savedOverrides.proceedingsRef2);
-    if (savedOverrides.procPara4) setProcPara4(savedOverrides.procPara4);
-    if (savedOverrides.procPara5) setProcPara5(savedOverrides.procPara5);
+    if (savedOverrides.proceedingsSubject !== undefined) setProceedingsSubject(savedOverrides.proceedingsSubject);
+    if (savedOverrides.proceedingsRef1 !== undefined) setProceedingsRef1(savedOverrides.proceedingsRef1);
+    if (savedOverrides.proceedingsRef2 !== undefined) setProceedingsRef2(savedOverrides.proceedingsRef2);
+    if (savedOverrides.procPara4 !== undefined) setProcPara4(savedOverrides.procPara4);
+    if (savedOverrides.procPara5 !== undefined) setProcPara5(savedOverrides.procPara5);
     if (savedOverrides.procNetPayableOverride !== undefined && savedOverrides.procNetPayableOverride !== null) setProcNetPayableOverride(savedOverrides.procNetPayableOverride);
 
-    if (savedOverrides.ucPhone) setUcPhone(savedOverrides.ucPhone);
-    if (savedOverrides.ucEmail) setUcEmail(savedOverrides.ucEmail);
-    if (savedOverrides.ucFrom) setUcFrom(savedOverrides.ucFrom);
-    if (savedOverrides.ucTo) setUcTo(savedOverrides.ucTo);
-    if (savedOverrides.ucSubject) setUcSubject(savedOverrides.ucSubject);
-    if (savedOverrides.ucRef1) setUcRef1(savedOverrides.ucRef1);
-    if (savedOverrides.ucRef2) setUcRef2(savedOverrides.ucRef2);
-    if (savedOverrides.ucMlPara1) setUcMlPara1(savedOverrides.ucMlPara1);
-    if (savedOverrides.ucMlPara2) setUcMlPara2(savedOverrides.ucMlPara2);
-    if (savedOverrides.ucEnPara1) setUcEnPara1(savedOverrides.ucEnPara1);
-    if (savedOverrides.ucEnPara2) setUcEnPara2(savedOverrides.ucEnPara2);
+    if (savedOverrides.ucPhone !== undefined) setUcPhone(savedOverrides.ucPhone);
+    if (savedOverrides.ucEmail !== undefined) setUcEmail(savedOverrides.ucEmail);
+    if (savedOverrides.ucFrom !== undefined) setUcFrom(savedOverrides.ucFrom);
+    if (savedOverrides.ucTo !== undefined) setUcTo(savedOverrides.ucTo);
+    if (savedOverrides.ucSubject !== undefined) setUcSubject(savedOverrides.ucSubject);
+    if (savedOverrides.ucRef1 !== undefined) setUcRef1(savedOverrides.ucRef1);
+    if (savedOverrides.ucRef2 !== undefined) setUcRef2(savedOverrides.ucRef2);
+    if (savedOverrides.ucMlPara1 !== undefined) setUcMlPara1(savedOverrides.ucMlPara1);
+    if (savedOverrides.ucMlPara2 !== undefined) setUcMlPara2(savedOverrides.ucMlPara2);
+    if (savedOverrides.ucEnPara1 !== undefined) setUcEnPara1(savedOverrides.ucEnPara1);
+    if (savedOverrides.ucEnPara2 !== undefined) setUcEnPara2(savedOverrides.ucEnPara2);
 
-    if (savedOverrides.district) setDistrict(savedOverrides.district);
-    if (savedOverrides.districtMl) setDistrictMl(savedOverrides.districtMl);
-    if (savedOverrides.subOfficeLocation) setSubOfficeLocation(savedOverrides.subOfficeLocation);
-    if (savedOverrides.subOfficeLocationMl) setSubOfficeLocationMl(savedOverrides.subOfficeLocationMl);
-    if (savedOverrides.officerName) setOfficerName(savedOverrides.officerName);
-    if (savedOverrides.officerDesignation) setOfficerDesignation(savedOverrides.officerDesignation);
+    if (savedOverrides.district !== undefined) setDistrict(savedOverrides.district);
+    if (savedOverrides.districtMl !== undefined) setDistrictMl(savedOverrides.districtMl);
+    if (savedOverrides.subOfficeLocation !== undefined) setSubOfficeLocation(savedOverrides.subOfficeLocation);
+    if (savedOverrides.subOfficeLocationMl !== undefined) setSubOfficeLocationMl(savedOverrides.subOfficeLocationMl);
+    if (savedOverrides.officerName !== undefined) setOfficerName(savedOverrides.officerName);
+    if (savedOverrides.officerDesignation !== undefined) setOfficerDesignation(savedOverrides.officerDesignation);
 
     if (savedOverrides.selectedRemittanceIndices && Array.isArray(savedOverrides.selectedRemittanceIndices)) {
       setSelectedRemittanceIndices(savedOverrides.selectedRemittanceIndices);
@@ -1143,7 +1172,10 @@ export default function PrintableReportModal({
   }, [entry?.remittanceDetails, advanceDeposit, ddDetails]);
 
   useEffect(() => {
-    if (entry?.remittanceDetails && entry.remittanceDetails.length > 0) {
+    const savedOverrides: Record<string, any> = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
+    if (savedOverrides.selectedRemittanceIndices && Array.isArray(savedOverrides.selectedRemittanceIndices) && savedOverrides.selectedRemittanceIndices.length > 0) {
+      setSelectedRemittanceIndices(savedOverrides.selectedRemittanceIndices);
+    } else if (entry?.remittanceDetails && entry.remittanceDetails.length > 0) {
       setSelectedRemittanceIndices(entry.remittanceDetails.map((_, i) => i));
     } else {
       setSelectedRemittanceIndices([0]);
@@ -1151,12 +1183,15 @@ export default function PrintableReportModal({
   }, [entry, isOpen]);
 
   useEffect(() => {
-    if (sites && sites.length > 0) {
+    const savedOverrides: Record<string, any> = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
+    if (savedOverrides.selectedSiteIndices && Array.isArray(savedOverrides.selectedSiteIndices) && savedOverrides.selectedSiteIndices.length > 0) {
+      setSelectedSiteIndices(savedOverrides.selectedSiteIndices);
+    } else if (sites && sites.length > 0) {
       setSelectedSiteIndices(sites.map((_, i) => i));
     } else {
       setSelectedSiteIndices([0]);
     }
-  }, [sites, isOpen]);
+  }, [sites, isOpen, entry]);
 
   const abstractRemittanceRows = useMemo(() => {
     return selectedRemittanceIndices.map((rIdx) => {
@@ -2898,11 +2933,11 @@ export default function PrintableReportModal({
 
                       {isTWC ? (
                         /* TWC Malayalam 18-Item Table */
-                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug" style={{ width: '100%', borderCollapse: 'collapse' }} width="100%">
                           <tbody>
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold w-[45%] text-black align-top">1. ഫയൽ നമ്പർ</td>
-                              <td className="py-2 px-2 w-[55%] text-black align-top">
+                              <td className="py-2 px-2 font-bold w-[38%] text-black align-top" style={{ width: '38%', fontWeight: 'bold', verticalAlign: 'top' }} width="38%">1. ഫയൽ നമ്പർ</td>
+                              <td className="py-2 px-2 w-[62%] text-black align-top" style={{ width: '62%', verticalAlign: 'top' }} width="62%">
                                 {renderEditableCell('cr_twc_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
                               </td>
                             </tr>
@@ -3048,11 +3083,11 @@ export default function PrintableReportModal({
                         </table>
                       ) : (
                         /* Standard BWC Malayalam Table */
-                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug" style={{ width: '100%', borderCollapse: 'collapse' }} width="100%">
                           <tbody>
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold w-[40%] text-black align-top">1. ഫയൽ നമ്പർ</td>
-                              <td className="py-2 px-2 w-[60%] text-black align-top">
+                              <td className="py-2 px-2 font-bold w-[38%] text-black align-top" style={{ width: '38%', fontWeight: 'bold', verticalAlign: 'top' }} width="38%">1. ഫയൽ നമ്പർ</td>
+                              <td className="py-2 px-2 w-[62%] text-black align-top" style={{ width: '62%', verticalAlign: 'top' }} width="62%">
                                 {renderEditableCell('cr_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
                               </td>
                             </tr>
@@ -3281,21 +3316,21 @@ export default function PrintableReportModal({
                       )}
                     </div>
 
-                    <div className="pt-10 pb-2 mt-auto grid grid-cols-4 text-center font-bold text-xs sm:text-[12.5px] signature-block gap-2">
-                      <div>
-                        <div className="h-10"></div>
+                    <div className="pt-10 pb-2 mt-auto text-center font-bold text-xs sm:text-[12.5px] signature-block" style={{ width: '100%', marginTop: '30px', clear: 'both' }}>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         സൈറ്റ് - ഇൻ - ചാർജ്
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         അസി. എഞ്ചിനീയർ
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         അസി. എക്സി. എഞ്ചിനീയർ
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         ജില്ലാ ഓഫീസർ
                       </div>
                     </div>
@@ -3320,11 +3355,11 @@ export default function PrintableReportModal({
 
                       {isTWC ? (
                         /* TWC English 18-Item Table */
-                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug" style={{ width: '100%', borderCollapse: 'collapse' }} width="100%">
                           <tbody>
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold w-[45%] text-black align-top">1. File No.</td>
-                              <td className="py-2 px-2 w-[55%] text-black align-top">
+                              <td className="py-2 px-2 font-bold w-[38%] text-black align-top" style={{ width: '38%', fontWeight: 'bold', verticalAlign: 'top' }} width="38%">1. File No.</td>
+                              <td className="py-2 px-2 w-[62%] text-black align-top" style={{ width: '62%', verticalAlign: 'top' }} width="62%">
                                 {renderEditableCell('cr_en_twc_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
                               </td>
                             </tr>
@@ -3472,11 +3507,11 @@ export default function PrintableReportModal({
                         </table>
                       ) : (
                         /* Standard BWC English Table */
-                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug">
+                        <table className="w-full border-collapse text-[12.5px] sm:text-[13px] leading-snug" style={{ width: '100%', borderCollapse: 'collapse' }} width="100%">
                           <tbody>
                             <tr className="border-b border-gray-300">
-                              <td className="py-2 px-2 font-bold w-[40%] text-black align-top">1. File No.</td>
-                              <td className="py-2 px-2 w-[60%] text-black align-top">
+                              <td className="py-2 px-2 font-bold w-[38%] text-black align-top" style={{ width: '38%', fontWeight: 'bold', verticalAlign: 'top' }} width="38%">1. File No.</td>
+                              <td className="py-2 px-2 w-[62%] text-black align-top" style={{ width: '62%', verticalAlign: 'top' }} width="62%">
                                 {renderEditableCell('cr_en_fileNo', `: ${displayFileNo}`, <Input className="h-6 text-xs" value={fileNo} onChange={e => setFileNo(e.target.value)} />)}
                               </td>
                             </tr>
@@ -3705,21 +3740,21 @@ export default function PrintableReportModal({
                       )}
                     </div>
 
-                    <div className="pt-10 pb-2 mt-auto grid grid-cols-4 text-center font-bold text-xs sm:text-[12.5px] signature-block gap-2">
-                      <div>
-                        <div className="h-10"></div>
+                    <div className="pt-10 pb-2 mt-auto text-center font-bold text-xs sm:text-[12.5px] signature-block" style={{ width: '100%', marginTop: '30px', clear: 'both' }}>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         Site-in-Charge
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         Assistant Engineer
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         Assistant Exec. Engineer
                       </div>
-                      <div>
-                        <div className="h-10"></div>
+                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                        <div style={{ height: '35px' }}></div>
                         District Officer
                       </div>
                     </div>
@@ -3931,34 +3966,35 @@ export default function PrintableReportModal({
                           <h3 className="text-xl font-bold">കുഴൽകിണർ നിർമ്മാണം - ഫൈനൽ ബിൽ</h3>
                         </div>
 
-                        <div className="flex justify-between items-start text-base font-semibold py-1">
-                          <div className="flex flex-col space-y-1">
+                        <div style={{ width: '100%', margin: '8px 0', fontSize: '11pt', fontWeight: 'bold', overflow: 'hidden' }}>
+                          <div style={{ float: 'left', width: '60%', textAlign: 'left' }}>
                             <div>ഫയൽ നമ്പർ: <strong className="text-lg">{fileNo.toUpperCase().startsWith('GWD') ? fileNo : `${officeAddress?.officeCode || 'GWDKLM'}${fileNo}`}</strong></div>
                             <div>അപേക്ഷകൻ: <strong className="text-lg">{applicantName}</strong></div>
                             {siteDisplayMl && (
                               <div>സൈറ്റിന്റെ പേര്: <strong className="text-lg">{siteDisplayMl}</strong></div>
                             )}
                           </div>
-                          <div className="min-w-[180px] shrink-0">
+                          <div style={{ float: 'right', width: '38%', textAlign: 'right' }}>
                             {renderEditableCell(
                               'fb_reportDate',
                               <div className="text-right">തീയതി : <strong className="text-lg">{reportDate}</strong></div>,
                               <Input className="h-6 text-xs w-32 ml-auto" placeholder="DD/MM/YYYY" value={reportDate} onChange={e => setReportDate(e.target.value)} />
                             )}
                           </div>
+                          <div style={{ clear: 'both' }}></div>
                         </div>
 
-                        <table className="w-full border-collapse border border-black text-xs">
+                        <table className="w-full border-collapse border border-black text-xs" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }}>
                           <thead>
                             <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                              <td className="border border-black py-2.5 w-12">ക്രമ നമ്പർ</td>
-                              <td className="border border-black py-2.5">വിവരണങ്ങൾ</td>
-                              <td className="border border-black py-2.5 w-24">നിരക്ക് (രൂപ)</td>
+                              <td className="border border-black py-2.5 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>ക്രമ നമ്പർ</td>
+                              <td className="border border-black py-2.5" style={{ width: '48%', textAlign: 'center', fontWeight: 'bold' }}>വിവരണങ്ങൾ</td>
+                              <td className="border border-black py-2.5 w-24" style={{ width: '14%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>നിരക്ക് (രൂപ)</td>
                               {hasTenderNo && (
-                                <td className="border border-black py-2.5 w-28 text-right pr-1">അംഗീകരിച്ച നിരക്ക് (Rs)<br/><span className="text-[10px] font-normal">({quotedPctStr || 'Quoted Percentage of L1'} of PAC)</span></td>
+                                <td className="border border-black py-2.5 w-28 text-right pr-1" style={{ width: '16%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }}>അംഗീകരിച്ച നിരക്ക് (Rs)<br/><span className="text-[10px] font-normal">({quotedPctStr || 'Quoted Percentage of L1'} of PAC)</span></td>
                               )}
-                              <td className="border border-black py-2.5 w-24">അളവ്</td>
-                              <td className="border border-black py-2.5 w-32 text-right pr-2">തുക (രൂപ)</td>
+                              <td className="border border-black py-2.5 w-24" style={{ width: '12%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>അളവ്</td>
+                              <td className="border border-black py-2.5 w-32 text-right pr-2" style={{ width: '18%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }}>തുക (രൂപ)</td>
                             </tr>
                           </thead>
                           <tbody>
@@ -4165,18 +4201,18 @@ export default function PrintableReportModal({
                           </tbody>
                         </table>
 
-                        {/* Signature Block after table (4 rows distance) */}
-                        <div className="pt-16 pb-2 grid grid-cols-3 text-center font-bold text-xs sm:text-sm gap-4 signature-block">
-                          <div>
-                            <div className="h-10"></div>
+                        {/* Signature Block after table */}
+                        <div className="pt-16 pb-2 text-center font-bold text-xs sm:text-sm signature-block" style={{ width: '100%', marginTop: '40px', clear: 'both' }}>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             അസിസ്റ്റന്റ് എഞ്ചിനീയർ
                           </div>
-                          <div>
-                            <div className="h-10"></div>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ
                           </div>
-                          <div>
-                            <div className="h-10"></div>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             ജില്ലാ ഓഫീസർ
                           </div>
                         </div>
@@ -4400,17 +4436,17 @@ export default function PrintableReportModal({
                           </div>
                         </div>
 
-                        <table className="w-full border-collapse border border-black text-xs">
+                        <table className="w-full border-collapse border border-black text-xs" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }}>
                           <thead>
                             <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                              <td className="border border-black py-2 w-12">Sl No</td>
-                              <td className="border border-black py-2">Description of Item</td>
-                              <td className="border border-black py-2 w-24">Rate (Rs)</td>
+                              <td className="border border-black py-2 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>Sl No</td>
+                              <td className="border border-black py-2" style={{ width: '48%', textAlign: 'center', fontWeight: 'bold' }}>Description of Item</td>
+                              <td className="border border-black py-2 w-24" style={{ width: '14%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>Rate (Rs)</td>
                               {hasTenderNo && (
-                                <td className="border border-black py-2 w-28 text-right pr-1">Agreed Rate (Rs)<br/><span className="text-[10px] font-normal">({quotedPctStr || 'Quoted Percentage of L1'} of PAC)</span></td>
+                                <td className="border border-black py-2 w-28 text-right pr-1" style={{ width: '16%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }}>Agreed Rate (Rs)<br/><span className="text-[10px] font-normal">({quotedPctStr || 'Quoted Percentage of L1'} of PAC)</span></td>
                               )}
-                              <td className="border border-black py-2 w-24">Qty / Unit</td>
-                              <td className="border border-black py-2 w-32 text-right pr-2">Amount (Rs)</td>
+                              <td className="border border-black py-2 w-24" style={{ width: '12%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }}>Qty / Unit</td>
+                              <td className="border border-black py-2 w-32 text-right pr-2" style={{ width: '18%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }}>Amount (Rs)</td>
                             </tr>
                           </thead>
                           <tbody>
@@ -4617,18 +4653,18 @@ export default function PrintableReportModal({
                           </tbody>
                         </table>
 
-                        {/* Signature Block after table (4 rows distance) */}
-                        <div className="pt-16 pb-2 grid grid-cols-3 text-center font-bold text-xs sm:text-sm gap-4 signature-block">
-                          <div>
-                            <div className="h-10"></div>
+                        {/* Signature Block after table */}
+                        <div className="pt-16 pb-2 text-center font-bold text-xs sm:text-sm signature-block" style={{ width: '100%', marginTop: '40px', clear: 'both' }}>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             Assistant Engineer
                           </div>
-                          <div>
-                            <div className="h-10"></div>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             Assistant Executive Engineer
                           </div>
-                          <div>
-                            <div className="h-10"></div>
+                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
+                            <div style={{ height: '35px' }}></div>
                             District Officer
                           </div>
                         </div>
@@ -5070,9 +5106,14 @@ export default function PrintableReportModal({
                   </div>
                 </div>
 
-                <div className="flex justify-between font-bold border-y border-black py-1 text-[11pt]">
-                  {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
-                  {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                <div style={{ width: '100%', borderTop: '1px solid black', borderBottom: '1px solid black', margin: '8px 0', padding: '4px 0', fontWeight: 'bold', fontSize: '11pt', overflow: 'hidden' }}>
+                  <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                    {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                  </div>
+                  <div style={{ float: 'right', width: '50%', textAlign: 'right' }}>
+                    {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                  </div>
+                  <div style={{ clear: 'both' }}></div>
                 </div>
 
                 <div className="text-[11pt] space-y-4 leading-[1.5] text-justify pt-2">
@@ -5154,15 +5195,17 @@ export default function PrintableReportModal({
                 </div>
               </div>
 
-              <div className="pt-10 flex justify-between items-end text-[11pt] leading-[1.5]">
-                <div>
-                  <p className="font-bold">Copy to:</p>
-                  <p>1. File</p>
-                  <p>2. Stock File / Office Copy</p>
+              <div style={{ width: '100%', marginTop: '30px', fontSize: '11pt', overflow: 'hidden' }}>
+                <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>Copy to:</p>
+                  <p style={{ margin: 0 }}>1. File</p>
+                  <p style={{ margin: 0 }}>2. Stock File / Office Copy</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">District Officer</p>
+                <div style={{ float: 'right', width: '45%', textAlign: 'right', fontWeight: 'bold' }}>
+                  <br/><br/>
+                  <p style={{ margin: 0 }}>District Officer</p>
                 </div>
+                <div style={{ clear: 'both' }}></div>
               </div>
             </div>
           )}
@@ -5546,13 +5589,13 @@ export default function PrintableReportModal({
                       })()}
                     </div>
 
-                    <table className="w-full border-collapse border border-black text-[10pt]">
+                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }} border="1" width="100%">
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                          <td className="border border-black p-1.5 w-12">ക്രമ നമ്പർ</td>
-                          <td className="border border-black p-1.5">വിവരണങ്ങൾ</td>
-                          <td className="border border-black p-1.5 w-32 text-right pr-2">തുക (രൂപ)</td>
-                          <td className="border border-black p-1.5 w-36 text-right pr-2">ആകെ തുക (രൂപ)</td>
+                          <td className="border border-black p-1.5 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }} width="8%">ക്രമ നമ്പർ</td>
+                          <td className="border border-black p-1.5" style={{ width: '50%', textAlign: 'center', fontWeight: 'bold' }} width="50%">വിവരണങ്ങൾ</td>
+                          <td className="border border-black p-1.5 w-32 text-right pr-2" style={{ width: '21%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }} width="21%">തുക (രൂപ)</td>
+                          <td className="border border-black p-1.5 w-36 text-right pr-2" style={{ width: '21%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }} width="21%">ആകെ തുക (രൂപ)</td>
                         </tr>
                       </thead>
                       <tbody>
@@ -5723,38 +5766,41 @@ export default function PrintableReportModal({
                       margin: ${getPageMarginsCss(printSettings)} !important;
                     }
                   `}</style>
-                  <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
-                    <div>
-                      {renderEditableCell('uc_en_ref', 
-                        <span>Ref No: <strong>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</strong></span>, 
-                        <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
-                      )}
-                    </div>
-
-                    <div className="text-right text-[10pt] space-y-0.5">
-                      {officeAddress?.address ? (
-                        <div className="whitespace-pre-line text-right">
-                          {officeAddress.address}
-                        </div>
-                      ) : (
-                        <>
-                          <p className="font-bold">Office of the District Officer</p>
-                          <p className="font-semibold">Ground Water Department, {district}</p>
-                        </>
-                      )}
-                      {renderEditableCell('uc_en_contact', 
-                        <div className="text-right">
-                          <p>Phone: {ucPhone}</p>
-                          <p>Email: {ucEmail}</p>
-                        </div>,
-                        <div className="flex flex-col gap-1 items-end">
-                          <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
-                          <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
-                        </div>
-                      )}
-                      {renderEditableCell('uc_en_date', <p className="pt-0.5">Date: <strong>{orderDate}</strong></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-                    </div>
-                  </div>
+                  <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginBottom: '10px' }}>
+                    <tbody>
+                      <tr style={{ border: 'none' }}>
+                        <td style={{ width: '45%', border: 'none', textAlign: 'left', verticalAlign: 'top' }}>
+                          {renderEditableCell('uc_en_ref', 
+                            <span>Ref No: <strong>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</strong></span>, 
+                            <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
+                          )}
+                        </td>
+                        <td style={{ width: '55%', border: 'none', textAlign: 'right', verticalAlign: 'top' }}>
+                          {officeAddress?.address ? (
+                            <div className="whitespace-pre-line text-right">
+                              {officeAddress.address}
+                            </div>
+                          ) : (
+                            <>
+                              <p style={{ margin: 0, fontWeight: 'bold' }}>Office of the District Officer</p>
+                              <p style={{ margin: 0, fontWeight: '600' }}>Ground Water Department, {district}</p>
+                            </>
+                          )}
+                          {renderEditableCell('uc_en_contact', 
+                            <div className="text-right">
+                              <p style={{ margin: 0 }}>Phone: {ucPhone}</p>
+                              <p style={{ margin: 0 }}>Email: {ucEmail}</p>
+                            </div>,
+                            <div className="flex flex-col gap-1 items-end">
+                              <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
+                              <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
+                            </div>
+                          )}
+                          {renderEditableCell('uc_en_date', <p className="pt-0.5" style={{ margin: 0 }}>Date: <strong>{orderDate}</strong></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="text-[10pt] space-y-3 py-1">
                     <div>
@@ -5788,13 +5834,13 @@ export default function PrintableReportModal({
                   </div>
 
                   <div className="pt-2">
-                    <table className="w-full border-collapse border border-black text-[10pt]">
+                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }} border="1" width="100%">
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                          <td className="border border-black p-1.5 w-12">Sl No</td>
-                          <td className="border border-black p-1.5">Description</td>
-                          <td className="border border-black p-1.5 w-32 text-right pr-2">Amount (Rs)</td>
-                          <td className="border border-black p-1.5 w-36 text-right pr-2">Total Amount (Rs)</td>
+                          <td className="border border-black p-1.5 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }} width="8%">Sl No</td>
+                          <td className="border border-black p-1.5" style={{ width: '50%', textAlign: 'center', fontWeight: 'bold' }} width="50%">Description</td>
+                          <td className="border border-black p-1.5 w-32 text-right pr-2" style={{ width: '21%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }} width="21%">Amount (Rs)</td>
+                          <td className="border border-black p-1.5 w-36 text-right pr-2" style={{ width: '21%', whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 'bold' }} width="21%">Total Amount (Rs)</td>
                         </tr>
                       </thead>
                       <tbody>

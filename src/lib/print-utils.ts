@@ -315,29 +315,167 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
   const noPrintElements = clone.querySelectorAll('.no-print, .print\\:hidden, button, [class*="DialogFooter"]');
   noPrintElements.forEach((el) => el.remove());
 
+  // Inline style transformer for e-Office / CKEditor / MS Word pasting
+  const allElements = clone.querySelectorAll('*');
+  allElements.forEach((el) => {
+    const htmlEl = el as HTMLElement;
+    const tagName = htmlEl.tagName.toLowerCase();
+
+    // Preserve text alignment inline
+    if (htmlEl.classList.contains('text-right')) {
+      htmlEl.style.textAlign = 'right';
+    } else if (htmlEl.classList.contains('text-center')) {
+      htmlEl.style.textAlign = 'center';
+    } else if (htmlEl.classList.contains('text-justify')) {
+      htmlEl.style.textAlign = 'justify';
+    } else if (htmlEl.classList.contains('text-left')) {
+      htmlEl.style.textAlign = 'left';
+    }
+
+    // Preserve font weight & decoration inline
+    if (htmlEl.classList.contains('font-bold') || htmlEl.classList.contains('font-semibold') || htmlEl.classList.contains('font-extrabold')) {
+      htmlEl.style.fontWeight = 'bold';
+    }
+    if (htmlEl.classList.contains('italic')) {
+      htmlEl.style.fontStyle = 'italic';
+    }
+    if (htmlEl.classList.contains('underline')) {
+      htmlEl.style.textDecoration = 'underline';
+    }
+
+    // Convert Tailwind border classes to explicit inline styles
+    if (htmlEl.classList.contains('border-none') || htmlEl.classList.contains('border-0')) {
+      htmlEl.style.border = 'none';
+    } else if (htmlEl.classList.contains('border') || htmlEl.classList.contains('border-black')) {
+      htmlEl.style.border = '1px solid #000000';
+    }
+    if (htmlEl.classList.contains('border-b')) {
+      htmlEl.style.borderBottom = '1px solid #000000';
+    }
+    if (htmlEl.classList.contains('border-t')) {
+      htmlEl.style.borderTop = '1px solid #000000';
+    }
+    if (htmlEl.classList.contains('border-l')) {
+      htmlEl.style.borderLeft = '1px solid #000000';
+    }
+    if (htmlEl.classList.contains('border-r')) {
+      htmlEl.style.borderRight = '1px solid #000000';
+    }
+
+    // Convert Tailwind width & layout classes (including arbitrary w-[...]) to inline styles & attributes
+    htmlEl.classList.forEach((cls) => {
+      if (cls.startsWith('w-[')) {
+        const customWidth = cls.substring(3, cls.length - 1);
+        htmlEl.style.width = customWidth;
+        if (tagName === 'td' || tagName === 'th' || tagName === 'table') {
+          htmlEl.setAttribute('width', customWidth);
+        }
+      } else if (cls === 'w-full') {
+        htmlEl.style.width = '100%';
+        if (tagName === 'td' || tagName === 'th' || tagName === 'table') htmlEl.setAttribute('width', '100%');
+      } else if (cls === 'w-1/2') {
+        htmlEl.style.width = '50%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '50%');
+      } else if (cls === 'w-1/3') {
+        htmlEl.style.width = '33.33%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '33.33%');
+      } else if (cls === 'w-2/3') {
+        htmlEl.style.width = '66.66%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '66.66%');
+      } else if (cls === 'w-1/4') {
+        htmlEl.style.width = '25%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '25%');
+      } else if (cls === 'w-3/4') {
+        htmlEl.style.width = '75%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '75%');
+      } else if (cls === 'w-12') {
+        htmlEl.style.width = '8%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '8%');
+      } else if (cls === 'w-24') {
+        htmlEl.style.width = '15%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '15%');
+      } else if (cls === 'w-28') {
+        htmlEl.style.width = '18%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '18%');
+      } else if (cls === 'w-32') {
+        htmlEl.style.width = '20%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '20%');
+      } else if (cls === 'w-36') {
+        htmlEl.style.width = '22%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '22%');
+      } else if (cls === 'w-48') {
+        htmlEl.style.width = '28%';
+        if (tagName === 'td' || tagName === 'th') htmlEl.setAttribute('width', '28%');
+      }
+    });
+
+    // Tables inline styling
+    if (tagName === 'table') {
+      htmlEl.style.width = '100%';
+      htmlEl.style.maxWidth = '100%';
+      htmlEl.style.borderCollapse = 'collapse';
+      htmlEl.setAttribute('width', '100%');
+
+      const isBorderless = htmlEl.classList.contains('border-none') || htmlEl.classList.contains('border-0') || htmlEl.style.border === 'none' || htmlEl.getAttribute('border') === '0';
+      if (isBorderless) {
+        htmlEl.style.border = 'none';
+        htmlEl.setAttribute('border', '0');
+      } else {
+        htmlEl.style.border = '1px solid #000000';
+        htmlEl.setAttribute('border', '1');
+      }
+    }
+
+    // Table cells inline styling
+    if (tagName === 'th' || tagName === 'td') {
+      const parentTable = htmlEl.closest('table');
+      const isBorderlessTable = parentTable ? (parentTable.classList.contains('border-none') || parentTable.classList.contains('border-0') || parentTable.style.border === 'none' || parentTable.getAttribute('border') === '0') : false;
+
+      htmlEl.style.verticalAlign = 'top';
+      if (htmlEl.style.width) {
+        htmlEl.setAttribute('width', htmlEl.style.width);
+      }
+      if (!isBorderlessTable) {
+        if (!htmlEl.style.border || htmlEl.style.border === 'none') {
+          htmlEl.style.border = '1px solid #000000';
+        }
+        if (!htmlEl.style.padding) {
+          htmlEl.style.padding = '5px 8px';
+        }
+      } else {
+        htmlEl.style.border = 'none';
+      }
+
+      if (tagName === 'th') {
+        htmlEl.style.backgroundColor = '#f2f2f2';
+        htmlEl.style.fontWeight = 'bold';
+      }
+    }
+  });
+
   const contentHtml = clone.innerHTML;
   const contentText = clone.innerText || clone.textContent || '';
 
   // Standard CSS styles to wrap the HTML with so alignment, tables, borders, and margins are preserved when pasted
   const styles = `
     <style>
-      table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000000 !important; margin: 12px 0 !important; }
-      th, td { border: 1px solid #000000 !important; padding: 6px 10px !important; text-align: left; vertical-align: top; font-size: ${bodyFontSize} !important; }
-      th { background-color: #f2f2f2 !important; font-weight: bold !important; font-size: ${subheadingFontSize} !important; }
-      h1, h2, .print-main-heading { font-size: ${headingFontSize} !important; font-weight: bold !important; }
-      h3, h4, .print-sub-heading { font-size: ${subheadingFontSize} !important; font-weight: bold !important; }
-      p, div { margin: 0 0 10px 0; font-size: ${bodyFontSize} !important; }
-      body { font-family: ${fontStack} !important; font-size: ${bodyFontSize} !important; line-height: ${lineHeight} !important; color: #000000 !important; }
-      * { font-family: ${fontStack} !important; }
-      .text-right { text-align: right !important; }
-      .text-center { text-align: center !important; }
-      .text-justify { text-align: justify !important; }
-      .font-bold { font-weight: bold !important; }
-      .italic { font-style: italic !important; }
-      .underline { text-decoration: underline !important; }
-      .flex { display: flex !important; }
-      .justify-between { justify-content: space-between !important; }
-      .w-full { width: 100% !important; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+      th, td { padding: 5px 8px; text-align: left; vertical-align: top; font-size: ${bodyFontSize}; }
+      th { background-color: #f2f2f2; font-weight: bold; font-size: ${subheadingFontSize}; }
+      h1, h2, .print-main-heading { font-size: ${headingFontSize}; font-weight: bold; }
+      h3, h4, .print-sub-heading { font-size: ${subheadingFontSize}; font-weight: bold; }
+      p, div { margin: 0 0 8px 0; font-size: ${bodyFontSize}; }
+      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; }
+      * { font-family: ${fontStack}; }
+      .text-right { text-align: right; }
+      .text-center { text-align: center; }
+      .text-justify { text-align: justify; }
+      .font-bold { font-weight: bold; }
+      .italic { font-style: italic; }
+      .underline { text-decoration: underline; }
+      .flex { display: flex; }
+      .justify-between { justify-content: space-between; }
+      .w-full { width: 100%; }
     </style>
   `;
 
