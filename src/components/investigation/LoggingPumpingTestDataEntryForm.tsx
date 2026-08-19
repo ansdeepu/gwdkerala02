@@ -409,6 +409,10 @@ const RemittanceDialogContent = ({ initialData, onConfirm, onCancel, category }:
           ...createDefaultRemittanceDetail(),
           ...initialData,
           dateOfRemittance: formatDateForInput(initialData?.dateOfRemittance),
+          ddDate: formatDateForInput(initialData?.ddDate),
+          ddNo: initialData?.ddNo || "",
+          bankName: initialData?.bankName || "",
+          bankBranch: initialData?.bankBranch || "",
       },
     });
 
@@ -436,7 +440,7 @@ const RemittanceDialogContent = ({ initialData, onConfirm, onCancel, category }:
                     </div>
                 )}
             </DialogHeader>
-            <div className="p-6 pt-4 space-y-4">
+            <div className="p-6 pt-4 space-y-4 max-h-[70vh] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField name="dateOfRemittance" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Date <span className="text-destructive">*</span></FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                     <FormField name="amountRemitted" control={form.control} render={({ field }) => ( 
@@ -466,6 +470,45 @@ const RemittanceDialogContent = ({ initialData, onConfirm, onCancel, category }:
                         </FormItem> 
                     )}/>
                 </div>
+
+                <div className="border-t pt-4 space-y-3">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Demand Draft / Payment Instrument Details (Optional)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField name="ddNo" control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>DD No.</FormLabel>
+                                <FormControl><Input placeholder="e.g. 542109" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField name="ddDate" control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>DD Date</FormLabel>
+                                <FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField name="bankName" control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bank Name</FormLabel>
+                                <FormControl>
+                                    <BankSelect value={field.value ?? ''} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField name="bankBranch" control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Branch</FormLabel>
+                                <FormControl><Input placeholder="e.g. Pathanamthitta Main" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </div>
+                </div>
+
                 <FormField name="remittanceRemarks" control={form.control} render={({ field }) => ( <FormItem><FormLabel>{category === 'Complaints' ? 'Remarks' : 'Remittance Remarks'}</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Add any remarks for this entry..." /></FormControl><FormMessage /></FormItem> )}/>
             </div>
             <DialogFooter className="p-6 pt-4">

@@ -268,6 +268,10 @@ export const RemittanceDetailSchema = z.object({
   dateOfRemittance: z.string().min(1, "Date is required."),
   remittedAccount: z.enum(remittedAccountOptions, { required_error: "Account is required." }),
   remittanceRemarks: z.string().optional().nullable(),
+  ddNo: z.string().optional().nullable(),
+  ddDate: z.string().optional().nullable(),
+  bankName: z.string().optional().nullable(),
+  bankBranch: z.string().optional().nullable(),
 });
 export type RemittanceDetailFormData = z.infer<typeof RemittanceDetailSchema>;
 

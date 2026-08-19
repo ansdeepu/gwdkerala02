@@ -125,6 +125,87 @@ const parseQuotedPercentage = (quotedPercentageStr: string | null | undefined): 
   return { percentage, isBelow: isBelow && !isAbove, isAbove };
 };
 
+const formatSingleRemittanceDd = (r: any): string => {
+  if (!r) return '';
+  const rDdNo = r.ddNo?.toString().trim() || '';
+  const rawDdDate = r.ddDate ? formatDateDDMMYYYY(r.ddDate) : '';
+  const rawRemDate = r.dateOfRemittance ? formatDateDDMMYYYY(r.dateOfRemittance) : '';
+  const effDate = rawDdDate || rawRemDate;
+  const rBank = r.bankName?.toString().trim() || '';
+  const rBranch = r.bankBranch?.toString().trim() || '';
+  const rRemarks = r.remittanceRemarks?.toString().trim() || '';
+
+  const bankParts: string[] = [];
+  if (rBank) bankParts.push(rBank);
+  if (rBranch) bankParts.push(rBranch);
+  const bankInfo = bankParts.join(', ');
+
+  if (rDdNo) {
+    let s = `DD No. ${rDdNo}`;
+    if (effDate) s += ` dt ${effDate}`;
+    if (bankInfo) s += ` (${bankInfo})`;
+    return s;
+  }
+  
+  if (rRemarks) {
+    const cleanRemarks = rRemarks.replace(/^DD\s*(No\.?)?\s*/i, '').trim();
+    let s = cleanRemarks ? `DD No. ${cleanRemarks}` : '';
+    if (effDate) s += (s ? ` dt ${effDate}` : `Dated ${effDate}`);
+    if (bankInfo) s += ` (${bankInfo})`;
+    return s || (bankInfo ? `(${bankInfo})` : '');
+  }
+
+  if (effDate && bankInfo) {
+    return `Dated ${effDate} (${bankInfo})`;
+  } else if (effDate) {
+    return `Dated ${effDate}`;
+  } else if (bankInfo) {
+    return bankInfo;
+  }
+  return '';
+};
+
+const formatAllRemittancesDd = (remittances?: any[]): string => {
+  if (!remittances || remittances.length === 0) return '';
+  const items = remittances.map(formatSingleRemittanceDd).filter(Boolean);
+  return formatDatesInText(items.join(', '));
+};
+
+const isStaleDdOverride = (saved: string | undefined, remittances?: any[]): boolean => {
+  if (!saved) return true;
+  const s = saved.trim();
+  if (!s || s === 'DD Details' || s === 'N/A' || s === '-' || /DD No\.\s*Dated/i.test(s) || /DD No\.\s*\)/i.test(s)) {
+    return true;
+  }
+  if (remittances && remittances.length > 0) {
+    const first = remittances[0];
+    if (first?.ddNo?.toString().trim() && !s.includes(first.ddNo.toString().trim())) {
+      return true;
+    }
+    if (first?.bankName?.toString().trim() && !s.includes(first.bankName.toString().trim())) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const isStaleProceedingsRef1 = (saved: string | undefined, remittances?: any[]): boolean => {
+  if (!saved) return true;
+  if (/DD No\.\s*Dated/i.test(saved) || /\(DD No\.\s*\)/i.test(saved)) {
+    return true;
+  }
+  if (remittances && remittances.length > 0) {
+    const first = remittances[0];
+    if (first?.ddNo?.toString().trim() && !saved.includes(first.ddNo.toString().trim())) {
+      return true;
+    }
+    if (first?.bankName?.toString().trim() && !saved.includes(first.bankName.toString().trim())) {
+      return true;
+    }
+  }
+  return false;
+};
+
 interface PrintableReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -445,13 +526,8 @@ export default function PrintableReportModal({
     // Financial remittance
     const depositTotal = entry.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0;
     setAdvanceDeposit(depositTotal);
-    const firstRemittance = entry.remittanceDetails?.[0];
-    const rawRemittanceDate = firstRemittance?.dateOfRemittance ? formatDateDDMMYYYY(firstRemittance.dateOfRemittance) : '';
-    const ddStr = formatDatesInText(
-      firstRemittance
-        ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${rawRemittanceDate}`
-        : ''
-    );
+
+    const ddStr = formatAllRemittancesDd(entry.remittanceDetails);
     setDdDetails(ddStr);
 
     let localTotalExpenditure = 0;
@@ -816,7 +892,6 @@ export default function PrintableReportModal({
     if (savedOverrides.refLetterDate) setRefLetterDate(savedOverrides.refLetterDate);
 
     if (savedOverrides.advanceDeposit !== undefined) setAdvanceDeposit(savedOverrides.advanceDeposit);
-    if (savedOverrides.ddDetails !== undefined) setDdDetails(savedOverrides.ddDetails);
 
     if (savedOverrides.drillingRate !== undefined) setDrillingRate(savedOverrides.drillingRate);
     if (savedOverrides.casing10kgRate !== undefined) setCasing10kgRate(savedOverrides.casing10kgRate);
@@ -948,10 +1023,23 @@ export default function PrintableReportModal({
 
     if (savedOverrides.subsidyAmount !== undefined) setSubsidyAmount(Number(savedOverrides.subsidyAmount) || 0);
 
+    const computedDdDetails = formatAllRemittancesDd(entry?.remittanceDetails);
+    if (savedOverrides.ddDetails !== undefined && !isStaleDdOverride(savedOverrides.ddDetails, entry?.remittanceDetails)) {
+      setDdDetails(savedOverrides.ddDetails);
+    } else {
+      setDdDetails(computedDdDetails);
+    }
+
+    if (savedOverrides.advanceDeposit !== undefined) setAdvanceDeposit(Number(savedOverrides.advanceDeposit) || 0);
+
+    const firstRemWithBank = entry?.remittanceDetails?.find(r => (r as any).bankName);
+    const remBankName = (firstRemWithBank as any)?.bankName;
+    const remBranch = (firstRemWithBank as any)?.bankBranch;
+
     const entryBankAcc = (entry as any)?.bankAccountNo;
     const entryIfsc = (entry as any)?.ifsc || (entry as any)?.bankIfsc;
-    const entryBankName = (entry as any)?.bankName;
-    const entryBranch = (entry as any)?.branch || (entry as any)?.bankBranch;
+    const entryBankName = (entry as any)?.bankName || remBankName;
+    const entryBranch = (entry as any)?.branch || (entry as any)?.bankBranch || remBranch;
 
     if (savedOverrides.bankAccountNo !== undefined) {
       setBankAccountNo(savedOverrides.bankAccountNo);
@@ -978,7 +1066,15 @@ export default function PrintableReportModal({
     }
 
     if (savedOverrides.proceedingsSubject !== undefined) setProceedingsSubject(savedOverrides.proceedingsSubject);
-    if (savedOverrides.proceedingsRef1 !== undefined) setProceedingsRef1(savedOverrides.proceedingsRef1);
+    
+    if (savedOverrides.proceedingsRef1 !== undefined && !isStaleProceedingsRef1(savedOverrides.proceedingsRef1, entry?.remittanceDetails)) {
+      setProceedingsRef1(savedOverrides.proceedingsRef1);
+    } else {
+      const activeDd = computedDdDetails || ddStr;
+      const ref1Part = activeDd ? ` (${activeDd})` : '';
+      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
+    }
+
     if (savedOverrides.proceedingsRef2 !== undefined) setProceedingsRef2(savedOverrides.proceedingsRef2);
     if (savedOverrides.procPara4 !== undefined) setProcPara4(savedOverrides.procPara4);
     if (savedOverrides.procPara5 !== undefined) setProcPara5(savedOverrides.procPara5);
@@ -1198,18 +1294,8 @@ export default function PrintableReportModal({
       const r = allRemittances[rIdx];
       if (!r) return null;
       const rAmt = Number(r.amountRemitted) || Number((r as any).remittanceAmount) || 0;
-      const rawDate = r.dateOfRemittance ? formatDateDDMMYYYY(r.dateOfRemittance) : '';
-      const dateStr = formatDatesInText(rawDate);
-      const remarks = r.remittanceRemarks || (r as any).ddNo || (r as any).chalanNo || '';
-      
-      let ddDetailsPart = '';
-      if (remarks && dateStr) {
-        ddDetailsPart = ` (DD No. ${remarks} Dated ${dateStr})`;
-      } else if (remarks) {
-        ddDetailsPart = ` (DD No. ${remarks})`;
-      } else if (dateStr) {
-        ddDetailsPart = ` (Dated ${dateStr})`;
-      }
+      const formattedDd = formatSingleRemittanceDd(r);
+      const ddDetailsPart = formattedDd ? ` (${formattedDd})` : '';
 
       return {
         rIdx,
@@ -2355,23 +2441,30 @@ export default function PrintableReportModal({
 
     fb_subsidy: () => setSubsidyAmount(0),
     fb_en_subsidy: () => setSubsidyAmount(0),
-    fb_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
-    fb_en_advance: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
+    fb_advance: () => {
+      setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
+      setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
+    },
+    fb_en_advance: () => {
+      setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
+      setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
+    },
 
     // Proceedings & UC resets
     proc_officer: () => setDistrict(entry?.officeLocation || selectedOffice || 'Pathanamthitta'),
     proc_sub: () => setProceedingsSubject(`GWD, ${district} - Construction of borewell at ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`),
     proc_ref: () => {
-      const fNo = entry?.fileNo || 'GWD/1372/2022';
-      const firstRemittance = entry?.remittanceDetails?.[0];
-      const rawRemittanceDate = firstRemittance?.dateOfRemittance ? formatDateDDMMYYYY(firstRemittance.dateOfRemittance) : '';
-      const ddStr = formatDatesInText(firstRemittance ? `DD No. ${firstRemittance.remittanceRemarks || ''} Dated ${rawRemittanceDate}` : '');
-      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''} and DD details (${ddStr}).`));
+      const ddStr = formatAllRemittancesDd(entry?.remittanceDetails);
+      const ref1Part = ddStr ? ` (${ddStr})` : '';
+      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
       setProceedingsRef2(`2. Final Bill of this office, dated ${orderDate || formatDateDDMMYYYY(new Date().toISOString().split('T')[0])}.`);
     },
     proc_ordNo: () => setOrderNo(`GWD/${(entry?.fileNo || 'GWD/1372/2022').replace(/\//g, '-')}/2026`),
     proc_ordDate: () => setOrderDate(new Date().toISOString().split('T')[0]),
-    proc_para1: () => setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0),
+    proc_para1: () => {
+      setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
+      setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
+    },
     proc_para2: () => setProcNetPayableOverride(null),
     proc_para3: () => {
       setProcNetPayableOverride(null);
@@ -4171,7 +4264,7 @@ export default function PrintableReportModal({
                                     <tr key="advance">
                                       <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                       <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                        {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക (${ddDetails})`, 
+                                        {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`, 
                                           <div className="flex gap-1">
                                             <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                             <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
@@ -4623,7 +4716,7 @@ export default function PrintableReportModal({
                                     <tr key="advance_en">
                                       <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                       <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                        {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant (${ddDetails})`, 
+                                        {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`, 
                                           <div className="flex gap-1">
                                             <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                             <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
@@ -5120,7 +5213,7 @@ export default function PrintableReportModal({
                   <div className="p-1 rounded hover:bg-slate-50 transition-colors">
                     {renderEditableCell('proc_para1',
                       <span>
-                        As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong> vide DD ({formatDatesInText(ddDetails)}) for the construction of a borewell at their premises.
+                        As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong>{ddDetails ? ` vide ${ddDetails.startsWith('DD') || ddDetails.startsWith('Dated') ? formatDatesInText(ddDetails) : `DD (${formatDatesInText(ddDetails)})`}` : ''} for the construction of a borewell at their premises.
                       </span>,
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
