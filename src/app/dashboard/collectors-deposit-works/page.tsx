@@ -19,6 +19,7 @@ import PaginationControls from '@/components/shared/PaginationControls';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Search, PlusCircle } from 'lucide-react';
+import { matchesAllDataSearch } from '@/lib/searchUtils';
 
 
 
@@ -123,52 +124,7 @@ export default function CollectorsDepositWorksPage() {
   
   const searchFilteredEntries = useMemo(() => {
     if (!searchTerm) return collectorDepositWorkEntries;
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return collectorDepositWorkEntries.filter(entry => {
-        const remittanceAmounts = (entry.remittanceDetails || []).map(r => r.amountRemitted);
-        const reappropriationAmounts = (entry.reappropriationDetails || []).map(r => r.amount);
-        const paymentAmounts = (entry.paymentDetails || []).flatMap(p => [
-            p.contractorsPayment,
-            p.revenueHead,
-            p.gst,
-            p.incomeTax,
-            p.kbcwb,
-            p.refundToParty,
-            p.totalPaymentPerEntry
-        ]);
-        const siteAmounts = (entry.siteDetails || []).flatMap(s => [
-            s.estimateAmount,
-            s.remittedAmount,
-            s.tsAmount,
-            s.totalExpenditure
-        ]);
-
-        const allNumericValues = [
-            ...remittanceAmounts,
-            ...reappropriationAmounts,
-            ...paymentAmounts,
-            ...siteAmounts
-        ].filter(v => v !== undefined && v !== null && (v as any) !== '');
-
-        const amountRepresentations = allNumericValues.flatMap(val => {
-            const num = Number(val);
-            if (isNaN(num)) return [String(val)];
-            return [
-                String(num),
-                num.toFixed(0),
-                num.toFixed(2),
-                num.toLocaleString('en-IN'),
-                num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            ];
-        });
-
-        const searchableContent = [
-            entry.fileNo, entry.applicantName, entry.phoneNo, entry.fileStatus,
-            ...(entry.siteDetails || []).map(s => s.nameOfSite),
-            ...amountRepresentations
-        ].filter(Boolean).map(val => String(val).toLowerCase()).join(' '); 
-        return searchableContent.includes(lowerSearchTerm);
-    });
+    return collectorDepositWorkEntries.filter(entry => matchesAllDataSearch(entry, searchTerm));
   }, [collectorDepositWorkEntries, searchTerm]);
 
   const totalSitesCount = useMemo(() => {

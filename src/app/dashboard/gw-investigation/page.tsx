@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { LOGGING_PUMPING_TEST_PURPOSE_OPTIONS, DataEntryFormData } from '@/lib/schemas';
 import PaginationControls from '@/components/shared/PaginationControls';
 import { Search, FilePlus2, Clock } from 'lucide-react';
+import { matchesAllDataSearch } from '@/lib/searchUtils';
 
 
 
@@ -144,54 +145,7 @@ export default function GWInvestigationPage() {
 
   const searchFilteredEntries = useMemo(() => {
     if (!searchTerm) return allInvestigationEntries;
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return allInvestigationEntries.filter(entry => {
-        const remittanceAmounts = (entry.remittanceDetails || []).map(r => r.amountRemitted);
-        const reappropriationAmounts = (entry.reappropriationDetails || []).map(r => r.amount);
-        const paymentAmounts = (entry.paymentDetails || []).flatMap(p => [
-            p.contractorsPayment,
-            p.revenueHead,
-            p.gst,
-            p.incomeTax,
-            p.kbcwb,
-            p.refundToParty,
-            p.totalPaymentPerEntry
-        ]);
-        const siteAmounts = (entry.siteDetails || []).flatMap(s => [
-            s.estimateAmount,
-            s.remittedAmount,
-            s.tsAmount,
-            s.totalExpenditure
-        ]);
-
-        const allNumericValues = [
-            ...remittanceAmounts,
-            ...reappropriationAmounts,
-            ...paymentAmounts,
-            ...siteAmounts
-        ].filter(v => v !== undefined && v !== null && (v as any) !== '');
-
-        const amountRepresentations = allNumericValues.flatMap(val => {
-            const num = Number(val);
-            if (isNaN(num)) return [String(val)];
-            return [
-                String(num),
-                num.toFixed(0),
-                num.toFixed(2),
-                num.toLocaleString('en-IN'),
-                num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            ];
-        });
-
-        const searchableContent = [
-            entry.fileNo, 
-            entry.applicantName,
-            ...(entry.siteDetails || []).map(s => s.nameOfSite),
-            entry.phoneNo,
-            ...amountRepresentations
-        ].filter(Boolean).map(val => String(val).toLowerCase()).join(' ');
-        return searchableContent.includes(lowerSearchTerm);
-    });
+    return allInvestigationEntries.filter(entry => matchesAllDataSearch(entry, searchTerm));
   }, [allInvestigationEntries, searchTerm]);
 
   const totalSitesCount = useMemo(() => {
