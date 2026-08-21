@@ -1463,7 +1463,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => { setPrintModalDocType('completion_report'); setIsPrintModalOpen(true); }}
+                                onClick={() => { setPrintModalDocType('completion_report'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
                                 className="bg-background shadow-xs hover:bg-accent border-primary/25"
                             >
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
@@ -1474,44 +1474,41 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => { setPrintModalDocType('final_bill'); setIsPrintModalOpen(true); }}
+                                onClick={() => { setPrintModalDocType('final_bill'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
                                 className="bg-background shadow-xs hover:bg-accent border-primary/25"
                             >
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
                             </Button>
                         )}
-                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (watchedSiteDetails && watchedSiteDetails.length > 1) && (
+                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => { setPrintModalDocType('abstract_final_bill'); setIsPrintModalOpen(true); }}
+                                onClick={() => { setPrintModalDocType('abstract_final_bill'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
                                 className="bg-background shadow-xs hover:bg-accent border-primary/25"
                             >
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Abstract Final Bill
                             </Button>
                         )}
-                        {currentModuleKey === 'private' ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => { setPrintModalDocType('proceedings'); setIsPrintModalOpen(true); }}
-                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                            >
-                                <FileText className="mr-2 h-4 w-4 text-primary" /> Sanction Proceedings
-                            </Button>
-                        ) : (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => { setPrintModalDocType('utilization_certificate'); setIsPrintModalOpen(true); }}
-                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                            >
-                                <FileText className="mr-2 h-4 w-4 text-primary" /> Utilization Certificate
-                            </Button>
-                        )}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPrintModalDocType('utilization_certificate'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-primary" /> Utilization Certificate
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPrintModalDocType('proceedings'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-primary" /> Sanction Proceedings
+                        </Button>
                     </div>
                 </CardContent>
             </Card>

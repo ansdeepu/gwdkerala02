@@ -396,7 +396,7 @@ export default function FileDatabaseTable({
       <PrintableReportModal
         isOpen={!!selectedPrintEntry}
         onClose={() => setSelectedPrintEntry(null)}
-        entry={selectedPrintEntry}
+        entry={selectedPrintEntry ? (allFileEntries?.find(f => f.id === selectedPrintEntry.id || f.fileNo === selectedPrintEntry.fileNo) || selectedPrintEntry) : null}
         moduleType={currentModule}
         onSave={async (updatedEntry) => {
           if (updatedEntry.id) {
