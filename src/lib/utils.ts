@@ -44,6 +44,24 @@ export const formatCase = (str: string | null | undefined): string | null | unde
   return str;
 };
 
+export const KERALA_DISTRICTS = [
+  "Directorate TVM", "Thiruvananthapuram", "Kollam", "Pathanamthitta",
+  "Alappuzha", "Kottayam", "Idukki", "Ernakulam", "Thrissur", "Palakkad",
+  "Malappuram", "Kozhikode", "Wayanad", "Kannur", "Kasaragod",
+  "Lab TVM", "Lab EKM", "Lab KKD"
+];
+
+export function formatDistrictLocation(loc?: string | null): string {
+  if (!loc) return '';
+  const trimmed = loc.trim();
+  const match = KERALA_DISTRICTS.find(d => d.toLowerCase() === trimmed.toLowerCase());
+  if (match) return match;
+  return trimmed
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export const DISTRICT_MALAYALAM_MAP: Record<string, string> = {
   'thiruvananthapuram': 'തിരുവനന്തപുരം',
   'tvm': 'തിരുവനന്തപുരം',

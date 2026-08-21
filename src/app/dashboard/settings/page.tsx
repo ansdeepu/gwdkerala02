@@ -25,17 +25,43 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import ExcelJS from 'exceljs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { cn, formatCase } from '@/lib/utils';
+import { cn, formatCase, formatDistrictLocation, getInitials } from '@/lib/utils';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save, X, Info, PlusCircle, Eye } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { getInitials } from '@/lib/utils';
 
 const db = getFirestore(app);
 
 const districts = ["Directorate TVM", "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha", "Kottayam", "Idukki", "Ernakulam", "Thrissur", "Palakkad", "Malappuram", "Kozhikode", "Wayanad", "Kannur", "Kasaragod", "Lab TVM", "Lab EKM", "Lab KKD"];
+
+const DISTRICT_ML_MAP: Record<string, string> = {
+  'thiruvananthapuram': 'തിരുവനന്തപുരം',
+  'kollam': 'കൊല്ലം',
+  'pathanamthitta': 'പത്തനംതിട്ട',
+  'alappuzha': 'ആലപ്പുഴ',
+  'kottayam': 'കോട്ടയം',
+  'idukki': 'ഇടുക്കി',
+  'ernakulam': 'എറണാകുളം',
+  'thrissur': 'തൃശ്ശൂർ',
+  'palakkad': 'പാലക്കാട്',
+  'malappuram': 'മലപ്പുറം',
+  'kozhikode': 'കോഴിക്കോട്',
+  'wayanad': 'വയനാട്',
+  'kannur': 'കണ്ണൂർ',
+  'kasaragod': 'കാസർഗോഡ്',
+  'directorate tvm': 'ഡയറക്ടറേറ്റ് തിരുവനന്തപുരം',
+  'lab tvm': 'ലാബ് തിരുവനന്തപുരം',
+  'lab ekm': 'ലാബ് എറണാകുളം',
+  'lab kkd': 'ലാബ് കോഴിക്കോട്',
+};
+
+const getDistrictMl = (dist?: string): string => {
+  if (!dist) return '';
+  const key = dist.trim().toLowerCase();
+  return DISTRICT_ML_MAP[key] || dist;
+};
 
 const OfficeAddressSchema = z.object({
   officeName: z.string().min(1, "Office Name is required."),
@@ -93,7 +119,7 @@ const OfficeAddressDialog = ({ isOpen, onClose, onSubmit, isSubmitting, initialD
         if (initialData) {
             form.reset({
                 officeName: initialData.officeName ?? '',
-                officeLocation: initialData.officeLocation ?? '',
+                officeLocation: formatDistrictLocation(initialData.officeLocation) ?? '',
                 officeCode: initialData.officeCode ?? '',
                 officeNameMalayalam: initialData.officeNameMalayalam ?? '',
                 address: initialData.address ?? '',
@@ -130,6 +156,7 @@ const OfficeAddressDialog = ({ isOpen, onClose, onSubmit, isSubmitting, initialD
     };
     
     const handleFormSubmit = (data: OfficeAddressFormData) => {
+        data.officeLocation = formatDistrictLocation(data.officeLocation);
         onSubmit(data);
     };
 
@@ -149,7 +176,7 @@ const OfficeAddressDialog = ({ isOpen, onClose, onSubmit, isSubmitting, initialD
                                     <FormField name="officeLocation" control={form.control} render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Office Location</FormLabel>
-                                            <FormControl><Input {...field} value={field.value ?? ''} readOnly className="bg-muted/50" /></FormControl>
+                                            <FormControl><Input {...field} value={formatDistrictLocation(field.value) || (field.value ?? '')} readOnly className="bg-muted/50" /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}/>
@@ -266,6 +293,7 @@ export default function SettingsPage() {
     const handleOpenEditDialog = () => {
         if (officeAddress) {
             const detailsToEdit = { ...officeAddress };
+            detailsToEdit.officeLocation = formatDistrictLocation(detailsToEdit.officeLocation);
             if (!detailsToEdit.address) {
                 detailsToEdit.address = "Office of the District Officer\nGround Water Department\nDistrict Office";
             }
@@ -285,8 +313,10 @@ export default function SettingsPage() {
         
         setIsSubmitting(true);
         try {
+            const formattedLocation = formatDistrictLocation(data.officeLocation) || data.officeLocation;
             const payload: { [key: string]: any } = { 
               ...data,
+              officeLocation: formattedLocation,
               officeName: formatCase(data.officeName) ?? data.officeName,
               address: formatCase(data.address) ?? data.address,
             };
@@ -492,7 +522,16 @@ export default function SettingsPage() {
                                         {officeAddress.address && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{officeAddress.address}</p>}
                                     </div>
                                     <div>
-                                        {officeAddress.officeNameMalayalam && <h3 className="font-bold text-lg text-foreground whitespace-pre-wrap">{officeAddress.officeNameMalayalam}</h3>}
+                                        <h3 className="font-bold text-lg text-foreground whitespace-pre-wrap">
+                                            {officeAddress.officeNameMalayalam || "ഭൂജലവകുപ്പ്"}
+                                            {(() => {
+                                                const mlDistrict = getDistrictMl(officeAddress.officeLocation);
+                                                if (mlDistrict && !officeAddress.officeNameMalayalam?.includes(mlDistrict)) {
+                                                    return <>, <span className="text-primary">{mlDistrict}</span></>;
+                                                }
+                                                return null;
+                                            })()}
+                                        </h3>
                                         {officeAddress.addressMalayalam && <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{officeAddress.addressMalayalam}</p>}
                                     </div>
                                 </div>

@@ -15,6 +15,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { E_tender } from './useE_tenders';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
+import { formatDistrictLocation } from '@/lib/utils';
 
 const db = getFirestore(app);
 
@@ -288,11 +289,11 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
               const subOfficeDoc = processFirestoreDoc<OfficeAddress>(bestDocSnap);
               setOfficeAddress({
                   ...subOfficeDoc,
-                  officeLocation: officeLocation,
+                  officeLocation: formatDistrictLocation(officeLocation || subOfficeDoc.officeLocation),
                   officeCode: globalOffice?.officeCode || subOfficeDoc.officeCode || '',
               });
           } else {
-              if (globalOffice) setOfficeAddress({ ...globalOffice, officeName: '', id: globalOffice.id });
+              if (globalOffice) setOfficeAddress({ ...globalOffice, officeLocation: formatDistrictLocation(globalOffice.officeLocation || officeLocation), officeName: '', id: globalOffice.id });
               else setOfficeAddress(null);
           }
       });
