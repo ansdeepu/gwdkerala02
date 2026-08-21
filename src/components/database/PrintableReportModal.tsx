@@ -725,7 +725,36 @@ export default function PrintableReportModal({
 
     const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     setUcFrom('ജില്ലാ ഓഫീസർ');
-    setUcTo(`അസിസ്റ്റന്റ് എൻജിനീയർ\n${currentSite?.localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`);
+
+    const defaultUcToMl = (() => {
+      if ((entry as any)?.applicantNameMl) {
+        const mlName = (entry as any).applicantNameMl;
+        const mlAddr = (entry as any)?.applicantAddressMl;
+        if (mlAddr && !mlName.includes(mlAddr)) {
+          return `${mlName}\n${mlAddr}`;
+        }
+        return mlName.replace(/,\s*/g, '\n');
+      }
+      if (entry?.applicantName) {
+        const enName = entry.applicantName;
+        const enAddr = entry.applicantAddress;
+        if (/^secretary/i.test(enName.trim())) {
+          const panchayatPart = enName.replace(/^secretary,?\s*/i, '').trim();
+          return `സെക്രട്ടറി\n${panchayatPart || currentSite?.localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`;
+        }
+        return `${enName}${enAddr ? `\n${enAddr}` : ''}`.replace(/,\s*/g, '\n');
+      }
+      return currentSite?.localSelfGovt ? `സെക്രട്ടറി\n${currentSite.localSelfGovt}` : 'സെക്രട്ടറി\nഗ്രാമപഞ്ചായത്ത്';
+    })();
+
+    const defaultUcToEn = (() => {
+      if (entry?.applicantName) {
+        return `${entry.applicantName}${entry.applicantAddress ? `\n${entry.applicantAddress}` : ''}`.replace(/,\s*/g, '\n');
+      }
+      return currentSite?.localSelfGovt ? `The Secretary\n${currentSite.localSelfGovt}` : 'The Secretary\nGrama Panchayath';
+    })();
+
+    setUcTo(lang === 'en' ? defaultUcToEn : defaultUcToMl);
     setUcSubject(
       `ഭൂജല വകുപ്പ്, ${districtMl} - ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`
     );
@@ -872,32 +901,18 @@ export default function PrintableReportModal({
       };
     }));
 
-    // Prioritize latest file data for core fields; only fall back to overrides if core field is blank
+    // Apply saved overrides if present on entry
     const savedOverrides: Record<string, any> = (entry as any)?.reportOverrides || (entry as any)?.printOverrides || {};
-    
-    // Core file fields always track latest entry data
-    setFileNo(entry.fileNo || savedOverrides.fileNo || 'GWDKLM/794/2026');
-    if (lang === 'ml' && (entry as any)?.applicantNameMl) {
-      setApplicantName((entry as any).applicantNameMl);
-    } else if (entry.applicantName) {
-      setApplicantName(entry.applicantName);
-    } else if (savedOverrides.applicantName) {
+    if (savedOverrides.fileNo) setFileNo(savedOverrides.fileNo);
+    if (savedOverrides.applicantName) {
       setApplicantName(savedOverrides.applicantName);
+    } else if (lang === 'ml' && (entry as any)?.applicantNameMl) {
+      setApplicantName((entry as any).applicantNameMl);
     } else {
-      setApplicantName('');
+      setApplicantName(entry.applicantName || '');
     }
-    
-    if (entry.applicantAddress) {
-      setApplicantAddress(entry.applicantAddress);
-    } else if (savedOverrides.applicantAddress) {
-      setApplicantAddress(savedOverrides.applicantAddress);
-    }
-
-    if (entry.applicationType) {
-      setApplicationType(entry.applicationType);
-    } else if (savedOverrides.applicationType) {
-      setApplicationType(savedOverrides.applicationType);
-    }
+    if (savedOverrides.applicantAddress) setApplicantAddress(savedOverrides.applicantAddress);
+    if (savedOverrides.applicationType) setApplicationType(savedOverrides.applicationType);
 
     if (savedOverrides.orderNo) setOrderNo(savedOverrides.orderNo);
     if (savedOverrides.orderDate) setOrderDate(savedOverrides.orderDate);
@@ -905,8 +920,7 @@ export default function PrintableReportModal({
     if (savedOverrides.refLetterNo) setRefLetterNo(savedOverrides.refLetterNo);
     if (savedOverrides.refLetterDate) setRefLetterDate(savedOverrides.refLetterDate);
 
-    // Dynamic advance deposit from current remittances
-    setAdvanceDeposit(depositTotal);
+    if (savedOverrides.advanceDeposit !== undefined) setAdvanceDeposit(savedOverrides.advanceDeposit);
 
     if (savedOverrides.drillingRate !== undefined) setDrillingRate(savedOverrides.drillingRate);
     if (savedOverrides.casing10kgRate !== undefined) setCasing10kgRate(savedOverrides.casing10kgRate);
@@ -933,16 +947,39 @@ export default function PrintableReportModal({
       || (sites.length <= 1 && selectedSiteIndex === 0 && !savedOverrides.siteOverrides ? savedOverrides : undefined);
 
     if (siteOv) {
-      if (siteOv.actualOverburden !== undefined && !currentSite?.surveyOB && !currentSite?.surveyRecommendedOB) setActualOverburden(String(siteOv.actualOverburden));
-      if (siteOv.pilotDrillingDepth !== undefined && !currentSite?.pilotDrillingDepth) setPilotDrillingDepth(String(siteOv.pilotDrillingDepth));
-      if (siteOv.reaming12InchBit !== undefined && !(currentSite as any)?.reaming12InchBit) setReaming12InchBit(String(siteOv.reaming12InchBit));
-      if (siteOv.reaming16InchBit !== undefined && !(currentSite as any)?.reaming16InchBit) setReaming16InchBit(String(siteOv.reaming16InchBit));
-      if (siteOv.reaming22InchBit !== undefined && !(currentSite as any)?.reaming22InchBit) setReaming22InchBit(String(siteOv.reaming22InchBit));
-      if (siteOv.assemblyLowered !== undefined && !(currentSite as any)?.assemblyLowered) setAssemblyLowered(String(siteOv.assemblyLowered));
-      if (siteOv.surveyPlainPipe !== undefined && !currentSite?.surveyPlainPipe) setSurveyPlainPipe(String(siteOv.surveyPlainPipe));
-      if (siteOv.surveySlottedPipe !== undefined && !currentSite?.surveySlottedPipe) setSurveySlottedPipe(String(siteOv.surveySlottedPipe));
-      if (siteOv.bailPlug !== undefined && !(currentSite as any)?.bailPlug) setBailPlug(String(siteOv.bailPlug));
-      if (siteOv.outerCasingPipe !== undefined && !currentSite?.outerCasingPipe) setOuterCasingPipe(String(siteOv.outerCasingPipe));
+      if (siteOv.drillingQty !== undefined) setDrillingQty(Number(siteOv.drillingQty) || 0);
+      if (siteOv.casing10kgQty !== undefined) setCasing10kgQty(Number(siteOv.casing10kgQty) || 0);
+      if (siteOv.casing8kgQty !== undefined) setCasing8kgQty(Number(siteOv.casing8kgQty) || 0);
+      if (siteOv.casing6kgQty !== undefined) setCasing6kgQty(Number(siteOv.casing6kgQty) || 0);
+      if (siteOv.outerCasingQty !== undefined) setOuterCasingQty(Number(siteOv.outerCasingQty) || 0);
+      if (siteOv.innerCasing6kgQty !== undefined) setInnerCasing6kgQty(Number(siteOv.innerCasing6kgQty) || 0);
+      if (siteOv.innerCasing4kgQty !== undefined) setInnerCasing4kgQty(Number(siteOv.innerCasing4kgQty) || 0);
+      if (siteOv.innerCasingQty !== undefined) setInnerCasingQty(Number(siteOv.innerCasingQty) || 0);
+      if (siteOv.depthMeter !== undefined) setDepthMeter(Number(siteOv.depthMeter) || 0);
+      if (siteOv.actualOverburden !== undefined) setActualOverburden(String(siteOv.actualOverburden));
+      if (siteOv.pilotDrillingDepth !== undefined) setPilotDrillingDepth(String(siteOv.pilotDrillingDepth));
+      if (siteOv.reaming12InchBit !== undefined) setReaming12InchBit(String(siteOv.reaming12InchBit));
+      if (siteOv.reaming16InchBit !== undefined) setReaming16InchBit(String(siteOv.reaming16InchBit));
+      if (siteOv.reaming22InchBit !== undefined) setReaming22InchBit(String(siteOv.reaming22InchBit));
+      if (siteOv.assemblyLowered !== undefined) setAssemblyLowered(String(siteOv.assemblyLowered));
+      if (siteOv.surveyPlainPipe !== undefined) setSurveyPlainPipe(String(siteOv.surveyPlainPipe));
+      if (siteOv.surveySlottedPipe !== undefined) setSurveySlottedPipe(String(siteOv.surveySlottedPipe));
+      if (siteOv.bailPlug !== undefined) setBailPlug(String(siteOv.bailPlug));
+      if (siteOv.outerCasingPipe !== undefined) setOuterCasingPipe(String(siteOv.outerCasingPipe));
+      if (siteOv.endCap !== undefined) setEndCap(String(siteOv.endCap));
+      if (siteOv.yieldLph !== undefined) setYieldLph(Number(siteOv.yieldLph) || 0);
+      if (siteOv.yieldCategory !== undefined) setYieldCategory(String(siteOv.yieldCategory));
+      if (siteOv.staticWaterLevel !== undefined) setStaticWaterLevel(String(siteOv.staticWaterLevel));
+      if (siteOv.waterStruckZone !== undefined) setWaterStruckZone(String(siteOv.waterStruckZone));
+      if (siteOv.diameter !== undefined) setDiameter(String(siteOv.diameter));
+      if (siteOv.siteName !== undefined) setSiteName(String(siteOv.siteName));
+      if (siteOv.localSelfGovt !== undefined) setLocalSelfGovt(String(siteOv.localSelfGovt));
+      if (siteOv.constituency !== undefined) setConstituency(String(siteOv.constituency));
+      if (siteOv.contractorName !== undefined) setContractorName(String(siteOv.contractorName));
+      if (siteOv.periodFrom !== undefined) setPeriodFrom(String(siteOv.periodFrom));
+      if (siteOv.periodTo !== undefined) setPeriodTo(String(siteOv.periodTo));
+      if (siteOv.remarks !== undefined) setRemarks(String(siteOv.remarks));
+      if (siteOv.rigUsed !== undefined) setRigUsed(String(siteOv.rigUsed));
       if (siteOv.reportDate !== undefined) setReportDate(String(siteOv.reportDate));
 
       if (siteOv.fbDescDrillingMl !== undefined) setFbDescDrillingMl(siteOv.fbDescDrillingMl);
@@ -1075,7 +1112,21 @@ export default function PrintableReportModal({
     if (savedOverrides.ucPhone !== undefined) setUcPhone(savedOverrides.ucPhone);
     if (savedOverrides.ucEmail !== undefined) setUcEmail(savedOverrides.ucEmail);
     if (savedOverrides.ucFrom !== undefined) setUcFrom(savedOverrides.ucFrom);
-    if (savedOverrides.ucTo !== undefined) setUcTo(savedOverrides.ucTo);
+    
+    const isStaleUcTo = (toStr?: string) => {
+      if (!toStr) return true;
+      if ((toStr.includes('അസിസ്റ്റന്റ് എൻജിനീയർ') || toStr.includes('Assistant Engineer')) && 
+          ((entry as any)?.applicantNameMl?.includes('സെക്രട്ടറി') || entry?.applicantName?.toLowerCase().includes('secretary') || (entry as any)?.applicantNameMl)) {
+        return true;
+      }
+      return false;
+    };
+
+    if (savedOverrides.ucTo !== undefined && !isStaleUcTo(savedOverrides.ucTo)) {
+      setUcTo(savedOverrides.ucTo);
+    } else {
+      setUcTo(lang === 'en' ? defaultUcToEn : defaultUcToMl);
+    }
     if (savedOverrides.ucSubject !== undefined) setUcSubject(savedOverrides.ucSubject);
     if (savedOverrides.ucRef1 !== undefined) setUcRef1(savedOverrides.ucRef1);
     if (savedOverrides.ucRef2 !== undefined) setUcRef2(savedOverrides.ucRef2);
@@ -2675,17 +2726,21 @@ export default function PrintableReportModal({
                       {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
                     </SelectItem>
                   )}
-                  {(!isDepositWork || hasBwcOrTwc) && (
+                  {(!isDepositWork || hasBwcOrTwc) && hasMultipleSites && (
                     <SelectItem value="abstract_final_bill">
                       {lang === 'ml' ? 'അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (Abstract Final Bill)' : 'Abstract of Final Bill'}
                     </SelectItem>
                   )}
-                  <SelectItem value="proceedings">
-                    {lang === 'ml' ? 'നടപടിക്രമങ്ങൾ (Sanction Proceedings)' : 'Sanction Proceedings'}
-                  </SelectItem>
-                  <SelectItem value="utilization_certificate">
-                    {lang === 'ml' ? 'ധനവിനിയോഗ സാക്ഷ്യപത്രം (Utilization Certificate)' : 'Utilization Certificate'}
-                  </SelectItem>
+                  {isPrivateWork && (
+                    <SelectItem value="proceedings">
+                      {lang === 'ml' ? 'നടപടിക്രമങ്ങൾ (District Officer Proceedings)' : 'District Officer Proceedings'}
+                    </SelectItem>
+                  )}
+                  {isDepositWork && (
+                    <SelectItem value="utilization_certificate">
+                      {lang === 'ml' ? 'ധനവിനിയോഗ സാക്ഷ്യപത്രം (Utilization Certificate)' : 'Utilization Certificate'}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -5548,7 +5603,7 @@ export default function PrintableReportModal({
                       <p className="">സ്വീകർത്താവ്</p>
                       {renderEditableCell('uc_ml_to', 
                         <div className="pl-8 whitespace-pre-line">
-                          {ucTo || `അസിസ്റ്റന്റ് എൻജിനീയർ\n${localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`}
+                          {ucTo || ((entry as any)?.applicantNameMl ? (entry as any).applicantNameMl.replace(/,\s*/g, '\n') : (entry?.applicantName ? entry.applicantName.replace(/,\s*/g, '\n') : `സെക്രട്ടറി\n${localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`))}
                         </div>, 
                         <Textarea className="min-h-[50px] text-xs p-1" value={ucTo} onChange={e => setUcTo(e.target.value)} />
                       )}
@@ -5896,7 +5951,7 @@ export default function PrintableReportModal({
                       <p className="font-bold">To</p>
                       {renderEditableCell('uc_en_to', 
                         <div className="pl-8 font-semibold whitespace-pre-line">
-                          {ucTo || `Assistant Engineer\n${localSelfGovt || 'Gramapanchayat'}`}
+                          {ucTo || (entry?.applicantName ? entry.applicantName.replace(/,\s*/g, '\n') : `The Secretary\n${localSelfGovt || 'Grama Panchayath'}`)}
                         </div>, 
                         <Textarea className="min-h-[50px] text-xs p-1" value={ucTo} onChange={e => setUcTo(e.target.value)} />
                       )}
