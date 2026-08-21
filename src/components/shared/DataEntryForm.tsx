@@ -1455,7 +1455,9 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <p className="text-xs text-muted-foreground">
-                        Generate and print official Completion Reports, Final Bills, Sanction Proceedings, Utilization Certificates, and Cover Letters for this file entry.
+                        {(workTypeContext === 'private' || currentModuleKey === 'private' || (watch('applicationType') && (PRIVATE_APPLICATION_TYPES as readonly string[]).includes(watch('applicationType') as any)) || (watch('applicationType') && String(watch('applicationType')).toLowerCase().includes('private')))
+                            ? "Generate and print official Completion Reports, Final Bills, Sanction Proceedings, and Cover Letters for this private deposit work entry."
+                            : "Generate and print official Completion Reports, Final Bills, Utilization Certificates, and Cover Letters for this file entry."}
                     </p>
                     <div className="flex flex-wrap gap-2">
                         {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
@@ -1491,24 +1493,28 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Abstract Final Bill
                             </Button>
                         )}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setPrintModalDocType('utilization_certificate'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
-                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                        >
-                            <FileText className="mr-2 h-4 w-4 text-primary" /> Utilization Certificate
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setPrintModalDocType('proceedings'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
-                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                        >
-                            <FileText className="mr-2 h-4 w-4 text-primary" /> Sanction Proceedings
-                        </Button>
+                        {!(workTypeContext === 'private' || currentModuleKey === 'private' || (watch('applicationType') && (PRIVATE_APPLICATION_TYPES as readonly string[]).includes(watch('applicationType') as any)) || (watch('applicationType') && String(watch('applicationType')).toLowerCase().includes('private'))) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('utilization_certificate'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Utilization Certificate
+                            </Button>
+                        )}
+                        {(workTypeContext === 'private' || currentModuleKey === 'private' || (watch('applicationType') && (PRIVATE_APPLICATION_TYPES as readonly string[]).includes(watch('applicationType') as any)) || (watch('applicationType') && String(watch('applicationType')).toLowerCase().includes('private'))) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setPrintModalDocType('proceedings'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                            >
+                                <FileText className="mr-2 h-4 w-4 text-primary" /> Sanction Proceedings
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>

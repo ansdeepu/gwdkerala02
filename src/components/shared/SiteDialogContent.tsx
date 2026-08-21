@@ -93,7 +93,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         ? (initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "")
         : "";
     const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : fallbackCasing;
-    const initialObValue = initialData?.surveyOB || initialData?.surveyRecommendedOB || "";
+    const initialObValue = (initialData?.surveyOB !== undefined && initialData?.surveyOB !== null)
+        ? String(initialData.surveyOB)
+        : (initialData?.surveyRecommendedOB ? String(initialData.surveyRecommendedOB) : "");
 
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),

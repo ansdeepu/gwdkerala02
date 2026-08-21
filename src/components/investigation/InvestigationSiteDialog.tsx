@@ -53,7 +53,9 @@ interface InvestigationSiteDialogProps {
 export default function InvestigationSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, workTypeContext, userDesignation }: InvestigationSiteDialogProps) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
     const initialCasingValue = initialData?.surveyRecommendedCasingPipe || initialData?.casingPipeUsed || "";
-    const initialObValue = initialData?.surveyRecommendedOB || initialData?.surveyOB || "";
+    const initialRecommendedObValue = (initialData?.surveyRecommendedOB !== undefined && initialData?.surveyRecommendedOB !== null)
+        ? String(initialData.surveyRecommendedOB)
+        : (initialData?.surveyOB ? String(initialData.surveyOB) : "");
 
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
@@ -62,7 +64,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
             surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? initialCasingValue,
             casing6kgPipe: hasExplicitCasing6kg ? initialData.casing6kgPipe : "",
             casingPipeUsed: initialData?.casingPipeUsed ?? initialCasingValue,
-            surveyRecommendedOB: initialData?.surveyRecommendedOB ?? initialObValue,
+            surveyRecommendedOB: initialData?.surveyRecommendedOB ?? initialRecommendedObValue,
             surveyOB: initialData?.surveyOB ?? "",
             purpose: "GW Investigation",
             dateOfInvestigation: formatDateForInput(initialData?.dateOfInvestigation),

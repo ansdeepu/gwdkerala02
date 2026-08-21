@@ -28,10 +28,11 @@ import {
   type DataEntryFormData, 
   type SiteDetailFormData, 
   PUBLIC_DEPOSIT_APPLICATION_TYPES, 
+  PRIVATE_APPLICATION_TYPES,
   COLLECTOR_APPLICATION_TYPES, 
   PLAN_FUND_APPLICATION_TYPES,
   DEFAULT_GWD_RATE_ITEMS
-} from "@/lib/schemas";
+} from "@/lib/schemas/DataEntrySchema";
 import { numberToWordsEnglish, numberToWordsMalayalam } from "@/lib/numberToWords";
 import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
@@ -228,7 +229,7 @@ export default function PrintableReportModal({
   const { officeAddress, selectedOffice, allStaffMembers, allGwdRates, allE_tenders } = useDataStore();
   const { user } = useAuth();
 
-  const isPrivateWork = moduleType === 'private' || (entry?.applicationType?.toLowerCase().includes('private') ?? false);
+  const isPrivateWork = moduleType === 'private' || (entry?.applicationType ? ((PRIVATE_APPLICATION_TYPES as readonly string[]).includes(entry.applicationType as any) || entry.applicationType.toLowerCase().includes('private')) : false);
   const isDepositWork = ['collectors', 'collector', 'public', 'deposit', 'planFund', 'plan_fund', 'plan-fund'].includes(moduleType) || (entry?.applicationType ? (PUBLIC_DEPOSIT_APPLICATION_TYPES.includes(entry.applicationType as any) || COLLECTOR_APPLICATION_TYPES.includes(entry.applicationType as any) || PLAN_FUND_APPLICATION_TYPES.includes(entry.applicationType as any)) : !isPrivateWork);
 
   // Language & DocType state
@@ -236,12 +237,6 @@ export default function PrintableReportModal({
   const [docType, setDocType] = useState<ReportDocType>(initialDocType);
   const [isCopying, setIsCopying] = useState<boolean>(false);
   const [printSettings, setPrintSettings] = useState<PrintStyleSettings>(DEFAULT_PRINT_STYLES);
-
-  useEffect(() => {
-    if (initialDocType) {
-      setDocType(initialDocType);
-    }
-  }, [initialDocType, isOpen]);
 
   const rawSites = useMemo(() => entry?.siteDetails || [], [entry]);
 
@@ -252,6 +247,16 @@ export default function PrintableReportModal({
   const hasBwcOrTwc = useMemo(() => {
     return countOfBwcOrTwc > 0;
   }, [countOfBwcOrTwc]);
+
+  useEffect(() => {
+    if (initialDocType) {
+      if (initialDocType === 'proceedings' && !isPrivateWork) {
+        setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
+      } else {
+        setDocType(initialDocType);
+      }
+    }
+  }, [initialDocType, isOpen, isPrivateWork, hasBwcOrTwc]);
 
   const sites = useMemo(() => {
     if (docType === 'final_bill' || docType === 'abstract_final_bill' || docType === 'proceedings') {
@@ -617,7 +622,7 @@ export default function PrintableReportModal({
       setRemarks(currentSite.drillingRemarks || currentSite.workRemarks || '');
 
       // Load other actual fields
-      setActualOverburden(currentSite.surveyOB ? String(currentSite.surveyOB) : (currentSite.surveyRecommendedOB ? String(currentSite.surveyRecommendedOB) : ''));
+      setActualOverburden(currentSite.surveyOB !== undefined && currentSite.surveyOB !== null ? String(currentSite.surveyOB) : (currentSite.surveyRecommendedOB ? String(currentSite.surveyRecommendedOB) : ''));
       setPilotDrillingDepth(currentSite.pilotDrillingDepth || '');
       setReaming12InchBit((currentSite as any).reaming12InchBit || '');
       setReaming16InchBit((currentSite as any).reaming16InchBit || '');
