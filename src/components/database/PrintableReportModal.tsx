@@ -76,6 +76,19 @@ const getDistrictMl = (dist: string): string => {
   return dist;
 };
 
+const getDesignationMl = (desig: string): string => {
+  if (!desig) return 'എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ';
+  const dLower = desig.toLowerCase();
+  if (dLower.includes('executive engineer') || dLower.includes('എക്സിക്യൂട്ടീവ്')) return 'എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ';
+  if (dLower.includes('district officer') || dLower.includes('ജില്ലാ')) return 'ജില്ലാ ഓഫീസർ';
+  if (dLower.includes('superintending engineer') || dLower.includes('സൂപ്രണ്ടിംഗ്')) return 'സൂപ്രണ്ടിംഗ് എഞ്ചിനീയർ';
+  if (dLower.includes('assistant executive engineer') || dLower.includes('അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ്')) return 'അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ';
+  if (dLower.includes('assistant engineer') || dLower.includes('അസിസ്റ്റന്റ് എഞ്ചിനീയർ')) return 'അസിസ്റ്റന്റ് എഞ്ചിനീയർ';
+  if (dLower.includes('junior hydrogeologist') || dLower.includes('ജൂനിയർ ഹൈഡ്രോ')) return 'ജൂനിയർ ഹൈഡ്രോജിയോളജിസ്റ്റ്';
+  if (dLower.includes('hydrogeologist') || dLower.includes('ഹൈഡ്രോ')) return 'ഹൈഡ്രോജിയോളജിസ്റ്റ്';
+  return desig;
+};
+
 const formatDateDDMMYYYY = (dateStr: string): string => {
   if (!dateStr || dateStr === 'N/A') return '';
   const trimmed = dateStr.trim();
@@ -238,6 +251,14 @@ export default function PrintableReportModal({
   const [isCopying, setIsCopying] = useState<boolean>(false);
   const [printSettings, setPrintSettings] = useState<PrintStyleSettings>(DEFAULT_PRINT_STYLES);
 
+  const todayFormatted = useMemo(() => {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }, []);
+
   const rawSites = useMemo(() => entry?.siteDetails || [], [entry]);
 
   const countOfBwcOrTwc = useMemo(() => {
@@ -295,7 +316,9 @@ export default function PrintableReportModal({
   const [subOfficeLocation, setSubOfficeLocation] = useState<string>('');
   const [subOfficeLocationMl, setSubOfficeLocationMl] = useState<string>('');
   const [officerName, setOfficerName] = useState<string>('District Officer');
+  const [officerNameMl, setOfficerNameMl] = useState<string>('ജില്ലാ ഓഫീസർ');
   const [officerDesignation, setOfficerDesignation] = useState<string>('Executive Engineer');
+  const [officerDesignationMl, setOfficerDesignationMl] = useState<string>('എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ');
   
   // Ref Nos, Dates, Applicant & Site Details
   const [fileNo, setFileNo] = useState<string>('');
@@ -448,8 +471,11 @@ export default function PrintableReportModal({
   const [bankName, setBankName] = useState<string>('');
   const [bankBranch, setBankBranch] = useState<string>('');
   const [proceedingsSubject, setProceedingsSubject] = useState<string>('');
+  const [proceedingsSubjectMl, setProceedingsSubjectMl] = useState<string>('');
   const [proceedingsRef1, setProceedingsRef1] = useState<string>('');
+  const [proceedingsRef1Ml, setProceedingsRef1Ml] = useState<string>('');
   const [proceedingsRef2, setProceedingsRef2] = useState<string>('');
+  const [proceedingsRef2Ml, setProceedingsRef2Ml] = useState<string>('');
 
   // Utilization Certificate state
   const [ucPhone, setUcPhone] = useState<string>('0474 - 2790313');
@@ -497,9 +523,17 @@ export default function PrintableReportModal({
       s.roles?.includes('District Officer')
     );
     const doDesignation = doStaff?.designation || 'Executive Engineer';
+    const doNameMl = (doStaff as any)?.nameMalayalam || (officeAddress as any)?.districtOfficerMalayalam || doName;
+    const doDesignationMl = (doStaff as any)?.designationMalayalam || getDesignationMl(doDesignation);
 
-    if (doName) setOfficerName(doName);
-    if (doDesignation) setOfficerDesignation(doDesignation);
+    if (doName) {
+      setOfficerName(doName);
+      setOfficerNameMl(doNameMl);
+    }
+    if (doDesignation) {
+      setOfficerDesignation(doDesignation);
+      setOfficerDesignationMl(doDesignationMl);
+    }
   }, [entry, selectedOffice, user, officeAddress, allStaffMembers]);
 
   useEffect(() => {
@@ -520,11 +554,6 @@ export default function PrintableReportModal({
     setOrderNo(computedOrderNo);
 
     // Format date as dd/mm/yyyy
-    const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const yyyy = today.getFullYear();
-    const todayFormatted = `${dd}/${mm}/${yyyy}`;
     setOrderDate(todayFormatted);
     setReportDate(todayFormatted);
 
@@ -545,7 +574,9 @@ export default function PrintableReportModal({
     // Calculate localized net payable
     const appTypeStr = (entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
     const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
-    const depthVal = currentSite ? parseNum(currentSite.totalDepth) : 0;
+    const isSiteTWC = currentSite?.purpose === 'TWC' || entry?.purpose === 'TWC';
+    const pilotDVal = parseNum(currentSite?.pilotDrillingDepth);
+    const depthVal = currentSite ? (isSiteTWC ? (pilotDVal > 0 ? pilotDVal : parseNum(currentSite.totalDepth)) : parseNum(currentSite.totalDepth)) : 0;
     const depthForSubsidy = Math.min(depthVal || 0, 120);
 
     const isYieldZero = currentSite ? (Number(currentSite.yieldDischarge) === 0 || parseNum(currentSite.yieldDischarge) === 0 || currentSite.yieldDischarge === '0' || currentSite.yieldDischarge === 0) : false;
@@ -554,11 +585,24 @@ export default function PrintableReportModal({
     const isFailedOrZeroYield = isYieldZero || isWorkFailed;
 
     const subsidyRate = isFailedOrZeroYield ? 0.75 : 0.50;
-    const calculatedPrivateSubsidy = (depthForSubsidy * drillingRate) * subsidyRate;
+
+    const findGwdRateInit = (keyword: string, defaultVal: number) => {
+      const found = allGwdRates?.find(r => r.itemName.toLowerCase().includes(keyword.toLowerCase()));
+      return found ? Number(found.rate) : defaultVal;
+    };
+    const diaValInit = currentSite?.diameter || '110';
+    const isDia200Init = diaValInit.includes('200') || diaValInit.includes('8');
+    const effectiveDrillingRate = isSiteTWC 
+      ? findGwdRateInit(isDia200Init ? '200 mm (8") Tubewell Drilling Charges' : '150 mm (6") Tubewell Drilling Charges', isDia200Init ? 2980.00 : 2315.00)
+      : drillingRate;
+
+    const calculatedPrivateSubsidy = (depthForSubsidy * effectiveDrillingRate) * subsidyRate;
+    const storedSubsidy = Number(currentSite?.subsidyAmount) || Number(entry?.subsidyAmount) || 0;
+    const isOldBwcSubsidyOnTwc = isSiteTWC && storedSubsidy > 0 && Math.abs(storedSubsidy - (depthForSubsidy * 374.40 * 0.5)) < 1;
 
     const localSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || isPrivateWork) 
-      ? (Number(currentSite?.subsidyAmount) || Number(entry?.subsidyAmount) || calculatedPrivateSubsidy)
-      : (Number(currentSite?.subsidyAmount) || Number(entry?.subsidyAmount) || 0);
+      ? ((storedSubsidy > 0 && !isOldBwcSubsidyOnTwc) ? storedSubsidy : calculatedPrivateSubsidy)
+      : ((storedSubsidy > 0 && !isOldBwcSubsidyOnTwc) ? storedSubsidy : 0);
     setSubsidyAmount(localSubsidy);
 
     if (currentSite) {
@@ -729,8 +773,13 @@ export default function PrintableReportModal({
     setProceedingsSubject(
       `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
     );
+    setProceedingsSubjectMl(
+      `ഭൂജല വകുപ്പ്, ${districtMl} - ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`
+    );
     setProceedingsRef1(formatDatesInText(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`));
+    setProceedingsRef1Ml(formatDatesInText(`1. ${entry.applicantName || ''} എന്നയാളുടെ അപേക്ഷയും ഡി.ഡി വിവരങ്ങളും (${ddStr}).`));
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
+    setProceedingsRef2Ml(`2. ഈ ആപ്പീസിലെ തീയതി ${todayFormatted} - ലെ ഫൈനൽ ബിൽ.`);
 
     const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     setUcFrom('ജില്ലാ ഓഫീസർ');
@@ -1104,6 +1153,7 @@ export default function PrintableReportModal({
     }
 
     if (savedOverrides.proceedingsSubject !== undefined) setProceedingsSubject(savedOverrides.proceedingsSubject);
+    if (savedOverrides.proceedingsSubjectMl !== undefined) setProceedingsSubjectMl(savedOverrides.proceedingsSubjectMl);
     
     if (savedOverrides.proceedingsRef1 !== undefined && !isStaleProceedingsRef1(savedOverrides.proceedingsRef1, entry?.remittanceDetails)) {
       setProceedingsRef1(savedOverrides.proceedingsRef1);
@@ -1112,8 +1162,12 @@ export default function PrintableReportModal({
       const ref1Part = activeDd ? ` (${activeDd})` : '';
       setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
     }
+    if (savedOverrides.proceedingsRef1Ml !== undefined) {
+      setProceedingsRef1Ml(savedOverrides.proceedingsRef1Ml);
+    }
 
     if (savedOverrides.proceedingsRef2 !== undefined) setProceedingsRef2(savedOverrides.proceedingsRef2);
+    if (savedOverrides.proceedingsRef2Ml !== undefined) setProceedingsRef2Ml(savedOverrides.proceedingsRef2Ml);
     if (savedOverrides.procPara4 !== undefined) setProcPara4(savedOverrides.procPara4);
     if (savedOverrides.procPara5 !== undefined) setProcPara5(savedOverrides.procPara5);
     if (savedOverrides.procNetPayableOverride !== undefined && savedOverrides.procNetPayableOverride !== null) setProcNetPayableOverride(savedOverrides.procNetPayableOverride);
@@ -1189,6 +1243,7 @@ export default function PrintableReportModal({
       setUcReappropriationRows(defaultReapp);
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry, currentSite, selectedSiteIndex, moduleType, sites, isPrivateWork, officeAddress?.officeCode]);
 
   // Derived Calculations
@@ -1200,14 +1255,21 @@ export default function PrintableReportModal({
   const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
   const isFailedOrZeroYield = isYieldZero || isWorkFailed;
 
-  const subsidyEligibleDepth = Math.min(drillingQty || depthMeter || 0, 120);
+  const activeSubsidyDrillingRate = isTWC ? (twcDrillingRate || 2315.00) : (drillingRate || 374.40);
+  const activeSubsidyDrillingQty = isTWC ? (twcDrillingQty || depthMeter || 0) : (drillingQty || depthMeter || 0);
+  const subsidyEligibleDepth = Math.min(activeSubsidyDrillingQty, 120);
   const subsidyRate = isFailedOrZeroYield ? 0.75 : 0.50;
-  const calculatedPrivateSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || (isPrivateWork && subsidyAmount > 0))
-    ? (subsidyEligibleDepth * drillingRate * subsidyRate)
+  const calculatedPrivateSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || (isPrivateWork && (subsidyAmount > 0 || isTWC)))
+    ? (subsidyEligibleDepth * activeSubsidyDrillingRate * subsidyRate)
     : 0;
+  
+  const isOldBwcSubsidyOnTwcDerived = isTWC && subsidyAmount > 0 && Math.abs(subsidyAmount - (subsidyEligibleDepth * 374.40 * 0.5)) < 1;
+
   const effectiveSubsidyAmount = isFailedOrZeroYield
-    ? (subsidyAmount === 0 || subsidyAmount === subsidyEligibleDepth * drillingRate * 0.5 ? calculatedPrivateSubsidy : subsidyAmount)
-    : ((isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount);
+    ? (subsidyAmount === 0 || isOldBwcSubsidyOnTwcDerived || subsidyAmount === subsidyEligibleDepth * activeSubsidyDrillingRate * 0.5 ? calculatedPrivateSubsidy : subsidyAmount)
+    : (isTWC 
+        ? ((subsidyAmount === 0 || isOldBwcSubsidyOnTwcDerived) ? calculatedPrivateSubsidy : subsidyAmount)
+        : ((isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount));
 
   // L1 Quoted Percentage and Agreed Rates Logic
   const siteTenderNo = currentSite?.tenderNo || (entry as any)?.tenderNo || (currentSite as any)?.eTenderNo || (entry as any)?.eTenderNo || '';
@@ -1241,7 +1303,7 @@ export default function PrintableReportModal({
     return parseQuotedPercentage(quotedPctStr);
   }, [quotedPctStr]);
 
-  const getAgreedRate = (baseRate: number): number => {
+  const getAgreedRate = useCallback((baseRate: number): number => {
     if (!hasTenderNo && !quotedPctStr) return baseRate;
     const { percentage, isBelow, isAbove } = parsedPct;
     if (percentage <= 0) return baseRate;
@@ -1252,7 +1314,7 @@ export default function PrintableReportModal({
       rate = baseRate * (1 + percentage / 100);
     }
     return Math.round(rate * 100) / 100;
-  };
+  }, [hasTenderNo, quotedPctStr, parsedPct]);
 
   const drillingTotal = getAgreedRate(drillingRate) * drillingQty;
   const casing10kgTotal = getAgreedRate(casing10kgRate) * casing10kgQty;
@@ -1564,7 +1626,8 @@ export default function PrintableReportModal({
     twcEndCapQty,
     twcMsCasingRate,
     twcMsCasingQty,
-    allGwdRates
+    allGwdRates,
+    getAgreedRate
   ]);
 
   const totalNetPayableAllSites = useMemo(() => {
@@ -1606,7 +1669,7 @@ export default function PrintableReportModal({
         grandTotal: finalAmount,
       };
     }).filter(Boolean) as Array<{ sIdx: number; siteName: string; location: string; descMl: string; descEn: string; amount: number; totalExpenditure: number; grandTotal: number }>;
-  }, [selectedSiteIndices, siteFinancials, hasTenderNo, isTWC, isPrivateWork, siteOverridesMap]);
+  }, [selectedSiteIndices, siteFinancials, hasTenderNo, isTWC, siteOverridesMap]);
 
   const abstractTotalExp = useMemo(() => {
     return abstractSiteRows.reduce((sum, r) => sum + (r.totalExpenditure || 0), 0);
@@ -2129,8 +2192,11 @@ export default function PrintableReportModal({
         bankName,
         bankBranch,
         proceedingsSubject,
+        proceedingsSubjectMl,
         proceedingsRef1,
+        proceedingsRef1Ml,
         proceedingsRef2,
+        proceedingsRef2Ml,
         procPara4,
         procPara5,
         procNetPayableOverride,
@@ -2156,7 +2222,9 @@ export default function PrintableReportModal({
         subOfficeLocation,
         subOfficeLocationMl,
         officerName,
+        officerNameMl,
         officerDesignation,
+        officerDesignationMl,
       };
 
       // Only save top-level drillingQty and descriptions if single-site
@@ -2491,8 +2559,20 @@ export default function PrintableReportModal({
       setFbDescInnerEn(`${casingDiaEn} PVC Cap / Inner Casing`);
     },
 
-    fb_subsidy: () => setSubsidyAmount(0),
-    fb_en_subsidy: () => setSubsidyAmount(0),
+    fb_subsidy: () => {
+      const activeRate = isTWC ? (twcDrillingRate || 2315.00) : (drillingRate || 374.40);
+      const activeQty = isTWC ? (twcDrillingQty || depthMeter || 0) : (drillingQty || depthMeter || 0);
+      const eligibleDepth = Math.min(activeQty, 120);
+      const subRate = isFailedOrZeroYield ? 0.75 : 0.50;
+      setSubsidyAmount(eligibleDepth * activeRate * subRate);
+    },
+    fb_en_subsidy: () => {
+      const activeRate = isTWC ? (twcDrillingRate || 2315.00) : (drillingRate || 374.40);
+      const activeQty = isTWC ? (twcDrillingQty || depthMeter || 0) : (drillingQty || depthMeter || 0);
+      const eligibleDepth = Math.min(activeQty, 120);
+      const subRate = isFailedOrZeroYield ? 0.75 : 0.50;
+      setSubsidyAmount(eligibleDepth * activeRate * subRate);
+    },
     fb_advance: () => {
       setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
       setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
@@ -2504,21 +2584,46 @@ export default function PrintableReportModal({
 
     // Proceedings & UC resets
     proc_officer: () => setDistrict(entry?.officeLocation || selectedOffice || 'Pathanamthitta'),
+    proc_officer_ml: () => {
+      const doStaff = allStaffMembers?.find(s => s.roles?.includes('District Officer'));
+      setOfficerNameMl((doStaff as any)?.nameMalayalam || (officeAddress as any)?.districtOfficerMalayalam || officerName || 'ജില്ലാ ഓഫീസർ');
+      setOfficerDesignationMl((doStaff as any)?.designationMalayalam || getDesignationMl(officerDesignation) || 'എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ');
+    },
     proc_sub: () => setProceedingsSubject(`GWD, ${district} - Construction of borewell at ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`),
+    proc_sub_ml: () => setProceedingsSubjectMl(`ഭൂജല വകുപ്പ്, ${districtMl} - ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`),
     proc_ref: () => {
       const ddStr = formatAllRemittancesDd(entry?.remittanceDetails);
       const ref1Part = ddStr ? ` (${ddStr})` : '';
       setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
       setProceedingsRef2(`2. Final Bill of this office, dated ${orderDate || formatDateDDMMYYYY(new Date().toISOString().split('T')[0])}.`);
     },
+    proc_ref_ml: () => {
+      const ddStr = formatAllRemittancesDd(entry?.remittanceDetails);
+      setProceedingsRef1Ml(formatDatesInText(`1. ${entry?.applicantName || ''} എന്നയാളുടെ അപേക്ഷയും ഡി.ഡി വിവരങ്ങളും (${ddStr || ''}).`));
+      setProceedingsRef2Ml(`2. ഈ ആപ്പീസിലെ തീയതി ${todayFormatted} - ലെ ഫൈനൽ ബിൽ.`);
+    },
     proc_ordNo: () => setOrderNo(`GWD/${(entry?.fileNo || 'GWD/1372/2022').replace(/\//g, '-')}/2026`),
+    proc_ordNo_ml: () => setOrderNo(`GWD/${(entry?.fileNo || 'GWD/1372/2022').replace(/\//g, '-')}/2026`),
     proc_ordDate: () => setOrderDate(new Date().toISOString().split('T')[0]),
+    proc_ordDate_ml: () => setOrderDate(new Date().toISOString().split('T')[0]),
     proc_para1: () => {
       setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
       setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
     },
+    proc_para1_ml: () => {
+      setAdvanceDeposit(entry?.remittanceDetails?.reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0) || 0);
+      setDdDetails(formatAllRemittancesDd(entry?.remittanceDetails));
+    },
     proc_para2: () => setProcNetPayableOverride(null),
+    proc_para2_ml: () => setProcNetPayableOverride(null),
     proc_para3: () => {
+      setProcNetPayableOverride(null);
+      setBankAccountNo(entry?.bankAccountNo || '');
+      setBankIfsc(entry?.ifsc || (entry as any)?.bankIfsc || '');
+      setBankName(entry?.bankName || '');
+      setBankBranch(entry?.branch || (entry as any)?.bankBranch || '');
+    },
+    proc_para3_ml: () => {
       setProcNetPayableOverride(null);
       setBankAccountNo(entry?.bankAccountNo || '');
       setBankIfsc(entry?.ifsc || (entry as any)?.bankIfsc || '');
@@ -2527,6 +2632,7 @@ export default function PrintableReportModal({
     },
     proc_para4: () => setProcPara4(''),
     proc_para5: () => setProcPara5(''),
+    proc_para5_ml: () => setProcPara5(''),
 
     uc_contact: () => { 
       setUcPhone(officeAddress?.phoneNo || '0474 - 2790313'); 
@@ -5317,141 +5423,289 @@ export default function PrintableReportModal({
                   margin: ${getPageMarginsCss(printSettings)} !important;
                 }
               `}</style>
-              <div className="space-y-4">
-                <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                  <h2 className="text-[12pt] font-bold uppercase tracking-wider">
-                    PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
-                  </h2>
-                  {renderEditableCell('proc_officer', 
-                    <p className="text-[11pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
-                    <div className="flex gap-1">
-                      <Input className="h-6 text-[11pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
-                      <Input className="h-6 text-[11pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
+              
+              {lang === 'ml' ? (
+                /* MALAYALAM PROCEEDINGS */
+                <div className="space-y-4">
+                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
+                    <h2 className="text-[12pt] font-bold uppercase tracking-wide font-serif">
+                      ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസറുടെ നടപടിക്രമങ്ങൾ, {districtMl}
+                    </h2>
+                    {renderEditableCell('proc_officer_ml', 
+                      <p className="text-[11pt] font-semibold text-center">ഹാജർ: {officerNameMl || officerName}, {officerDesignationMl || getDesignationMl(officerDesignation)}</p>,
+                      <div className="flex gap-2">
+                        <Input className="h-7 text-xs" placeholder="ഓഫീസറുടെ പേര്" value={officerNameMl} onChange={e => setOfficerNameMl(e.target.value)} />
+                        <Input className="h-7 text-xs" placeholder="തസ്തിക" value={officerDesignationMl} onChange={e => setOfficerDesignationMl(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
+                    <div className="grid grid-cols-[80px_1fr] gap-1 items-start">
+                      <span className="font-bold">വിഷയം:</span>
+                      {renderEditableCell('proc_sub_ml', 
+                        <span>{proceedingsSubjectMl || `ഭൂജല വകുപ്പ്, ${districtMl} - ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`}</span>, 
+                        <Textarea className="min-h-[55px] text-[11pt]" value={proceedingsSubjectMl} onChange={e => setProceedingsSubjectMl(e.target.value)} />
+                      )}
                     </div>
-                  )}
-                </div>
-
-                <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
-                  <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
-                    <span className="font-bold">Sub:</span>
-                    {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-[11pt]" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
+                    <div className="grid grid-cols-[80px_1fr] gap-1 items-start">
+                      <span className="font-bold">പരാമർശം:</span>
+                      {renderEditableCell('proc_ref_ml', 
+                        <div>
+                          {formatDatesInText(proceedingsRef1Ml || `1. ${applicantName} എന്നയാളുടെ അപേക്ഷയും ഡി.ഡി വിവരങ്ങളും (${ddDetails || ''}).`)}<br />
+                          {formatDatesInText(proceedingsRef2Ml || `2. ഈ ആപ്പീസിലെ തീയതി ${todayFormatted} - ലെ ഫൈനൽ ബിൽ.`)}
+                        </div>,
+                        <div className="space-y-1">
+                          <Input className="h-7 text-xs" value={proceedingsRef1Ml} onChange={e => setProceedingsRef1Ml(e.target.value)} />
+                          <Input className="h-7 text-xs" value={proceedingsRef2Ml} onChange={e => setProceedingsRef2Ml(e.target.value)} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
-                    <span className="font-bold">Ref:</span>
-                    {renderEditableCell('proc_ref', 
-                      <div>
-                        {formatDatesInText(proceedingsRef1)}<br />
-                        {formatDatesInText(proceedingsRef2)}
-                      </div>,
-                      <div className="space-y-1">
-                        <Input className="h-6 text-[11pt]" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
-                        <Input className="h-6 text-[11pt]" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
+
+                  <div style={{ width: '100%', borderTop: '1px solid black', borderBottom: '1px solid black', margin: '8px 0', padding: '4px 0', fontWeight: 'bold', fontSize: '11pt', overflow: 'hidden' }}>
+                    <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                      {renderEditableCell('proc_ordNo_ml', <span>ഉത്തരവ് നമ്പർ: {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                    </div>
+                    <div style={{ float: 'right', width: '50%', textAlign: 'right' }}>
+                      {renderEditableCell('proc_ordDate_ml', <div className="text-right w-full">തീയതി: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                    </div>
+                    <div style={{ clear: 'both' }}></div>
+                  </div>
+
+                  <div className="text-[11pt] space-y-4 leading-[1.6] text-justify pt-2">
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para1_ml',
+                        <span>
+                          പരാമർശം (1) പ്രകാരം <strong>{applicantName}</strong> എന്നയാൾ തന്റെ സ്ഥലത്ത് ഒരു കുഴൽകിണർ നിർമ്മിക്കുന്നതിനായി <strong>രൂപ {advanceDeposit.toLocaleString('en-IN')}/-</strong>{ddDetails ? ` (${ddDetails.startsWith('DD') || ddDetails.startsWith('Dated') ? formatDatesInText(ddDetails) : `ഡി.ഡി: ${formatDatesInText(ddDetails)}`})` : ''} അഡ്വാൻസ് തുകയായി ഓഫീസിൽ അടയ്ക്കുകയും പ്രസ്തുത തുകയ്ക്ക് അനുമതി ലഭിക്കുകയും ചെയ്തിരുന്നു.
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">അഡ്വാൻസ് അടച്ച തുക (₹):</label>
+                            <Input type="number" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">ഡി.ഡി / അടവ് വിവരങ്ങൾ:</label>
+                            <Input className="h-7 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para2_ml',
+                        <span>
+                          പരാമർശം (2) ഫൈനൽ ബിൽ പ്രകാരം പ്രസ്തുത ഗുണഭോക്താവിന്റെ സ്ഥലത്തെ കുഴൽകിണർ നിർമ്മാണ പ്രവർത്തനം വകുപ്പ് റിഗ് ഉപയോഗിച്ച് വിജയകരമായി പൂർത്തീകരിച്ചിട്ടുള്ളതും നിർമ്മാണത്തിനായി വകുപ്പ് ചെലവഴിച്ച ആകെ തുക <strong>രൂപ {procNetPayable.toLocaleString('en-IN')}/-</strong> ഭൂജല വകുപ്പിന്റെ റവന്യൂ ശീർഷകമായ <code>0702-02-800-99 മറ്റ് വരവുകൾ</code> എന്നതിലേക്ക് അടയ്ക്കേണ്ടതുമാണ്. {procBalanceRefund >= 0 ? (
+                            <>ഗുണഭോക്താവിന് തിരികെ നൽകേണ്ട ബാക്കി തുക <strong>രൂപ {procBalanceRefund.toLocaleString('en-IN')}/-</strong> ഗുണഭോക്താവിന്റെ ബാങ്ക് അക്കൗണ്ടിലേക്ക് തിരികെ നൽകേണ്ടതുമാണ്.</>
+                          ) : (
+                            <>ഗുണഭോക്താവിൽ നിന്നും ഈടാക്കേണ്ട അധിക തുക <strong>രൂപ {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/-</strong> ഗുണഭോക്താവിൽ നിന്നും വാങ്ങി വകുപ്പിലേക്ക് അടയ്ക്കേണ്ടതുമാണ്.</>
+                          )}
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">വകുപ്പ് ചിലവ് (₹):</label>
+                            <Input type="number" placeholder="Net Expenditure" className="h-7 text-xs" value={procNetPayableOverride ?? procNetPayable} onChange={e => setProcNetPayableOverride(Number(e.target.value))} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">അഡ്വാൻസ് അടച്ച തുക (₹):</label>
+                            <Input type="number" placeholder="Advance Deposit" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para3_ml',
+                        <span>
+                          മേൽ സാഹചര്യത്തിൽ, {procBalanceRefund >= 0 ? (
+                            <>ഗുണഭോക്താവിന് കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് തിരികെ നൽകാനുള്ള ബാക്കി തുകയായ <strong>രൂപ {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsMalayalam(procBalanceRefund)})</strong> ഗുണഭോക്താവിന്റെ <strong>{bankName || 'ബാങ്ക്'}{bankBranch ? ` (${bankBranch} ശാഖ)` : ''} ലെ അക്കൗണ്ട് നമ്പർ: {bankAccountNo || '___________'}, IFSC: {bankIfsc || '___________'}</strong> ലേക്ക് തിരികെ നൽകുന്നതിനും,</>
+                          ) : (
+                            <>ഗുണഭോക്താവിൽ നിന്നും കിട്ടാനുള്ള അധിക തുകയായ <strong>രൂപ {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/- ({numberToWordsMalayalam(Math.abs(procBalanceRefund))})</strong> ഈടാക്കുന്നതിനും,</>
+                          )} കുഴൽകിണർ നിർമ്മാണ ചാർജ്ജ് ഇനത്തിൽ വകുപ്പിലേക്ക് വരവ് വയ്ക്കേണ്ട <strong>രൂപ {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsMalayalam(procNetPayable)})</strong> ഭൂജല വകുപ്പിന്റെ റവന്യൂ ശീർഷകമായ <code>0702-02-800-99 മറ്റ് വരവുകൾ</code> എന്നതിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഇതിനാൽ ഉത്തരവാകുന്നു.
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded border">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">ബാങ്ക് പേര്:</label>
+                            <BankSelect id="proc_bankName_ml" value={bankName} onChange={val => setBankName(val)} placeholder="Select Bank" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">ശാഖ:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. Main Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">അക്കൗണ്ട് നമ്പർ:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. 85829024542" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">IFSC കോഡ്:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. SBIN0012880" value={bankIfsc} onChange={e => setBankIfsc(e.target.value.toUpperCase())} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para5_ml',
+                        <span>
+                          ഈ ചിലവുകൾ ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസർ, {districtMl} - ന്റെ പേരിലുള്ള {officeAddress?.stsbAccountNo ? `STSB അക്കൗണ്ട് നമ്പർ: ${officeAddress.stsbAccountNo}` : 'STSB അക്കൗണ്ടിൽ'} {officeAddress?.nameOfTreasury ? ` (${officeAddress.nameOfTreasury} ട്രഷറി)` : ''} നിക്ഷേപിച്ച തുകയിൽ നിന്നും വിനിയോഗിക്കേണ്ടതാണ്.
+                        </span>,
+                        <Input type="number" className="h-6 text-[11pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ width: '100%', marginTop: '30px', fontSize: '11pt', overflow: 'hidden' }}>
+                    <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                      <p style={{ margin: 0, fontWeight: 'bold' }}>പകർപ്പ്:</p>
+                      <p style={{ margin: 0 }}>1. ഫയൽ</p>
+                      <p style={{ margin: 0 }}>2. സ്റ്റോക്ക് ഫയൽ / ഓഫീസ് കോപ്പി</p>
+                    </div>
+                    <div style={{ float: 'right', width: '45%', textAlign: 'right', fontWeight: 'bold' }}>
+                      <br/><br/>
+                      <p style={{ margin: 0 }}>ജില്ലാ ഓഫീസർ</p>
+                      <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'normal' }}>ഭൂജല വകുപ്പ്, {districtMl}</p>
+                    </div>
+                    <div style={{ clear: 'both' }}></div>
+                  </div>
+                </div>
+              ) : (
+                /* ENGLISH PROCEEDINGS */
+                <div className="space-y-4">
+                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
+                    <h2 className="text-[12pt] font-bold uppercase tracking-wider">
+                      PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
+                    </h2>
+                    {renderEditableCell('proc_officer', 
+                      <p className="text-[11pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
+                      <div className="flex gap-1">
+                        <Input className="h-6 text-[11pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
+                        <Input className="h-6 text-[11pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div style={{ width: '100%', borderTop: '1px solid black', borderBottom: '1px solid black', margin: '8px 0', padding: '4px 0', fontWeight: 'bold', fontSize: '11pt', overflow: 'hidden' }}>
-                  <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
-                    {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                  <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
+                    <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
+                      <span className="font-bold">Sub:</span>
+                      {renderEditableCell('proc_sub', <span>{proceedingsSubject}</span>, <Textarea className="min-h-[45px] text-[11pt]" value={proceedingsSubject} onChange={e => setProceedingsSubject(e.target.value)} />)}
+                    </div>
+                    <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
+                      <span className="font-bold">Ref:</span>
+                      {renderEditableCell('proc_ref', 
+                        <div>
+                          {formatDatesInText(proceedingsRef1)}<br />
+                          {formatDatesInText(proceedingsRef2)}
+                        </div>,
+                        <div className="space-y-1">
+                          <Input className="h-6 text-[11pt]" value={proceedingsRef1} onChange={e => setProceedingsRef1(e.target.value)} />
+                          <Input className="h-6 text-[11pt]" value={proceedingsRef2} onChange={e => setProceedingsRef2(e.target.value)} />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ float: 'right', width: '50%', textAlign: 'right' }}>
-                    {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-                  </div>
-                  <div style={{ clear: 'both' }}></div>
-                </div>
 
-                <div className="text-[11pt] space-y-4 leading-[1.5] text-justify pt-2">
-                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                    {renderEditableCell('proc_para1',
-                      <span>
-                        As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong>{ddDetails ? ` vide ${ddDetails.startsWith('DD') || ddDetails.startsWith('Dated') ? formatDatesInText(ddDetails) : `DD (${formatDatesInText(ddDetails)})`}` : ''} for the construction of a borewell at their premises.
-                      </span>,
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Advance Deposit Amount (₹):</label>
-                          <Input type="number" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">DD / Remittance Details:</label>
-                          <Input className="h-7 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                        </div>
-                      </div>
-                    )}
+                  <div style={{ width: '100%', borderTop: '1px solid black', borderBottom: '1px solid black', margin: '8px 0', padding: '4px 0', fontWeight: 'bold', fontSize: '11pt', overflow: 'hidden' }}>
+                    <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                      {renderEditableCell('proc_ordNo', <span>Order No. {orderNo}</span>, <Input className="h-6 text-[11pt] w-48" value={orderNo} onChange={e => setOrderNo(e.target.value)} />)}
+                    </div>
+                    <div style={{ float: 'right', width: '50%', textAlign: 'right' }}>
+                      {renderEditableCell('proc_ordDate', <div className="text-right w-full">Date: {orderDate}</div>, <Input className="h-6 text-[11pt] w-36 ml-auto text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                    </div>
+                    <div style={{ clear: 'both' }}></div>
                   </div>
-                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                    {renderEditableCell('proc_para2',
-                      <span>
-                        Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. {procBalanceRefund >= 0 ? (
-                          <>The balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.</>
-                        ) : (
-                          <>The balance deficit amount of <strong>Rs. {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/-</strong> is to be collected from the applicant.</>
-                        )}
-                      </span>,
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Net Department Expenditure (₹):</label>
-                          <Input type="number" placeholder="Net Expenditure" className="h-7 text-xs" value={procNetPayableOverride ?? procNetPayable} onChange={e => setProcNetPayableOverride(Number(e.target.value))} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Advance Deposit Amount (₹):</label>
-                          <Input type="number" placeholder="Advance Deposit" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                    {renderEditableCell('proc_para3',
-                      <span>
-                        In these circumstances, {procBalanceRefund >= 0 ? (
-                          <>sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '___________'}, IFSC: {bankIfsc || '___________'} of {bankName || '___________'}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>.</>
-                        ) : (
-                          <>the balance deficit amount of <strong>Rs. {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/- ({numberToWordsEnglish(Math.abs(procBalanceRefund))})</strong> is due from the applicant.</>
-                        )} Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
-                      </span>,
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded border">
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Name:</label>
-                          <BankSelect id="proc_bankName" value={bankName} onChange={val => setBankName(val)} placeholder="Select Bank" />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Branch:</label>
-                          <Input className="h-9 text-xs" placeholder="e.g. Main Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Account No:</label>
-                          <Input className="h-9 text-xs" placeholder="e.g. 85829024542" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">IFSC Code:</label>
-                          <Input className="h-9 text-xs" placeholder="e.g. SBIN0012880" value={bankIfsc} onChange={e => setBankIfsc(e.target.value.toUpperCase())} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 rounded hover:bg-slate-50 transition-colors">
-                    {renderEditableCell('proc_para5',
-                      <span>
-                        The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant {officeAddress?.stsbAccountNo ? `into STSB Account No. ${officeAddress.stsbAccountNo}` : 'into STSB Account'} of the District Officer, Ground Water Department, {district}{officeAddress?.nameOfTreasury ? ` at Treasury ${officeAddress.nameOfTreasury}` : ''}.
-                      </span>,
-                      <Input type="number" className="h-6 text-[11pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              <div style={{ width: '100%', marginTop: '30px', fontSize: '11pt', overflow: 'hidden' }}>
-                <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>Copy to:</p>
-                  <p style={{ margin: 0 }}>1. File</p>
-                  <p style={{ margin: 0 }}>2. Stock File / Office Copy</p>
+                  <div className="text-[11pt] space-y-4 leading-[1.5] text-justify pt-2">
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para1',
+                        <span>
+                          As per the 1st reference cited above, <strong>{applicantName}</strong> deposited an amount of <strong>Rs. {advanceDeposit.toLocaleString('en-IN')}/-</strong>{ddDetails ? ` vide ${ddDetails.startsWith('DD') || ddDetails.startsWith('Dated') ? formatDatesInText(ddDetails) : `DD (${formatDatesInText(ddDetails)})`}` : ''} for the construction of a borewell at their premises.
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Advance Deposit Amount (₹):</label>
+                            <Input type="number" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">DD / Remittance Details:</label>
+                            <Input className="h-7 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para2',
+                        <span>
+                          Vide the 2nd reference cited, it has been reported that the work was completed using the Department&apos;s Rig unit. The total expenditure incurred by the department is <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/-</strong>, which is to be remitted to the Department&apos;s revenue head <code>0702-02-800-99</code>, &quot;Other Receipts&quot;. {procBalanceRefund >= 0 ? (
+                            <>The balance amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/-</strong> is to be refunded to the applicant.</>
+                          ) : (
+                            <>The balance deficit amount of <strong>Rs. {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/-</strong> is to be collected from the applicant.</>
+                          )}
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Net Department Expenditure (₹):</label>
+                            <Input type="number" placeholder="Net Expenditure" className="h-7 text-xs" value={procNetPayableOverride ?? procNetPayable} onChange={e => setProcNetPayableOverride(Number(e.target.value))} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 block mb-0.5">Advance Deposit Amount (₹):</label>
+                            <Input type="number" placeholder="Advance Deposit" className="h-7 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para3',
+                        <span>
+                          In these circumstances, {procBalanceRefund >= 0 ? (
+                            <>sanction is hereby accorded to refund an amount of <strong>Rs. {procBalanceRefund.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procBalanceRefund)})</strong> being the balance amount due to applicant in connection with the borewell construction, to their <strong>Bank Account No. {bankAccountNo || '___________'}, IFSC: {bankIfsc || '___________'} of {bankName || '___________'}{bankBranch ? `, ${bankBranch} branch` : ''}</strong>.</>
+                          ) : (
+                            <>the balance deficit amount of <strong>Rs. {Math.abs(procBalanceRefund).toLocaleString('en-IN')}/- ({numberToWordsEnglish(Math.abs(procBalanceRefund))})</strong> is due from the applicant.</>
+                          )} Sanction is also hereby accorded to remit an amount of <strong>Rs. {procNetPayable.toLocaleString('en-IN')}/- ({numberToWordsEnglish(procNetPayable)})</strong> to Department Revenue head <code>0702-02-800-99-other receipts</code>, being the Borewell construction charges.
+                        </span>,
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded border">
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Name:</label>
+                            <BankSelect id="proc_bankName" value={bankName} onChange={val => setBankName(val)} placeholder="Select Bank" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Branch:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. Main Branch" value={bankBranch} onChange={e => setBankBranch(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">Bank Account No:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. 85829024542" value={bankAccountNo} onChange={e => setBankAccountNo(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 block mb-1">IFSC Code:</label>
+                            <Input className="h-9 text-xs" placeholder="e.g. SBIN0012880" value={bankIfsc} onChange={e => setBankIfsc(e.target.value.toUpperCase())} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-1 rounded hover:bg-slate-50 transition-colors">
+                      {renderEditableCell('proc_para5',
+                        <span>
+                          The expenditure shall be met from the gross amount of Rs. {advanceDeposit.toLocaleString('en-IN')}/- deposited by the applicant {officeAddress?.stsbAccountNo ? `into STSB Account No. ${officeAddress.stsbAccountNo}` : 'into STSB Account'} of the District Officer, Ground Water Department, {district}{officeAddress?.nameOfTreasury ? ` at Treasury ${officeAddress.nameOfTreasury}` : ''}.
+                        </span>,
+                        <Input type="number" className="h-6 text-[11pt] w-48" placeholder="STSB Deposit" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ width: '100%', marginTop: '30px', fontSize: '11pt', overflow: 'hidden' }}>
+                    <div style={{ float: 'left', width: '50%', textAlign: 'left' }}>
+                      <p style={{ margin: 0, fontWeight: 'bold' }}>Copy to:</p>
+                      <p style={{ margin: 0 }}>1. File</p>
+                      <p style={{ margin: 0 }}>2. Stock File / Office Copy</p>
+                    </div>
+                    <div style={{ float: 'right', width: '45%', textAlign: 'right', fontWeight: 'bold' }}>
+                      <br/><br/>
+                      <p style={{ margin: 0 }}>District Officer</p>
+                    </div>
+                    <div style={{ clear: 'both' }}></div>
+                  </div>
                 </div>
-                <div style={{ float: 'right', width: '45%', textAlign: 'right', fontWeight: 'bold' }}>
-                  <br/><br/>
-                  <p style={{ margin: 0 }}>District Officer</p>
-                </div>
-                <div style={{ clear: 'both' }}></div>
-              </div>
+              )}
             </div>
           )}
 
