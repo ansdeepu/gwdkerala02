@@ -51,7 +51,9 @@ import {
   Gauge, 
   ArrowUpRight,
   Maximize2,
-  X
+  X,
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -841,16 +843,21 @@ export default function DashboardPage() {
         <NoticeBoard staffMembers={dashboardData.staffMembers} />
       </div>
 
-      {/* 2. Section Title & Subtitle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-border/40">
+      {/* 2. Section Title & Subtitle with Icon on the Left */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border/40">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
-            Executive Operations & Key Analytics
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-2xs">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              Executive Operations & Key Analytics
+            </h2>
             <Badge variant="outline" className="text-xs font-normal border-primary/30 text-primary">
               11 Modules
             </Badge>
-          </h2>
-          <p className="text-xs text-muted-foreground">
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 ml-0.5">
             Click any section card or &apos;Open Full View&apos; to launch detailed interactive dashboards, filters, and records.
           </p>
         </div>
