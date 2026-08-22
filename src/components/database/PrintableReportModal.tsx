@@ -248,15 +248,21 @@ export default function PrintableReportModal({
     return countOfBwcOrTwc > 0;
   }, [countOfBwcOrTwc]);
 
+  const hasMultipleSites = useMemo(() => {
+    return countOfBwcOrTwc > 1 || rawSites.length > 1;
+  }, [countOfBwcOrTwc, rawSites.length]);
+
   useEffect(() => {
     if (initialDocType) {
       if (initialDocType === 'proceedings' && !isPrivateWork) {
         setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
+      } else if (initialDocType === 'abstract_final_bill' && !hasMultipleSites) {
+        setDocType('final_bill');
       } else {
         setDocType(initialDocType);
       }
     }
-  }, [initialDocType, isOpen, isPrivateWork, hasBwcOrTwc]);
+  }, [initialDocType, isOpen, isPrivateWork, hasBwcOrTwc, hasMultipleSites]);
 
   const sites = useMemo(() => {
     if (docType === 'final_bill' || docType === 'abstract_final_bill' || docType === 'proceedings') {
@@ -268,8 +274,6 @@ export default function PrintableReportModal({
     }
     return rawSites;
   }, [rawSites, docType]);
-  
-  const hasMultipleSites = countOfBwcOrTwc > 1 || rawSites.length > 1;
 
   // Selected site index
   const [selectedSiteIndex, setSelectedSiteIndex] = useState<number>(0);
@@ -4957,12 +4961,67 @@ export default function PrintableReportModal({
                           {abstractSiteRows.length + 1}
                         </td>
                         <td className="border border-black p-1.5 font-bold">
-                          Grand Total (ആകെ ചിലവ്)
+                          കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട ആകെ തുക (Grand Total)
                         </td>
                         <td className="border border-black p-1.5 text-right font-mono font-bold">
                           {abstractGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
+
+                      {/* Advance Deposit & Balance Refund for Private Works / Non-Deposit */}
+                      {!isDepositWork && (
+                        <>
+                          {abstractRemittanceRows.length > 0 ? (
+                            abstractRemittanceRows.map((remRow, rIdx) => (
+                              <tr key={`abs_ml_rem_${rIdx}`}>
+                                <td className="border border-black p-1.5 text-center">
+                                  {abstractSiteRows.length + 2 + rIdx}
+                                </td>
+                                <td className="border border-black p-1.5">
+                                  {renderEditableCell(`fb_advance_${rIdx}`, remRow.descMl,
+                                    <div className="flex gap-1">
+                                      <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                      <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="border border-black p-1.5 text-right font-mono">
+                                  {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr key="abs_ml_advance">
+                              <td className="border border-black p-1.5 text-center">
+                                {abstractSiteRows.length + 2}
+                              </td>
+                              <td className="border border-black p-1.5">
+                                {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`,
+                                  <div className="flex gap-1">
+                                    <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                    <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                  </div>
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          )}
+
+                          <tr key="abs_ml_balance" className="font-bold bg-gray-100">
+                            <td className="border border-black p-1.5 text-center">
+                              {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length : 1)}
+                            </td>
+                            <td className="border border-black p-1.5 font-bold">
+                              {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
 
@@ -5038,11 +5097,6 @@ export default function PrintableReportModal({
                     </div>
                   )}
 
-                  {!isDepositWork && (
-                    <p className="text-xs font-semibold pt-2">
-                      അടയ്ക്കേണ്ട / തിരികെ നൽകേണ്ട ആകെ ബാലൻസ് തുക അക്ഷരത്തിൽ: <span className="underline">{numberToWordsMalayalam(Math.abs(abstractBalanceAmount))}</span>
-                    </p>
-                  )}
 
                   <div className="pt-8 text-right">
                     <p className="font-bold">ജില്ലാ ഓഫീസർ</p>
@@ -5108,12 +5162,67 @@ export default function PrintableReportModal({
                           {abstractSiteRows.length + 1}
                         </td>
                         <td className="border border-black p-1.5 font-bold">
-                          Grand Total
+                          Total Amount Payable to Ground Water Department (Grand Total)
                         </td>
                         <td className="border border-black p-1.5 text-right font-mono font-bold">
                           {abstractGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
+
+                      {/* Advance Deposit & Balance Refund for Private Works / Non-Deposit */}
+                      {!isDepositWork && (
+                        <>
+                          {abstractRemittanceRows.length > 0 ? (
+                            abstractRemittanceRows.map((remRow, rIdx) => (
+                              <tr key={`abs_en_rem_${rIdx}`}>
+                                <td className="border border-black p-1.5 text-center">
+                                  {abstractSiteRows.length + 2 + rIdx}
+                                </td>
+                                <td className="border border-black p-1.5">
+                                  {renderEditableCell(`fb_en_advance_${rIdx}`, remRow.descEn,
+                                    <div className="flex gap-1">
+                                      <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                      <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="border border-black p-1.5 text-right font-mono">
+                                  {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr key="abs_en_advance">
+                              <td className="border border-black p-1.5 text-center">
+                                {abstractSiteRows.length + 2}
+                              </td>
+                              <td className="border border-black p-1.5">
+                                {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`,
+                                  <div className="flex gap-1">
+                                    <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                    <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                                  </div>
+                                )}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          )}
+
+                          <tr key="abs_en_balance" className="font-bold bg-gray-100">
+                            <td className="border border-black p-1.5 text-center">
+                              {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length : 1)}
+                            </td>
+                            <td className="border border-black p-1.5 font-bold">
+                              {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
+                            </td>
+                            <td className="border border-black p-1.5 text-right font-mono font-bold">
+                              {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
 
@@ -5189,11 +5298,6 @@ export default function PrintableReportModal({
                     </div>
                   )}
 
-                  {!isDepositWork && (
-                    <p className="text-xs font-semibold pt-2">
-                      Net Balance Amount in Words: <span className="underline">{numberToWordsEnglish(Math.abs(abstractBalanceAmount))}</span>
-                    </p>
-                  )}
 
                   <div className="pt-8 text-right">
                     <p className="font-bold">District Officer</p>

@@ -331,21 +331,27 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
                         item.type === 'rejection' ? 'border-red-200 dark:border-red-900/50 bg-red-500/5' : 'border-border/70'
                       )}
                     >
-                      {/* Top row: File number badge (Left) & Prominent Status Badge (Right) */}
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="font-mono text-xs font-bold text-foreground bg-muted/90 px-2 py-0.5 rounded border border-border/70 shrink-0">
-                          {item.fileNo}
-                        </span>
+                      {/* Top row: File number badge & Status Badge directly after it */}
+                      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-foreground bg-muted/90 px-2 py-0.5 rounded border border-border/70 shrink-0">
+                            {item.fileNo}
+                          </span>
 
-                        <div
-                          className={cn(
-                            "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap shadow-2xs",
-                            style.bg
-                          )}
-                        >
-                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", style.dot)} />
-                          <span>{item.workStatus}</span>
+                          <div
+                            className={cn(
+                              "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap",
+                              style.bg
+                            )}
+                          >
+                            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", style.dot)} />
+                            <span>{item.workStatus}</span>
+                          </div>
                         </div>
+
+                        <span className="font-semibold text-[10px] uppercase text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded border border-border/50 shrink-0">
+                          {item.purpose}
+                        </span>
                       </div>
 
                       {/* Middle: Site Name */}
@@ -353,22 +359,16 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
                         {item.siteName}
                       </div>
 
-                      {/* Bottom row: Applicant details (Left) & Purpose badge (Right) */}
-                      <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2 mt-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0 truncate">
-                          <UserIcon className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                          <span className="truncate">{item.applicantName}</span>
-                          {item.constituency && (
-                            <>
-                              <span className="text-muted-foreground/40 shrink-0">•</span>
-                              <span className="truncate">{item.constituency}</span>
-                            </>
-                          )}
-                        </div>
-
-                        <span className="font-semibold text-[10px] uppercase text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded border border-border/50 shrink-0">
-                          {item.purpose}
-                        </span>
+                      {/* Bottom row: Applicant details */}
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1.5 min-w-0 truncate">
+                        <UserIcon className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                        <span className="truncate">{item.applicantName}</span>
+                        {item.constituency && (
+                          <>
+                            <span className="text-muted-foreground/40 shrink-0">•</span>
+                            <span className="truncate">{item.constituency}</span>
+                          </>
+                        )}
                       </div>
 
                       {/* Rejection note if applicable */}

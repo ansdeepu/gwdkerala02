@@ -1482,7 +1482,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                 <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
                             </Button>
                         )}
-                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
+                        {((watchedSiteDetails?.length || siteFields.length || 0) > 1) && (!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC') || siteFields?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
                             <Button
                                 type="button"
                                 variant="outline"
