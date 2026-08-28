@@ -325,6 +325,7 @@ export default function PrintableReportModal({
   const [applicantName, setApplicantName] = useState<string>('');
   const [applicantAddress, setApplicantAddress] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('');
+  const [siteNameMl, setSiteNameMl] = useState<string>('');
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [localSelfGovt, setLocalSelfGovt] = useState<string>('');
@@ -607,6 +608,7 @@ export default function PrintableReportModal({
 
     if (currentSite) {
       setSiteName(currentSite.nameOfSite || entry.applicantName || '');
+      setSiteNameMl(currentSite.nameOfSiteMl || currentSite.nameOfSite || entry.applicantName || '');
       setLatitude(currentSite.latitude ? String(currentSite.latitude) : '');
       setLongitude(currentSite.longitude ? String(currentSite.longitude) : '');
       setLocalSelfGovt(currentSite.localSelfGovt || '');
@@ -664,7 +666,19 @@ export default function PrintableReportModal({
       if (currentSite.compressorNo) rigStr += ` (Comp: ${currentSite.compressorNo})`;
       setRigUsed(rigStr);
 
-      setContractorName(currentSite.contractorName || '');
+      const siteTenderKey = (currentSite.tenderNo || (entry as any)?.tenderNo || (currentSite as any)?.eTenderNo || (entry as any)?.eTenderNo || '').trim().toLowerCase();
+      const matchedTender = (siteTenderKey && allE_tenders && Array.isArray(allE_tenders))
+        ? allE_tenders.find(t => 
+            (t.eTenderNo && t.eTenderNo.trim().toLowerCase() === siteTenderKey) || 
+            ((t as any).tenderNo && (t as any).tenderNo.trim().toLowerCase() === siteTenderKey) ||
+            (t.id && t.id.trim().toLowerCase() === siteTenderKey)
+          )
+        : null;
+      const tenderL1Bidder = matchedTender?.bidders?.find(b => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
+      const tenderContractor = tenderL1Bidder?.bidderName || matchedTender?.contractorName || '';
+
+      const fallbackContractor = currentSite.contractorName || (entry as any)?.contractorName || tenderContractor || '';
+      setContractorName(fallbackContractor);
       setPeriodFrom((currentSite as any).startDate || (currentSite as any).dateOfCommencement || '');
       setPeriodTo(currentSite.dateOfCompletion || '');
       setRemarks(currentSite.drillingRemarks || currentSite.workRemarks || '');
@@ -1272,7 +1286,7 @@ export default function PrintableReportModal({
         : ((isPrivateIrrigation && subsidyAmount === 0) ? calculatedPrivateSubsidy : subsidyAmount));
 
   // L1 Quoted Percentage and Agreed Rates Logic
-  const siteTenderNo = currentSite?.tenderNo || (entry as any)?.tenderNo || (currentSite as any)?.eTenderNo || (entry as any)?.eTenderNo || '';
+  const siteTenderNo = isDeptRigWork ? '' : (currentSite?.tenderNo || (entry as any)?.tenderNo || (currentSite as any)?.eTenderNo || (entry as any)?.eTenderNo || '');
 
   const tenderFromStore = useMemo(() => {
     if (!siteTenderNo || !allE_tenders || !Array.isArray(allE_tenders)) return null;
@@ -1296,8 +1310,8 @@ export default function PrintableReportModal({
     return '';
   }, [tenderFromStore]);
 
-  const quotedPctStr = currentSite?.quotedPercentage || (entry as any)?.quotedPercentage || storeQuotedPct || '';
-  const hasTenderNo = !!siteTenderNo || !!quotedPctStr;
+  const quotedPctStr = isDeptRigWork ? '' : (currentSite?.quotedPercentage || (entry as any)?.quotedPercentage || storeQuotedPct || '');
+  const hasTenderNo = !isDeptRigWork && (!!siteTenderNo || !!quotedPctStr);
   
   const parsedPct = useMemo(() => {
     return parseQuotedPercentage(quotedPctStr);
@@ -1358,7 +1372,11 @@ export default function PrintableReportModal({
     (r.category === 'Logging & Pumping Test' || r.category?.toLowerCase().includes('logging')) && 
     (r.itemName?.toLowerCase().includes('well logging') || r.itemName?.toLowerCase().includes('electrical logging') || r.itemName?.toLowerCase().includes('logging'))
   );
-  const geophysicalLoggingAmount = loggingRateItem ? Number(loggingRateItem.rate) : 14475;
+  const baseLoggingRate = loggingRateItem ? Number(loggingRateItem.rate) : 14475;
+  const isGeophysicalLoggingActive = currentSite?.geophysicalLogging === 'Yes' || (currentSite as any)?.geophysicalLogging === 'yes';
+  const geophysicalLoggingAmount = isTWC 
+    ? (isGeophysicalLoggingActive ? baseLoggingRate : 0)
+    : 0;
 
   const totalDeductionsAmount = incomeTaxDeduction + welfareBoardDeduction + gstDeductionAmount + geophysicalLoggingAmount;
   const finalPaymentToContractor = grandTotalAmount - totalDeductionsAmount;
@@ -1440,6 +1458,26 @@ export default function PrintableReportModal({
       const sIsTWC = s.purpose === 'TWC' || (isCurrentActive && isTWC);
       const isSiteDia200 = (s.diameter || '').includes('200') || (s.diameter || '').includes('8');
 
+      // Resolve site-specific agreed rate helper
+      const isSiteDeptRig = s?.siteConditions === 'Accessible to Dept. Rig' || (isCurrentActive && isDeptRigWork);
+      const siteTenderNo = isSiteDeptRig ? '' : (s?.tenderNo || (entry as any)?.tenderNo || (s as any)?.eTenderNo || (entry as any)?.eTenderNo || '');
+      const siteQuotedPctStr = isSiteDeptRig ? '' : (s?.quotedPercentage || (entry as any)?.quotedPercentage || storeQuotedPct || '');
+      const siteHasTender = !isSiteDeptRig && (!!siteTenderNo || !!siteQuotedPctStr);
+      const siteParsedPct = parseQuotedPercentage(siteQuotedPctStr);
+
+      const getSiteAgreedRate = (baseRate: number): number => {
+        if (!siteHasTender && !siteQuotedPctStr) return baseRate;
+        const { percentage, isBelow, isAbove } = siteParsedPct;
+        if (percentage <= 0) return baseRate;
+        let rate = baseRate;
+        if (isBelow) {
+          rate = baseRate * (1 - percentage / 100);
+        } else if (isAbove) {
+          rate = baseRate * (1 + percentage / 100);
+        }
+        return Math.round(rate * 100) / 100;
+      };
+
       // TWC rates resolution with agreed rate adjustment
       const raw_dR = isCurrentActive ? twcDrillingRate : (entry?.reportOverrides?.twcDrillingRate ?? findGwdRateHelper(isSiteDia200 ? '200 mm (8") Tubewell Drilling Charges' : '150 mm (6") Tubewell Drilling Charges', isSiteDia200 ? 2980.00 : 2315.00));
       const raw_cR = isCurrentActive ? twcPvcCasingRate : (entry?.reportOverrides?.twcPvcCasingRate ?? findGwdRateHelper(isSiteDia200 ? '200 mm Dia. PVC Medium Well Casing Pipe' : '150 mm Dia. PVC Medium Well Casing Pipe', isSiteDia200 ? 1193.79 : 838.32));
@@ -1448,12 +1486,12 @@ export default function PrintableReportModal({
       const raw_eR = isCurrentActive ? twcEndCapRate : (entry?.reportOverrides?.twcEndCapRate ?? findGwdRateHelper(isSiteDia200 ? '200 mm PVC End Cap' : '150 mm PVC End Cap', isSiteDia200 ? 400 : 275));
       const raw_mR = isCurrentActive ? twcMsCasingRate : (entry?.reportOverrides?.twcMsCasingRate ?? findGwdRateHelper('450 mm (18") MS Casing Pipe Charges', 8450.00));
 
-      const dR = getAgreedRate(raw_dR);
-      const cR = getAgreedRate(raw_cR);
-      const sR = getAgreedRate(raw_sR);
-      const bR = getAgreedRate(raw_bR);
-      const eR = getAgreedRate(raw_eR);
-      const mR = getAgreedRate(raw_mR);
+      const dR = getSiteAgreedRate(raw_dR);
+      const cR = getSiteAgreedRate(raw_cR);
+      const sR = getSiteAgreedRate(raw_sR);
+      const bR = getSiteAgreedRate(raw_bR);
+      const eR = getSiteAgreedRate(raw_eR);
+      const mR = getSiteAgreedRate(raw_mR);
 
       const rawSiteIndex = entry?.siteDetails?.findIndex((sd: any) => sd === s || (sd.nameOfSite && s?.nameOfSite && sd.nameOfSite === s.nameOfSite)) ?? -1;
       const siteId = (s as any)?.id;
@@ -1469,7 +1507,7 @@ export default function PrintableReportModal({
 
       const sDepth = isCurrentActive ? (drillingQty || depthMeter || 0) : parseNum(s.totalDepth);
       const sDrillingR = drillingRate;
-      const sDrilling = sDrillingR * sDepth;
+      const sDrilling = getSiteAgreedRate(sDrillingR) * sDepth;
 
       const sC10Val = isCurrentActive ? casing10kgQty : parseNum(s.casing10kgPipe);
       const sC8Val = isCurrentActive ? casing8kgQty : parseNum((s as any).casing8kgPipe);
@@ -1484,17 +1522,17 @@ export default function PrintableReportModal({
 
       const sOuterVal = isCurrentActive ? outerCasingQty : parseNum((s as any).outerCasingPipe);
 
-      const sC10 = casing10kgRate * sC10Val;
-      const sC8 = casing8kgRate * sC8Val;
-      const sC6 = casing6kgRate * sC6Val;
-      const sOuter = outerCasingRate * sOuterVal;
+      const sC10 = getSiteAgreedRate(casing10kgRate) * sC10Val;
+      const sC8 = getSiteAgreedRate(casing8kgRate) * sC8Val;
+      const sC6 = getSiteAgreedRate(casing6kgRate) * sC6Val;
+      const sOuter = getSiteAgreedRate(outerCasingRate) * sOuterVal;
 
       const sIn6_3 = isCurrentActive ? innerCasing6kgQty : parseNum(s.innerCasing6kgPipe);
       const sIn4Raw_3 = isCurrentActive ? innerCasing4kgQty : parseNum(s.innerCasing4kgPipe);
       const sIn4_3 = sIn4Raw_3 > 0 ? sIn4Raw_3 : ((!sIn6_3 && !isCurrentActive) ? parseNum(s.innerCasingPipe) : (isCurrentActive && !innerCasing6kgQty && innerCasingQty > 0 ? innerCasingQty : 0));
       const sInnerQty = sIn6_3 + sIn4_3;
       const sCapYes = isCurrentActive ? (endCap === 'Yes') : (s.endCap === 'Yes');
-      const sInner = (innerCasing6kgRate * sIn6_3) + (innerCasing4kgRate * sIn4_3) + (sCapYes ? innerCasingRate : 0);
+      const sInner = (getSiteAgreedRate(innerCasing6kgRate) * sIn6_3) + (getSiteAgreedRate(innerCasing4kgRate) * sIn4_3) + (sCapYes ? getSiteAgreedRate(innerCasingRate) : 0);
 
       const sTotalExpenditure = sIsTWC
         ? ((dR * dQ) + (cR * cQ) + (sR * sQ) + (bR * bQ) + (eR * eQ) + (mR * mQ))
@@ -1513,7 +1551,7 @@ export default function PrintableReportModal({
       const sSubsidyDepth = Math.min(sIsTWC ? dQ : sDepth, 120);
       const sSubsidyRate = sIsFailedOrZeroYield ? 0.75 : 0.50;
       const sCalculatedSubsidy = (sIsPrivateIrrigation || sIsFailedOrZeroYield || isPrivateWork) 
-        ? (sSubsidyDepth * (sIsTWC ? dR : drillingRate) * sSubsidyRate) 
+        ? (sSubsidyDepth * (sIsTWC ? dR : getSiteAgreedRate(drillingRate)) * sSubsidyRate) 
         : 0;
 
       let sSiteSubsidy = 0;
@@ -1540,6 +1578,11 @@ export default function PrintableReportModal({
       const sName = s.nameOfSite || entry?.applicantName || `Site #${sIdx + 1}`;
       const sLoc = s.surveyLocation || s.localSelfGovt || '';
 
+      const sIsGeophysicalLoggingActive = isCurrentActive 
+        ? (currentSite?.geophysicalLogging === 'Yes' || (currentSite as any)?.geophysicalLogging === 'yes')
+        : (s.geophysicalLogging === 'Yes' || (s as any).geophysicalLogging === 'yes');
+      const sGeophysicalLoggingAmount = (sIsTWC && sIsGeophysicalLoggingActive) ? baseLoggingRate : 0;
+
       return {
         sIdx,
         siteName: sName,
@@ -1562,6 +1605,7 @@ export default function PrintableReportModal({
         subsidyAmount: sSiteSubsidy,
         netPayable: sNetPayable,
         netPayableRaw: sNetPayableRaw,
+        geophysicalLoggingAmount: sGeophysicalLoggingAmount,
       };
     }).filter(Boolean) as Array<{
       sIdx: number;
@@ -1585,6 +1629,7 @@ export default function PrintableReportModal({
       subsidyAmount: number;
       netPayable: number;
       netPayableRaw: number;
+      geophysicalLoggingAmount: number;
     }>;
   }, [
     sites,
@@ -1646,7 +1691,14 @@ export default function PrintableReportModal({
       const override = siteOverridesMap[sIdx] || {};
 
       const workExp = sf.totalExpenditure || 0;
-      const isContractorSite = (hasTenderNo || (isTWC && hasTenderNo));
+      
+      const siteObj = sites[sIdx];
+      const isSiteDeptRig = siteObj?.siteConditions === 'Accessible to Dept. Rig';
+      const siteTenderNo = isSiteDeptRig ? '' : (siteObj?.tenderNo || (entry as any)?.tenderNo || (siteObj as any)?.eTenderNo || (entry as any)?.eTenderNo || '');
+      const siteQuotedPctStr = isSiteDeptRig ? '' : (siteObj?.quotedPercentage || (entry as any)?.quotedPercentage || storeQuotedPct || '');
+      const siteHasTender = !isSiteDeptRig && (!!siteTenderNo || !!siteQuotedPctStr);
+      const isContractorSite = siteHasTender;
+
       const siteGst = isContractorSite ? workExp * 0.18 : 0;
       const siteGrandTotal = isContractorSite ? Math.round(workExp + siteGst) : Math.round(sf.netPayable);
 
@@ -1667,9 +1719,10 @@ export default function PrintableReportModal({
         amount: Math.round(sf.netPayable),
         totalExpenditure: finalTotalExp,
         grandTotal: finalAmount,
+        isContractorSite,
       };
-    }).filter(Boolean) as Array<{ sIdx: number; siteName: string; location: string; descMl: string; descEn: string; amount: number; totalExpenditure: number; grandTotal: number }>;
-  }, [selectedSiteIndices, siteFinancials, hasTenderNo, isTWC, siteOverridesMap]);
+    }).filter(Boolean) as Array<{ sIdx: number; siteName: string; location: string; descMl: string; descEn: string; amount: number; totalExpenditure: number; grandTotal: number; isContractorSite: boolean }>;
+  }, [selectedSiteIndices, siteFinancials, sites, storeQuotedPct, entry, siteOverridesMap]);
 
   const abstractTotalExp = useMemo(() => {
     return abstractSiteRows.reduce((sum, r) => sum + (r.totalExpenditure || 0), 0);
@@ -1681,13 +1734,142 @@ export default function PrintableReportModal({
 
   const abstractGst18 = abstractGrandTotal - abstractTotalExp;
 
-  const abstractIncomeTax = Math.round(abstractTotalExp * 0.01);
-  const abstractWelfareBoard = Math.round(abstractTotalExp * 0.01);
-  const abstractGstDeduction = Math.round(abstractTotalExp * 0.02);
-  const abstractLogging = geophysicalLoggingAmount * (abstractSiteRows.length || 1);
+  const abstractContractorTotalExp = useMemo(() => {
+    return abstractSiteRows.reduce((sum, r) => sum + (r.isContractorSite ? (r.totalExpenditure || 0) : 0), 0);
+  }, [abstractSiteRows]);
 
-  const abstractTotalDeductions = abstractIncomeTax + abstractWelfareBoard + abstractGstDeduction + abstractLogging;
-  const abstractFinalContractorPayment = abstractGrandTotal - abstractTotalDeductions;
+  const abstractContractorGrandTotal = useMemo(() => {
+    return Math.round(abstractSiteRows.reduce((sum, r) => sum + (r.isContractorSite ? (r.grandTotal || 0) : 0), 0));
+  }, [abstractSiteRows]);
+
+  const contractorSitesCount = useMemo(() => {
+    return abstractSiteRows.filter(r => r.isContractorSite).length;
+  }, [abstractSiteRows]);
+
+  const abstractIncomeTax = Math.round(abstractContractorTotalExp * 0.01);
+  const abstractWelfareBoard = Math.round(abstractContractorTotalExp * 0.01);
+  const abstractGstDeduction = Math.round(abstractContractorTotalExp * 0.02);
+  const abstractLogging = useMemo(() => {
+    return abstractSiteRows.reduce((sum, r) => {
+      if (!r.isContractorSite) return sum;
+      const sf = siteFinancials.find(f => f.sIdx === r.sIdx);
+      return sum + (sf?.geophysicalLoggingAmount || 0);
+    }, 0);
+  }, [abstractSiteRows, siteFinancials]);
+
+  const abstractTotalDeductions = useMemo(() => {
+    return abstractIncomeTax + abstractWelfareBoard + abstractGstDeduction + abstractLogging;
+  }, [abstractIncomeTax, abstractWelfareBoard, abstractGstDeduction, abstractLogging]);
+
+  const abstractFinalContractorPayment = useMemo(() => {
+    return abstractContractorGrandTotal - abstractTotalDeductions;
+  }, [abstractContractorGrandTotal, abstractTotalDeductions]);
+
+  const abstractDetailsMlRows = useMemo(() => {
+    const rows = [];
+    
+    const departmentalSitesGrandTotal = abstractSiteRows.reduce((sum, r) => sum + (!r.isContractorSite ? r.grandTotal : 0), 0);
+    if (departmentalSitesGrandTotal > 0) {
+      rows.push({
+        id: 'abs_ml_dept_share',
+        label: 'ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട തുക (Amount to be received by GWD)',
+        amount: departmentalSitesGrandTotal,
+        isBold: true
+      });
+    }
+
+    rows.push({
+      id: 'abs_ml_item_1',
+      label: 'Final Payment to Contractor',
+      amount: abstractFinalContractorPayment,
+      isBold: true
+    });
+
+    rows.push({
+      id: 'abs_ml_item_2',
+      label: 'Income Tax @ 1%',
+      amount: abstractIncomeTax,
+      isBold: false
+    });
+
+    rows.push({
+      id: 'abs_ml_item_3',
+      label: 'Kerala Workers Welfare Board @ 1%',
+      amount: abstractWelfareBoard,
+      isBold: false
+    });
+
+    rows.push({
+      id: 'abs_ml_item_4',
+      label: 'GST @ 2%',
+      amount: abstractGstDeduction,
+      isBold: false
+    });
+
+    if (abstractLogging > 0) {
+      rows.push({
+        id: 'abs_ml_item_5',
+        label: 'Geophysical Logging',
+        amount: abstractLogging,
+        isBold: false
+      });
+    }
+
+    return rows;
+  }, [abstractSiteRows, abstractFinalContractorPayment, abstractIncomeTax, abstractWelfareBoard, abstractGstDeduction, abstractLogging]);
+
+  const abstractDetailsEnRows = useMemo(() => {
+    const rows = [];
+    
+    const departmentalSitesGrandTotal = abstractSiteRows.reduce((sum, r) => sum + (!r.isContractorSite ? r.grandTotal : 0), 0);
+    if (departmentalSitesGrandTotal > 0) {
+      rows.push({
+        id: 'abs_en_dept_share',
+        label: 'Amount to be received by Ground Water Department',
+        amount: departmentalSitesGrandTotal,
+        isBold: true
+      });
+    }
+
+    rows.push({
+      id: 'abs_en_item_1',
+      label: 'Final Payment to Contractor',
+      amount: abstractFinalContractorPayment,
+      isBold: true
+    });
+
+    rows.push({
+      id: 'abs_en_item_2',
+      label: 'Income Tax @ 1%',
+      amount: abstractIncomeTax,
+      isBold: false
+    });
+
+    rows.push({
+      id: 'abs_en_item_3',
+      label: 'Kerala Workers Welfare Board @ 1%',
+      amount: abstractWelfareBoard,
+      isBold: false
+    });
+
+    rows.push({
+      id: 'abs_en_item_4',
+      label: 'GST @ 2%',
+      amount: abstractGstDeduction,
+      isBold: false
+    });
+
+    if (abstractLogging > 0) {
+      rows.push({
+        id: 'abs_en_item_5',
+        label: 'Geophysical Logging',
+        amount: abstractLogging,
+        isBold: false
+      });
+    }
+
+    return rows;
+  }, [abstractSiteRows, abstractFinalContractorPayment, abstractIncomeTax, abstractWelfareBoard, abstractGstDeduction, abstractLogging]);
 
   const totalPaymentAmount = useMemo(() => {
     return abstractGrandTotal;
@@ -1765,16 +1947,13 @@ export default function PrintableReportModal({
     if (docType === 'abstract_final_bill' && !hasMultipleSites) {
       setDocType('final_bill');
     }
-    if (isDepositWork && !hasBwcOrTwc && (docType === 'completion_report' || docType === 'final_bill' || docType === 'abstract_final_bill')) {
-      setDocType('utilization_certificate');
-    }
     if (docType === 'proceedings' && !isPrivateWork) {
-      setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
+      setDocType('completion_report');
     }
     if (docType === 'utilization_certificate' && !isDepositWork) {
       setDocType('completion_report');
     }
-  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork, hasBwcOrTwc]);
+  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
@@ -2317,7 +2496,7 @@ export default function PrintableReportModal({
     },
     cr_fileNo: () => setFileNo(entry?.fileNo || 'GWD/1372/2022'),
     cr_applicant: () => { setApplicantName(entry?.applicantName || ''); setApplicantAddress((entry as any)?.applicantAddress || ''); },
-    cr_siteName: () => setSiteName(currentSite?.nameOfSite || entry?.applicantName || ''),
+    cr_siteName: () => { setSiteName(currentSite?.nameOfSite || entry?.applicantName || ''); setSiteNameMl(currentSite?.nameOfSiteMl || currentSite?.nameOfSite || entry?.applicantName || ''); },
     cr_latLong: () => { setLatitude(currentSite?.latitude ? String(currentSite.latitude) : ''); setLongitude(currentSite?.longitude ? String(currentSite.longitude) : ''); },
     cr_lsgd: () => setLocalSelfGovt(currentSite?.localSelfGovt || ''),
     cr_constituency: () => setConstituency(currentSite?.constituency || ''),
@@ -2831,17 +3010,13 @@ export default function PrintableReportModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(!isDepositWork || hasBwcOrTwc) && (
-                    <SelectItem value="completion_report">
-                      {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
-                    </SelectItem>
-                  )}
-                  {(!isDepositWork || hasBwcOrTwc) && (
-                    <SelectItem value="final_bill">
-                      {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
-                    </SelectItem>
-                  )}
-                  {(!isDepositWork || hasBwcOrTwc) && hasMultipleSites && (
+                  <SelectItem value="completion_report">
+                    {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
+                  </SelectItem>
+                  <SelectItem value="final_bill">
+                    {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
+                  </SelectItem>
+                  {(hasMultipleSites || docType === 'abstract_final_bill' || initialDocType === 'abstract_final_bill') && (
                     <SelectItem value="abstract_final_bill">
                       {lang === 'ml' ? 'അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (Abstract Final Bill)' : 'Abstract of Final Bill'}
                     </SelectItem>
@@ -3206,7 +3381,7 @@ export default function PrintableReportModal({
                             <tr className="border-b border-gray-300">
                               <td className="py-2 px-2 font-bold text-black align-top">3. കിണർ നിർമ്മിച്ച സ്ഥലം</td>
                               <td className="py-2 px-2 text-black align-top">
-                                {renderEditableCell('cr_twc_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
+                                {renderEditableCell('cr_twc_siteName', `: ${siteNameMl || siteName}`, <Input className="h-6 text-xs" value={siteNameMl || siteName} onChange={e => setSiteNameMl(e.target.value)} />)}
                               </td>
                             </tr>
                             <tr className="border-b border-gray-300">
@@ -3356,7 +3531,7 @@ export default function PrintableReportModal({
                             <tr className="border-b border-gray-300">
                               <td className="py-2 px-2 font-bold text-black align-top">3. സൈറ്റിന്റെ പേര് / സ്ഥലം</td>
                               <td className="py-2 px-2 text-black align-top">
-                                {renderEditableCell('cr_siteName', `: ${siteName}`, <Input className="h-6 text-xs" value={siteName} onChange={e => setSiteName(e.target.value)} />)}
+                                {renderEditableCell('cr_siteName', `: ${siteNameMl || siteName}`, <Input className="h-6 text-xs" value={siteNameMl || siteName} onChange={e => setSiteNameMl(e.target.value)} />)}
                               </td>
                             </tr>
                             <tr className="border-b border-gray-300">
@@ -3558,7 +3733,7 @@ export default function PrintableReportModal({
                               <tr className="border-b border-gray-300">
                                 <td className="py-2 px-2 font-bold text-black align-top">23. കോൺട്രാക്ടറുടെ പേര്</td>
                                 <td className="py-2 px-2 text-black align-top">
-                                  {renderEditableCell('cr_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
+                                  {renderEditableCell('cr_contractor', `: ${contractorName || '-'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
                                 </td>
                               </tr>
                             )}
@@ -3982,7 +4157,7 @@ export default function PrintableReportModal({
                               <tr className="border-b border-gray-300">
                                 <td className="py-2 px-2 font-bold text-black align-top">23. Name of Contractor</td>
                                 <td className="py-2 px-2 text-black align-top">
-                                  {renderEditableCell('cr_en_contractor', `: ${contractorName || 'Departmental Rig Work'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
+                                  {renderEditableCell('cr_en_contractor', `: ${contractorName || '-'}`, <Input className="h-6 text-xs" value={contractorName} onChange={e => setContractorName(e.target.value)} />)}
                                 </td>
                               </tr>
                             )}
@@ -4207,7 +4382,7 @@ export default function PrintableReportModal({
                     }
                   ];
                   const activeItemsMl = itemsMl.filter(item => item.qty > 0);
-                  const siteDisplayMl = currentSite?.nameOfSite || siteName || '';
+                  const siteDisplayMl = currentSite?.nameOfSiteMl || siteNameMl || currentSite?.nameOfSite || siteName || '';
 
                   return (
                     <div className="flex flex-col justify-between h-full flex-1 space-y-4">
@@ -4343,13 +4518,15 @@ export default function PrintableReportModal({
                                   </tr>
                                 );
 
-                                rows.push(
-                                  <tr key="logging_ded">
-                                    <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
-                                    <td className="border border-black py-2 px-2.5" colSpan={colSpanVal}>ജിയോഫിസിക്കൽ ലോഗിംഗ് (Geophysical Logging)</td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{geophysicalLoggingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                  </tr>
-                                );
+                                if (geophysicalLoggingAmount > 0) {
+                                  rows.push(
+                                    <tr key="logging_ded">
+                                      <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
+                                      <td className="border border-black py-2 px-2.5" colSpan={colSpanVal}>ജിയോഫിസിക്കൽ ലോഗിംഗ് (Geophysical Logging)</td>
+                                      <td className="border border-black py-2 px-2.5 text-right font-mono">{geophysicalLoggingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                  );
+                                }
 
                                 rows.push(
                                   <tr key="total_ded" className="font-bold bg-gray-50">
@@ -4417,12 +4594,12 @@ export default function PrintableReportModal({
                                   </tr>
                                 );
 
-                                if (!isDepositWork && !hasMultipleSites) {
+                                if ((!isDepositWork || (isDepositWork && isDeptRigWork)) && !hasMultipleSites) {
                                   rows.push(
                                     <tr key="advance">
                                       <td className="border border-black py-2 px-2.5 text-center">{rows.length + 1}</td>
                                       <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                        {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`, 
+                                        {renderEditableCell('fb_advance', (isDepositWork && isDeptRigWork) ? 'അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക' : `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`, 
                                           <div className="flex gap-1">
                                             <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                             <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
@@ -4795,13 +4972,15 @@ export default function PrintableReportModal({
                                   </tr>
                                 );
 
-                                rowsEn.push(
-                                  <tr key="logging_ded_en">
-                                    <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
-                                    <td className="border border-black py-2 px-2.5" colSpan={colSpanVal}>Geophysical Logging</td>
-                                    <td className="border border-black py-2 px-2.5 text-right font-mono">{geophysicalLoggingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                  </tr>
-                                );
+                                if (geophysicalLoggingAmount > 0) {
+                                  rowsEn.push(
+                                    <tr key="logging_ded_en">
+                                      <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
+                                      <td className="border border-black py-2 px-2.5" colSpan={colSpanVal}>Geophysical Logging</td>
+                                      <td className="border border-black py-2 px-2.5 text-right font-mono">{geophysicalLoggingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    </tr>
+                                  );
+                                }
 
                                 rowsEn.push(
                                   <tr key="total_ded_en" className="font-bold bg-gray-50">
@@ -4869,12 +5048,12 @@ export default function PrintableReportModal({
                                   </tr>
                                 );
 
-                                if (!isDepositWork && !hasMultipleSites) {
+                                if ((!isDepositWork || (isDepositWork && isDeptRigWork)) && !hasMultipleSites) {
                                   rowsEn.push(
                                     <tr key="advance_en">
                                       <td className="border border-black py-2 px-2.5 text-center">{rowsEn.length + 1}</td>
                                       <td className="border border-black py-2 px-2.5" colSpan={3}>
-                                        {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`, 
+                                        {renderEditableCell('fb_en_advance', (isDepositWork && isDeptRigWork) ? 'Advance Deposit Paid by Applicant' : `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`, 
                                           <div className="flex gap-1">
                                             <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                             <Input className="h-6 text-xs" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
@@ -5067,72 +5246,84 @@ export default function PrintableReportModal({
                           {abstractSiteRows.length + 1}
                         </td>
                         <td className="border border-black p-1.5 font-bold">
-                          കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിക്ക് ഭൂജലവകുപ്പിന് ലഭിക്കേണ്ട ആകെ തുക (Grand Total)
+                          കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ തുക (Grand Total)
                         </td>
                         <td className="border border-black p-1.5 text-right font-mono font-bold">
                           {abstractGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
 
-                      {/* Advance Deposit & Balance Refund for Private Works / Non-Deposit */}
-                      {!isDepositWork && (
+                      {/* Advance Deposit & Balance Refund */}
+                      {abstractRemittanceRows.length > 0 ? (
                         <>
-                          {abstractRemittanceRows.length > 0 ? (
-                            abstractRemittanceRows.map((remRow, rIdx) => (
-                              <tr key={`abs_ml_rem_${rIdx}`}>
-                                <td className="border border-black p-1.5 text-center">
-                                  {abstractSiteRows.length + 2 + rIdx}
-                                </td>
-                                <td className="border border-black p-1.5">
-                                  {renderEditableCell(`fb_advance_${rIdx}`, remRow.descMl,
-                                    <div className="flex gap-1">
-                                      <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                      <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="border border-black p-1.5 text-right font-mono">
-                                  {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr key="abs_ml_advance">
+                          {abstractRemittanceRows.map((remRow, rIdx) => (
+                            <tr key={`abs_ml_rem_${rIdx}`}>
                               <td className="border border-black p-1.5 text-center">
-                                {abstractSiteRows.length + 2}
+                                {abstractSiteRows.length + 2 + rIdx}
                               </td>
                               <td className="border border-black p-1.5">
-                                {renderEditableCell('fb_advance', `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`,
+                                {renderEditableCell(`fb_advance_${rIdx}`, remRow.descMl,
                                   <div className="flex gap-1">
-                                    <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                    <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                     <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
                                   </div>
                                 )}
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
-                                {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {abstractRemittanceRows.length > 1 && (
+                            <tr key="abs_ml_total_rem" className="font-bold bg-gray-50">
+                              <td className="border border-black p-1.5 text-center">
+                                {abstractSiteRows.length + 2 + abstractRemittanceRows.length}
+                              </td>
+                              <td className="border border-black p-1.5 font-bold">
+                                അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള ആകെ തുക (Total Advance Deposit)
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono font-bold">
+                                {totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
                           )}
-
-                          <tr key="abs_ml_balance" className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">
-                              {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length : 1)}
-                            </td>
-                            <td className="border border-black p-1.5 font-bold">
-                              {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
                         </>
+                      ) : (
+                        <tr key="abs_ml_advance">
+                          <td className="border border-black p-1.5 text-center">
+                            {abstractSiteRows.length + 2}
+                          </td>
+                          <td className="border border-black p-1.5">
+                            {renderEditableCell('fb_advance', (isDepositWork && isDeptRigWork) ? 'അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക' : `അപേക്ഷകൻ മുൻകൂറായി അടച്ചിട്ടുള്ള തുക${ddDetails ? ` (${ddDetails})` : ''}`,
+                              <div className="flex gap-1">
+                                <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                              </div>
+                            )}
+                          </td>
+                          <td className="border border-black p-1.5 text-right font-mono">
+                            {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
                       )}
+
+                      <tr key="abs_ml_balance" className="font-bold bg-gray-100">
+                        <td className="border border-black p-1.5 text-center">
+                          {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length + (abstractRemittanceRows.length > 1 ? 1 : 0) : 1)}
+                        </td>
+                        <td className="border border-black p-1.5 font-bold">
+                          {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'അപേക്ഷകന് തിരികെ നൽകാനുള്ള ബാലൻസ് തുക (Refund)' : 'വകുപ്പിന് ലഭിക്കേണ്ട ബാലൻസ് തുക'}
+                        </td>
+                        <td className="border border-black p-1.5 text-right font-mono font-bold">
+                          {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
 
                   {/* Contractor Abstract Payment Table */}
-                  {hasTenderNo && !isDeptRigWork && (
+                  {contractorSitesCount > 0 && (
                     <div className="pt-3">
                       <h4 className="text-xs font-bold underline mb-1">അബ്സ്ട്രാക്ട് (ABSTRACT DETAILS)</h4>
                       <table className="w-full border-collapse border border-black text-xs">
@@ -5144,53 +5335,19 @@ export default function PrintableReportModal({
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">1</td>
-                            <td className="border border-black p-1.5 font-semibold">
-                              {renderEditableCell('abs_ml_item_1', <span>Final Payment to Contractor</span>, <Input className="h-6 text-xs" defaultValue="Final Payment to Contractor" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {abstractFinalContractorPayment.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">2</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_ml_item_2', <span>Income Tax @ 1%</span>, <Input className="h-6 text-xs" defaultValue="Income Tax @ 1%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractIncomeTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">3</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_ml_item_3', <span>Kerala Workers Welfare Board @ 1%</span>, <Input className="h-6 text-xs" defaultValue="Kerala Workers Welfare Board @ 1%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractWelfareBoard.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">4</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_ml_item_4', <span>GST @ 2%</span>, <Input className="h-6 text-xs" defaultValue="GST @ 2%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractGstDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">5</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_ml_item_5', <span>Geophysical Logging</span>, <Input className="h-6 text-xs" defaultValue="Geophysical Logging" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractLogging.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
+                          {abstractDetailsMlRows.map((row, rIdx) => (
+                            <tr key={row.id}>
+                              <td className="border border-black p-1.5 text-center">{rIdx + 1}</td>
+                              <td className="border border-black p-1.5 font-semibold">
+                                {renderEditableCell(row.id, <span>{row.label}</span>, <Input className="h-6 text-xs" defaultValue={row.label} />)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono font-bold">
+                                {row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
                           <tr className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">6</td>
+                            <td className="border border-black p-1.5 text-center">{abstractDetailsMlRows.length + 1}</td>
                             <td className="border border-black p-1.5 font-bold">
                               Grand Total
                             </td>
@@ -5268,72 +5425,84 @@ export default function PrintableReportModal({
                           {abstractSiteRows.length + 1}
                         </td>
                         <td className="border border-black p-1.5 font-bold">
-                          Total Amount Payable to Ground Water Department (Grand Total)
+                          Total Amount of Tubewell Construction Work (Grand Total)
                         </td>
                         <td className="border border-black p-1.5 text-right font-mono font-bold">
                           {abstractGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
 
-                      {/* Advance Deposit & Balance Refund for Private Works / Non-Deposit */}
-                      {!isDepositWork && (
+                      {/* Advance Deposit & Balance Refund */}
+                      {abstractRemittanceRows.length > 0 ? (
                         <>
-                          {abstractRemittanceRows.length > 0 ? (
-                            abstractRemittanceRows.map((remRow, rIdx) => (
-                              <tr key={`abs_en_rem_${rIdx}`}>
-                                <td className="border border-black p-1.5 text-center">
-                                  {abstractSiteRows.length + 2 + rIdx}
-                                </td>
-                                <td className="border border-black p-1.5">
-                                  {renderEditableCell(`fb_en_advance_${rIdx}`, remRow.descEn,
-                                    <div className="flex gap-1">
-                                      <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
-                                      <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="border border-black p-1.5 text-right font-mono">
-                                  {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr key="abs_en_advance">
+                          {abstractRemittanceRows.map((remRow, rIdx) => (
+                            <tr key={`abs_en_rem_${rIdx}`}>
                               <td className="border border-black p-1.5 text-center">
-                                {abstractSiteRows.length + 2}
+                                {abstractSiteRows.length + 2 + rIdx}
                               </td>
                               <td className="border border-black p-1.5">
-                                {renderEditableCell('fb_en_advance', `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`,
+                                {renderEditableCell(`fb_en_advance_${rIdx}`, remRow.descEn,
                                   <div className="flex gap-1">
-                                    <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                    <Input type="number" className="h-6 text-xs" value={remRow.amount} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
                                     <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
                                   </div>
                                 )}
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
-                                {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {remRow.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {abstractRemittanceRows.length > 1 && (
+                            <tr key="abs_en_total_rem" className="font-bold bg-gray-50">
+                              <td className="border border-black p-1.5 text-center">
+                                {abstractSiteRows.length + 2 + abstractRemittanceRows.length}
+                              </td>
+                              <td className="border border-black p-1.5 font-bold">
+                                Total Advance Deposit Paid by Applicant
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono font-bold">
+                                {totalRemittanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
                           )}
-
-                          <tr key="abs_en_balance" className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">
-                              {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length : 1)}
-                            </td>
-                            <td className="border border-black p-1.5 font-bold">
-                              {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
                         </>
+                      ) : (
+                        <tr key="abs_en_advance">
+                          <td className="border border-black p-1.5 text-center">
+                            {abstractSiteRows.length + 2}
+                          </td>
+                          <td className="border border-black p-1.5">
+                            {renderEditableCell('fb_en_advance', (isDepositWork && isDeptRigWork) ? 'Advance Deposit Paid by Applicant' : `Advance Deposit Paid by Applicant${ddDetails ? ` (${ddDetails})` : ''}`,
+                              <div className="flex gap-1">
+                                <Input type="number" className="h-6 text-xs" value={advanceDeposit} onChange={e => setAdvanceDeposit(Number(e.target.value))} />
+                                <Input className="h-6 text-xs" placeholder="DD Details" value={ddDetails} onChange={e => setDdDetails(e.target.value)} />
+                              </div>
+                            )}
+                          </td>
+                          <td className="border border-black p-1.5 text-right font-mono">
+                            {advanceDeposit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
                       )}
+
+                      <tr key="abs_en_balance" className="font-bold bg-gray-100">
+                        <td className="border border-black p-1.5 text-center">
+                          {abstractSiteRows.length + 2 + (abstractRemittanceRows.length > 0 ? abstractRemittanceRows.length + (abstractRemittanceRows.length > 1 ? 1 : 0) : 1)}
+                        </td>
+                        <td className="border border-black p-1.5 font-bold">
+                          {(totalRemittanceAmount - abstractGrandTotal) >= 0 ? 'Balance Refund Amount Due to Applicant' : 'Balance Deficit Amount Payable by Applicant'}
+                        </td>
+                        <td className="border border-black p-1.5 text-right font-mono font-bold">
+                          {Math.abs(totalRemittanceAmount - abstractGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
 
                   {/* Contractor Abstract Payment Table */}
-                  {hasTenderNo && !isDeptRigWork && (
+                  {contractorSitesCount > 0 && (
                     <div className="pt-3">
                       <h4 className="text-xs font-bold underline mb-1">ABSTRACT DETAILS</h4>
                       <table className="w-full border-collapse border border-black text-xs">
@@ -5345,53 +5514,19 @@ export default function PrintableReportModal({
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">1</td>
-                            <td className="border border-black p-1.5 font-semibold">
-                              {renderEditableCell('abs_en_item_1', <span>Final Payment to Contractor</span>, <Input className="h-6 text-xs" defaultValue="Final Payment to Contractor" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono font-bold">
-                              {abstractFinalContractorPayment.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">2</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_en_item_2', <span>Income Tax @ 1%</span>, <Input className="h-6 text-xs" defaultValue="Income Tax @ 1%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractIncomeTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">3</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_en_item_3', <span>Kerala Workers Welfare Board @ 1%</span>, <Input className="h-6 text-xs" defaultValue="Kerala Workers Welfare Board @ 1%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractWelfareBoard.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">4</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_en_item_4', <span>GST @ 2%</span>, <Input className="h-6 text-xs" defaultValue="GST @ 2%" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractGstDeduction.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="border border-black p-1.5 text-center">5</td>
-                            <td className="border border-black p-1.5">
-                              {renderEditableCell('abs_en_item_5', <span>Geophysical Logging</span>, <Input className="h-6 text-xs" defaultValue="Geophysical Logging" />)}
-                            </td>
-                            <td className="border border-black p-1.5 text-right font-mono">
-                              {abstractLogging.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
+                          {abstractDetailsEnRows.map((row, rIdx) => (
+                            <tr key={row.id}>
+                              <td className="border border-black p-1.5 text-center">{rIdx + 1}</td>
+                              <td className="border border-black p-1.5 font-semibold">
+                                {renderEditableCell(row.id, <span>{row.label}</span>, <Input className="h-6 text-xs" defaultValue={row.label} />)}
+                              </td>
+                              <td className="border border-black p-1.5 text-right font-mono font-bold">
+                                {row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
                           <tr className="font-bold bg-gray-100">
-                            <td className="border border-black p-1.5 text-center">6</td>
+                            <td className="border border-black p-1.5 text-center">{abstractDetailsEnRows.length + 1}</td>
                             <td className="border border-black p-1.5 font-bold">
                               Grand Total
                             </td>

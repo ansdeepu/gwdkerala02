@@ -164,6 +164,19 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
         }
     }, [watchedLsg, allLsgConstituencyMaps, setValue, getValues]);
 
+    const filteredInvestigationDiameterOptions = useMemo(() => {
+        if (watchedTypeOfWell === 'Tube Well') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('110') && !d.includes('4.5'));
+        }
+        if (watchedTypeOfWell === 'Bore Well') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('200') && !d.includes('8'));
+        }
+        if (watchedTypeOfWell === 'Filter Point Well') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('150') && !d.includes('6') && !d.includes('200') && !d.includes('8'));
+        }
+        return siteDiameterOptions || [];
+    }, [watchedTypeOfWell]);
+
     const hydroInvestigatorList = useMemo(() => 
         allStaffMembers.filter(s => 
             s.status === 'Active' && 
@@ -407,7 +420,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                                             <FormControl><SelectTrigger><SelectValue placeholder="Select Diameter" /></SelectTrigger></FormControl>
                                                             <SelectContent>
                                                                 <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                {siteDiameterOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                {(filteredInvestigationDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />

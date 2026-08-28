@@ -463,6 +463,7 @@ export type ArsEntryFormData = z.infer<typeof ArsEntrySchema>;
 export const SiteDetailSchema = z.object({
   id: z.string().optional(),
   nameOfSite: z.string().min(1, "Name of Site is required."),
+  nameOfSiteMl: z.string().optional().nullable(),
   localSelfGovt: z.string().min(1, "Local Self Govt. is required."),
   constituency: z.preprocess((val) => (val === "" || val === undefined ? null : val), z.string().optional().nullable()),
   latitude: optionalNumber(),
@@ -512,6 +513,7 @@ export const SiteDetailSchema = z.object({
   dateOfCompletion: nativeDateSchema.optional().nullable(),
   startDate: nativeDateSchema.optional().nullable(),
   typeOfRig: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional()),
+  geophysicalLogging: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   contractorName: z.string().optional().nullable(),
   supervisorUid: z.string().optional().nullable(),
   supervisorName: z.string().optional().nullable(),

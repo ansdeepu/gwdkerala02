@@ -29,7 +29,7 @@ import {
   type RigCompressor
 } from '@/lib/schemas';
 import type { E_tender } from '@/hooks/useE_tenders';
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,6 +133,20 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const isDeptRigWork = watchedSiteConditions === 'Accessible to Dept. Rig';
     const isQuotation = watchedTenderNo === 'Quotation';
 
+    // Filter diameter options based on Purpose
+    const filteredSiteDiameterOptions = useMemo(() => {
+        if (watchedPurpose === 'TWC' || watchedPurpose === 'TW Dev') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('110') && !d.includes('4.5'));
+        }
+        if (watchedPurpose === 'BWC' || watchedPurpose === 'BW Dev') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('200') && !d.includes('8'));
+        }
+        if (watchedPurpose === 'FPW' || watchedPurpose === 'FPW Dev') {
+            return (siteDiameterOptions || []).filter(d => !d.includes('150') && !d.includes('6') && !d.includes('200') && !d.includes('8'));
+        }
+        return siteDiameterOptions || [];
+    }, [watchedPurpose]);
+
     const [isManualSupervisor, setIsManualSupervisor] = useState(false);
 
     const supervisorListNames = useMemo(() => {
@@ -202,6 +216,15 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     const endCapHint = useMemo(() => {
         if (!watchedDiameter) return "";
+        if (watchedPurpose === 'TWC' || watchedPurpose === 'TW Dev') {
+            if (watchedDiameter.includes("150") || watchedDiameter.includes("6")) {
+                return "1 No. and ø150 mm";
+            }
+            if (watchedDiameter.includes("200") || watchedDiameter.includes("8")) {
+                return "1 No. and ø200 mm";
+            }
+            return "";
+        }
         if (watchedDiameter.includes("110") || watchedDiameter.includes("4.5")) {
             return "1 No. and ø140 mm";
         }
@@ -209,6 +232,36 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             return "1 No. and ø180 mm";
         }
         return "";
+    }, [watchedDiameter, watchedPurpose]);
+
+    const twcPlainPipeLabel = useMemo(() => {
+        if (watchedDiameter?.includes("150") || watchedDiameter?.includes("6")) {
+            return "150mm Plain Pipe (m)";
+        }
+        if (watchedDiameter?.includes("200") || watchedDiameter?.includes("8")) {
+            return "200mm Plain Pipe (m)";
+        }
+        return "200/150mm Plain Pipe (m)";
+    }, [watchedDiameter]);
+
+    const twcRibbedPipeLabel = useMemo(() => {
+        if (watchedDiameter?.includes("150") || watchedDiameter?.includes("6")) {
+            return "150mm Ribbed Pipe (m)";
+        }
+        if (watchedDiameter?.includes("200") || watchedDiameter?.includes("8")) {
+            return "200mm Ribbed Pipe (m)";
+        }
+        return "200/150mm Ribbed Pipe (m)";
+    }, [watchedDiameter]);
+
+    const twcBailPlugLabel = useMemo(() => {
+        if (watchedDiameter?.includes("150") || watchedDiameter?.includes("6")) {
+            return "150mm Bail Plug";
+        }
+        if (watchedDiameter?.includes("200") || watchedDiameter?.includes("8")) {
+            return "200mm Bail Plug";
+        }
+        return "200/150mm Bail Plug";
     }, [watchedDiameter]);
 
     useEffect(() => {
@@ -280,6 +333,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [isFieldReadOnly, watchedLsg, constituencyOptionsForLsg]);
 
     const isTenderSelected = watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_';
+    const prevTenderNoRef = useRef<string | undefined>(initialData?.tenderNo);
 
     useEffect(() => {
         if (isTenderSelected) {
@@ -287,12 +341,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             if (selectedTender) {
                 const validBidders = (selectedTender.bidders || []).filter((b: Bidder) => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
                 const l1Bidder = validBidders.length > 0 ? validBidders.reduce((lowest: Bidder, current: Bidder) => (lowest.quotedAmount! < current.quotedAmount!) ? lowest : current) : null;
-                setValue('contractorName', l1Bidder ? `${l1Bidder.name}, ${l1Bidder.address}` : '');
+                if (l1Bidder) {
+                    setValue('contractorName', `${l1Bidder.name}, ${l1Bidder.address}`);
+                }
                 
                 if (l1Bidder && l1Bidder.quotedPercentage !== undefined && l1Bidder.quotedPercentage !== null) {
                     setValue('quotedPercentage', `${l1Bidder.quotedPercentage}% ${l1Bidder.aboveBelow || ''}`.trim());
-                } else {
-                    setValue('quotedPercentage', '');
                 }
 
                 const staffIdentities: string[] = [];
@@ -312,10 +366,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 addStaffInfo(selectedTender.supervisor3Name);
                 
                 const joinedInfo = staffIdentities.join(', ');
-                setValue('supervisorName', joinedInfo);
-                setValue('supervisorUid', null); 
+                if (joinedInfo) {
+                    setValue('supervisorName', joinedInfo);
+                    setValue('supervisorUid', null);
+                }
             }
-        } else if (watchedTenderNo === '_clear_' || !watchedTenderNo) {
+        } else if (watchedTenderNo === '_clear_') {
             if (!isPrivateWork && !isDeptRigWork) {
                 setValue('contractorName', '');
                 setValue('supervisorName', '');
@@ -323,6 +379,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 setValue('quotedPercentage', '');
             }
         }
+        prevTenderNoRef.current = watchedTenderNo;
     }, [watchedTenderNo, isTenderSelected, isQuotation, allE_tenders, allStaffMembers, setValue, isPrivateWork, isDeptRigWork]);
 
     const rigOptions = useMemo(() => {
@@ -392,7 +449,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                 <CardHeader><CardTitle className="text-lg text-primary">Main Details</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField name="nameOfSite" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site <span className="text-destructive">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ""} placeholder="e.g. Community Borewell / Site Name" readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="nameOfSite" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site (English) <span className="text-destructive">*</span></FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="e.g. Community Borewell / Site Name" readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="nameOfSiteMl" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site (Malayalam)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="സ്ഥലത്തിന്റെ പേര് (മലയാളത്തിൽ)" readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
                                         <FormField name="purpose" control={control} render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Purpose <span className="text-destructive">*</span></FormLabel>
@@ -450,7 +508,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Diameter" /></SelectTrigger></FormControl>
                                                                         <SelectContent>
                                                                             <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                            {(siteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                            {(filteredSiteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                                                         </SelectContent>
                                                                     </Select>
                                                                     <FormMessage />
@@ -661,7 +719,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                 </CardContent>
                                             </Card>
 
-                                            {isWellPurpose && (
+                                             {isWellPurpose && (
                                                 <Card>
                                                     <CardHeader><CardTitle className="text-lg text-primary">Drilling Details (Actuals)</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
@@ -673,7 +731,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Diameter" /></SelectTrigger></FormControl>
                                                                         <SelectContent>
                                                                             <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                            {(siteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                            {(filteredSiteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                                                         </SelectContent>
                                                                     </Select>
                                                                     <FormMessage />
@@ -722,11 +780,10 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormField name="reaming12InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 12&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                     <FormField name="reaming16InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 16&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                     <FormField name="reaming22InchBit" control={control} render={({ field }) => <FormItem><FormLabel>Reaming 22&quot; Bit (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 20.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="assemblyLowered" control={control} render={({ field }) => <FormItem><FormLabel>Assembly Size & Depth</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 200/150 mm to 48 m" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                     <FormField name="outerCasingPipe" control={control} render={({ field }) => <FormItem><FormLabel>18&quot; MS Casing Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Plain Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 30.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Ribbed Pipe (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
-                                                                    <FormField name="bailPlug" control={control} render={({ field }) => <FormItem><FormLabel>200/150mm Bail Plug</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 1 No. (0.5m)" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveyPlainPipe" control={control} render={({ field }) => <FormItem><FormLabel>{twcPlainPipeLabel}</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 30.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="surveySlottedPipe" control={control} render={({ field }) => <FormItem><FormLabel>{twcRibbedPipeLabel}</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 18.00" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
+                                                                    <FormField name="bailPlug" control={control} render={({ field }) => <FormItem><FormLabel>{twcBailPlugLabel}</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 1 No. (0.5m)" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                                 </>
                                                             )}
 
@@ -779,6 +836,22 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
+                                                            {watchedPurpose === 'TWC' && (
+                                                                <FormField name="geophysicalLogging" control={control} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Geophysical Logging</FormLabel>
+                                                                        <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Geophysical Logging" /></SelectTrigger></FormControl>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                                <SelectItem value="Yes">Yes</SelectItem>
+                                                                                <SelectItem value="No">No</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}/>
+                                                            )}
                                                         </div>
                                                         <FormField name="drillingRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -803,7 +876,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Diameter" /></SelectTrigger></FormControl>
                                                                         <SelectContent>
                                                                             <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                            {(siteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                            {(filteredSiteDiameterOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                                                         </SelectContent>
                                                                     </Select>
                                                                     <FormMessage />

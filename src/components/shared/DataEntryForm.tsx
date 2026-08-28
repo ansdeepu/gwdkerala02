@@ -1460,29 +1460,25 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                             : "Generate and print official Completion Reports, Final Bills, Utilization Certificates, and Cover Letters for this file entry."}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => { setPrintModalDocType('completion_report'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
-                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                            >
-                                <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
-                            </Button>
-                        )}
-                        {(!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => { setPrintModalDocType('final_bill'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
-                                className="bg-background shadow-xs hover:bg-accent border-primary/25"
-                            >
-                                <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
-                            </Button>
-                        )}
-                        {((watchedSiteDetails?.length || siteFields.length || 0) > 1) && (!['deposit', 'public', 'collectors', 'collector', 'planFund', 'plan_fund', 'plan-fund'].includes(currentModuleKey) || watchedSiteDetails?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC') || siteFields?.some(s => s.purpose === 'BWC' || s.purpose === 'TWC')) && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPrintModalDocType('completion_report'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-primary" /> Completion Report
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPrintModalDocType('final_bill'); setPrintModalEntry(getValues()); setIsPrintModalOpen(true); }}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-primary" /> Final Bill
+                        </Button>
+                        {((watchedSiteDetails?.length || siteFields.length || 0) > 1) && (
                             <Button
                                 type="button"
                                 variant="outline"
