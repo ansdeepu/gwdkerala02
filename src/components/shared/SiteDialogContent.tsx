@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Save, X, Info, Loader2, UserPlus, Users } from "lucide-react";
+import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
   SiteDetailSchema,
   type SiteDetailFormData,
@@ -450,7 +451,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <FormField name="nameOfSite" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site (English) <span className="text-destructive">*</span></FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="e.g. Community Borewell / Site Name" readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
-                                        <FormField name="nameOfSiteMl" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site (Malayalam)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="സ്ഥലത്തിന്റെ പേര് (മലയാളത്തിൽ)" readOnly={isFieldReadOnly(false)} className="min-h-[40px]" /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="nameOfSiteMl" control={control} render={({ field }) => <FormItem><FormLabel>Name of Site (Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ""} onChange={(val) => field.onChange(val)} englishValue={form.watch('nameOfSite') || ""} multiline rows={2} disabled={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                         <FormField name="purpose" control={control} render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Purpose <span className="text-destructive">*</span></FormLabel>

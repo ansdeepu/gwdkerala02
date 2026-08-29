@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
 import { printDocument, copyRichHtml } from "@/lib/print-utils";
+import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
 import { 
   type DataEntryFormData, 
@@ -3375,11 +3376,13 @@ export default function PrintableReportModal({
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                 />
-                <Input
+                <MalayalamInput
                   className="h-9 bg-background text-xs"
                   placeholder="മലയാളം ജില്ല"
                   value={districtMl}
-                  onChange={(e) => setDistrictMl(e.target.value)}
+                  onChange={(val) => setDistrictMl(val)}
+                  englishValue={district}
+                  showAutoTranslateButton={false}
                 />
               </div>
             </div>
@@ -3393,11 +3396,13 @@ export default function PrintableReportModal({
                   value={subOfficeLocation}
                   onChange={(e) => setSubOfficeLocation(e.target.value)}
                 />
-                <Input
+                <MalayalamInput
                   className="h-9 bg-background text-xs"
                   placeholder="സബ് ഓഫീസ് (മലയാളം)"
                   value={subOfficeLocationMl}
-                  onChange={(e) => setSubOfficeLocationMl(e.target.value)}
+                  onChange={(val) => setSubOfficeLocationMl(val)}
+                  englishValue={subOfficeLocation}
+                  showAutoTranslateButton={false}
                 />
               </div>
             </div>
@@ -5872,8 +5877,8 @@ export default function PrintableReportModal({
                     {renderEditableCell('proc_officer_ml', 
                       <p className="text-[11pt] font-semibold text-center">ഹാജർ: {officerNameMl || officerName}, {officerDesignationMl || getDesignationMl(officerDesignation)}</p>,
                       <div className="flex gap-2">
-                        <Input className="h-7 text-xs" placeholder="ഓഫീസറുടെ പേര്" value={officerNameMl} onChange={e => setOfficerNameMl(e.target.value)} />
-                        <Input className="h-7 text-xs" placeholder="തസ്തിക" value={officerDesignationMl} onChange={e => setOfficerDesignationMl(e.target.value)} />
+                        <MalayalamInput className="h-7 text-xs" placeholder="ഓഫീസറുടെ പേര്" value={officerNameMl} onChange={val => setOfficerNameMl(val)} englishValue={officerName} showAutoTranslateButton={false} />
+                        <MalayalamInput className="h-7 text-xs" placeholder="തസ്തിക" value={officerDesignationMl} onChange={val => setOfficerDesignationMl(val)} englishValue={officerDesignation} showAutoTranslateButton={false} />
                       </div>
                     )}
                   </div>
@@ -5883,7 +5888,7 @@ export default function PrintableReportModal({
                       <span className="font-bold">വിഷയം:</span>
                       {renderEditableCell('proc_sub_ml', 
                         <span>{proceedingsSubjectMl || `ഭൂജല വകുപ്പ്, ${districtMl} - ${applicantName}${applicantAddress ? `, ${applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`}</span>, 
-                        <Textarea className="min-h-[55px] text-[11pt]" value={proceedingsSubjectMl} onChange={e => setProceedingsSubjectMl(e.target.value)} />
+                        <MalayalamInput multiline rows={2} className="min-h-[55px] text-[11pt]" value={proceedingsSubjectMl} onChange={val => setProceedingsSubjectMl(val)} showAutoTranslateButton={false} />
                       )}
                     </div>
                     <div className="grid grid-cols-[80px_1fr] gap-1 items-start">
@@ -6426,7 +6431,7 @@ export default function PrintableReportModal({
                           <span className="shrink-0 font-bold w-[2cm]">വിഷയം:</span>
                           <span className="flex-grow">{cleanSub}</span>
                         </div>, 
-                        <Textarea className="min-h-[40px] text-xs p-1" value={ucSubject || cleanSub} onChange={e => setUcSubject(e.target.value)} />
+                        <MalayalamInput multiline rows={2} className="min-h-[40px] text-xs p-1" value={ucSubject || cleanSub} onChange={val => setUcSubject(val)} showAutoTranslateButton={false} />
                       );
                     })()}
                     {renderEditableCell('uc_ml_refs', 
@@ -6438,8 +6443,8 @@ export default function PrintableReportModal({
                         </div>
                       </div>,
                       <div className="space-y-1">
-                        <Input className="h-6 text-xs" value={ucRef1} onChange={e => setUcRef1(e.target.value)} />
-                        <Input className="h-6 text-xs" value={ucRef2} onChange={e => setUcRef2(e.target.value)} />
+                        <MalayalamInput className="h-6 text-xs" value={ucRef1} onChange={val => setUcRef1(val)} showAutoTranslateButton={false} />
+                        <MalayalamInput className="h-6 text-xs" value={ucRef2} onChange={val => setUcRef2(val)} showAutoTranslateButton={false} />
                       </div>
                     )}
                   </div>
@@ -6514,7 +6519,7 @@ export default function PrintableReportModal({
 
                       return renderEditableCell('uc_ml_cover_letter',
                         <p className="whitespace-pre-line">{coverTextFinal}</p>,
-                        <Textarea className="min-h-[100px] text-xs p-1" value={ucMlPara1 || defaultCoverText} onChange={e => setUcMlPara1(e.target.value)} />
+                        <MalayalamInput multiline rows={4} className="min-h-[100px] text-xs p-1" value={ucMlPara1 || defaultCoverText} onChange={val => setUcMlPara1(val)} showAutoTranslateButton={false} />
                       );
                     })()}
                   </div>

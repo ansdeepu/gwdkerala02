@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move } from "lucide-react";
+import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
   DataEntrySchema,
   type DataEntryFormData,
@@ -340,7 +341,15 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeCo
                 </div>
                 <div className="space-y-2 col-span-1 md:col-span-2">
                     <Label htmlFor="applicantNameMl">Name & Address of Institution/Applicant (Malayalam)</Label>
-                    <Textarea id="applicantNameMl" placeholder="e.g. സെക്രട്ടറി, ഗ്രാമപഞ്ചായത്ത് ഓഫീസ്..." value={data.applicantNameMl || ''} onChange={(e) => handleChange('applicantNameMl', e.target.value)} className="min-h-[40px]" disabled={isChecking}/>
+                    <MalayalamInput
+                      id="applicantNameMl"
+                      value={data.applicantNameMl || ''}
+                      onChange={(val) => handleChange('applicantNameMl', val)}
+                      englishValue={data.applicantName || ''}
+                      multiline
+                      rows={2}
+                      disabled={isChecking}
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
