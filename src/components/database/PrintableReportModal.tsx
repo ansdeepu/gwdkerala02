@@ -220,6 +220,270 @@ const isStaleProceedingsRef1 = (saved: string | undefined, remittances?: any[]):
   return false;
 };
 
+const PANCHAYAT_MALAYALAM_MAP: Record<string, string> = {
+  'perayam': 'പേരയം',
+  'chavara': 'ചവറ',
+  'panmana': 'പന്മന',
+  'kundara': 'കുണ്ടറ',
+  'east kallada': 'കിഴക്കേ കല്ലട',
+  'eastkallada': 'കിഴക്കേ കല്ലട',
+  'west kallada': 'പടിഞ്ഞാറേ കല്ലട',
+  'westkallada': 'പടിഞ്ഞാറേ കല്ലട',
+  'munroethuruth': 'മൺറോതുരുത്ത്',
+  'munroethuruthu': 'മൺറോതുരുത്ത്',
+  'munroe island': 'മൺറോതുരുത്ത്',
+  'poruvazhy': 'പോരുവഴി',
+  'sooranad north': 'ശൂരനാട് വടക്ക്',
+  'sooranad south': 'ശൂരനാട് തെക്ക്',
+  'sooranad': 'ശൂരനാട്',
+  'sasthamcotta': 'ശാസ്താംകോട്ട',
+  'sasthamkotta': 'ശാസ്താംകോട്ട',
+  'kunnathoor': 'കുന്നത്തൂർ',
+  'kunnathur': 'കുന്നത്തൂർ',
+  'clappana': 'ക്ലാപ്പന',
+  'kulasekharapuram': 'കുലശേഖരപുരം',
+  'oachira': 'ഓച്ചിറ',
+  'ochira': 'ഓച്ചിറ',
+  'thodiyoor': 'തൊടിയൂർ',
+  'thazhava': 'തഴവ',
+  'neendakara': 'നീണ്ടകര',
+  'thevalakkara': 'തേവലക്കര',
+  'mynagappally': 'മൈനാഗപ്പള്ളി',
+  'mainagappally': 'മൈനാഗപ്പള്ളി',
+  'anchal': 'അഞ്ചൽ',
+  'aryankavu': 'ആര്യങ്കാവ്',
+  'yeroor': 'ഏരൂർ',
+  'jeroor': 'ഏരൂർ',
+  'edamulakkal': 'ഇടമുളയ്ക്കൽ',
+  'alayamon': 'അലയമൺ',
+  'karavaloor': 'കരവാളൂർ',
+  'karavalur': 'കരവാളൂർ',
+  'kulathupuzha': 'കുളത്തൂപ്പുഴ',
+  'thenmala': 'തെന്മന',
+  'chathannoor': 'ചാത്തന്നൂർ',
+  'chathannur': 'ചാത്തന്നൂർ',
+  'chirakkara': 'ചിറക്കര',
+  'adichanalloor': 'ആദിച്ചനല്ലൂർ',
+  'adichanallur': 'ആദിച്ചനല്ലൂർ',
+  'poothakkulam': 'പൂതക്കുളം',
+  'paravoor': 'പരവൂർ',
+  'paravur': 'പരവൂർ',
+  'kalluvathukkal': 'കല്ലുവാതുക്കൽ',
+  'pooyappally': 'പൂയപ്പള്ളി',
+  'velinalloor': 'വെളിനല്ലൂർ',
+  'velinallur': 'വെളിനല്ലൂർ',
+  'elamad': 'ഇളമാട്',
+  'veliyam': 'വെളിയം',
+  'kareepra': 'കരീപ്ര',
+  'ezhukone': 'എഴുകോൺ',
+  'nedumpana': 'നെടുമ്പന',
+  'perinad': 'പെരിനാട്',
+  'panayam': 'പനയം',
+  'thrikkaruva': 'തൃക്കരുവ',
+  'thrikkadavoor': 'തൃക്കടവൂർ',
+  'kottamkara': 'കൊറ്റങ്കര',
+  'elampalloor': 'ഇളമ്പള്ളൂർ',
+  'elampallur': 'ഇളമ്പള്ളൂർ',
+  'neduvathoor': 'നെടുവത്തൂർ',
+  'neduvathur': 'നെടുവത്തൂർ',
+  'kulakkada': 'കുളക്കട',
+  'pavithreswaram': 'പവിത്രേശ്വരം',
+  'puthoor': 'പുത്തൂർ',
+  'puthur': 'പുത്തൂർ',
+  'mylom': 'മൈലം',
+  'melila': 'മേലില',
+  'vettikavala': 'വെട്ടിക്കവല',
+  'ummannoor': 'ഉമ്മന്നൂർ',
+  'ummannur': 'ഉമ്മന്നൂർ',
+  'chadayamangalam': 'ചടയമംഗലം',
+  'ittiva': 'ഇട്ടിവാ',
+  'kadakkal': 'കടയ്ക്കൽ',
+  'chithara': 'ചിത്തറ',
+  'nilamel': 'നിലമേൽ',
+  'kummil': 'കുമ്മിൾ',
+  'kottarakkara': 'കൊട്ടാരക്കര',
+  'kottarakara': 'കൊട്ടാരക്കര',
+  'karunagappally': 'കരുനാഗപ്പള്ളി',
+  'karunagapally': 'കരുനാഗപ്പള്ളി',
+  'punalur': 'പുനലൂർ',
+  'pathanapuram': 'പത്തനാപുരം',
+  'kollam': 'കൊല്ലം',
+};
+
+const translatePanchayatToMalayalam = (rawName: string): string => {
+  if (!rawName) return 'പഞ്ചായത്ത്';
+  let cleaned = rawName
+    .replace(/^സെക്രട്ടറി,?\s*/gi, '')
+    .replace(/^സെക്രട്ടറി\s*[\n,]\s*/gi, '')
+    .replace(/^The\s+Secretary,?\s*/gi, '')
+    .replace(/^Secretary,?\s*/gi, '')
+    .trim();
+
+  if (cleaned.includes('\n')) {
+    cleaned = cleaned.split('\n')[0].trim();
+  }
+
+  if (!cleaned) return 'പഞ്ചായത്ത്';
+
+  if (/[\u0D00-\u0D7F]/.test(cleaned)) {
+    return cleaned
+      .replace(/ഗ്രാമ\s*പഞ്ചായത്ത്/g, 'ഗ്രാമപഞ്ചായത്ത്')
+      .replace(/ഗ്രാമപഞ്ചായത്ത്യിലെ/g, 'ഗ്രാമപഞ്ചായത്തിലെ')
+      .replace(/പഞ്ചായത്ത്യിലെ/g, 'പഞ്ചായത്തിലെ');
+  }
+
+  let placePart = cleaned
+    .replace(/Grama\s*Panchayath?/gi, '')
+    .replace(/Panchayath?/gi, '')
+    .trim();
+
+  const key = placePart.toLowerCase();
+  let malName = PANCHAYAT_MALAYALAM_MAP[key];
+
+  if (!malName) {
+    const words = placePart.split(/\s+/);
+    const translatedWords = words.map(w => PANCHAYAT_MALAYALAM_MAP[w.toLowerCase()] || w);
+    malName = translatedWords.join(' ');
+  }
+
+  if (malName) {
+    return `${malName} ഗ്രാമപഞ്ചായത്ത്`;
+  }
+
+  return `${placePart} ഗ്രാമപഞ്ചായത്ത്`;
+};
+
+const formatLsgLocativeMl = (lsg: string): string => {
+  if (!lsg) return 'ഗ്രാമപഞ്ചായത്തിലെ';
+  let cleaned = lsg.trim();
+  if (cleaned.endsWith('ഗ്രാമപഞ്ചായത്ത്യിലെ')) return cleaned.replace(/ഗ്രാമപഞ്ചായത്ത്യിലെ$/, 'ഗ്രാമപഞ്ചായത്തിലെ');
+  if (cleaned.endsWith('പഞ്ചായത്ത്യിലെ')) return cleaned.replace(/പഞ്ചായത്ത്യിലെ$/, 'പഞ്ചായത്തിലെ');
+  if (cleaned.endsWith('ലെ')) return cleaned;
+  if (cleaned.endsWith('പഞ്ചായത്ത്')) return cleaned.replace(/പഞ്ചായത്ത്$/, 'പഞ്ചായത്തിലെ');
+  if (cleaned.endsWith('ത്ത്')) return cleaned.replace(/ത്ത്$/, 'ത്തിലെ');
+  if (cleaned.includes('പഞ്ചായത്ത്')) {
+    return cleaned.replace(/പഞ്ചായത്ത്/g, 'പഞ്ചായത്തിലെ');
+  }
+  return `${cleaned} ഗ്രാമപഞ്ചായത്തിലെ`;
+};
+
+const getUcWorkFormat = (purposeCode: string, activeSites: any[] = []): {
+  workNameMl: string;
+  executionAgencyMl: string;
+  mainDetailsMl: string;
+  workNameEn: string;
+  executionAgencyEn: string;
+  mainDetailsEn: string;
+} => {
+  const p = (purposeCode || '').trim().toUpperCase();
+
+  let workNameMl = 'കുഴൽകിണർ നിർമ്മാണം';
+  let workNameEn = 'Borewell Construction';
+  let isDrillingOrDev = false;
+  let isDev = false;
+
+  if (p.includes('MWSS PUMP RENO') || p.includes('PUMP RENO') || (p.includes('RENO') && p.includes('PUMP')) || p.includes('RENOVATION') || p.includes('പുനരുദ്ധാരണം')) {
+    workNameMl = 'കുടിവെള്ള പദ്ധതി പുനരുദ്ധാരണം';
+    workNameEn = 'Water Supply Scheme Renovation';
+  } else if (p.includes('MWSS EXT') || (p.includes('MWSS') && p.includes('EXT')) || p.includes('EXTENSION') || p.includes('വിപുലീകരണം')) {
+    workNameMl = 'ചെറുകിട കുടിവെള്ള പദ്ധതി വിപുലീകരണം';
+    workNameEn = 'Mini Water Supply Scheme Extension';
+  } else if (p.includes('MWSS') || p.includes('MINI WATER')) {
+    workNameMl = 'ചെറുകിട കുടിവെള്ള പദ്ധതി';
+    workNameEn = 'Mini Water Supply Scheme';
+  } else if (p.includes('PUMPING') || p.includes('പമ്പിങ്')) {
+    workNameMl = 'പമ്പിങ് സ്കീം';
+    workNameEn = 'Pumping Scheme';
+  } else if (p === 'HPR' || p.includes('HPR') || (p.includes('HAND') && p.includes('REPAIR')) || p.includes('അറ്റകുറ്റപ്പണി')) {
+    workNameMl = 'ഹാൻഡ് പമ്പ് റിപ്പയർ';
+    workNameEn = 'Hand Pump Repair';
+  } else if (p === 'HPS' || p.includes('HPS') || (p.includes('HAND') && (p.includes('PUMP') || p.includes('SCHEME')))) {
+    workNameMl = 'ഹാൻഡ് പമ്പ് സ്കീം';
+    workNameEn = 'Hand Pump Scheme';
+  } else if (p === 'ARS' || p.includes('ARS') || p.includes('RECHARGE') || p.includes('സംപോഷണ')) {
+    workNameMl = 'കൃത്രിമ ഭൂജല സംപോഷണ പദ്ധതി';
+    workNameEn = 'Artificial Recharge Scheme';
+  } else if (p.includes('FPW DEV') || (p.includes('FPW') && p.includes('DEV'))) {
+    workNameMl = 'ഫിൽറ്റർ പൊയിന്റ് വെൽ ഡെവലപ്പിംഗ്';
+    workNameEn = 'Filter Point Well Development';
+    isDrillingOrDev = true;
+    isDev = true;
+  } else if (p.includes('TW DEV') || (p.includes('TW') && p.includes('DEV')) || (p.includes('TUBE') && p.includes('DEV'))) {
+    workNameMl = 'ട്യൂബ് വെൽ ഡെവലപ്പിംഗ്';
+    workNameEn = 'Tubewell Development';
+    isDrillingOrDev = true;
+    isDev = true;
+  } else if (p.includes('BW DEV') || (p.includes('BW') && p.includes('DEV')) || (p.includes('BORE') && p.includes('DEV')) || p.includes('കുഴൽകിണർ ഡെവലപ്പിംഗ്')) {
+    workNameMl = 'കുഴൽകിണർ ഡെവലപ്പിംഗ്';
+    workNameEn = 'Borewell Development';
+    isDrillingOrDev = true;
+    isDev = true;
+  } else if (p.includes('FPW') || p.includes('FILTER POINT')) {
+    workNameMl = 'ഫിൽറ്റർ പൊയിന്റ് വെൽ നിർമ്മാണം';
+    workNameEn = 'Filter Point Well Construction';
+    isDrillingOrDev = true;
+  } else if (p.includes('TWC') || p.includes('TUBE')) {
+    workNameMl = 'ട്യൂബ് വെൽ നിർമ്മാണം';
+    workNameEn = 'Tubewell Construction';
+    isDrillingOrDev = true;
+  } else {
+    workNameMl = 'കുഴൽകിണർ നിർമ്മാണം';
+    workNameEn = 'Borewell Construction';
+    isDrillingOrDev = true;
+  }
+
+  const executionAgencyMl = 'വകുപ്പ് തലത്തിൽ';
+  const executionAgencyEn = 'departmentally';
+
+  let mainDetailsMl = '';
+  let mainDetailsEn = '';
+
+  if (isDrillingOrDev) {
+    if (activeSites.length > 1) {
+      mainDetailsMl = isDev
+        ? 'ഡെവലപ്പിംഗ് നടത്തിയ വിവരങ്ങൾ ചുവടെ ചേർക്കുന്നു.'
+        : 'നിർമ്മിച്ച കുഴൽകിണറുകളുടെ വിവരങ്ങൾ ചുവടെ ചേർക്കുന്നു.';
+      mainDetailsEn = isDev
+        ? 'The details of the developed wells are given below.'
+        : 'The details of the constructed wells are given below.';
+    } else if (activeSites.length === 1) {
+      const s = activeSites[0];
+      const depth = s?.depth || parseNum(s?.totalDepth) || 0;
+      const yld = s?.yield || parseNum(s?.yieldDischarge) || 0;
+      if (depth > 0 && yld > 0) {
+        mainDetailsMl = isDev
+          ? `ടി പ്രവൃത്തിയുടെ ഭാഗമായി ഡെവലപ്പിംഗ് നടത്തിയ കുഴൽകിണറിന്റെ ആകെ താഴ്ച ${depth} മീറ്ററും ലഭ്യമായ ജലലഭ്യത ${yld} എൽ.പി.എച്ച് ഉം ആണ്.`
+          : `ടി പ്രവൃത്തിയുടെ ഭാഗമായി നിർമ്മിച്ച കുഴൽകിണറിന്റെ ആകെ താഴ്ച ${depth} മീറ്ററും ലഭ്യമായ ജലലഭ്യത ${yld} എൽ.പി.എച്ച് ഉം ആണ്.`;
+        mainDetailsEn = isDev
+          ? `The total depth of the developed well is ${depth} meters and the discharge yield is ${yld} LPH.`
+          : `The total depth of the constructed well is ${depth} meters and the discharge yield is ${yld} LPH.`;
+      } else if (depth > 0) {
+        mainDetailsMl = isDev
+          ? `ടി പ്രവൃത്തിയുടെ ഭാഗമായി ഡെവലപ്പിംഗ് നടത്തിയ കുഴൽകിണറിന്റെ ആകെ താഴ്ച ${depth} മീറ്റർ ആണ്.`
+          : `ടി പ്രവൃത്തിയുടെ ഭാഗമായി നിർമ്മിച്ച കുഴൽകിണറിന്റെ ആകെ താഴ്ച ${depth} മീറ്റർ ആണ്.`;
+        mainDetailsEn = isDev
+          ? `The total depth of the developed well is ${depth} meters.`
+          : `The total depth of the constructed well is ${depth} meters.`;
+      } else {
+        mainDetailsMl = '';
+        mainDetailsEn = '';
+      }
+    }
+  } else {
+    mainDetailsMl = `ടി പ്രവൃത്തിയുടെ ഭാഗമായി ആവശ്യമായ നിർമ്മാണ/വികസന/പുനരുദ്ധാരണ/അറ്റകുറ്റപ്പണികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്.`;
+    mainDetailsEn = `The required construction/renovation/repair works under the said project have been completed satisfactorily.`;
+  }
+
+  return {
+    workNameMl,
+    executionAgencyMl,
+    mainDetailsMl,
+    workNameEn,
+    executionAgencyEn,
+    mainDetailsEn,
+  };
+};
+
 interface PrintableReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -305,7 +569,7 @@ export default function PrintableReportModal({
 
   const currentSite: SiteDetailFormData | undefined = sites[selectedSiteIndex] || sites[0];
   const isDeptRigWork = currentSite?.siteConditions === 'Accessible to Dept. Rig' || (entry as any)?.siteConditions === 'Accessible to Dept. Rig';
-  const isTWC = currentSite?.purpose === 'TWC' || entry?.purpose === 'TWC';
+  const isTWC = currentSite?.purpose === 'TWC' || (entry as any)?.purpose === 'TWC';
 
   // Currently editing row key (null if none)
   const [editingRow, setEditingRow] = useState<string | null>(null);
@@ -543,8 +807,8 @@ export default function PrintableReportModal({
     const fNo = entry.fileNo || 'GWDKLM/794/2026';
     setFileNo(fNo);
     setApplicantName(entry.applicantName || '');
-    setApplicantAddress(entry.applicantAddress || '');
-    setApplicationType(entry.applicationType || moduleType.toUpperCase());
+    setApplicantAddress((entry as any).applicantAddress || '');
+    setApplicationType((entry as any).applicationType || moduleType.toUpperCase());
 
     const oCode = officeAddress?.officeCode || 'GWDKLM';
     let cleanFNo = fNo.replace(/^(GWD[A-Z]*|GWD)\//i, '');
@@ -575,12 +839,12 @@ export default function PrintableReportModal({
     // Calculate localized net payable
     const appTypeStr = (entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
     const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
-    const isSiteTWC = currentSite?.purpose === 'TWC' || entry?.purpose === 'TWC';
+    const isSiteTWC = currentSite?.purpose === 'TWC' || (entry as any)?.purpose === 'TWC';
     const pilotDVal = parseNum(currentSite?.pilotDrillingDepth);
     const depthVal = currentSite ? (isSiteTWC ? (pilotDVal > 0 ? pilotDVal : parseNum(currentSite.totalDepth)) : parseNum(currentSite.totalDepth)) : 0;
     const depthForSubsidy = Math.min(depthVal || 0, 120);
 
-    const isYieldZero = currentSite ? (Number(currentSite.yieldDischarge) === 0 || parseNum(currentSite.yieldDischarge) === 0 || currentSite.yieldDischarge === '0' || currentSite.yieldDischarge === 0) : false;
+    const isYieldZero = currentSite ? (Number(currentSite.yieldDischarge) === 0 || parseNum(currentSite.yieldDischarge) === 0 || currentSite.yieldDischarge === '0') : false;
     const workStatusStr = (currentSite?.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
     const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
     const isFailedOrZeroYield = isYieldZero || isWorkFailed;
@@ -598,7 +862,7 @@ export default function PrintableReportModal({
       : drillingRate;
 
     const calculatedPrivateSubsidy = (depthForSubsidy * effectiveDrillingRate) * subsidyRate;
-    const storedSubsidy = Number(currentSite?.subsidyAmount) || Number(entry?.subsidyAmount) || 0;
+    const storedSubsidy = Number(currentSite?.subsidyAmount) || Number((entry as any)?.subsidyAmount) || 0;
     const isOldBwcSubsidyOnTwc = isSiteTWC && storedSubsidy > 0 && Math.abs(storedSubsidy - (depthForSubsidy * 374.40 * 0.5)) < 1;
 
     const localSubsidy = (isPrivateIrrigation || isFailedOrZeroYield || isPrivateWork) 
@@ -662,8 +926,8 @@ export default function PrintableReportModal({
       setStaticWaterLevel(wl);
 
       let rigStr = currentSite.typeOfRig || '';
-      if (currentSite.drillingRigNo) rigStr += ` (Rig: ${currentSite.drillingRigNo})`;
-      if (currentSite.compressorNo) rigStr += ` (Comp: ${currentSite.compressorNo})`;
+      if ((currentSite as any).drillingRigNo) rigStr += ` (Rig: ${(currentSite as any).drillingRigNo})`;
+      if ((currentSite as any).compressorNo) rigStr += ` (Comp: ${(currentSite as any).compressorNo})`;
       setRigUsed(rigStr);
 
       const siteTenderKey = (currentSite.tenderNo || (entry as any)?.tenderNo || (currentSite as any)?.eTenderNo || (entry as any)?.eTenderNo || '').trim().toLowerCase();
@@ -675,7 +939,7 @@ export default function PrintableReportModal({
           )
         : null;
       const tenderL1Bidder = matchedTender?.bidders?.find(b => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
-      const tenderContractor = tenderL1Bidder?.bidderName || matchedTender?.contractorName || '';
+      const tenderContractor = (tenderL1Bidder as any)?.bidderName || tenderL1Bidder?.name || (matchedTender as any)?.contractorName || '';
 
       const fallbackContractor = currentSite.contractorName || (entry as any)?.contractorName || tenderContractor || '';
       setContractorName(fallbackContractor);
@@ -699,7 +963,7 @@ export default function PrintableReportModal({
       // Formulate default dynamic descriptions
       const diaVal = currentSite.diameter || '110';
       const isDia150 = diaVal.includes('150') || diaVal.includes('6');
-      const isTWC = currentSite.purpose === 'TWC' || entry?.purpose === 'TWC';
+      const isTWC = currentSite.purpose === 'TWC' || (entry as any)?.purpose === 'TWC';
       const isDia200 = diaVal.includes('200') || diaVal.includes('8');
 
       const findGwdRateHelper = (keyword: string, defaultVal: number) => {
@@ -788,14 +1052,14 @@ export default function PrintableReportModal({
       `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
     );
     setProceedingsSubjectMl(
-      `ഭൂജല വകുപ്പ്, ${districtMl} - ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`
+      `ഭൂജല വകുപ്പ്, ${districtMl} - ${entry.applicantName || ''}${(entry as any).applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`
     );
     setProceedingsRef1(formatDatesInText(`1. Application of ${entry.applicantName || ''} and DD details (${ddStr}).`));
     setProceedingsRef1Ml(formatDatesInText(`1. ${entry.applicantName || ''} എന്നയാളുടെ അപേക്ഷയും ഡി.ഡി വിവരങ്ങളും (${ddStr}).`));
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
     setProceedingsRef2Ml(`2. ഈ ആപ്പീസിലെ തീയതി ${todayFormatted} - ലെ ഫൈനൽ ബിൽ.`);
 
-    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => (s.roles as any)?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     setUcFrom('ജില്ലാ ഓഫീസർ');
 
     const defaultUcToMl = (() => {
@@ -809,26 +1073,32 @@ export default function PrintableReportModal({
       }
       if (entry?.applicantName) {
         const enName = entry.applicantName;
-        const enAddr = entry.applicantAddress;
+        const enAddr = (entry as any).applicantAddress;
         if (/^secretary/i.test(enName.trim())) {
           const panchayatPart = enName.replace(/^secretary,?\s*/i, '').trim();
-          return `സെക്രട്ടറി\n${panchayatPart || currentSite?.localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`;
+          const malPanchayat = translatePanchayatToMalayalam(panchayatPart || currentSite?.localSelfGovt || '');
+          return `സെക്രട്ടറി\n${malPanchayat}`;
         }
         return `${enName}${enAddr ? `\n${enAddr}` : ''}`.replace(/,\s*/g, '\n');
       }
-      return currentSite?.localSelfGovt ? `സെക്രട്ടറി\n${currentSite.localSelfGovt}` : 'സെക്രട്ടറി\nഗ്രാമപഞ്ചായത്ത്';
+      const malP = translatePanchayatToMalayalam(currentSite?.localSelfGovt || '');
+      return `സെക്രട്ടറി\n${malP}`;
     })();
 
     const defaultUcToEn = (() => {
       if (entry?.applicantName) {
-        return `${entry.applicantName}${entry.applicantAddress ? `\n${entry.applicantAddress}` : ''}`.replace(/,\s*/g, '\n');
+        return `${entry.applicantName}${(entry as any).applicantAddress ? `\n${(entry as any).applicantAddress}` : ''}`.replace(/,\s*/g, '\n');
       }
       return currentSite?.localSelfGovt ? `The Secretary\n${currentSite.localSelfGovt}` : 'The Secretary\nGrama Panchayath';
     })();
 
+    const cleanLsgPart = translatePanchayatToMalayalam(
+      (entry as any)?.applicantNameMl || currentSite?.nameOfSiteMl || currentSite?.localSelfGovt || entry?.applicantName || ''
+    );
+
     setUcTo(lang === 'en' ? defaultUcToEn : defaultUcToMl);
     setUcSubject(
-      `ഭൂജല വകുപ്പ്, ${districtMl} - ${currentSite?.localSelfGovt || 'പഞ്ചായത്ത്'} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`
+      `ഭൂജല വകുപ്പ്, ${districtMl} - ${cleanLsgPart} കുടിവെള്ള പദ്ധതി - കുഴൽകിണർ നിർമ്മാണം - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`
     );
     setUcRef1(`കത്ത് നമ്പർ GWD/${fNo.replace(/\//g, '-')}/2026 തീയതി ${todayFormatted}`);
     setUcRef2(`പൂർത്തീകരണ റിപ്പോർട്ട് & ഫൈനൽ ബിൽ`);
@@ -1174,7 +1444,7 @@ export default function PrintableReportModal({
     } else {
       const activeDd = computedDdDetails || ddStr;
       const ref1Part = activeDd ? ` (${activeDd})` : '';
-      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
+      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${(entry as any)?.applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} and DD details${ref1Part}.`));
     }
     if (savedOverrides.proceedingsRef1Ml !== undefined) {
       setProceedingsRef1Ml(savedOverrides.proceedingsRef1Ml);
@@ -1261,10 +1531,10 @@ export default function PrintableReportModal({
   }, [entry, currentSite, selectedSiteIndex, moduleType, sites, isPrivateWork, officeAddress?.officeCode]);
 
   // Derived Calculations
-  const appTypeStr = (applicationType || entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
+  const appTypeStr = (applicationType || entry?.applicationType || (currentSite as any)?.applicationType || '').toLowerCase();
   const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
   
-  const isYieldZero = yieldCategory === 'Dry Well' || currentSite?.yieldCategory === 'Dry Well' || yieldLph === 0 || parseNum(currentSite?.yieldDischarge) === 0 || currentSite?.yieldDischarge === '0' || currentSite?.yieldDischarge === 0;
+  const isYieldZero = yieldCategory === 'Dry Well' || currentSite?.yieldCategory === 'Dry Well' || yieldLph === 0 || parseNum(currentSite?.yieldDischarge) === 0 || currentSite?.yieldDischarge === '0' || Number(currentSite?.yieldDischarge) === 0;
   const workStatusStr = (currentSite?.workStatus || (entry as any)?.workStatus || '').toString().toLowerCase();
   const isWorkFailed = workStatusStr.includes('failed') || workStatusStr.includes('പരാജയ');
   const isFailedOrZeroYield = isYieldZero || isWorkFailed;
@@ -1539,7 +1809,7 @@ export default function PrintableReportModal({
         : (sDrilling + sC10 + sC8 + sC6 + sOuter + sInner);
 
       // Site subsidy
-      const sAppTypeStr = (applicationType || entry?.applicationType || s.applicationType || '').toLowerCase();
+      const sAppTypeStr = (applicationType || entry?.applicationType || (s as any).applicationType || '').toLowerCase();
       const sIsPrivateIrrigation = sAppTypeStr.includes('irrigation') || sAppTypeStr.includes('private_irrigation') || sAppTypeStr.includes('private irrigation');
       
       const sYield = isCurrentActive ? yieldLph : (Number(s.yieldDischarge) || 0);
@@ -1575,7 +1845,9 @@ export default function PrintableReportModal({
 
       const sNetPayableRaw = sTotalExpenditure - sSiteSubsidy;
       const sNetPayable = Math.round(sNetPayableRaw);
-      const sName = s.nameOfSite || entry?.applicantName || `Site #${sIdx + 1}`;
+      const sNameMl = s.nameOfSiteMl || s.nameOfSite || (entry as any)?.applicantNameMl || entry?.applicantName || `സൈറ്റ് #${sIdx + 1}`;
+      const sNameEn = s.nameOfSite || entry?.applicantName || `Site #${sIdx + 1}`;
+      const sName = lang === 'ml' ? sNameMl : sNameEn;
       const sLoc = s.surveyLocation || s.localSelfGovt || '';
 
       const sIsGeophysicalLoggingActive = isCurrentActive 
@@ -1586,9 +1858,12 @@ export default function PrintableReportModal({
       return {
         sIdx,
         siteName: sName,
+        siteNameMl: sNameMl,
+        siteNameEn: sNameEn,
         location: sLoc,
         purpose: s.purpose || 'BWC',
         depth: sIsTWC ? dQ : sDepth,
+        yield: parseNum(s.yieldDischarge) || 0,
         drillingCost: sIsTWC ? (dR * dQ) : sDrilling,
         casing10Qty: sC10Val,
         casing10Cost: sC10,
@@ -1610,9 +1885,12 @@ export default function PrintableReportModal({
     }).filter(Boolean) as Array<{
       sIdx: number;
       siteName: string;
+      siteNameMl: string;
+      siteNameEn: string;
       location: string;
       purpose: string;
       depth: number;
+      yield: number;
       drillingCost: number;
       casing10Qty: number;
       casing10Cost: number;
@@ -1672,8 +1950,24 @@ export default function PrintableReportModal({
     twcMsCasingRate,
     twcMsCasingQty,
     allGwdRates,
-    getAgreedRate
+    getAgreedRate,
+    lang
   ]);
+
+  const cleanPanchayatMl = useMemo(() => {
+    return translatePanchayatToMalayalam(
+      (entry as any)?.applicantNameMl || (entry as any)?.applicantAddressMl || localSelfGovt || currentSite?.localSelfGovt || entry?.applicantName || ''
+    );
+  }, [entry, localSelfGovt, currentSite]);
+
+  const currentPurposeCode = (currentSite?.purpose || sites[0]?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || (entry as any)?.arsTypeOfScheme || 'BWC').toString();
+  const currentWorkFmt = useMemo(() => {
+    return getUcWorkFormat(currentPurposeCode, sites);
+  }, [currentPurposeCode, sites]);
+
+  const defaultUcSubjectMl = useMemo(() => {
+    return `ഭൂജല വകുപ്പ്, ${districtMl} - ${cleanPanchayatMl} കുടിവെള്ള പദ്ധതി - ${currentWorkFmt.workNameMl} - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`;
+  }, [districtMl, cleanPanchayatMl, currentWorkFmt.workNameMl]);
 
   const totalNetPayableAllSites = useMemo(() => {
     return siteFinancials.reduce((sum, sf) => sum + sf.netPayable, 0);
@@ -1707,12 +2001,14 @@ export default function PrintableReportModal({
         ? (isContractorSite ? override.amount / 1.18 : override.amount)
         : workExp;
 
-      const descMl = override.descMl ?? (sf.siteName + (sf.location ? " (" + sf.location + ")" : ""));
-      const descEn = override.descEn ?? (sf.siteName + (sf.location ? " (" + sf.location + ")" : ""));
+      const descMl = override.descMl ?? ((sf.siteNameMl || sf.siteName) + (sf.location ? " (" + sf.location + ")" : ""));
+      const descEn = override.descEn ?? ((sf.siteNameEn || sf.siteName) + (sf.location ? " (" + sf.location + ")" : ""));
 
       return {
         sIdx,
-        siteName: sf.siteName,
+        siteName: lang === 'ml' ? (sf.siteNameMl || sf.siteName) : (sf.siteNameEn || sf.siteName),
+        siteNameMl: sf.siteNameMl || sf.siteName,
+        siteNameEn: sf.siteNameEn || sf.siteName,
         location: sf.location,
         descMl,
         descEn,
@@ -1721,8 +2017,8 @@ export default function PrintableReportModal({
         grandTotal: finalAmount,
         isContractorSite,
       };
-    }).filter(Boolean) as Array<{ sIdx: number; siteName: string; location: string; descMl: string; descEn: string; amount: number; totalExpenditure: number; grandTotal: number; isContractorSite: boolean }>;
-  }, [selectedSiteIndices, siteFinancials, sites, storeQuotedPct, entry, siteOverridesMap]);
+    }).filter(Boolean) as Array<{ sIdx: number; siteName: string; siteNameMl: string; siteNameEn: string; location: string; descMl: string; descEn: string; amount: number; totalExpenditure: number; grandTotal: number; isContractorSite: boolean }>;
+  }, [selectedSiteIndices, siteFinancials, sites, storeQuotedPct, entry, siteOverridesMap, lang]);
 
   const abstractTotalExp = useMemo(() => {
     return abstractSiteRows.reduce((sum, r) => sum + (r.totalExpenditure || 0), 0);
@@ -1885,17 +2181,22 @@ export default function PrintableReportModal({
       if (!sf) return null;
       const absRow = abstractSiteRows.find(r => r.sIdx === sIdx);
       const grandTotal = absRow?.grandTotal ?? Math.round(sf.subsidyAmount > 0 ? sf.netPayable : (sf.totalExpenditure || sf.netPayable));
-      const descMl = absRow?.descMl ?? (sf.siteName + (sf.location ? " (" + sf.location + ")" : ""));
-      const descEn = absRow?.descEn ?? (sf.siteName + (sf.location ? " (" + sf.location + ")" : ""));
+      const sNameMl = sf.siteNameMl || sf.siteName;
+      const sNameEn = sf.siteNameEn || sf.siteName;
+      const descMl = absRow?.descMl ?? (sNameMl + (sf.location ? " (" + sf.location + ")" : ""));
+      const descEn = absRow?.descEn ?? (sNameEn + (sf.location ? " (" + sf.location + ")" : ""));
       return {
         ...sf,
+        siteName: lang === 'ml' ? sNameMl : sNameEn,
+        siteNameMl: sNameMl,
+        siteNameEn: sNameEn,
         grandTotal,
         totalExpenditure: grandTotal,
         descMl,
         descEn,
       };
-    }).filter(Boolean) as Array<SiteFinancials & { grandTotal: number; descMl: string; descEn: string }>;
-  }, [selectedSiteIndices, siteFinancials, abstractSiteRows]);
+    }).filter(Boolean) as Array<typeof siteFinancials[number] & { grandTotal: number; descMl: string; descEn: string; siteNameMl: string; siteNameEn: string }>;
+  }, [selectedSiteIndices, siteFinancials, abstractSiteRows, lang]);
 
   const ucTotalSelectedExpenditure = useMemo(() => {
     return ucSelectedSites.reduce((sum, sf) => sum + sf.grandTotal, 0);
@@ -2221,19 +2522,18 @@ export default function PrintableReportModal({
           longitude: longitude ? Number(longitude) : updatedSiteDetails[targetIndex].longitude,
           localSelfGovt: localSelfGovt || updatedSiteDetails[targetIndex].localSelfGovt,
           constituency: constituency || updatedSiteDetails[targetIndex].constituency,
-          totalDepth: depthMeter !== undefined && depthMeter !== null ? String(depthMeter) : updatedSiteDetails[targetIndex].totalDepth,
+          totalDepth: depthMeter !== undefined && depthMeter !== null ? Number(depthMeter) : updatedSiteDetails[targetIndex].totalDepth,
           casing10kgPipe: casing10kgQty !== undefined && casing10kgQty !== null ? String(casing10kgQty) : (updatedSiteDetails[targetIndex].casing10kgPipe ?? ""),
           casing8kgPipe: casing8kgQty !== undefined && casing8kgQty !== null ? String(casing8kgQty) : ((updatedSiteDetails[targetIndex] as any).casing8kgPipe ?? ""),
           casing6kgPipe: casing6kgQty !== undefined && casing6kgQty !== null ? String(casing6kgQty) : (updatedSiteDetails[targetIndex].casing6kgPipe ?? ""),
           casingPipeUsed: String((Number(casing10kgQty) || 0) + (Number(casing8kgQty) || 0) + (Number(casing6kgQty) || 0)),
-          yieldDischarge: yieldLph !== undefined && yieldLph !== null && yieldLph !== '' ? String(yieldLph) : (updatedSiteDetails[targetIndex].yieldDischarge !== undefined && updatedSiteDetails[targetIndex].yieldDischarge !== null ? String(updatedSiteDetails[targetIndex].yieldDischarge) : ""),
+          yieldDischarge: yieldLph !== undefined && yieldLph !== null && String(yieldLph) !== '' ? String(yieldLph) : (updatedSiteDetails[targetIndex].yieldDischarge !== undefined && updatedSiteDetails[targetIndex].yieldDischarge !== null ? String(updatedSiteDetails[targetIndex].yieldDischarge) : ""),
           yieldCategory: yieldCategory || (updatedSiteDetails[targetIndex].yieldCategory || ""),
           zoneDetails: waterStruckZone || updatedSiteDetails[targetIndex].zoneDetails,
           waterLevel: staticWaterLevel !== undefined && staticWaterLevel !== null && staticWaterLevel !== '' ? String(staticWaterLevel) : (updatedSiteDetails[targetIndex].waterLevel !== undefined && updatedSiteDetails[targetIndex].waterLevel !== null ? String(updatedSiteDetails[targetIndex].waterLevel) : ""),
           drillingRemarks: remarks || updatedSiteDetails[targetIndex].drillingRemarks,
           workRemarks: remarks || updatedSiteDetails[targetIndex].workRemarks,
           startDate: periodFrom || (updatedSiteDetails[targetIndex] as any).startDate || (updatedSiteDetails[targetIndex] as any).dateOfCommencement,
-          dateOfCommencement: periodFrom || (updatedSiteDetails[targetIndex] as any).startDate || (updatedSiteDetails[targetIndex] as any).dateOfCommencement,
           dateOfCompletion: periodTo || updatedSiteDetails[targetIndex].dateOfCompletion,
           diameter: diameter || updatedSiteDetails[targetIndex].diameter,
           surveyOB: actualOverburden || updatedSiteDetails[targetIndex].surveyOB,
@@ -2505,8 +2805,8 @@ export default function PrintableReportModal({
     cr_surveyLoc: () => setSurveyLocation(currentSite?.surveyLocation || ''),
     cr_rigUsed: () => {
       let rigStr = currentSite?.typeOfRig || '';
-      if (currentSite?.drillingRigNo) rigStr += ` (Rig: ${currentSite.drillingRigNo})`;
-      if (currentSite?.compressorNo) rigStr += ` (Comp: ${currentSite.compressorNo})`;
+      if ((currentSite as any)?.drillingRigNo) rigStr += ` (Rig: ${(currentSite as any).drillingRigNo})`;
+      if ((currentSite as any)?.compressorNo) rigStr += ` (Comp: ${(currentSite as any).compressorNo})`;
       setRigUsed(rigStr);
     },
     cr_diameter: () => setDiameter(currentSite?.diameter || 'Ø 110 മില്ലീമീറ്റർ'),
@@ -2768,12 +3068,12 @@ export default function PrintableReportModal({
       setOfficerNameMl((doStaff as any)?.nameMalayalam || (officeAddress as any)?.districtOfficerMalayalam || officerName || 'ജില്ലാ ഓഫീസർ');
       setOfficerDesignationMl((doStaff as any)?.designationMalayalam || getDesignationMl(officerDesignation) || 'എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ');
     },
-    proc_sub: () => setProceedingsSubject(`GWD, ${district} - Construction of borewell at ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`),
-    proc_sub_ml: () => setProceedingsSubjectMl(`ഭൂജല വകുപ്പ്, ${districtMl} - ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`),
+    proc_sub: () => setProceedingsSubject(`GWD, ${district} - Construction of borewell at ${entry?.applicantName || ''}${(entry as any)?.applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`),
+    proc_sub_ml: () => setProceedingsSubjectMl(`ഭൂജല വകുപ്പ്, ${districtMl} - ${entry?.applicantName || ''}${(entry as any)?.applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`),
     proc_ref: () => {
       const ddStr = formatAllRemittancesDd(entry?.remittanceDetails);
       const ref1Part = ddStr ? ` (${ddStr})` : '';
-      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${entry?.applicantAddress ? `, ${entry.applicantAddress}` : ''} and DD details${ref1Part}.`));
+      setProceedingsRef1(formatDatesInText(`1. Application of ${entry?.applicantName || ''}${(entry as any)?.applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} and DD details${ref1Part}.`));
       setProceedingsRef2(`2. Final Bill of this office, dated ${orderDate || formatDateDDMMYYYY(new Date().toISOString().split('T')[0])}.`);
     },
     proc_ref_ml: () => {
@@ -2821,12 +3121,15 @@ export default function PrintableReportModal({
     uc_date: () => setOrderDate(new Date().toISOString().split('T')[0]),
     uc_from: () => setUcFrom('ജില്ലാ ഓഫീസർ'),
     uc_to: () => setUcTo(`Assistant Engineer, ${currentSite?.localSelfGovt || 'Gramapanchayat'}`),
-    uc_sub: () => setUcSubject(`Utilization Certificate for borewell construction works at ${currentSite?.localSelfGovt || 'Panchayat'}`),
+    uc_sub: () => setUcSubject(lang === 'en' 
+      ? `Utilization Certificate for ${currentWorkFmt.workNameEn.toLowerCase()} works at ${currentSite?.localSelfGovt || 'Panchayat'}`
+      : `ഭൂജല വകുപ്പ്, ${districtMl} - ${cleanPanchayatMl} കുടിവെള്ള പദ്ധതി - ${currentWorkFmt.workNameMl} - ധനവിനിയോഗ സാക്ഷ്യപത്രം നൽകുന്നത് - സംബന്ധിച്ച്.`
+    ),
     uc_refs: () => { setUcRef1(''); setUcRef2(''); },
     uc_cover_letter: () => setUcMlPara1(''),
     uc_cert_para: () => { setUcMlPara2(''); setUcEnPara1(''); },
-    uc_tbl_dep_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || entry?.localSelfGovt || ''),
-    uc_tbl_exp_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || entry?.localSelfGovt || ''),
+    uc_tbl_dep_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || (entry as any)?.localSelfGovt || ''),
+    uc_tbl_exp_title: () => setLocalSelfGovt(currentSite?.localSelfGovt || (entry as any)?.localSelfGovt || ''),
   };
 
   // Helper function to render inline editable cell / row
@@ -2869,7 +3172,7 @@ export default function PrintableReportModal({
             >
               <Pencil className="h-3 w-3" />
             </Button>
-            {resetFn && (
+            {resetFn !== undefined && (
               <Button
                 size="icon"
                 variant="ghost"
@@ -2898,7 +3201,7 @@ export default function PrintableReportModal({
                   <Check className="h-3.5 w-3.5" />
                   <span>Done</span>
                 </Button>
-                {resetFn && (
+                {resetFn !== undefined && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -6101,7 +6404,7 @@ export default function PrintableReportModal({
                       <p className="">സ്വീകർത്താവ്</p>
                       {renderEditableCell('uc_ml_to', 
                         <div className="pl-8 whitespace-pre-line">
-                          {ucTo || ((entry as any)?.applicantNameMl ? (entry as any).applicantNameMl.replace(/,\s*/g, '\n') : (entry?.applicantName ? entry.applicantName.replace(/,\s*/g, '\n') : `സെക്രട്ടറി\n${localSelfGovt || 'ഗ്രാമപഞ്ചായത്ത്'}`))}
+                          {ucTo || ((entry as any)?.applicantNameMl ? (entry as any).applicantNameMl.replace(/,\s*/g, '\n') : (entry?.applicantName ? entry.applicantName.replace(/,\s*/g, '\n') : `സെക്രട്ടറി\n${cleanPanchayatMl}`))}
                         </div>, 
                         <Textarea className="min-h-[50px] text-xs p-1" value={ucTo} onChange={e => setUcTo(e.target.value)} />
                       )}
@@ -6109,13 +6412,23 @@ export default function PrintableReportModal({
                   </div>
 
                   <div className="text-[10pt] space-y-2 py-1">
-                    {renderEditableCell('uc_ml_sub', 
-                      <div className="flex items-start">
-                        <span className="shrink-0 font-bold w-[2cm]">വിഷയം:</span>
-                        <span className="flex-grow">{ucSubject}</span>
-                      </div>, 
-                      <Textarea className="min-h-[40px] text-xs p-1" value={ucSubject} onChange={e => setUcSubject(e.target.value)} />
-                    )}
+                    {(() => {
+                      const cleanSub = (ucSubject || defaultUcSubjectMl)
+                        .replace(/-\s*സെക്രട്ടറി,?\s*/gi, '- ')
+                        .replace(/-\s*സെക്രട്ടറി\s*[\n,]\s*/gi, '- ')
+                        .replace(/-\s*The\s+Secretary,?\s*/gi, '- ')
+                        .replace(/-\s*Secretary,?\s*/gi, '- ')
+                        .replace(/Perayam\s+Grama\s+Panchayath?/gi, 'പേരയം ഗ്രാമപഞ്ചായത്ത്')
+                        .replace(/ഗ്രാമപഞ്ചായത്ത്യിലെ/g, 'ഗ്രാമപഞ്ചായത്തിലെ')
+                        .replace(/പഞ്ചായത്ത്യിലെ/g, 'പഞ്ചായത്തിലെ');
+                      return renderEditableCell('uc_ml_sub', 
+                        <div className="flex items-start">
+                          <span className="shrink-0 font-bold w-[2cm]">വിഷയം:</span>
+                          <span className="flex-grow">{cleanSub}</span>
+                        </div>, 
+                        <Textarea className="min-h-[40px] text-xs p-1" value={ucSubject || cleanSub} onChange={e => setUcSubject(e.target.value)} />
+                      );
+                    })()}
                     {renderEditableCell('uc_ml_refs', 
                       <div className="flex items-start">
                         <span className="shrink-0 font-bold w-[2cm]">സൂചന:</span>
@@ -6134,15 +6447,22 @@ export default function PrintableReportModal({
                   {/* Covering Letter Paragraph */}
                   <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] py-2" style={{ lineHeight: '0.75cm' }}>
                     {(() => {
-                      const lsg = localSelfGovt || currentSite?.localSelfGovt || 'പഞ്ചായത്ത്';
-                      const lsgFull = lsg.includes('പഞ്ചായത്ത്') || lsg.toLowerCase().includes('panchayat') 
-                        ? (lsg.endsWith('ലെ') ? lsg : `${lsg}യിലെ`)
-                        : `${lsg} ഗ്രാമപഞ്ചായത്തിലെ`;
+                      const lsg = cleanPanchayatMl;
+                      const lsgFull = formatLsgLocativeMl(lsg);
 
-                      const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map(s => ({ siteName: s.nameOfSite || 'സൈറ്റ്', depth: parseNum(s.totalDepth) || 0, yield: parseNum(s.yieldDischarge) || 0, totalExpenditure: 0 }));
+                      const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map((s, idx) => ({ 
+                        siteName: s.nameOfSiteMl || s.nameOfSite || `സൈറ്റ് #${idx + 1}`, 
+                        siteNameMl: s.nameOfSiteMl || s.nameOfSite || `സൈറ്റ് #${idx + 1}`,
+                        depth: parseNum(s.totalDepth) || 0, 
+                        yield: parseNum(s.yieldDischarge) || 0, 
+                        totalExpenditure: 0 
+                      }));
                       const siteNamesStr = activeSites.length > 1
-                        ? `${activeSites.map(s => s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
-                        : (activeSites[0]?.siteName ? `${activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
+                        ? `${activeSites.map(s => (s as any).siteNameMl || s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
+                        : (activeSites[0]?.siteName ? `${(activeSites[0] as any).siteNameMl || activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
+
+                      const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                      const workFmt = getUcWorkFormat(purposeCode, activeSites);
 
                       const siteCount = activeSites.length || 1;
 
@@ -6152,10 +6472,6 @@ export default function PrintableReportModal({
                             return `${Math.round(amt).toLocaleString('en-IN')}/- രൂപ`;
                           }).join(', ')} അടക്കം ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`
                         : `ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`;
-
-                      const siteYieldsPart = activeSites.map(s => 
-                        `${s.siteName} കുഴൽകിണറിന് ${s.depth} മീറ്റർ ആഴവും ${s.yield ? `മണിക്കൂറിൽ ${s.yield} ലിറ്റർ ജലലഭ്യതയും` : ''} ഉണ്ട്.`
-                      ).join(' ');
 
                       const expenditurePart = siteCount > 1
                         ? `യഥാക്രമം ${activeSites.map(s => `${Math.round(s.totalExpenditure).toLocaleString('en-IN')}/- രൂപ`).join(', ')} അടക്കം ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ`
@@ -6189,10 +6505,15 @@ export default function PrintableReportModal({
                         }
                       }).join(' ');
 
-                      const defaultCoverText = `മേൽ സൂചന (1) പ്രകാരം, ${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ${remittancePart} അടവാക്കിയിട്ടുണ്ട്. സൂചന (2) പ്രകാരം, ടി കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾ ഡിപ്പാർട്ട്മെന്റ് റിഗ്ഗ് മുഖേന തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. ${siteYieldsPart} ടി കുഴൽകിണർ നിർമ്മാണങ്ങൾക്ക് ${expenditurePart} ചിലവായിട്ടുണ്ട്. ${reappropriationPart ? `${reappropriationPart} ` : ''}ബാലൻസ് തുകയായ ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- രൂപ (${refundWords}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`;
+                      const defaultCoverText = `മേൽ സൂചന (1) പ്രകാരം, ${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${remittancePart} അടവാക്കിയിട്ടുണ്ട്. സൂചന (2) പ്രകാരം, ടി ${workFmt.workNameMl} ${workFmt.executionAgencyMl} തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. ${workFmt.mainDetailsMl} ടി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${expenditurePart} ചിലവായിട്ടുണ്ട്. ${reappropriationPart ? `${reappropriationPart} ` : ''}അടവാക്കിയ ആകെ തുകയായ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപയിൽ നിന്നും പ്രവൃത്തിക്കായി ചിലവായ തുക കഴിച്ചുള്ള ബാലൻസ് തുകയായ ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- രൂപ (${refundWords}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`;
+
+                      const coverTextFinal = (ucMlPara1 || defaultCoverText)
+                        .replace(/\s*\d{4}\s*-\s*\d{2,4}\s*സാമ്പത്തിക\s*വർഷത്തിൽ\s*/g, ' ')
+                        .replace(/ഗ്രാമപഞ്ചായത്ത്യിലെ/g, 'ഗ്രാമപഞ്ചായത്തിലെ')
+                        .replace(/പഞ്ചായത്ത്യിലെ/g, 'പഞ്ചായത്തിലെ');
 
                       return renderEditableCell('uc_ml_cover_letter',
-                        <p className="whitespace-pre-line">{ucMlPara1 || defaultCoverText}</p>,
+                        <p className="whitespace-pre-line">{coverTextFinal}</p>,
                         <Textarea className="min-h-[100px] text-xs p-1" value={ucMlPara1 || defaultCoverText} onChange={e => setUcMlPara1(e.target.value)} />
                       );
                     })()}
@@ -6204,26 +6525,35 @@ export default function PrintableReportModal({
                     {/* Paragraph after UTILIZATION CERTIFICATE heading */}
                     <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pb-2" style={{ lineHeight: '0.75cm' }}>
                       {(() => {
-                        const lsg = localSelfGovt || currentSite?.localSelfGovt || 'പഞ്ചായത്ത്';
-                        const lsgFull = lsg.includes('പഞ്ചായത്ത്') || lsg.toLowerCase().includes('panchayat') 
-                          ? (lsg.endsWith('ലെ') ? lsg : `${lsg}യിലെ`)
-                          : `${lsg} ഗ്രാമപഞ്ചായത്തിലെ`;
+                        const lsg = cleanPanchayatMl;
+                        const lsgFull = formatLsgLocativeMl(lsg);
 
-                        const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map(s => ({ siteName: s.nameOfSite || 'സൈറ്റ്' }));
+                        const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map((s, idx) => ({ 
+                          siteName: s.nameOfSiteMl || s.nameOfSite || `സൈറ്റ് #${idx + 1}`,
+                          siteNameMl: s.nameOfSiteMl || s.nameOfSite || `സൈറ്റ് #${idx + 1}`
+                        }));
                         const siteNamesStr = activeSites.length > 1
-                          ? `${activeSites.map(s => s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
-                          : (activeSites[0]?.siteName ? `${activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
+                          ? `${activeSites.map(s => (s as any).siteNameMl || s.siteName).join(', ')} എന്നീ സ്ഥലങ്ങളിൽ`
+                          : (activeSites[0]?.siteName ? `${(activeSites[0] as any).siteNameMl || activeSites[0].siteName} എന്ന സ്ഥലത്ത്` : 'നിശ്ചിത സ്ഥലത്ത്');
 
-                        const defaultCertText = `${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി കുഴൽകിണർ നിർമ്മാണവുമായി ബന്ധപ്പെട്ട് 2024 - 25 സാമ്പത്തിക വർഷത്തിൽ ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- അടവാക്കിയിട്ടുണ്ടെന്നും ടി പ്രവൃത്തികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ച് ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ ചിലവായിട്ടുണ്ടെന്നും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.`;
+                        const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                        const workFmt = getUcWorkFormat(purposeCode, activeSites);
+
+                        const defaultCertText = `${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി ${workFmt.workNameMl} നടത്തുന്നതിനായി ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- അടവാക്കിയിട്ടുണ്ടെന്നും ടി പ്രവൃത്തികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ച് ആകെ ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- രൂപ ചിലവായിട്ടുണ്ടെന്നും ഇതിനാൽ സാക്ഷ്യപ്പെടുത്തുന്നു.`;
+
+                        const certTextFinal = (ucMlPara2 || defaultCertText)
+                          .replace(/\s*\d{4}\s*-\s*\d{2,4}\s*സാമ്പത്തിക\s*വർഷത്തിൽ\s*/g, ' ')
+                          .replace(/ഗ്രാമപഞ്ചായത്ത്യിലെ/g, 'ഗ്രാമപഞ്ചായത്തിലെ')
+                          .replace(/പഞ്ചായത്ത്യിലെ/g, 'പഞ്ചായത്തിലെ');
 
                         return renderEditableCell('uc_ml_cert_para',
-                          <p className="whitespace-pre-line">{ucMlPara2 || defaultCertText}</p>,
+                          <p className="whitespace-pre-line">{certTextFinal}</p>,
                           <Textarea className="min-h-[90px] text-xs p-1.5" value={ucMlPara2 || defaultCertText} onChange={e => setUcMlPara2(e.target.value)} />
                         );
                       })()}
                     </div>
 
-                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }} border="1" width="100%">
+                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }}>
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
                           <td className="border border-black p-1.5 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }} width="8%">ക്രമ നമ്പർ</td>
@@ -6237,10 +6567,15 @@ export default function PrintableReportModal({
                         <tr>
                           <td className="border border-black p-1.5 text-center">1</td>
                           <td className="border border-black p-1.5 font-bold" colSpan={3}>
-                            {renderEditableCell('uc_ml_tbl_dep_title',
-                              <span>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തികൾക്ക് വേണ്ടി പഞ്ചായത്ത് അടവാക്കിയ തുക</span>,
-                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
-                            )}
+                            {(() => {
+                              const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                              const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                              const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                              return renderEditableCell('uc_ml_tbl_dep_title',
+                                <span>{workFmt.workNameMl}യ്ക്ക് വേണ്ടി {cleanPanchayatMl} അടവാക്കിയ തുക</span>,
+                                <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                              );
+                            })()}
                           </td>
                         </tr>
                         {selectedRemittanceIndices.map((rIdx, idx) => {
@@ -6338,15 +6673,35 @@ export default function PrintableReportModal({
                         <tr>
                           <td className="border border-black p-1.5 text-center">{ucReappropriationRows.length > 0 ? '5' : '3'}</td>
                           <td className="border border-black p-1.5 font-bold" colSpan={3}>
-                            {renderEditableCell('uc_ml_tbl_exp_title',
-                              <span>കുഴൽകിണർ നിർമ്മാണ പ്രവൃത്തിയുടെ ആകെ ചിലവ്</span>,
-                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
-                            )}
+                            {(() => {
+                              const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                              const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                              const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                              return renderEditableCell('uc_ml_tbl_exp_title',
+                                <span>{workFmt.workNameMl}യുടെ ആകെ ചിലവ്</span>,
+                                <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                              );
+                            })()}
                           </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
-                          const siteExpDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} കുടിവെള്ള പദ്ധതി കുഴൽകിണർ നിർമ്മാണം`;
+                          const siteNameDisplay = (sf as any).siteNameMl || sf.siteName;
+                          const isPanchayatLoc = sf.location && (
+                            sf.location.toLowerCase().includes('panchayat') ||
+                            sf.location.toLowerCase().includes('panchayath') ||
+                            sf.location.includes('പഞ്ചായത്ത്') ||
+                            sf.location.toLowerCase().trim() === (localSelfGovt || '').toLowerCase().trim() ||
+                            sf.location.toLowerCase().trim() === (currentSite?.localSelfGovt || '').toLowerCase().trim()
+                          );
+                          const locPart = (sf.location && !isPanchayatLoc) ? ` (${sf.location})` : '';
+                          const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                          const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                          const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                          const rawSiteExpDesc = `${siteNameDisplay}${locPart} കുടിവെള്ള പദ്ധതി ${workFmt.workNameMl}`;
+                          const siteExpDesc = rawSiteExpDesc
+                            .replace(/\s*\([^)]*Panchayath?[^)]*\)/gi, '')
+                            .replace(/\s*\([^)]*പഞ്ചായത്ത്[^)]*\)/gi, '');
                           const siteExpAmt = sf.grandTotal;
                           return (
                             <tr key={`exp_${sIdx}`}>
@@ -6458,17 +6813,63 @@ export default function PrintableReportModal({
 
                   <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pt-2" style={{ lineHeight: '0.75cm' }}>
                     {(() => {
-                      const defaultEnCertText = `Certified that out of Rs. ${totalRemittanceAmount.toLocaleString('en-IN')}/- deposited for borewell construction works under the ${localSelfGovt || 'Panchayat'} scheme during 2024 - 25 financial year, a total sum of Rs. ${ucTotalSelectedExpenditure.toLocaleString('en-IN')}/- has been utilized towards actual construction costs. The balance amount of Rs. ${Math.abs(ucBalanceRefund).toLocaleString('en-IN')}/- (Rupees ${numberToWordsEnglish(Math.abs(ucBalanceRefund))} only) is due for refund to the Panchayat.`;
+                      const lsgEn = localSelfGovt || 'Panchayat';
+                      const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map((s, idx) => ({ 
+                        siteName: s.siteName || `Site #${idx + 1}`, 
+                        depth: parseNum(s.totalDepth) || 0, 
+                        yield: parseNum(s.yieldDischarge) || 0, 
+                        totalExpenditure: 0 
+                      }));
+
+                      const siteNamesStrEn = activeSites.length > 1 
+                        ? activeSites.map(s => s.siteName).join(', ') 
+                        : (activeSites[0]?.siteName || 'designated site');
+
+                      const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                      const workFmt = getUcWorkFormat(purposeCode, activeSites);
+
+                      const siteCount = activeSites.length || 1;
+                      const remittancePartEn = siteCount > 1
+                        ? `Rs. ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- (including site-wise deposits)`
+                        : `Rs. ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/-`;
+
+                      const expenditurePartEn = siteCount > 1
+                        ? `Rs. ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/- (including site-wise expenditures)`
+                        : `Rs. ${Math.round(ucTotalSelectedExpenditure).toLocaleString('en-IN')}/-`;
+
+                      const refundWordsEn = numberToWordsEnglish(Math.abs(ucBalanceRefund));
+
+                      const reappropriationPartEn = ucReappropriationRows.map(r => {
+                        const cleanRef = r.refFileNo || '';
+                        const officeCode = officeAddress?.officeCode || 'GWDKLM';
+                        const fullRef = cleanRef ? (cleanRef.includes('/') && !cleanRef.toUpperCase().startsWith('GWD') ? `${officeCode}/${cleanRef}` : cleanRef) : '';
+                        const remText = (r.remarks || r.fileDetails || '').trim();
+                        const amtStr = `Rs. ${Math.round(r.amount).toLocaleString('en-IN')}/-`;
+                        
+                        if (r.type === 'Outward') {
+                          return `Out of the said deposit, an amount of ${amtStr} was re-appropriated towards ${remText || 'file'} ${fullRef}.`;
+                        } else {
+                          return `In addition to the deposit, an amount of ${amtStr} was re-appropriated from ${remText || 'file'} ${fullRef}.`;
+                        }
+                      }).join(' ');
+
+                      const defaultEnCertText = `With reference to (1) cited above, a total sum of ${remittancePartEn} has been deposited towards ${workFmt.workNameEn.toLowerCase()} for implementing water supply schemes at ${siteNamesStrEn} in ${lsgEn} Grama Panchayat.
+
+With reference to (2) cited above, the said ${workFmt.workNameEn.toLowerCase()} has been completed satisfactorily ${workFmt.executionAgencyEn}.
+
+${workFmt.mainDetailsEn}
+
+A total expenditure of ${expenditurePartEn} has been incurred for executing the said ${workFmt.workNameEn.toLowerCase()}. ${reappropriationPartEn ? `${reappropriationPartEn} ` : ''}Out of the total deposited amount of Rs. ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/-, after deducting the actual expenditure, the balance unspent amount of Rs. ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- (Rupees ${refundWordsEn} only) is due for refund to the Panchayat. It is requested to provide the bank account details of the Panchayat to this office for releasing the refund.`;
 
                       return renderEditableCell('uc_en_cert_para',
                         <p className="whitespace-pre-line">{ucEnPara1 || defaultEnCertText}</p>,
-                        <Textarea className="min-h-[80px] text-xs p-1.5" value={ucEnPara1 || defaultEnCertText} onChange={e => setUcEnPara1(e.target.value)} />
+                        <Textarea className="min-h-[100px] text-xs p-1.5" value={ucEnPara1 || defaultEnCertText} onChange={e => setUcEnPara1(e.target.value)} />
                       );
                     })()}
                   </div>
 
                   <div className="pt-2">
-                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }} border="1" width="100%">
+                    <table className="w-full border-collapse border border-black text-[10pt]" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid black' }}>
                       <thead>
                         <tr className="bg-gray-100 border-b border-black text-center font-bold">
                           <td className="border border-black p-1.5 w-12" style={{ width: '8%', whiteSpace: 'nowrap', textAlign: 'center', fontWeight: 'bold' }} width="8%">Sl No</td>
@@ -6481,10 +6882,15 @@ export default function PrintableReportModal({
                         <tr>
                           <td className="border border-black p-1.5 text-center">1</td>
                           <td className="border border-black p-1.5 font-bold" colSpan={3}>
-                            {renderEditableCell('uc_en_tbl_dep_title',
-                              <span>Amount deposited by Panchayat for borewell construction works</span>,
-                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
-                            )}
+                            {(() => {
+                              const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                              const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                              const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                              return renderEditableCell('uc_en_tbl_dep_title',
+                                <span>Amount deposited by Panchayat for {workFmt.workNameEn.toLowerCase()}</span>,
+                                <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                              );
+                            })()}
                           </td>
                         </tr>
                         {selectedRemittanceIndices.map((rIdx, idx) => {
@@ -6571,15 +6977,35 @@ export default function PrintableReportModal({
                         <tr>
                           <td className="border border-black p-1.5 text-center">{ucReappropriationRows.length > 0 ? '5' : '3'}</td>
                           <td className="border border-black p-1.5 font-bold" colSpan={3}>
-                            {renderEditableCell('uc_en_tbl_exp_title',
-                              <span>Total expenditure incurred for borewell construction works</span>,
-                              <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
-                            )}
+                            {(() => {
+                              const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                              const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                              const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                              return renderEditableCell('uc_en_tbl_exp_title',
+                                <span>Total expenditure incurred for {workFmt.workNameEn.toLowerCase()}</span>,
+                                <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
+                              );
+                            })()}
                           </td>
                         </tr>
                         {ucSelectedSites.map((sf, sIdx) => {
                           const subLetter = String.fromCharCode(97 + sIdx);
-                          const expDesc = `${sf.siteName} ${sf.location ? `(${sf.location})` : ''} Borewell Construction`;
+                          const isPanchayatLoc = sf.location && (
+                            sf.location.toLowerCase().includes('panchayat') ||
+                            sf.location.toLowerCase().includes('panchayath') ||
+                            sf.location.includes('പഞ്ചായത്ത്') ||
+                            sf.location.toLowerCase().trim() === (localSelfGovt || '').toLowerCase().trim() ||
+                            sf.location.toLowerCase().trim() === (currentSite?.localSelfGovt || '').toLowerCase().trim()
+                          );
+                          const locPart = (sf.location && !isPanchayatLoc) ? ` (${sf.location})` : '';
+                          const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites;
+                          const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
+                          const workFmt = getUcWorkFormat(purposeCode, activeSites);
+                          const formattedWorkNameEn = workFmt.workNameEn.replace(/\b\w/g, c => c.toUpperCase());
+                          const rawExpDesc = `${sf.siteName}${locPart} ${formattedWorkNameEn}`;
+                          const expDesc = rawExpDesc
+                            .replace(/\s*\([^)]*Panchayath?[^)]*\)/gi, '')
+                            .replace(/\s*\([^)]*പഞ്ചായത്ത്[^)]*\)/gi, '');
                           const siteExpAmt = sf.grandTotal;
                           return (
                             <tr key={`exp_en_${sIdx}`}>
