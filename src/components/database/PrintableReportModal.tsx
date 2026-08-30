@@ -1805,9 +1805,22 @@ export default function PrintableReportModal({
       const sCapYes = isCurrentActive ? (endCap === 'Yes') : (s.endCap === 'Yes');
       const sInner = (getSiteAgreedRate(innerCasing6kgRate) * sIn6_3) + (getSiteAgreedRate(innerCasing4kgRate) * sIn4_3) + (sCapYes ? getSiteAgreedRate(innerCasingRate) : 0);
 
-      const sTotalExpenditure = sIsTWC
+      const sCalculatedExp = sIsTWC
         ? ((dR * dQ) + (cR * cQ) + (sR * sQ) + (bR * bQ) + (eR * eQ) + (mR * mQ))
         : (sDrilling + sC10 + sC8 + sC6 + sOuter + sInner);
+
+      const sFallbackExp = parseNum((s as any).totalExpenditure)
+        || parseNum((s as any).actualExpenditure)
+        || parseNum((s as any).expenditure)
+        || parseNum((s as any).siteCost)
+        || parseNum((s as any).totalCost)
+        || parseNum((s as any).estimateAmount)
+        || parseNum((s as any).amount)
+        || parseNum((s as any).netPayable)
+        || parseNum((s as any).grandTotal)
+        || 0;
+
+      const sTotalExpenditure = sCalculatedExp > 0 ? sCalculatedExp : sFallbackExp;
 
       // Site subsidy
       const sAppTypeStr = (applicationType || entry?.applicationType || (s as any).applicationType || '').toLowerCase();
@@ -1985,9 +1998,19 @@ export default function PrintableReportModal({
 
       const override = siteOverridesMap[sIdx] || {};
 
-      const workExp = sf.totalExpenditure || 0;
-      
       const siteObj = sites[sIdx];
+      const fallbackSiteExp = parseNum((siteObj as any)?.totalExpenditure)
+        || parseNum((siteObj as any)?.actualExpenditure)
+        || parseNum((siteObj as any)?.expenditure)
+        || parseNum((siteObj as any)?.siteCost)
+        || parseNum((siteObj as any)?.totalCost)
+        || parseNum((siteObj as any)?.estimateAmount)
+        || parseNum((siteObj as any)?.amount)
+        || parseNum((siteObj as any)?.netPayable)
+        || parseNum((siteObj as any)?.grandTotal)
+        || 0;
+
+      const workExp = sf.totalExpenditure > 0 ? sf.totalExpenditure : (sf.netPayable > 0 ? sf.netPayable : fallbackSiteExp);
       const isSiteDeptRig = siteObj?.siteConditions === 'Accessible to Dept. Rig';
       const siteTenderNo = isSiteDeptRig ? '' : (siteObj?.tenderNo || (entry as any)?.tenderNo || (siteObj as any)?.eTenderNo || (entry as any)?.eTenderNo || '');
       const siteQuotedPctStr = isSiteDeptRig ? '' : (siteObj?.quotedPercentage || (entry as any)?.quotedPercentage || storeQuotedPct || '');
@@ -6718,7 +6741,18 @@ export default function PrintableReportModal({
                                 )}
                               </td>
                               <td className="border border-black p-1.5 text-right font-mono">
-                                {siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {renderEditableCell(`uc_ml_exp_amt_${sIdx}`,
+                                  <span>{siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
+                                  <Input
+                                    type="number"
+                                    className="h-7 text-xs text-right font-mono"
+                                    value={siteOverridesMap[sIdx]?.amount !== undefined ? siteOverridesMap[sIdx].amount : siteExpAmt}
+                                    onChange={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setSiteOverridesMap(prev => ({ ...prev, [sIdx]: { ...prev[sIdx], amount: val } }));
+                                    }}
+                                  />
+                                )}
                               </td>
                               <td className="border border-black p-1.5"></td>
                             </tr>
@@ -7021,7 +7055,20 @@ A total expenditure of ${expenditurePartEn} has been incurred for executing the 
                                   <Input className="h-7 text-xs" value={expDesc} readOnly />
                                 )}
                               </td>
-                              <td className="border border-black p-1.5 text-right font-mono">{siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-black p-1.5 text-right font-mono">
+                                {renderEditableCell(`uc_en_exp_amt_${sIdx}`,
+                                  <span>{siteExpAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>,
+                                  <Input
+                                    type="number"
+                                    className="h-7 text-xs text-right font-mono"
+                                    value={siteOverridesMap[sIdx]?.amount !== undefined ? siteOverridesMap[sIdx].amount : siteExpAmt}
+                                    onChange={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setSiteOverridesMap(prev => ({ ...prev, [sIdx]: { ...prev[sIdx], amount: val } }));
+                                    }}
+                                  />
+                                )}
+                              </td>
                               <td className="border border-black p-1.5"></td>
                             </tr>
                           );

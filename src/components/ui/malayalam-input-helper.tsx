@@ -316,33 +316,13 @@ export const MalayalamInput: React.FC<MalayalamInputProps> = ({
     }, 10);
   };
 
-  // Key down handler for Spacebar, Enter, Comma, Period, Backspace undo, and Digit keys
+  // Key down handler for Spacebar, Enter, Comma, Period, and Digit keys
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const el = inputRef.current;
     if (!el || disabled) return;
 
-    // 1. Backspace undo right after conversion
-    if (e.key === 'Backspace' && lastConversionRef.current) {
-      const cursor = el.selectionStart || 0;
-      const { mlWithSpace, engWord } = lastConversionRef.current;
-      if (value.substring(0, cursor) === mlWithSpace) {
-        e.preventDefault();
-        const prefix = value.substring(0, cursor - mlWithSpace.length);
-        const suffix = value.substring(cursor);
-        const restored = prefix + engWord;
-        onChange(restored + suffix);
-        lastConversionRef.current = null;
-
-        const newPos = restored.length;
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.setSelectionRange(newPos, newPos);
-          }
-        }, 10);
-        return;
-      }
-    }
+    // Clear undo reference on any keypress
+    lastConversionRef.current = null;
 
     // 2. Digit keys 1-6 for choosing active suggestions
     if (suggestions.length > 0 && /^[1-6]$/.test(e.key)) {
