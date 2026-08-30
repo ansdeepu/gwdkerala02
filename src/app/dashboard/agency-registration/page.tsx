@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -1686,7 +1687,7 @@ export default function AgencyRegistrationPage() {
                                     </FormItem>
                                 )} />
                                 <FormField name="agencyName" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
-                                <FormField name="agencyNameMalayalam" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address in Malayalam (മലയാളത്തിൽ)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                <FormField name="agencyNameMalayalam" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address in Malayalam (മലയാളത്തിൽ)</FormLabel><FormControl><MalayalamInput value={field.value ?? ""} onChange={field.onChange} englishValue={form.watch('agencyName') || ""} multiline rows={3} disabled={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                             </div>
                             <Separator />
                             <div className="space-y-2">
@@ -1699,13 +1700,26 @@ export default function AgencyRegistrationPage() {
                                         </FormControl>
                                         <FormMessage>{form.formState.errors.owner?.name?.message}</FormMessage>
                                     </FormItem>
-                                    <FormItem className="md:col-span-1">
-                                        <FormLabel>Name &amp; Address of Owner in Malayalam (മലയാളത്തിൽ)</FormLabel>
-                                        <FormControl>
-                                        <Textarea {...form.register("owner.nameMalayalam")} className="min-h-[40px]" readOnly={isReadOnly} />
-                                        </FormControl>
-                                        <FormMessage>{form.formState.errors.owner?.nameMalayalam?.message}</FormMessage>
-                                    </FormItem>
+                                    <FormField
+                                        name="owner.nameMalayalam"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <FormItem className="md:col-span-1">
+                                                <FormLabel>Name &amp; Address of Owner in Malayalam (മലയാളത്തിൽ)</FormLabel>
+                                                <FormControl>
+                                                    <MalayalamInput
+                                                        value={field.value ?? ""}
+                                                        onChange={field.onChange}
+                                                        englishValue={form.watch('owner.name') || ""}
+                                                        multiline
+                                                        rows={3}
+                                                        disabled={isReadOnly}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                     <FormField name="owner.mobile" render={({ field }) => <FormItem><FormLabel>Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                                     <FormField name="owner.secondaryMobile" render={({ field }) => <FormItem><FormLabel>Secondary Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                                     <FormField name="owner.email" render={({ field }) => <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
@@ -3003,7 +3017,16 @@ function PartnerDialogContent({ initialData, onConfirm, onCancel }: { initialDat
                         <FormField name="nameMalayalam" control={form.control} render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Partner Name & Address in Malayalam (മലയാളത്തിൽ)</FormLabel>
-                                <FormControl><Textarea placeholder="Enter name and address in Malayalam" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl>
+                                    <MalayalamInput
+                                        value={field.value ?? ''}
+                                        onChange={field.onChange}
+                                        englishValue={form.watch('name') || ''}
+                                        multiline
+                                        rows={3}
+                                        placeholder="Enter name and address in Malayalam"
+                                    />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}/>

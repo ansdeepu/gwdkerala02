@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn, formatCase } from "@/lib/utils";
 import { Loader2, Save, X, ImageUp, Unplug, Expand, UserCheck, Info } from "lucide-react";
@@ -303,7 +304,13 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
                   <FormItem>
                     <FormLabel>Full Name (in Malayalam)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. ജോൺ ഡോ" {...field} value={field.value || ""} readOnly={isViewer} />
+                      <MalayalamInput
+                        placeholder="e.g. ജോൺ ഡോ"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        englishValue={form.watch('name') || ""}
+                        disabled={isViewer}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

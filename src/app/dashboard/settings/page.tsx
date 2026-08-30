@@ -20,6 +20,7 @@ import type { OfficeAddress, LsgConstituencyMap, StaffMember, Designation } from
 import { useAuth, type UserProfile } from '@/hooks/useAuth';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { MalayalamInput } from '@/components/ui/malayalam-input-helper';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -205,8 +206,8 @@ const OfficeAddressDialog = ({ isOpen, onClose, onSubmit, isSubmitting, initialD
                                         <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[80px]" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                                     </div>
                                     <div className="space-y-4">
-                                        <FormField name="officeNameMalayalam" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Office Name (In Malayalam)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
-                                        <FormField name="addressMalayalam" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address (In Malayalam)</FormLabel><FormControl><Textarea {...field} className="min-h-[80px]" value={field.value ?? ''}/></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField name="officeNameMalayalam" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Office Name (In Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ''} onChange={field.onChange} englishValue={form.watch('officeName') || ''} /></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField name="addressMalayalam" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address (In Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ''} onChange={field.onChange} englishValue={form.watch('address') || ''} multiline rows={3} className="min-h-[80px]" /></FormControl><FormMessage /></FormItem> )}/>
                                     </div>
                                 </div>
                             

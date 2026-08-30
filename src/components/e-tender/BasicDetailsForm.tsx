@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { MalayalamInput } from '@/components/ui/malayalam-input-helper';
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Save, X } from 'lucide-react';
@@ -321,7 +322,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                             </p>
                             <div className="grid grid-cols-1 gap-4">
                                <FormField name="nameOfWork" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
-                               <FormField name="nameOfWorkMalayalam" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work (in Malayalam)</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
+                               <FormField name="nameOfWorkMalayalam" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work (in Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ''} onChange={field.onChange} englishValue={watch('nameOfWork') || ''} multiline rows={2} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField name="location" control={control} render={({ field }) => ( <FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
