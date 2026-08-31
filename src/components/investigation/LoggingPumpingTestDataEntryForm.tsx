@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move } from "lucide-react";
+import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
   DataEntrySchema,
@@ -162,8 +163,8 @@ const getFormattedErrorMessages = (errors: FieldErrors<DataEntryFormData>): stri
 };
 
 const createDefaultRemittanceDetail = (): RemittanceDetailFormData => ({ id: uuidv4(), amountRemitted: undefined, dateOfRemittance: "", remittedAccount: "Bank", remittanceRemarks: "" });
-const createDefaultReappropriationDetail = (): ReappropriationDetailFormData => ({ type: "Outward", refFileNo: "", amount: undefined, date: "", remarks: "", pageType: "Logging & Pumping Test", fileDetails: "" });
-const createDefaultPaymentDetail = (): PaymentDetailFormData => ({ id: uuidv4(), remittanceId: null, dateOfPayment: "", paymentAccount: "Bank", revenueHead: undefined, contractorsPayment: undefined, gst: undefined, incomeTax: undefined, kbcwb: undefined, refundToParty: undefined, totalPaymentPerEntry: 0, paymentRemarks: "" });
+const createDefaultReappropriationDetail = (): ReappropriationDetailFormData => ({ type: "Outward", refFileNo: "", siteName: "", asGiven: undefined, expenditure: null, amount: undefined, date: "", remarks: "", pageType: "Logging & Pumping Test", fileDetails: "" });
+const createDefaultPaymentDetail = (): PaymentDetailFormData => ({ id: uuidv4(), remittanceId: null, dateOfPayment: "", paymentAccount: "Bank", nameOfSite: "", revenueHead: undefined, contractorsPayment: undefined, gst: undefined, incomeTax: undefined, kbcwb: undefined, refundToParty: undefined, totalPaymentPerEntry: 0, paymentRemarks: "" });
 
 const DetailRow = ({ label, value, className }: { label: string; value: any, className?: string }) => {
     if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
@@ -536,16 +537,56 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
       defaultValues: {
           ...createDefaultReappropriationDetail(),
           ...initialData,
+          asReceived: initialData?.asReceived !== undefined ? initialData.asReceived : undefined,
+          asGiven: initialData?.asGiven !== undefined ? initialData.asGiven : (initialData?.amount !== undefined ? initialData.amount : undefined),
+          expenditure: initialData?.expenditure !== undefined ? initialData.expenditure : null,
           date: formatDateForInput(initialData?.date),
       },
     });
 
     const handleConfirmSubmit = (data: ReappropriationDetailFormData) => {
-        onConfirm(data);
+        const effectiveAmount = (data.expenditure !== null && data.expenditure !== undefined && !isNaN(Number(data.expenditure)) && Number(data.expenditure) > 0)
+            ? Number(data.expenditure)
+            : Number(data.asGiven) || 0;
+
+        onConfirm({
+            ...data,
+            amount: effectiveAmount,
+        });
     };
 
     const watchedPageType = useWatch({ control: form.control, name: "pageType" });
     const watchedFileNo = useWatch({ control: form.control, name: "refFileNo" });
+    const watchedSiteName = useWatch({ control: form.control, name: "siteName" });
+
+    const availableSiteOptions = useMemo(() => {
+        if (!watchedPageType || !watchedFileNo) return [];
+        let foundEntry: any = null;
+        if (watchedPageType === 'ARS') {
+            foundEntry = allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
+            if (!foundEntry?.nameOfSite) return [];
+            const name = foundEntry.nameOfSite.trim();
+            const purpose = (foundEntry.purpose || foundEntry.arsTypeOfScheme || '').trim();
+            if (purpose && !name.includes(`(${purpose})`)) {
+                return [`${name} (${purpose})`];
+            }
+            return [name];
+        } else {
+            foundEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
+            if (!foundEntry?.siteDetails) return [];
+            return (foundEntry.siteDetails || [])
+                .map((s: any) => {
+                    const name = (s.nameOfSite || s.siteName || '').trim();
+                    const purpose = (s.purpose || '').trim();
+                    if (!name) return '';
+                    if (purpose && !name.includes(`(${purpose})`)) {
+                        return `${name} (${purpose})`;
+                    }
+                    return name;
+                })
+                .filter((name: any): name is string => Boolean(name && typeof name === 'string' && name.trim()));
+        }
+    }, [watchedPageType, watchedFileNo, allFileEntries, allArsEntries]);
 
     const suggestions = useMemo(() => {
         if (!watchedPageType) return [];
@@ -585,17 +626,96 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
         }
 
         if (foundEntry) {
-            let details = '';
-            if (watchedPageType === 'ARS') {
-                details = `Site: ${foundEntry.nameOfSite || 'N/A'}\nScheme: ${foundEntry.arsTypeOfScheme || 'N/A'}`;
+            const applicant = foundEntry.applicantName ? foundEntry.applicantName.trim() : (foundEntry.nameOfSite || 'N/A');
+            let formattedSite = '';
+            if (watchedSiteName) {
+                formattedSite = watchedSiteName;
+            } else if (watchedPageType === 'ARS') {
+                formattedSite = `${foundEntry.nameOfSite || 'N/A'}${foundEntry.arsTypeOfScheme ? ` (${foundEntry.arsTypeOfScheme})` : ''}`;
             } else {
-                details = (foundEntry.siteDetails || []).map((s: any) => `Site: ${s.nameOfSite || 'N/A'} (${s.purpose || 'N/A'})`).join('\n');
+                const sites = foundEntry.siteDetails || [];
+                if (sites.length === 1) {
+                    const s = sites[0];
+                    formattedSite = `${s.nameOfSite || 'N/A'}${s.purpose ? ` (${s.purpose})` : ''}`;
+                } else if (sites.length > 1) {
+                    formattedSite = sites.map((s: any) => `${s.nameOfSite || 'N/A'}${s.purpose ? ` (${s.purpose})` : ''}`).join(', ');
+                }
             }
-            form.setValue('fileDetails', details || 'No site details found.');
+
+            let finalDetails = '';
+            if (formattedSite) {
+                finalDetails = `${applicant}, Site: ${formattedSite}`;
+            } else {
+                finalDetails = applicant;
+            }
+            form.setValue('fileDetails', finalDetails);
         } else {
             form.setValue('fileDetails', 'File not found in database.');
         }
-    }, [watchedPageType, watchedFileNo, allFileEntries, allArsEntries, form]);
+    }, [watchedPageType, watchedFileNo, watchedSiteName, allFileEntries, allArsEntries, form]);
+
+    useEffect(() => {
+        if (availableSiteOptions.length === 1 && !form.getValues('siteName')) {
+            form.setValue('siteName', availableSiteOptions[0]);
+        }
+    }, [availableSiteOptions, form]);
+
+    useEffect(() => {
+        if (!watchedFileNo) {
+            form.setValue('expenditure', null);
+            return;
+        }
+        const normalizedRef = watchedFileNo.toLowerCase().trim();
+        const targetEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef) ||
+                            allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef);
+        if (!targetEntry) {
+            form.setValue('expenditure', null);
+            return;
+        }
+
+        const targetSites = targetEntry.siteDetails || targetEntry.sites || [];
+        const targetPayments = targetEntry.paymentDetails || targetEntry.payments || [];
+
+        let calculatedExp = 0;
+        if (watchedSiteName) {
+            const formatSiteName = (s: any) => {
+                const n = (s.nameOfSite || s.siteName || '').trim();
+                const p = (s.purpose || s.arsTypeOfScheme || '').trim();
+                if (!n) return '';
+                if (p && !n.toLowerCase().includes(`(${p.toLowerCase()})`)) return `${n} (${p})`.toLowerCase();
+                return n.toLowerCase();
+            };
+
+            const tNameFull = watchedSiteName.trim().toLowerCase();
+            const tNameSiteOnly = tNameFull.includes('site: ') ? tNameFull.split('site: ')[1].trim() : tNameFull;
+
+            let matchedSite = targetSites.find((s: any) => {
+                const sName = formatSiteName(s);
+                return sName && (sName === tNameFull || sName === tNameSiteOnly);
+            });
+
+            if (!matchedSite) {
+                matchedSite = targetSites.find((s: any) => {
+                    const sName = formatSiteName(s);
+                    if (!sName || sName.length < 5) return false;
+                    return tNameFull.includes(sName) || sName.includes(tNameSiteOnly);
+                });
+            }
+
+            if (matchedSite) {
+                const exp = calculateSiteExpenditure(matchedSite, targetPayments);
+                calculatedExp = exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+            }
+        } else {
+            const totalExp = targetSites.reduce((sum: number, s: any) => {
+                const exp = calculateSiteExpenditure(s, targetPayments);
+                return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+            }, 0);
+            calculatedExp = totalExp > 0 ? totalExp : (Number(targetEntry.totalExpenditure) || 0);
+        }
+
+        form.setValue('expenditure', calculatedExp > 0 ? calculatedExp : null);
+    }, [watchedFileNo, watchedSiteName, allFileEntries, allArsEntries, form]);
 
     const pageTypeOptions = [
         "Deposit Work",
@@ -625,30 +745,75 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
                             <FormMessage />
                         </FormItem> 
                     )}/>
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField name="refFileNo" control={form.control} render={({ field }) => ( 
-                            <FormItem>
-                                <FormLabel>File No. <span className="text-destructive">*</span></FormLabel>
+                    <FormField name="refFileNo" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>File No. <span className="text-destructive">*</span></FormLabel>
+                            <FormControl>
+                                <Input list="file-no-suggestions" placeholder="e.g., GWD/KLM/123" {...field} />
+                            </FormControl>
+                            <datalist id="file-no-suggestions">
+                                {suggestions.map(no => <option key={no} value={no} />)}
+                            </datalist>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
+                    <FormField name="asGiven" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>AS Given (₹) <span className="text-destructive">*</span></FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="e.g. 25000" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
+                    <FormField name="siteName" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>Name of Site</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
                                 <FormControl>
-                                    <Input list="file-no-suggestions" placeholder="e.g., GWD/KLM/123" {...field} />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={availableSiteOptions.length > 0 ? "Select Name of Site" : (watchedFileNo ? "No site names found for this File No." : "Select File No. first")} />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <datalist id="file-no-suggestions">
-                                    {suggestions.map(no => <option key={no} value={no} />)}
-                                </datalist>
-                                <FormMessage />
-                            </FormItem> 
-                        )}/>
-                        <FormField name="amount" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Amount (₹) <span className="text-destructive">*</span></FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem> )}/>
-                    </div>
+                                <SelectContent>
+                                    {availableSiteOptions.length > 0 ? (
+                                         availableSiteOptions.map((site: string, idx: number) => (
+                                             <SelectItem key={`${site}-${idx}`} value={site}>
+                                                 {site}
+                                             </SelectItem>
+                                         ))
+                                    ) : (
+                                        <SelectItem value="_empty" disabled>No site names available</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
+                    <FormField name="expenditure" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>Expenditure (₹) <span className="text-xs text-muted-foreground font-normal">(Auto-calculated)</span></FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="Auto-calculated" {...field} value={field.value ?? ""} disabled readOnly className="bg-muted cursor-not-allowed" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
+                    <FormField name="fileDetails" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>File Details</FormLabel>
+                            <FormControl><Textarea {...field} className="bg-muted resize-none min-h-[60px]" value={field.value || ""} readOnly disabled/></FormControl>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
+                    <FormField name="remarks" control={form.control} render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel>Remarks</FormLabel>
+                            <FormControl><Textarea {...field} className="min-h-[70px]" value={field.value ?? ''} placeholder="Add any specific reasons or notes..." /></FormControl>
+                            <FormMessage />
+                        </FormItem> 
+                    )}/>
                 </div>
-                <FormField name="fileDetails" control={form.control} render={({ field }) => ( 
-                    <FormItem>
-                        <FormLabel>File Details</FormLabel>
-                        <FormControl><Textarea {...field} className="bg-muted resize-none" value={field.value || ""} readOnly disabled/></FormControl>
-                        <FormMessage />
-                    </FormItem> 
-                )}/>
-                <FormField name="remarks" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Add any specific reasons or notes..." /></FormControl><FormMessage /></FormItem> )}/>
             </div>
             <DialogFooter className="p-6 pt-4">
                 <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
@@ -659,7 +824,52 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
     );
 };
 
-const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFunding }: { initialData: any, onConfirm: (data: any) => void, onCancel: () => void, isDeferredFunding: boolean }) => {
+const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFunding, siteDetails }: { initialData: any, onConfirm: (data: any) => void, onCancel: () => void, isDeferredFunding: boolean, siteDetails?: any[] }) => {
+    const initialAllocations = useMemo(() => {
+        if (!siteDetails || siteDetails.length === 0) return [];
+        return siteDetails.map((s: any, idx: number) => {
+            const siteName = s.nameOfSite || `Site #${idx + 1}`;
+            const sPurpose = (s.purpose || '').trim().toLowerCase();
+            const sName = siteName.trim().toLowerCase();
+
+            const existing = initialData?.siteAllocations?.find((a: any) => {
+                if (a.siteId && s.id && a.siteId === s.id) return true;
+                const aName = (a.siteName || '').trim().toLowerCase();
+                const aPurpose = (a.purpose || '').trim().toLowerCase();
+                if (aName === sName) {
+                    if (aPurpose && sPurpose) {
+                        return aPurpose === sPurpose;
+                    }
+                    const sameNameSites = siteDetails.filter((other: any) => (other.nameOfSite || '').trim().toLowerCase() === sName);
+                    if (sameNameSites.length === 1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            return {
+                siteName,
+                siteId: s.id || '',
+                purpose: s.purpose || '',
+                workStatus: s.workStatus || '',
+                amount: existing?.amount !== undefined && existing?.amount !== null ? existing.amount : undefined
+            };
+        });
+    }, [siteDetails, initialData]);
+
+    const [siteAllocations, setSiteAllocations] = useState<Array<{
+        siteName: string;
+        siteId?: string;
+        purpose?: string;
+        workStatus?: string;
+        amount?: number | undefined;
+    }>>(initialAllocations);
+
+    useEffect(() => {
+        setSiteAllocations(initialAllocations);
+    }, [initialAllocations]);
+
     const form = useForm<PaymentDetailFormData>({
       resolver: zodResolver(PaymentDetailSchema),
       defaultValues: {
@@ -670,52 +880,137 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
     });
 
     const handleConfirmSubmit = (data: PaymentDetailFormData) => {
-        onConfirm(data);
+        const cleanedAllocations = siteAllocations.map(a => ({
+            siteName: a.siteName,
+            siteId: a.siteId || undefined,
+            purpose: a.purpose || undefined,
+            workStatus: a.workStatus || undefined,
+            amount: a.amount !== undefined && a.amount !== null && a.amount !== '' ? Number(a.amount) : undefined
+        })).filter(a => a.amount !== undefined && a.amount > 0);
+
+        const formatNameWithPurpose = (name?: string | null, purp?: string | null) => {
+            const n = (name || '').trim();
+            const p = (purp || '').trim();
+            if (!n && !p) return 'Site 1';
+            if (!n) return `(${p})`;
+            if (!p || n.toLowerCase().includes(p.toLowerCase())) return n;
+            return `${n} (${p})`;
+        };
+
+        let siteSummary = 'General / All Sites';
+        if (cleanedAllocations.length === 1) {
+            siteSummary = formatNameWithPurpose(cleanedAllocations[0].siteName, cleanedAllocations[0].purpose);
+        } else if (cleanedAllocations.length > 1) {
+            siteSummary = `${cleanedAllocations.length} Sites (${cleanedAllocations.map(a => formatNameWithPurpose(a.siteName, a.purpose)).join(', ')})`;
+        }
+
+        onConfirm({ 
+            ...data, 
+            nameOfSite: siteSummary,
+            siteAllocations: cleanedAllocations,
+        });
     };
 
     const isLinkedToRemittance = !!initialData?.remittanceId;
 
+    const totalSiteAllocated = useMemo(() => {
+        return siteAllocations.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }, [siteAllocations]);
+
     return (
         <Form {...form}>
-             <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(handleConfirmSubmit)(e); }}>
-                <DialogHeader className="p-6 pb-4 shrink-0">
+             <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(handleConfirmSubmit)(e); }} className="flex flex-col h-full overflow-hidden">
+                <DialogHeader className="p-6 pb-4 border-b shrink-0">
                     <DialogTitle>Payment Details</DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 min-h-0">
-                  <ScrollArea className="h-full px-6 py-4">
-                      <div className="space-y-4">
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <FormField name="dateOfPayment" control={form.control} render={({ field }) => <FormItem><FormLabel>Date of Payment <span className="text-destructive">*</span></FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
-                              <FormField name="paymentAccount" control={form.control} render={({ field }) => <FormItem><FormLabel>Payment Account <span className="text-destructive">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>} />
+                <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField name="dateOfPayment" control={form.control} render={({ field }) => <FormItem><FormLabel>Date of Payment <span className="text-destructive">*</span></FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} readOnly={isLinkedToRemittance} className={isLinkedToRemittance ? 'bg-muted/50' : ''}/></FormControl><FormMessage /></FormItem>} />
+                        <FormField name="paymentAccount" control={form.control} render={({ field }) => <FormItem><FormLabel>Payment Account <span className="text-destructive">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>} />
+                    </div>
+
+                    {/* Site-wise Payment Allocation Section */}
+                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground">Site-wise Payment Allocation</h4>
+                          <p className="text-xs text-muted-foreground">Specify the expenditure allocated to each site for this payment voucher.</p>
+                        </div>
+                        {siteAllocations.length > 0 && totalSiteAllocated > 0 && (
+                          <div className="text-right">
+                            <span className="text-xs text-muted-foreground mr-1.5">Allocated:</span>
+                            <span className="text-sm font-bold text-primary font-mono">₹{totalSiteAllocated.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <Separator/>
-                            <FormField 
-                                name="revenueHead" 
-                                control={form.control} 
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Revenue Head (₹)</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                {...field} 
-                                                value={field.value ?? ""}
-                                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
-                                                readOnly={isLinkedToRemittance}
-                                                className={isLinkedToRemittance ? 'bg-muted/50' : ''}
-                                              />
-                                          </FormControl>
-                                          {isLinkedToRemittance && <FormDescription className="text-xs">Auto-managed by a &apos;Revenue Head&apos; remittance.</FormDescription>}
-                                          <FormMessage />
-                                      </FormItem>
-                                  )}
-                              />
-                          <Separator/>
-                          <FormField name="paymentRemarks" control={form.control} render={({ field }) => <FormItem><FormLabel>Payment Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="Add any remarks for this payment entry..." /></FormControl><FormMessage /></FormItem>} />
+                        )}
                       </div>
-                  </ScrollArea>
+
+                      {siteAllocations.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-muted-foreground bg-background/50 border border-dashed rounded">
+                          No sites added yet. Sites added in the Site Details section will appear here for payment expenditure allocation.
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {siteAllocations.map((alloc, sIdx) => (
+                            <div key={sIdx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-md bg-background border text-sm">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-xs text-foreground whitespace-normal break-words">
+                                  Site #{sIdx + 1}: {alloc.siteName}{alloc.purpose && !alloc.siteName.toLowerCase().includes(alloc.purpose.toLowerCase()) ? ` (${alloc.purpose})` : ''}
+                                </div>
+                                {alloc.workStatus && (
+                                  <div className="text-[11px] text-muted-foreground flex gap-2 mt-0.5">
+                                    <span>Status: {alloc.workStatus}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="w-full sm:w-48 shrink-0 flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground font-semibold">₹</span>
+                                <Input 
+                                  type="number"
+                                  step="any"
+                                  placeholder="Expenditure (₹)"
+                                  value={alloc.amount ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                    setSiteAllocations(prev => {
+                                      const copy = [...prev];
+                                      copy[sIdx] = { ...copy[sIdx], amount: val };
+                                      return copy;
+                                    });
+                                  }}
+                                  className="h-8 text-xs font-mono"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Separator/>
+                      <FormField 
+                          name="revenueHead" 
+                          control={form.control} 
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Revenue Head (₹)</FormLabel>
+                                  <FormControl>
+                                      <Input 
+                                          type="number" 
+                                          {...field} 
+                                          value={field.value ?? ""}
+                                          onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
+                                          readOnly={isLinkedToRemittance}
+                                          className={isLinkedToRemittance ? 'bg-muted/50' : ''}
+                                        />
+                                    </FormControl>
+                                    {isLinkedToRemittance && <FormDescription className="text-xs">Auto-managed by a &apos;Revenue Head&apos; remittance.</FormDescription>}
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    <Separator/>
+                    <FormField name="paymentRemarks" control={form.control} render={({ field }) => <FormItem><FormLabel>Payment Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} placeholder="Add any remarks for this payment entry..." /></FormControl><FormMessage /></FormItem>} />
                 </div>
-                <DialogFooter className="p-6 pt-4 shrink-0">
+                <DialogFooter className="p-4 px-6 border-t shrink-0 flex items-center justify-end gap-2 bg-muted/20">
                     <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
                     <Button type="button" onClick={form.handleSubmit(handleConfirmSubmit)}>Save</Button>
                 </DialogFooter>
@@ -774,9 +1069,20 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
   const { fields: siteFields, append: appendSite, remove: removeSite, update: updateSite, move: moveSite } = useFieldArray({ control, name: "siteDetails" });
   const { fields: paymentFields, append: appendPayment, remove: removePayment, update: updatePayment, replace: replacePayments } = useFieldArray({ control, name: "paymentDetails" });
 
+  const sortedPaymentFields = useMemo(() => {
+    return paymentFields
+      .map((item, originalIndex) => ({ ...item, _originalIndex: originalIndex }))
+      .sort((a, b) => {
+        const dateA = a.dateOfPayment ? new Date(a.dateOfPayment).getTime() : 0;
+        const dateB = b.dateOfPayment ? new Date(b.dateOfPayment).getTime() : 0;
+        return dateB - dateA; // Recent date first
+      });
+  }, [paymentFields]);
+
   const watchedRemittanceDetails = watch("remittanceDetails");
   const watchedReappropriationDetails = watch("reappropriationDetails");
   const watchedPaymentDetails = watch("paymentDetails");
+  const watchedSiteDetails = useWatch({ control, name: "siteDetails" });
 
   useEffect(() => {
     reset({
@@ -784,6 +1090,136 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         fileStatus: (initialData.fileStatus || LOGGING_PUMPING_TEST_FILE_STATUS_OPTIONS[0]) as any
     });
   }, [initialData, reset]);
+
+  const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null) => {
+      if (!refFileNo) return fallback ?? 0;
+      const normalizedRef = refFileNo.toLowerCase().trim();
+      const targetEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef) ||
+                          allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef);
+      if (!targetEntry) return fallback ?? 0;
+
+      const formatSiteName = (s: any) => {
+          const n = (s.nameOfSite || s.siteName || '').trim();
+          const p = (s.purpose || s.arsTypeOfScheme || '').trim();
+          if (!n) return '';
+          if (p && !n.toLowerCase().includes(`(${p.toLowerCase()})`)) return `${n} (${p})`.toLowerCase();
+          return n.toLowerCase();
+      };
+
+      if (normalizedRef === currentFileNo?.toLowerCase().trim()) {
+          const sites = watchedSiteDetails || [];
+          const payments = watchedPaymentDetails || [];
+          if (targetSiteName) {
+              const tNameFull = targetSiteName.trim().toLowerCase();
+              const tNameSiteOnly = tNameFull.includes('site: ') ? tNameFull.split('site: ')[1].trim() : tNameFull;
+              
+              let matchedSite = sites.find(s => {
+                  const sName = formatSiteName(s);
+                  return sName && (sName === tNameFull || sName === tNameSiteOnly);
+              });
+              
+              if (!matchedSite) {
+                  matchedSite = sites.find(s => {
+                      const sName = formatSiteName(s);
+                      if (!sName || sName.length < 5) return false;
+                      return tNameFull.includes(sName) || sName.includes(tNameSiteOnly);
+                  });
+              }
+
+              if (matchedSite) {
+                  const exp = calculateSiteExpenditure(matchedSite, payments);
+                  return exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+              } else {
+                  return 0;
+              }
+          }
+          const totalExp = sites.reduce((sum, s) => {
+              const exp = calculateSiteExpenditure(s, payments);
+              return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+          }, 0);
+          if (totalExp > 0) return totalExp;
+      }
+
+      const targetSites = targetEntry.siteDetails || targetEntry.sites || [];
+      const targetPayments = targetEntry.paymentDetails || targetEntry.payments || [];
+
+      if (targetSiteName) {
+          const tNameFull = targetSiteName.trim().toLowerCase();
+          const tNameSiteOnly = tNameFull.includes('site: ') ? tNameFull.split('site: ')[1].trim() : tNameFull;
+
+          let matchedSite = targetSites.find((s: any) => {
+              const sName = formatSiteName(s);
+              return sName && (sName === tNameFull || sName === tNameSiteOnly);
+          });
+
+          if (!matchedSite) {
+              matchedSite = targetSites.find((s: any) => {
+                  const sName = formatSiteName(s);
+                  if (!sName || sName.length < 5) return false;
+                  return tNameFull.includes(sName) || sName.includes(tNameSiteOnly);
+              });
+          }
+
+          if (matchedSite) {
+              const exp = calculateSiteExpenditure(matchedSite, targetPayments);
+              return exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+          } else {
+              return 0;
+          }
+      }
+
+      const totalExp = targetSites.reduce((sum: number, s: any) => {
+          const exp = calculateSiteExpenditure(s, targetPayments);
+          return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+      }, 0);
+
+      if (totalExp > 0) return totalExp;
+
+      return Number(targetEntry.totalExpenditure) || fallback || 0;
+  }, [allFileEntries, allArsEntries, currentFileNo, watchedSiteDetails, watchedPaymentDetails]);
+
+  const getCurrentFileExpenditure = useCallback((targetSiteName?: string | null, fallback?: number | null) => {
+      const sites = watchedSiteDetails || [];
+      const payments = watchedPaymentDetails || [];
+      if (targetSiteName) {
+          const formatSiteName = (s: any) => {
+              const n = (s.nameOfSite || s.siteName || '').trim();
+              const p = (s.purpose || s.arsTypeOfScheme || '').trim();
+              if (!n) return '';
+              if (p && !n.toLowerCase().includes(`(${p.toLowerCase()})`)) return `${n} (${p})`.toLowerCase();
+              return n.toLowerCase();
+          };
+
+          const tNameFull = targetSiteName.trim().toLowerCase();
+          const tNameSiteOnly = tNameFull.includes('site: ') ? tNameFull.split('site: ')[1].trim() : tNameFull;
+
+          let matchedSite = sites.find(s => {
+              const sName = formatSiteName(s);
+              return sName && (sName === tNameFull || sName === tNameSiteOnly);
+          });
+          
+          if (!matchedSite) {
+              matchedSite = sites.find(s => {
+                  const sName = formatSiteName(s);
+                  if (!sName || sName.length < 5) return false;
+                  return tNameFull.includes(sName) || sName.includes(tNameSiteOnly);
+              });
+          }
+
+          if (matchedSite) {
+              const exp = calculateSiteExpenditure(matchedSite, payments);
+              return exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+          } else {
+              return 0;
+          }
+      }
+      const totalExp = sites.reduce((sum, s) => {
+          const exp = calculateSiteExpenditure(s, payments);
+          return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+      }, 0);
+      if (totalExp > 0) return totalExp;
+      return fallback || 0;
+  }, [watchedSiteDetails, watchedPaymentDetails]);
 
   const autoCredits = useMemo(() => {
     if (!currentFileNo) return [];
@@ -815,23 +1251,31 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
   }, [currentFileNo, allFileEntries]);
   
   const sortedCombinedReappropriations = useMemo(() => {
-    const manual = reappropriationFields.map((field, index) => ({
-        ...field,
-        _originalIndex: index,
-        _source: 'manual' as const,
-        dateObj: toDateOrNull(field.date)
-    }));
-    const auto = autoCredits.map((credit) => ({
-        ...credit,
-        _source: 'auto' as const,
-        dateObj: toDateOrNull(credit.date)
-    }));
+    const manual = reappropriationFields.map((field, index) => {
+        const calculatedExp = getReferencedExpenditure(field.refFileNo, field.siteName, field.expenditure);
+        return {
+            ...field,
+            expenditure: calculatedExp > 0 ? calculatedExp : field.expenditure,
+            _originalIndex: index,
+            _source: 'manual' as const,
+            dateObj: toDateOrNull(field.date)
+        };
+    });
+    const auto = autoCredits.map((credit) => {
+        const calculatedExp = getReferencedExpenditure(credit.sourceFileNo, credit.siteName, credit.expenditure);
+        return {
+            ...credit,
+            expenditure: calculatedExp > 0 ? calculatedExp : credit.expenditure,
+            _source: 'auto' as const,
+            dateObj: toDateOrNull(credit.date)
+        };
+    });
     return [...manual, ...auto].sort((a, b) => {
         const timeA = a.dateObj?.getTime() ?? 0;
         const timeB = b.dateObj?.getTime() ?? 0;
         return timeB - timeA;
     });
-  }, [reappropriationFields, autoCredits]);
+  }, [reappropriationFields, autoCredits, getReferencedExpenditure, getCurrentFileExpenditure]);
 
   const hasReappropriations = useMemo(() => sortedCombinedReappropriations.length > 0, [sortedCombinedReappropriations.length]);
 
@@ -928,6 +1372,17 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
           ...data,
           constituency: data.constituency === undefined ? null : data.constituency,
         };
+
+        if (sanitizedData.reappropriationDetails) {
+            sanitizedData.reappropriationDetails = sanitizedData.reappropriationDetails.map((reapp: any) => {
+                const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, reapp.expenditure);
+                return {
+                    ...reapp,
+                    expenditure: calculatedExp > 0 ? calculatedExp : reapp.expenditure
+                };
+            });
+        }
+
         if (!user) throw new Error("Authentication error.");
 
         const fileLevelUpdates = {
@@ -1064,25 +1519,88 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                   {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('remittance', { index, ...item }, false)}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'remittance', index})} disabled={isSupervisor || isInvestigator || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
               </TableRow>)) : <TableRow><TableCell colSpan={5} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={isEditor && !isFormDisabled ? 4 : 3} className="text-right font-bold">Total Remittance</TableCell><TableCell className="font-bold text-right">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell></TableRow></TableFooterComponent></Table></CardContent></Card>
 
-            <Accordion type="single" collapsible className="w-full" value={reappAccordionValue} onValueChange={setReappAccordionValue}><AccordionItem value="reappropriation-details" className="border-b-0"><Card><div className="flex items-center justify-between border-b"><div className="flex-1"><AccordionTrigger className="w-full p-6 hover:no-underline [&[data-state=open]]:border-b-0"><CardTitle className="text-xl">3. Re-appropriation Details</CardTitle></AccordionTrigger></div><div className="flex items-center gap-2 pr-6 z-10 shrink-0"><Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setIsReappInfoOpen(true); }}><Info className="h-4 w-4 mr-2" />Info</Button>{isEditor && !isFormDisabled && (<Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('reappropriation', createDefaultReappropriationDetail()); }} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>)}</div></div><AccordionContent><CardContent className="pt-6"><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type of Page</TableHead><TableHead>File No</TableHead><TableHead>File Details</TableHead><TableHead className="text-right">Credit</TableHead><TableHead className="text-right">Debit</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedCombinedReappropriations.length > 0 ? sortedCombinedReappropriations.map((item, index) => {
-                if (item._source === 'auto') return (<TableRow key={`credit-${index}`} className="bg-green-50/50"><TableCell className="whitespace-nowrap">{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : 'N/A'}</TableCell><TableCell className="text-xs">{item.sourcePageType || 'N/A'}</TableCell><TableCell className="font-mono text-xs">{item.sourceFileNo}</TableCell><TableCell className="text-xs whitespace-normal break-words">{item.sourceApplicantName || 'N/A'}<br/><span className="font-semibold text-muted-foreground">({item.parentRemittanceAccount})</span></TableCell><TableCell className="text-right font-bold text-green-600">{(Number(item.amount) || 0).toLocaleString('en-IN')}</TableCell><TableCell className="text-right font-bold text-muted-foreground">-</TableCell><TableCell className="text-xs italic max-w-[150px] whitespace-normal break-words">{item.remarks}</TableCell>{isEditor && !isFormDisabled && <TableCell className="text-center"><TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground mx-auto" /></TooltipTrigger><TooltipContent><p>Inward transfer from another file. Non-editable.</p></TooltipContent></Tooltip></TooltipProvider></TableCell>}</TableRow>);
-                else return (<TableRow key={item.id}><TableCell className="whitespace-nowrap">{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : 'N/A'}</TableCell><TableCell className="text-xs">{item.pageType || 'N/A'}</TableCell><TableCell className="font-mono text-xs">{item.refFileNo}</TableCell><TableCell className="text-xs max-w-[200px] whitespace-normal break-words">{item.fileDetails || 'N/A'}</TableCell><TableCell className="text-right font-bold text-muted-foreground">-</TableCell><TableCell className="text-right font-bold text-red-600">{(Number(item.amount) || 0).toLocaleString('en-IN')}</TableCell><TableCell className="text-xs italic max-w-[150px] whitespace-normal break-words">{item.remarks}</TableCell>{isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('reappropriation', { index: item._originalIndex, ...item })} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'reappropriation', index: item._originalIndex})} disabled={isSupervisor || isInvestigator || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}</TableRow>);
-                }) : <TableRow><TableCell colSpan={8} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow className="bg-muted/50 font-bold"><TableCell colSpan={4} className="text-right font-bold">Totals</TableCell><TableCell className="text-right text-green-600 font-bold">₹{(totalReappropriationCreditWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell><TableCell className="text-right text-red-600 font-bold">₹{(totalReappropriationWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 2 : 1} className="text-right font-bold">Balance: <span className={cn((totalReappropriationCreditWatched - totalReappropriationWatched) >= 0 ? "text-green-600" : "text-red-600")}>₹{Math.abs(totalReappropriationCreditWatched - totalReappropriationWatched).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></AccordionContent></Card></AccordionItem></Accordion>
+            <Accordion type="single" collapsible className="w-full" value={reappAccordionValue} onValueChange={setReappAccordionValue}><AccordionItem value="reappropriation-details" className="border-b-0"><Card><div className="flex items-center justify-between border-b"><div className="flex-1"><AccordionTrigger className="w-full p-6 hover:no-underline [&[data-state=open]]:border-b-0"><CardTitle className="text-xl">3. Re-appropriation Details</CardTitle></AccordionTrigger></div><div className="flex items-center gap-2 pr-6 z-10 shrink-0"><Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setIsReappInfoOpen(true); }}><Info className="h-4 w-4 mr-2" />Info</Button>{isEditor && !isFormDisabled && (<Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('reappropriation', createDefaultReappropriationDetail()); }} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>)}</div></div><AccordionContent><CardContent className="pt-6"><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type of Page</TableHead><TableHead>File No</TableHead><TableHead>File Details</TableHead><TableHead className="text-right">AS Given (₹)</TableHead><TableHead className="text-right">Expenditure (₹)</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedCombinedReappropriations.length > 0 ? sortedCombinedReappropriations.map((item, index) => {
+                if (item._source === 'auto') {
+                  const asVal = item.asGiven !== undefined && item.asGiven !== null ? Number(item.asGiven) : Number(item.amount) || 0;
+                  const expVal = item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : null;
+                  return (
+                    <TableRow key={`credit-${index}`} className="bg-green-50/50">
+                      <TableCell className="whitespace-nowrap">{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                      <TableCell className="text-xs">{item.sourcePageType || 'N/A'}{item.parentRemittanceAccount && item.parentRemittanceAccount !== 'N/A' ? ` (${item.parentRemittanceAccount})` : ''}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.sourceFileNo}</TableCell>
+                      <TableCell className="text-xs max-w-[250px] whitespace-normal break-words">{item.fileDetails || (item.siteName ? (item.siteName.startsWith('Site:') ? item.siteName : `Site: ${item.siteName}`) : (item.sourceApplicantName || 'N/A'))}</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">{asVal.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">{expVal !== null && expVal > 0 ? expVal.toLocaleString('en-IN') : '-'}</TableCell>
+                      <TableCell className="text-xs italic max-w-[150px] whitespace-normal break-words">{item.remarks}</TableCell>
+                      {isEditor && !isFormDisabled && <TableCell className="text-center"><TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground mx-auto" /></TooltipTrigger><TooltipContent><p>Inward transfer from another file. Non-editable.</p></TooltipContent></Tooltip></TooltipProvider></TableCell>}
+                    </TableRow>
+                  );
+                } else {
+                  const asVal = item.asGiven !== undefined && item.asGiven !== null ? Number(item.asGiven) : Number(item.amount) || 0;
+                  const expVal = item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : null;
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="whitespace-nowrap">{item.date ? format(new Date(item.date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                      <TableCell className="text-xs">{item.pageType || 'N/A'}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.refFileNo}</TableCell>
+                      <TableCell className="text-xs max-w-[250px] whitespace-normal break-words">{item.fileDetails || (item.siteName ? (item.siteName.startsWith('Site:') ? item.siteName : `Site: ${item.siteName}`) : 'N/A')}</TableCell>
+                      <TableCell className="text-right font-bold text-red-600">{asVal.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-bold text-red-600">{expVal !== null && expVal > 0 ? expVal.toLocaleString('en-IN') : '-'}</TableCell>
+                      <TableCell className="text-xs italic max-w-[150px] whitespace-normal break-words">{item.remarks}</TableCell>
+                      {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('reappropriation', { index: item._originalIndex, ...item })} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'reappropriation', index: item._originalIndex})} disabled={isSupervisor || isInvestigator || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
+                    </TableRow>
+                  );
+                }
+                }) : <TableRow><TableCell colSpan={9} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow className="bg-muted/50 font-bold"><TableCell colSpan={4} className="text-right font-bold">Total Re-appropriation</TableCell><TableCell className="text-right text-green-600 font-bold">{totalReappropriationCreditWatched > 0 ? `₹${totalReappropriationCreditWatched.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</TableCell><TableCell className="text-right text-red-600 font-bold">{totalReappropriationWatched > 0 ? `₹${totalReappropriationWatched.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</TableCell><TableCell className="text-right text-blue-600 font-bold">{(() => { const totalExp = sortedCombinedReappropriations.reduce((sum, item) => sum + (item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : 0), 0); return totalExp > 0 ? `₹${totalExp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'; })()}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 2 : 1}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></AccordionContent></Card></AccordionItem></Accordion>
             
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">4. Site Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('site', {})} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add Site</Button>}</CardHeader><CardContent><Accordion type="single" collapsible className="w-full space-y-2" value={activeAccordionItem} onValueChange={setActiveAccordionItem}>{siteFields.length > 0 ? siteFields.map((site, index) => (<AccordionItem key={site.id} value={`site-${index}`} className="border bg-background rounded-lg shadow-sm"><div className="flex items-center justify-between pr-4"><div className="flex-1"><AccordionTrigger className="text-base font-semibold px-4 group hover:no-underline focus-visible:outline-none"><div className={cn("text-left", getStatusColorClass(site.workStatus))}>Site #{index + 1}: {site.nameOfSite || "Unnamed Site"} ({site.purpose || 'N/A'})</div></AccordionTrigger></div><div className="flex items-center space-x-1 ml-2 shrink-0 z-10 relative"><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('site', { index, ...site }, !!dialogState.isView || !!isFormDisabled || isViewer); }}><Eye className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>View / Edit Site</p></TooltipContent></Tooltip></TooltipProvider>{!isFormDisabled && !isViewer && !isInvestigator && (<><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('moveCopySite', { index, name: site.nameOfSite }); }}><Move className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Move or Copy Site</p></TooltipContent></Tooltip></TooltipProvider><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('reorderSite', getValues('siteDetails')); }}><ArrowUpDown className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Reorder Sites</p></TooltipContent></Tooltip></TooltipProvider><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItemToDelete({type: 'site', index}); }}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Delete Site</p></TooltipContent></Tooltip></TooltipProvider></>)}</div></div><AccordionContent className="p-6 pt-0"><div className="border-t pt-6 space-y-4"><dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4"><DetailRow label="Purpose" value={site.purpose} /><DetailRow label="Status" value={site.workStatus} /><DetailRow label="Contractor" value={site.contractorName} /><DetailRow label="Supervisor" value={site.supervisorName} /></dl></div></AccordionContent></AccordionItem>)) : <div className="text-center py-8 text-muted-foreground">No sites added.</div>}</Accordion></CardContent></Card>
-            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{paymentDetailsSectionNumber}. Payment Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('payment', createDefaultPaymentDetail())} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Acct.</TableHead>
-                {paymentFieldsToDisplay.map(field => (
-                    <TableHead key={field.key} className="text-right">{field.label}</TableHead>
-                ))}
-            <TableHead className="text-right">Total (₹)</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{paymentFields.length > 0 ? paymentFields.map((item, index) => (
+            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{paymentDetailsSectionNumber}. Payment Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('payment', createDefaultPaymentDetail())} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Account</TableHead><TableHead className="text-right w-24 sm:w-28 leading-tight">Total Payment<br /><span className="text-xs font-normal text-muted-foreground">(₹)</span></TableHead><TableHead className="min-w-[180px]">Name of Site</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedPaymentFields.length > 0 ? sortedPaymentFields.map((item) => (
                 <TableRow key={item.id} className={item.remittanceId ? 'bg-muted/50' : ''}>
-                    <TableCell>{item.dateOfPayment ? format(new Date(item.dateOfPayment), 'dd/MM/yy') : 'N/A'}</TableCell>
-                    <TableCell>{item.remittanceId ? 'Revenue Head' : item.paymentAccount}</TableCell>
-                    {paymentFieldsToDisplay.map(field => (
-                        <TableCell key={field.key} className="text-right">{(Number((item as any)[field.key]) || 0).toLocaleString('en-IN')}</TableCell>
-                    ))}
-                    <TableCell className="text-right">{(Number(item.totalPaymentPerEntry) || 0).toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="max-w-[200px] whitespace-normal break-words">{item.paymentRemarks}</TableCell>
+                    <TableCell className="whitespace-nowrap">{item.dateOfPayment ? format(new Date(item.dateOfPayment), 'dd/MM/yy') : 'N/A'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{item.remittanceId ? 'Revenue Head' : item.paymentAccount}</TableCell>
+                    <TableCell className="text-right font-medium w-24 sm:w-28 whitespace-nowrap font-mono">{(Number(item.totalPaymentPerEntry) || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                    <TableCell className="whitespace-normal break-words min-w-[180px] max-w-[320px]">
+                        {item.siteAllocations && item.siteAllocations.length > 0 ? (
+                            <div className="text-xs space-y-1.5">
+                                {item.siteAllocations.map((alloc: any, aIdx: number) => {
+                                    const matchedSite = (watchedSiteDetails || getValues('siteDetails') || []).find((s: any) => 
+                                        (alloc.siteId && s.id && alloc.siteId === s.id) || 
+                                        (alloc.siteName && s.nameOfSite && alloc.siteName.trim().toLowerCase() === s.nameOfSite.trim().toLowerCase())
+                                    );
+                                    const rawSiteName = (alloc.siteName || matchedSite?.nameOfSite || `Site #${aIdx + 1}`).trim();
+                                    const purpose = (alloc.purpose || matchedSite?.purpose || '').trim();
+                                    const displayName = purpose && !rawSiteName.toLowerCase().includes(purpose.toLowerCase())
+                                        ? `${rawSiteName} (${purpose})`
+                                        : rawSiteName;
+
+                                    return (
+                                        <div key={aIdx} className="flex justify-between items-start gap-2 py-0.5 border-b border-border/40 last:border-b-0">
+                                            <span className="font-medium text-foreground whitespace-normal break-words">{displayName}</span>
+                                            <span className="font-semibold font-mono text-primary whitespace-nowrap shrink-0">₹{(Number(alloc.amount) || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            (() => {
+                                const rawName = (item.nameOfSite || 'General / All Sites').trim();
+                                const matchedSite = (watchedSiteDetails || getValues('siteDetails') || []).find((s: any) => 
+                                    s.nameOfSite && rawName && s.nameOfSite.trim().toLowerCase() === rawName.trim().toLowerCase()
+                                );
+                                const purpose = (matchedSite?.purpose || '').trim();
+                                const displayName = purpose && !rawName.toLowerCase().includes(purpose.toLowerCase())
+                                    ? `${rawName} (${purpose})`
+                                    : rawName;
+
+                                return (
+                                    <div className="font-medium text-foreground whitespace-normal break-words">
+                                        {displayName}
+                                    </div>
+                                );
+                            })()
+                        )}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] whitespace-normal break-words">{item.paymentRemarks || '-'}</TableCell>
                     {isEditor && !isFormDisabled && (
                         <TableCell>
                             <div className="flex gap-1">
@@ -1097,14 +1615,14 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                                     </Tooltip></TooltipProvider>
                                 ) : (
                                     <>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => openDialog('payment', { index, ...item }, false)}><Eye className="h-4 w-4"/></Button>
-                                        <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'payment', index})}><Trash2 className="h-4 w-4"/></Button>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => openDialog('payment', { index: item._originalIndex, ...item }, false)}><Eye className="h-4 w-4"/></Button>
+                                        <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'payment', index: item._originalIndex})}><Trash2 className="h-4 w-4"/></Button>
                                     </>
                                 )}
                             </div>
                         </TableCell>
                     )}
-                </TableRow>)) : <TableRow><TableCell colSpan={4 + paymentFieldsToDisplay.length + (isEditor && !isFormDisabled ? 1 : 0)} className="text-center h-24">No payments added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={2 + paymentFieldsToDisplay.length} className="text-right font-bold">Total Payment</TableCell><TableCell className="font-bold text-right">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 2 : 1}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></Card>
+                </TableRow>)) : <TableRow><TableCell colSpan={5 + (isEditor && !isFormDisabled ? 1 : 0)} className="text-center h-24">No payments added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={2} className="text-right font-bold">Total Payment</TableCell><TableCell className="font-bold text-right w-24 sm:w-28 whitespace-nowrap font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 3 : 2}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></Card>
             <Card><CardHeader><CardTitle className="text-xl">{finalDetailsSectionNumber}. Final Details</CardTitle></CardHeader><CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="p-4 border rounded-lg space-y-4 bg-secondary/30"><h3 className="font-semibold text-lg text-primary">Financial Summary</h3><dl className="space-y-2">
                 <div className="flex justify-between items-baseline"><dt>Total Remittance</dt><dd className="font-mono">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                 <div className="flex justify-between items-baseline text-green-600 font-semibold"><dt>Total Re-appropriation credit</dt><dd className="font-mono font-bold">₹{(totalReappropriationCreditWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</dd></div>
@@ -1126,7 +1644,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         <Dialog open={dialogState.type === 'remittance'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><RemittanceDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} category={getValues('category')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reappropriation'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><ReappropriationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'site'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-6xl h-[90vh] flex flex-col p-0"><LoggingPumpingTestSiteDialog initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isReadOnly={!!dialogState.isView || !!isFormDisabled} isSupervisor={isSupervisor} isInvestigator={isInvestigator} allLsgConstituencyMaps={allLsgConstituencyMaps} allStaffMembers={allStaffMembers} workTypeContext={workTypeContext} userDesignation={userDesignation} /></DialogContent></Dialog>
-        <Dialog open={dialogState.type === 'payment'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl flex flex-col p-0"><PaymentDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isDeferredFunding={false} /></DialogContent></Dialog>
+        <Dialog open={dialogState.type === 'payment'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl h-[90vh] max-h-[90vh] flex flex-col p-0 overflow-hidden"><PaymentDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isDeferredFunding={false} siteDetails={watch('siteDetails') || getValues('siteDetails')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reorderSite'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-2xl flex flex-col p-0"><ReorderSitesDialog initialData={dialogState.data || []} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'moveCopySite'} onOpenChange={closeDialog}>
             <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="sm:max-w-md">

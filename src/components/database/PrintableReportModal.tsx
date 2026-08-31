@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
 import { printDocument, copyRichHtml } from "@/lib/print-utils";
+import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
 import { 
@@ -471,8 +472,8 @@ const getUcWorkFormat = (purposeCode: string, activeSites: any[] = []): {
       }
     }
   } else {
-    mainDetailsMl = `ടി പ്രവൃത്തിയുടെ ഭാഗമായി ആവശ്യമായ നിർമ്മാണ/വികസന/പുനരുദ്ധാരണ/അറ്റകുറ്റപ്പണികൾ തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്.`;
-    mainDetailsEn = `The required construction/renovation/repair works under the said project have been completed satisfactorily.`;
+    mainDetailsMl = '';
+    mainDetailsEn = '';
   }
 
   return {
@@ -527,28 +528,34 @@ export default function PrintableReportModal({
   const rawSites = useMemo(() => entry?.siteDetails || [], [entry]);
 
   const countOfBwcOrTwc = useMemo(() => {
-    return rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC').length;
-  }, [rawSites]);
+    if (rawSites && rawSites.length > 0) {
+      return rawSites.filter(s => s.purpose === 'BWC' || s.purpose === 'TWC').length;
+    }
+    const entryPurpose = (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType;
+    return (entryPurpose === 'BWC' || entryPurpose === 'TWC') ? 1 : 0;
+  }, [rawSites, entry]);
 
   const hasBwcOrTwc = useMemo(() => {
     return countOfBwcOrTwc > 0;
   }, [countOfBwcOrTwc]);
 
   const hasMultipleSites = useMemo(() => {
-    return countOfBwcOrTwc > 1 || rawSites.length > 1;
-  }, [countOfBwcOrTwc, rawSites.length]);
+    return countOfBwcOrTwc > 1 || (rawSites.length > 1 && hasBwcOrTwc);
+  }, [countOfBwcOrTwc, rawSites.length, hasBwcOrTwc]);
 
   useEffect(() => {
-    if (initialDocType) {
-      if (initialDocType === 'proceedings' && !isPrivateWork) {
-        setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
-      } else if (initialDocType === 'abstract_final_bill' && !hasMultipleSites) {
-        setDocType('final_bill');
-      } else {
-        setDocType(initialDocType);
-      }
+    let targetDocType = initialDocType || (hasBwcOrTwc ? 'completion_report' : (isPrivateWork ? 'proceedings' : 'utilization_certificate'));
+    if (!hasBwcOrTwc && (targetDocType === 'completion_report' || targetDocType === 'final_bill' || targetDocType === 'abstract_final_bill')) {
+      targetDocType = isPrivateWork ? 'proceedings' : 'utilization_certificate';
+    } else if (targetDocType === 'proceedings' && !isPrivateWork) {
+      targetDocType = hasBwcOrTwc ? 'completion_report' : 'utilization_certificate';
+    } else if (targetDocType === 'abstract_final_bill' && (!hasMultipleSites || !hasBwcOrTwc)) {
+      targetDocType = hasBwcOrTwc ? 'final_bill' : (isPrivateWork ? 'proceedings' : 'utilization_certificate');
+    } else if (targetDocType === 'utilization_certificate' && !isDepositWork && isPrivateWork) {
+      targetDocType = hasBwcOrTwc ? 'completion_report' : 'proceedings';
     }
-  }, [initialDocType, isOpen, isPrivateWork, hasBwcOrTwc, hasMultipleSites]);
+    setDocType(targetDocType);
+  }, [initialDocType, isOpen, isPrivateWork, isDepositWork, hasBwcOrTwc, hasMultipleSites]);
 
   const sites = useMemo(() => {
     if (docType === 'final_bill' || docType === 'abstract_final_bill' || docType === 'proceedings') {
@@ -2199,12 +2206,40 @@ export default function PrintableReportModal({
     return totalRemittanceAmount - totalPaymentAmount;
   }, [totalRemittanceAmount, totalPaymentAmount]);
 
+  const unallocatedPaymentsTotal = useMemo(() => {
+    if (!entry?.paymentDetails) return 0;
+    return entry.paymentDetails.reduce((sum, p) => {
+      const pName = (p.nameOfSite || '').trim().toLowerCase();
+      if (pName === 'general / all sites' && (!p.siteAllocations || p.siteAllocations.length === 0)) {
+        return sum + (Number(p.totalPaymentPerEntry) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [entry?.paymentDetails]);
+
   const ucSelectedSites = useMemo(() => {
-    return selectedSiteIndices.map(sIdx => {
+    const validIndices = selectedSiteIndices.filter(sIdx => siteFinancials.find(f => f.sIdx === sIdx) || siteFinancials[sIdx]);
+    const unallocatedPerSite = validIndices.length > 0 ? unallocatedPaymentsTotal / validIndices.length : 0;
+    const hasPayments = entry?.paymentDetails && entry.paymentDetails.length > 0;
+
+    return validIndices.map(sIdx => {
       const sf = siteFinancials.find(f => f.sIdx === sIdx) || siteFinancials[sIdx];
       if (!sf) return null;
       const absRow = abstractSiteRows.find(r => r.sIdx === sIdx);
-      const grandTotal = absRow?.grandTotal ?? Math.round(sf.subsidyAmount > 0 ? sf.netPayable : (sf.totalExpenditure || sf.netPayable));
+      
+      const siteRef = sites[sIdx];
+      const paymentsExp = siteRef && hasPayments ? calculateSiteExpenditure(siteRef, entry.paymentDetails!) : 0;
+      
+      const override = siteOverridesMap[sIdx];
+      let grandTotal;
+      if (override && override.amount !== undefined) {
+        grandTotal = Math.round(override.amount);
+      } else if (hasPayments) {
+        grandTotal = paymentsExp > 0 || unallocatedPerSite > 0 ? Math.round(paymentsExp + unallocatedPerSite) : (absRow?.grandTotal ?? Math.round(sf.subsidyAmount > 0 ? sf.netPayable : (sf.totalExpenditure || sf.netPayable)));
+      } else {
+        grandTotal = absRow?.grandTotal ?? Math.round(sf.subsidyAmount > 0 ? sf.netPayable : (sf.totalExpenditure || sf.netPayable));
+      }
+
       const sNameMl = sf.siteNameMl || sf.siteName;
       const sNameEn = sf.siteNameEn || sf.siteName;
       const descMl = absRow?.descMl ?? (sNameMl + (sf.location ? " (" + sf.location + ")" : ""));
@@ -2220,7 +2255,7 @@ export default function PrintableReportModal({
         descEn,
       };
     }).filter(Boolean) as Array<typeof siteFinancials[number] & { grandTotal: number; descMl: string; descEn: string; siteNameMl: string; siteNameEn: string }>;
-  }, [selectedSiteIndices, siteFinancials, abstractSiteRows, lang]);
+  }, [selectedSiteIndices, siteFinancials, abstractSiteRows, lang, sites, entry?.paymentDetails, unallocatedPaymentsTotal, siteOverridesMap]);
 
   const ucTotalSelectedExpenditure = useMemo(() => {
     return ucSelectedSites.reduce((sum, sf) => sum + sf.grandTotal, 0);
@@ -2269,16 +2304,20 @@ export default function PrintableReportModal({
 
   // Handle document switching rules
   useEffect(() => {
-    if (docType === 'abstract_final_bill' && !hasMultipleSites) {
-      setDocType('final_bill');
+    if (!hasBwcOrTwc && (docType === 'completion_report' || docType === 'final_bill' || docType === 'abstract_final_bill')) {
+      setDocType(isPrivateWork ? 'proceedings' : 'utilization_certificate');
+      return;
+    }
+    if (docType === 'abstract_final_bill' && (!hasMultipleSites || !hasBwcOrTwc)) {
+      setDocType(hasBwcOrTwc ? 'final_bill' : (isPrivateWork ? 'proceedings' : 'utilization_certificate'));
     }
     if (docType === 'proceedings' && !isPrivateWork) {
-      setDocType('completion_report');
+      setDocType(hasBwcOrTwc ? 'completion_report' : 'utilization_certificate');
     }
-    if (docType === 'utilization_certificate' && !isDepositWork) {
-      setDocType('completion_report');
+    if (docType === 'utilization_certificate' && !isDepositWork && isPrivateWork) {
+      setDocType(hasBwcOrTwc ? 'completion_report' : 'proceedings');
     }
-  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork]);
+  }, [docType, hasMultipleSites, isPrivateWork, isDepositWork, hasBwcOrTwc]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
@@ -3337,16 +3376,20 @@ export default function PrintableReportModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="completion_report">
-                    {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
-                  </SelectItem>
-                  <SelectItem value="final_bill">
-                    {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
-                  </SelectItem>
-                  {(hasMultipleSites || docType === 'abstract_final_bill' || initialDocType === 'abstract_final_bill') && (
-                    <SelectItem value="abstract_final_bill">
-                      {lang === 'ml' ? 'അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (Abstract Final Bill)' : 'Abstract of Final Bill'}
-                    </SelectItem>
+                  {hasBwcOrTwc && (
+                    <>
+                      <SelectItem value="completion_report">
+                        {lang === 'ml' ? 'പൂർത്തീകരണ റിപ്പോർട്ട് (Completion Report)' : 'Completion Report'}
+                      </SelectItem>
+                      <SelectItem value="final_bill">
+                        {lang === 'ml' ? 'ഫൈനൽ ബിൽ (Final Bill)' : 'Final Bill'}
+                      </SelectItem>
+                      {(hasMultipleSites || docType === 'abstract_final_bill' || initialDocType === 'abstract_final_bill') && (
+                        <SelectItem value="abstract_final_bill">
+                          {lang === 'ml' ? 'അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (Abstract Final Bill)' : 'Abstract of Final Bill'}
+                        </SelectItem>
+                      )}
+                    </>
                   )}
                   {isPrivateWork && (
                     <SelectItem value="proceedings">
@@ -6494,11 +6537,8 @@ export default function PrintableReportModal({
 
                       const siteCount = activeSites.length || 1;
 
-                      const remittancePart = siteCount > 1
-                        ? `യഥാക്രമം ${activeSites.map((_, sIdx) => {
-                            const amt = abstractRemittanceRows[sIdx]?.amount ?? (totalRemittanceAmount / siteCount);
-                            return `${Math.round(amt).toLocaleString('en-IN')}/- രൂപ`;
-                          }).join(', ')} അടക്കം ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`
+                      const remittancePart = abstractRemittanceRows.length > 1
+                        ? `യഥാക്രമം ${abstractRemittanceRows.map(r => `${Math.round(r.amount).toLocaleString('en-IN')}/- രൂപ`).join(', ')} അടക്കം ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`
                         : `ആകെ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപ`;
 
                       const expenditurePart = siteCount > 1
@@ -6533,7 +6573,7 @@ export default function PrintableReportModal({
                         }
                       }).join(' ');
 
-                      const defaultCoverText = `മേൽ സൂചന (1) പ്രകാരം, ${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${remittancePart} അടവാക്കിയിട്ടുണ്ട്. സൂചന (2) പ്രകാരം, ടി ${workFmt.workNameMl} ${workFmt.executionAgencyMl} തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. ${workFmt.mainDetailsMl} ടി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${expenditurePart} ചിലവായിട്ടുണ്ട്. ${reappropriationPart ? `${reappropriationPart} ` : ''}അടവാക്കിയ ആകെ തുകയായ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപയിൽ നിന്നും പ്രവൃത്തിക്കായി ചിലവായ തുക കഴിച്ചുള്ള ബാലൻസ് തുകയായ ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- രൂപ (${refundWords}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`;
+                      const defaultCoverText = `മേൽ സൂചന (1) പ്രകാരം, ${lsgFull} ${siteNamesStr} കുടിവെള്ള പദ്ധതികൾ നടപ്പിലാക്കുന്നതിന്റെ ഭാഗമായി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${remittancePart} അടവാക്കിയിട്ടുണ്ട്. സൂചന (2) പ്രകാരം, ടി ${workFmt.workNameMl} ${workFmt.executionAgencyMl} തൃപ്തികരമായി പൂർത്തീകരിച്ചിട്ടുണ്ട്. ${workFmt.mainDetailsMl ? `${workFmt.mainDetailsMl} ` : ''}ടി ${workFmt.workNameMl} നടത്തുന്നതിനായി ${expenditurePart} ചിലവായിട്ടുണ്ട്. ${reappropriationPart ? `${reappropriationPart} ` : ''}അടവാക്കിയ ആകെ തുകയായ ${Math.round(totalRemittanceAmount).toLocaleString('en-IN')}/- രൂപയിൽ നിന്നും പ്രവൃത്തിക്കായി ചിലവായ തുക കഴിച്ചുള്ള ബാലൻസ് തുകയായ ${Math.round(Math.abs(ucBalanceRefund)).toLocaleString('en-IN')}/- രൂപ (${refundWords}) പഞ്ചായത്തിന് തിരികെ നൽകുന്നതിന് വേണ്ടി ബാങ്ക് അക്കൗണ്ട് വിവരങ്ങൾ ഈ ഓഫീസിൽ ലഭ്യമാക്കണമെന്ന് താത്പര്യപ്പെടുന്നു.`;
 
                       const coverTextFinal = (ucMlPara1 || defaultCoverText)
                         .replace(/\s*\d{4}\s*-\s*\d{2,4}\s*സാമ്പത്തിക\s*വർഷത്തിൽ\s*/g, ' ')
@@ -6706,7 +6746,7 @@ export default function PrintableReportModal({
                               const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
                               const workFmt = getUcWorkFormat(purposeCode, activeSites);
                               return renderEditableCell('uc_ml_tbl_exp_title',
-                                <span>{workFmt.workNameMl}യുടെ ആകെ ചിലവ്</span>,
+                                <span>{workFmt.workNameMl}യുടെ {activeSites.length > 1 ? 'ചിലവ് വിവരങ്ങൾ' : 'ആകെ ചിലവ്'}</span>,
                                 <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
                               );
                             })()}
@@ -7021,7 +7061,7 @@ A total expenditure of ${expenditurePartEn} has been incurred for executing the 
                               const purposeCode = (currentSite?.purpose || (entry as any)?.purpose || (entry as any)?.typeOfWork || (entry as any)?.workType || 'BWC').toString();
                               const workFmt = getUcWorkFormat(purposeCode, activeSites);
                               return renderEditableCell('uc_en_tbl_exp_title',
-                                <span>Total expenditure incurred for {workFmt.workNameEn.toLowerCase()}</span>,
+                                <span>{activeSites.length > 1 ? `Expenditure details of ${workFmt.workNameEn.toLowerCase()}` : `Total expenditure incurred for ${workFmt.workNameEn.toLowerCase()}`}</span>,
                                 <Input className="h-7 text-xs font-semibold" value={localSelfGovt} onChange={e => setLocalSelfGovt(e.target.value)} />
                               );
                             })()}

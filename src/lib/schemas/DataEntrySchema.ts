@@ -284,7 +284,10 @@ export const ReappropriationDetailSchema = z.object({
   pageType: z.string().optional().nullable(),
   refFileNo: z.string().min(1, "Reference File No. is required."),
   fileDetails: z.string().optional().nullable(),
-  amount: optionalNumber().refine(val => val !== undefined && val > 0, "Amount must be greater than zero."),
+  siteName: z.string().optional().nullable(),
+  asGiven: optionalNumber().refine(val => val !== undefined && val > 0, "AS Given amount must be greater than zero."),
+  expenditure: optionalNumber().nullable(),
+  amount: optionalNumber().optional(),
   date: z.string().min(1, "Date is required."),
   remarks: z.string().optional().nullable(),
 });
@@ -293,11 +296,22 @@ export type ReappropriationDetailFormData = z.infer<typeof ReappropriationDetail
 export const paymentAccountOptions = ["Bank", "STSB", "Plan Fund"] as const;
 export type PaymentAccount = typeof paymentAccountOptions[number];
 
+export const SitePaymentAllocationSchema = z.object({
+  siteName: z.string().optional().nullable(),
+  siteId: z.string().optional().nullable(),
+  purpose: z.string().optional().nullable(),
+  workStatus: z.string().optional().nullable(),
+  amount: optionalNumber(),
+});
+export type SitePaymentAllocationFormData = z.infer<typeof SitePaymentAllocationSchema>;
+
 export const PaymentDetailSchema = z.object({
   id: z.string().optional(),
   remittanceId: z.string().optional().nullable(),
   dateOfPayment: z.string().min(1, "Date of payment is required."),
   paymentAccount: z.enum(paymentAccountOptions, { required_error: "Payment account is required." }),
+  nameOfSite: z.string().optional().nullable(),
+  siteAllocations: z.array(SitePaymentAllocationSchema).optional().nullable(),
   revenueHead: optionalNumber(),
   contractorsPayment: optionalNumber(),
   gst: optionalNumber(),

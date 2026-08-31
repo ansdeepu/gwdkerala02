@@ -72,7 +72,7 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Work Completed"
 ] as const;
 
-export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType }: {
+export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails }: {
     initialData: Partial<SiteDetailFormData>;
     onConfirm: (data: SiteDetailFormData) => void;
     onCancel: () => void;
@@ -86,6 +86,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     allRigCompressors: RigCompressor[];
     workTypeContext: 'public' | 'private' | 'collector' | 'planFund' | 'gwInvestigation' | 'loggingPumpingTest' | null;
     applicationType?: string | null;
+    paymentDetails?: any[];
 }) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
     const hasExplicitCasing8kg = initialData?.casing8kgPipe !== undefined && initialData?.casing8kgPipe !== null;
@@ -98,10 +99,56 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         ? String(initialData.surveyOB)
         : (initialData?.surveyRecommendedOB ? String(initialData.surveyRecommendedOB) : "");
 
+    const computedExpenditure = useMemo(() => {
+        if (!paymentDetails || !Array.isArray(paymentDetails) || paymentDetails.length === 0) {
+            return initialData?.totalExpenditure !== undefined && initialData?.totalExpenditure !== null ? Number(initialData.totalExpenditure) : undefined;
+        }
+        let total = 0;
+        let foundAny = false;
+        const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
+        const sitePurpose = (initialData?.purpose || '').trim().toLowerCase();
+        const siteId = initialData?.id;
+
+        for (const payment of paymentDetails) {
+            if (payment.siteAllocations && Array.isArray(payment.siteAllocations)) {
+                for (const alloc of payment.siteAllocations) {
+                    const allocName = (alloc.siteName || '').trim().toLowerCase();
+                    const allocPurpose = (alloc.purpose || '').trim().toLowerCase();
+                    const allocId = alloc.siteId;
+                    
+                    let isMatch = false;
+                    if (allocId && siteId && allocId === siteId) {
+                        isMatch = true;
+                    } else if (allocName && siteName && allocName === siteName) {
+                        if (allocPurpose && sitePurpose) {
+                            isMatch = allocPurpose === sitePurpose;
+                        } else if (!allocPurpose && !sitePurpose) {
+                            isMatch = true;
+                        }
+                    }
+
+                    if (isMatch) {
+                        total += Number(alloc.amount) || 0;
+                        foundAny = true;
+                    }
+                }
+            } else if (payment.nameOfSite && siteName) {
+                const pSiteName = payment.nameOfSite.trim().toLowerCase();
+                if (pSiteName === siteName || (sitePurpose && pSiteName === `${siteName} (${sitePurpose})`.toLowerCase())) {
+                    total += Number(payment.totalPaymentPerEntry) || 0;
+                    foundAny = true;
+                }
+            }
+        }
+        if (foundAny) return total;
+        return initialData?.totalExpenditure !== undefined && initialData?.totalExpenditure !== null ? Number(initialData.totalExpenditure) : undefined;
+    }, [paymentDetails, initialData?.nameOfSite, initialData?.purpose, initialData?.id, initialData?.totalExpenditure]);
+
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
             ...initialData,
+            totalExpenditure: computedExpenditure !== undefined ? computedExpenditure : (initialData?.totalExpenditure ?? undefined),
             casing6kgPipe: initialCasing6kg ?? "",
             casing8kgPipe: initialData?.casing8kgPipe ?? "",
             casing10kgPipe: initialData?.casing10kgPipe ?? "",
@@ -427,12 +474,15 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         const totalCasing = v10 + v8 + v6;
         const computedCasingUsed = totalCasing > 0 ? totalCasing.toString() : '';
 
+        const finalExp = computedExpenditure !== undefined ? computedExpenditure : (data.totalExpenditure ?? initialData?.totalExpenditure ?? undefined);
+
         const updatedData = {
             ...data,
             casing6kgPipe: data.casing6kgPipe ?? "",
             casing8kgPipe: data.casing8kgPipe ?? "",
             casing10kgPipe: data.casing10kgPipe ?? "",
             casingPipeUsed: totalCasing > 0 ? totalCasing.toString() : "",
+            totalExpenditure: finalExp,
         };
         onConfirm(updatedData);
     };
@@ -1010,7 +1060,23 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         )} />
                                                         <FormField name="startDate" control={control} render={({ field }) => <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="dateOfCompletion" control={control} render={({ field }) => <FormItem><FormLabel>Completion Date {isCompletionDateRequired && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
-                                                        <FormField name="totalExpenditure" control={control} render={({ field }) => <FormItem><FormLabel>Total Expenditure (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 42500" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="totalExpenditure" control={control} render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Total Expenditure (₹)</FormLabel>
+                                                                <FormControl>
+                                                                    <Input 
+                                                                        type="text" 
+                                                                        {...field} 
+                                                                        value={field.value !== undefined && field.value !== null && field.value !== '' ? `₹${Number(field.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} 
+                                                                        readOnly 
+                                                                        disabled 
+                                                                        className="bg-muted/60 font-semibold cursor-not-allowed text-foreground"
+                                                                    />
+                                                                </FormControl>
+                                                                <p className="text-[11px] text-muted-foreground mt-0.5">Auto-computed from Payment Details</p>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
                                                         {isPrivateIrrigation && (
                                                             <FormField name="subsidyAmount" control={control} render={({ field }) => (
                                                                 <FormItem>
