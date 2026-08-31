@@ -1,6 +1,6 @@
 {
-  "name": "Ground Water Department - Government of Keralam",
-  "short_name": "GWD Portal",
+  "name": "GWD Dashboard",
+  "short_name": "GWD Dashboard",
   "description": "Official Web Portal of Ground Water Department, Government of Keralam for deposit works, groundwater investigations, and departmental administration.",
   "start_url": "/",
   "id": "/",
