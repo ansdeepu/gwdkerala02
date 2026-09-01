@@ -627,9 +627,10 @@ export default function ProgressReportPage() {
             entry.siteDetails?.forEach(site => {
                 const completionDate = safeParseDate(site.dateOfCompletion);
                 if (completionDate && isValid(completionDate) && checkDateInRange(completionDate)) {
-                    if (!summaryData[purpose]) summaryData[purpose] = { totalApplications: 0, totalRemittance: 0, totalCompleted: 0, totalPayment: 0, applicationData: [], completedData: [], paymentData: [] };
-                    summaryData[purpose].totalCompleted++;
-                    summaryData[purpose].completedData.push({ ...site, fileNo: entry.fileNo!, applicantName: entry.applicantName!, applicationType: (entry.applicationType || UNASSIGNED_APP_TYPE) as ApplicationType } as SiteDetailWithFileContext);
+                    const sitePurpose = site.purpose || purpose || 'Others';
+                    if (!summaryData[sitePurpose]) summaryData[sitePurpose] = { totalApplications: 0, totalRemittance: 0, totalCompleted: 0, totalPayment: 0, applicationData: [], completedData: [], paymentData: [] };
+                    summaryData[sitePurpose].totalCompleted++;
+                    summaryData[sitePurpose].completedData.push({ ...site, fileNo: entry.fileNo!, applicantName: entry.applicantName!, applicationType: (entry.applicationType || UNASSIGNED_APP_TYPE) as ApplicationType } as SiteDetailWithFileContext);
                 }
             });
         });
