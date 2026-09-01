@@ -673,8 +673,8 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
             return;
         }
 
-        const targetSites = targetEntry.siteDetails || targetEntry.sites || [];
-        const targetPayments = targetEntry.paymentDetails || targetEntry.payments || [];
+        const targetSites = (targetEntry as any).siteDetails || (targetEntry as any).sites || [];
+        const targetPayments = (targetEntry as any).paymentDetails || (targetEntry as any).payments || [];
 
         let calculatedExp = 0;
         if (watchedSiteName) {
@@ -711,7 +711,7 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
                 const exp = calculateSiteExpenditure(s, targetPayments);
                 return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
             }, 0);
-            calculatedExp = totalExp > 0 ? totalExp : (Number(targetEntry.totalExpenditure) || 0);
+            calculatedExp = totalExp > 0 ? totalExp : (Number((targetEntry as any).totalExpenditure) || 0);
         }
 
         form.setValue('expenditure', calculatedExp > 0 ? calculatedExp : null);
@@ -885,7 +885,7 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
             siteId: a.siteId || undefined,
             purpose: a.purpose || undefined,
             workStatus: a.workStatus || undefined,
-            amount: a.amount !== undefined && a.amount !== null && a.amount !== '' ? Number(a.amount) : undefined
+            amount: a.amount !== undefined && a.amount !== null && (a.amount as any) !== '' ? Number(a.amount) : undefined
         })).filter(a => a.amount !== undefined && a.amount > 0);
 
         const formatNameWithPurpose = (name?: string | null, purp?: string | null) => {
@@ -1140,8 +1140,8 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
           if (totalExp > 0) return totalExp;
       }
 
-      const targetSites = targetEntry.siteDetails || targetEntry.sites || [];
-      const targetPayments = targetEntry.paymentDetails || targetEntry.payments || [];
+      const targetSites = (targetEntry as any).siteDetails || (targetEntry as any).sites || [];
+      const targetPayments = (targetEntry as any).paymentDetails || (targetEntry as any).payments || [];
 
       if (targetSiteName) {
           const tNameFull = targetSiteName.trim().toLowerCase();
@@ -1175,7 +1175,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
       if (totalExp > 0) return totalExp;
 
-      return Number(targetEntry.totalExpenditure) || fallback || 0;
+      return Number((targetEntry as any).totalExpenditure) || fallback || 0;
   }, [allFileEntries, allArsEntries, currentFileNo, watchedSiteDetails, watchedPaymentDetails]);
 
   const getCurrentFileExpenditure = useCallback((targetSiteName?: string | null, fallback?: number | null) => {

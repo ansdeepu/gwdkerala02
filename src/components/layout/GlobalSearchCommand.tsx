@@ -82,14 +82,14 @@ export function GlobalSearchCommand({
     allFileEntries.forEach((entry) => {
       const fileNo = (entry.fileNo || '').toLowerCase();
       const applicant = (entry.applicantName || '').toLowerCase();
-      const subject = (entry.fileSubject || '').toLowerCase();
+      const subject = ((entry as any).fileSubject || '').toLowerCase();
       const office = (entry.officeLocation || '').toLowerCase();
       
       // Check site details inside file entry
       const siteMatch = entry.siteDetails?.some((s) => 
         (s.nameOfSite || '').toLowerCase().includes(q) ||
         (s.contractorName || '').toLowerCase().includes(q) ||
-        (s.challanNo || '').toLowerCase().includes(q)
+        ((s as any).challanNo || '').toLowerCase().includes(q)
       );
 
       if (
@@ -103,13 +103,13 @@ export function GlobalSearchCommand({
         matched.push({
           id: entry.id || entry.fileNo || Math.random().toString(),
           category: 'Work Entry',
-          title: entry.applicantName ? `${entry.applicantName}` : (entry.fileSubject || 'Deposit Work Entry'),
+          title: entry.applicantName ? `${entry.applicantName}` : ((entry as any).fileSubject || 'Deposit Work Entry'),
           subtitle: `File: ${entry.fileNo || 'N/A'} • Sites: ${siteNames}`,
           fileNo: entry.fileNo,
           applicant: entry.applicantName,
-          status: entry.status || 'Active',
-          office: entry.officeLocation,
-          href: `/dashboard/data-entry?id=${entry.id}&workType=${entry.workType || 'public'}`,
+          status: (entry as any).status || entry.fileStatus || 'Active',
+          office: entry.officeLocation || undefined,
+          href: `/dashboard/data-entry?id=${entry.id}&workType=${(entry as any).workType || 'public'}`,
           icon: <FileText className="h-4 w-4 text-sky-500" />,
         });
       }

@@ -381,7 +381,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [isFieldReadOnly, watchedLsg, constituencyOptionsForLsg]);
 
     const isTenderSelected = watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_';
-    const prevTenderNoRef = useRef<string | undefined>(initialData?.tenderNo);
+    const prevTenderNoRef = useRef<any>(initialData?.tenderNo);
 
     useEffect(() => {
         if (isTenderSelected) {
@@ -1067,7 +1067,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <Input 
                                                                         type="text" 
                                                                         {...field} 
-                                                                        value={field.value !== undefined && field.value !== null && field.value !== '' ? `₹${Number(field.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} 
+                                                                        value={field.value !== undefined && field.value !== null && (field.value as any) !== '' ? `₹${Number(field.value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} 
                                                                         readOnly 
                                                                         disabled 
                                                                         className="bg-muted/60 font-semibold cursor-not-allowed text-foreground"
