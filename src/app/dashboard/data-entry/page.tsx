@@ -319,6 +319,11 @@ export default function DataEntryPage() {
     }).filter((s): s is (StaffMember & { uid: string; name: string }) => s !== null).sort((a, b) => a.name.localeCompare(b.name));
    }, [allStaffMembers, user, allUsers]);
   
+  const hasInvestigationCategory = useMemo(() => 
+    ['Govt', 'Private', 'Complaints'].includes((pageData?.initialData as any)?.category) || pageData?.initialData?.applicationType === 'GW_Investigation',
+    [pageData]
+  );
+
   const hasInvestigationPurpose = useMemo(() => 
     pageData?.initialData?.siteDetails?.some(site => site.purpose === 'GW Investigation'), 
     [pageData]
@@ -329,7 +334,7 @@ export default function DataEntryPage() {
     [pageData]
   );
 
-   const isGwInvestigationType = workTypeContext === 'gwInvestigation' || (!!fileIdToEdit && hasInvestigationPurpose && !hasLoggingPumpingPurpose);
+  const isGwInvestigationType = workTypeContext === 'gwInvestigation' || (!!fileIdToEdit && (hasInvestigationPurpose || hasInvestigationCategory) && !hasLoggingPumpingPurpose);
   const isLoggingPumpingTestType = workTypeContext === 'loggingPumpingTest' || (!!fileIdToEdit && hasLoggingPumpingPurpose && !hasInvestigationPurpose);
   
   const formOptions = useMemo(() => {

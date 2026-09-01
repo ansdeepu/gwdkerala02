@@ -565,12 +565,21 @@ export default function ProgressReportPage() {
     });
 
     const privateFinancialSummaryData: FinancialSummaryReport = {};
+    const lsgdFinancialSummaryData: FinancialSummaryReport = {};
     const governmentFinancialSummaryData: FinancialSummaryReport = {};
     const revenueHeadBreakdown: Record<string, { total: number, data: any[] }> = {};
     const revenueHeadCreditData: any[] = [];
     
-    const privateEntries = fileEntries.filter(entry => entry.applicationType && PRIVATE_APPLICATION_TYPES.includes(entry.applicationType as any));
-    const governmentEntries = fileEntries.filter(entry => !entry.applicationType || !PRIVATE_APPLICATION_TYPES.includes(entry.applicationType as any));
+    const isPrivateApp = (appType?: string | null) => appType && PRIVATE_APPLICATION_TYPES.includes(appType as any);
+    const isLsgdApp = (appType?: string | null) => {
+        if (!appType) return false;
+        const clean = appType.trim().toUpperCase();
+        return clean === 'LSGD' || clean.startsWith('LSGD');
+    };
+
+    const privateEntries = fileEntries.filter(entry => isPrivateApp(entry.applicationType));
+    const lsgdEntries = fileEntries.filter(entry => isLsgdApp(entry.applicationType));
+    const governmentEntries = fileEntries.filter(entry => !isPrivateApp(entry.applicationType) && !isLsgdApp(entry.applicationType));
     
     const processFinancialSummary = (entries: DataEntryFormData[], summaryData: FinancialSummaryReport) => {
         const checkDateInRange = (date: any): boolean => {
@@ -627,13 +636,14 @@ export default function ProgressReportPage() {
     };
 
     processFinancialSummary(privateEntries, privateFinancialSummaryData);
+    processFinancialSummary(lsgdEntries, lsgdFinancialSummaryData);
     processFinancialSummary(governmentEntries, governmentFinancialSummaryData);
 
     const totalRevenueHeadCredit = revenueHeadCreditData.reduce((sum, item) => sum + item.amount, 0);
 
     setReportData({ 
         bwcData, twcData, fpwData, progressSummaryData, gwInvestigationData, gwInvestigationAggregated, vesData, geologicalLoggingData, geophysicalLoggingData, pumpingTestData, 
-        otherSchemesData, privateFinancialSummaryData, governmentFinancialSummaryData,
+        otherSchemesData, privateFinancialSummaryData, lsgdFinancialSummaryData, governmentFinancialSummaryData,
         totalRevenueHeadCredit, revenueHeadCreditData, revenueHeadBreakdown,
         typeOfWellOptionsWithUnassigned,
     });
@@ -993,8 +1003,13 @@ export default function ProgressReportPage() {
                 </Card>
 
                 <Card>
+                    <CardHeader><CardTitle>Financial Summary - LSGD Applications</CardTitle><CardDescription>A summary of financial and application counts for each purpose within the selected period.</CardDescription></CardHeader>
+                    <CardContent><FinancialSummaryTable data={reportData.lsgdFinancialSummaryData} onCellClick={(dataType, purpose, data, title) => handleCountClick(data, title)} onTotalClick={(type) => handleFinancialTotalClick(type, reportData.lsgdFinancialSummaryData, "LSGD")} category="LSGD" /></CardContent>
+                </Card>
+
+                <Card>
                     <CardHeader><CardTitle>Financial Summary - Government & Other Applications</CardTitle><CardDescription>A summary of financial and application counts for each purpose within the selected period.</CardDescription></CardHeader>
-                    <CardContent><FinancialSummaryTable data={reportData.governmentFinancialSummaryData} onCellClick={(dataType, purpose, data, title) => handleCountClick(data, title)} onTotalClick={(type) => handleFinancialTotalClick(type, reportData.governmentFinancialSummaryData, "Government")} category="Government" /></CardContent>
+                    <CardContent><FinancialSummaryTable data={reportData.governmentFinancialSummaryData} onCellClick={(dataType, purpose, data, title) => handleCountClick(data, title)} onTotalClick={(type) => handleFinancialTotalClick(type, reportData.governmentFinancialSummaryData, "Government & Other")} category="Government & Other" /></CardContent>
 
                 <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="revenue-head" className="border rounded-lg bg-background/50 shadow-inner overflow-hidden">

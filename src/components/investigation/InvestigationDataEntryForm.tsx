@@ -26,9 +26,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Printer, FileText } from "lucide-react";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
+import { type InvestigationReportDocType } from '@/components/investigation/InvestigationReportViewer';
 import {
   DataEntrySchema,
   type DataEntryFormData,
@@ -1001,6 +1002,28 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
   const [isReappInfoOpen, setIsReappInfoOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'remittance' | 'reappropriation' | 'payment' | 'site'; index: number } | null>(null);
 
+  const handleOpenReportInSameWindow = (docType: InvestigationReportDocType, siteIndex = 0) => {
+    const currentFormData = getValues();
+    const docId = fileIdToEdit || (initialData as any)?.id || currentFormData.fileNo || 'current';
+    
+    // Save draft in sessionStorage for immediate preview with current form values
+    if (typeof window !== 'undefined') {
+      try {
+        const draftPayload = {
+          ...currentFormData,
+          id: fileIdToEdit || (initialData as any)?.id || currentFormData.fileNo,
+        };
+        window.sessionStorage.setItem(`gw_report_draft_${docId}`, JSON.stringify(draftPayload));
+        window.sessionStorage.setItem('gw_report_draft_current', JSON.stringify(draftPayload));
+      } catch (e) {
+        console.warn("Could not cache draft report in sessionStorage", e);
+      }
+    }
+
+    const currentUrl = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : returnPath;
+    router.push(`/dashboard/gw-investigation/print?id=${encodeURIComponent(docId)}&docType=${docType}&siteIndex=${siteIndex}&returnPath=${encodeURIComponent(currentUrl)}`);
+  };
+
   const isEditor = userRole === 'admin' || userRole === 'scientist';
   const isSupervisor = userRole === 'supervisor';
   const isInvestigator = userRole === 'investigator';
@@ -1588,6 +1611,43 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
                 <div className="flex justify-between items-baseline"><dt>Total Payment</dt><dd className="font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                 <div className="flex justify-between items-baseline text-red-600 font-semibold"><dt>Total Re-appropriation debit</dt><dd className="font-mono font-bold">₹{(totalReappropriationWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                 <Separator /><div className="flex justify-between items-baseline font-bold"><dt>Overall Balance</dt><dd className="font-mono text-xl">₹{(watch('overallBalance') || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div></dl></div><div className="p-4 border rounded-lg space-y-4 bg-secondary/30"><FormField control={control} name="fileStatus" render={({ field }) => <FormItem><FormLabel>File Status <span className="text-destructive">*</span></FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isViewer || isFormDisabled || isSupervisor || isInvestigator}><FormControl><SelectTrigger><SelectValue placeholder="Select final file status" /></SelectTrigger></FormControl><SelectContent>{INVESTIGATION_FILE_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} /><FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor || isInvestigator} /></FormControl><FormMessage /></FormItem>} /></div></CardContent></Card>
+            
+            {/* 7. Print Reports Section */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                        <FileText className="h-5 w-5" />
+                        7. Print Reports
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        Generate, preview, and print official Hydrogeological Investigation Reports and Feasibility Reports (Malayalam) for this investigation file.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReportInSameWindow('investigation_report')}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25 h-9"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                            1. Investigation Report (English)
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReportInSameWindow('feasibility_report')}
+                            className="bg-background shadow-xs hover:bg-accent border-primary/25 h-9"
+                        >
+                            <FileText className="mr-2 h-4 w-4 text-emerald-600" />
+                            2. Feasibility Report (മലയാളം)
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting}>
                     <X className="mr-2 h-4 w-4" /> Close
