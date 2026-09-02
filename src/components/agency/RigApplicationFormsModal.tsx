@@ -5,8 +5,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Printer, Upload, X, ArrowLeft, RefreshCw, FileText } from "lucide-react";
-import type { AgencyApplication, OwnerInfo } from "@/hooks/useAgencyApplications";
+import { Printer, Upload, X, ArrowLeft, RefreshCw, FileText, Save } from "lucide-react";
+import { useAgencyApplications, type AgencyApplication, type OwnerInfo } from "@/hooks/useAgencyApplications";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { printDocument } from "@/lib/print-utils";
 
@@ -25,7 +26,7 @@ function PinCodeGrid({ value, onChange }: { value: string; onChange: (v: string)
   };
 
   return (
-    <div className="inline-flex items-center gap-0.5 border border-black bg-white">
+    <div className="inline-flex shrink-0 items-center gap-0.5 border border-black bg-white">
       {Array.from({ length: 6 }).map((_, i) => (
         <input
           key={i}
@@ -51,7 +52,7 @@ function PanGrid({ value, onChange }: { value: string; onChange: (v: string) => 
   };
 
   return (
-    <div className="inline-flex items-center gap-0.5 border border-black bg-white">
+    <div className="inline-flex shrink-0 items-center gap-0.5 border border-black bg-white">
       {Array.from({ length: 10 }).map((_, i) => (
         <input
           key={i}
@@ -69,7 +70,7 @@ function PanGrid({ value, onChange }: { value: string; onChange: (v: string) => 
 // Photo Box Component with upload option
 function PhotoBox({ photoUrl, onPhotoChange }: { photoUrl?: string; onPhotoChange?: (url: string) => void }) {
   return (
-    <div className="w-28 h-36 border border-black flex flex-col items-center justify-center relative bg-gray-50 text-center p-1 group shrink-0">
+    <div className="w-24 sm:w-28 h-32 sm:h-36 border border-black flex flex-col items-center justify-center relative bg-gray-50 text-center p-1 group shrink-0 self-start sm:self-auto">
       {photoUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -118,7 +119,7 @@ function FormLineInput({
   onChange,
   className = "",
   placeholder = "",
-  width = "flex-1",
+  width = "flex-1 min-w-0",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -132,7 +133,7 @@ function FormLineInput({
       value={value || ""}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`${width} bg-transparent border-b border-dotted border-black px-1 text-xs sm:text-sm font-semibold focus:outline-none focus:border-solid focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
+      className={`${width} min-w-0 bg-transparent border-b border-dotted border-black px-1 text-xs sm:text-sm font-semibold focus:outline-none focus:border-solid focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
     />
   );
 }
@@ -147,13 +148,16 @@ export function RigRegistrationApplicationFormView({
   application: AgencyApplication;
   onClose?: () => void;
 }) {
+  const { updateApplication } = useAgencyApplications();
   const [data, setData] = useState<Record<string, any>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (application) {
       const activeRigs = (application.rigs || []).filter((r) => r.status === "Active");
       const owner = application.owner || ({} as OwnerInfo);
       const partners = application.partners || [];
+      const savedFormData = (application as any)?.officialFormData || (application as any)?.registrationFormData || {};
 
       const initial: Record<string, any> = {
         // Section 1
@@ -255,39 +259,59 @@ export function RigRegistrationApplicationFormView({
         receipt_rig1_check: true,
         receipt_rig2_check: false,
         receipt_rig3_check: false,
+
+        // Overlay saved form data
+        ...savedFormData,
       };
 
       // Populate Rigs (Max 3: A, B, C)
       ["A", "B", "C"].forEach((letter, idx) => {
         const rig = activeRigs[idx];
-        initial[`rig${letter}_type`] = rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്";
-        initial[`rig${letter}_owner_name`] = rig ? owner.name : "";
-        initial[`rig${letter}_owner_address`] = rig ? owner.address : "";
-        initial[`rig${letter}_district`] = application.officeLocation || "";
-        initial[`rig${letter}_state`] = "Kerala";
-        initial[`rig${letter}_pincode`] = "";
-
-        initial[`rig${letter}_veh_type`] = rig?.rigVehicle?.type || "";
-        initial[`rig${letter}_veh_reg`] = rig?.rigVehicle?.regNo || "";
-        initial[`rig${letter}_veh_chassis`] = rig?.rigVehicle?.chassisNo || "";
-        initial[`rig${letter}_veh_engine`] = rig?.rigVehicle?.engineNo || "";
-
-        initial[`rig${letter}_comp_model`] = rig?.compressorDetails?.model || "";
-        initial[`rig${letter}_comp_cap`] = rig?.compressorDetails?.capacity || "";
-
-        initial[`rig${letter}_gen_type`] = rig?.generatorDetails?.type || "";
-        initial[`rig${letter}_gen_model`] = rig?.generatorDetails?.model || "";
-        initial[`rig${letter}_gen_cap`] = rig?.generatorDetails?.capacity || "";
-        initial[`rig${letter}_gen_engine`] = rig?.generatorDetails?.engineNo || "";
-
-        initial[`rig${letter}_well_depth`] = "";
-        initial[`rig${letter}_well_dia`] = "";
-
-        initial[`rig${letter}_op_name`] = "";
-        initial[`rig${letter}_op_age`] = "";
-        initial[`rig${letter}_op_exp`] = "";
-        initial[`rig${letter}_op_id_type`] = "Aadhaar";
-        initial[`rig${letter}_op_id_no`] = "";
+        if (!savedFormData[`rig${letter}_type`]) {
+          initial[`rig${letter}_type`] = rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്";
+        }
+        if (!savedFormData[`rig${letter}_owner_name`]) {
+          initial[`rig${letter}_owner_name`] = rig ? owner.name : "";
+        }
+        if (!savedFormData[`rig${letter}_owner_address`]) {
+          initial[`rig${letter}_owner_address`] = rig ? owner.address : "";
+        }
+        if (!savedFormData[`rig${letter}_district`]) {
+          initial[`rig${letter}_district`] = application.officeLocation || "";
+        }
+        if (!savedFormData[`rig${letter}_state`]) {
+          initial[`rig${letter}_state`] = "Kerala";
+        }
+        if (!savedFormData[`rig${letter}_veh_type`]) {
+          initial[`rig${letter}_veh_type`] = rig?.rigVehicle?.type || "";
+        }
+        if (!savedFormData[`rig${letter}_veh_reg`]) {
+          initial[`rig${letter}_veh_reg`] = rig?.rigVehicle?.regNo || "";
+        }
+        if (!savedFormData[`rig${letter}_veh_chassis`]) {
+          initial[`rig${letter}_veh_chassis`] = rig?.rigVehicle?.chassisNo || "";
+        }
+        if (!savedFormData[`rig${letter}_veh_engine`]) {
+          initial[`rig${letter}_veh_engine`] = rig?.rigVehicle?.engineNo || "";
+        }
+        if (!savedFormData[`rig${letter}_comp_model`]) {
+          initial[`rig${letter}_comp_model`] = rig?.compressorDetails?.model || "";
+        }
+        if (!savedFormData[`rig${letter}_comp_cap`]) {
+          initial[`rig${letter}_comp_cap`] = rig?.compressorDetails?.capacity || "";
+        }
+        if (!savedFormData[`rig${letter}_gen_type`]) {
+          initial[`rig${letter}_gen_type`] = rig?.generatorDetails?.type || "";
+        }
+        if (!savedFormData[`rig${letter}_gen_model`]) {
+          initial[`rig${letter}_gen_model`] = rig?.generatorDetails?.model || "";
+        }
+        if (!savedFormData[`rig${letter}_gen_cap`]) {
+          initial[`rig${letter}_gen_cap`] = rig?.generatorDetails?.capacity || "";
+        }
+        if (!savedFormData[`rig${letter}_gen_engine`]) {
+          initial[`rig${letter}_gen_engine`] = rig?.generatorDetails?.engineNo || "";
+        }
       });
 
       setData(initial);
@@ -298,6 +322,36 @@ export function RigRegistrationApplicationFormView({
 
   const handlePrint = () => {
     printDocument("rig-reg-official-form", "ഡ്രില്ലിംഗ് ഏജൻസി/സ്ഥാപനവും ഡ്രില്ലിംഗ് റിഗ്ഗും രജിസ്റ്റർ ചെയ്യുന്നതിനുള്ള അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
+  };
+
+  const handleSave = async () => {
+    if (!application?.id) {
+      toast({
+        title: "അപേക്ഷാ ഐഡി ലഭ്യമല്ല",
+        description: "സേവ് ചെയ്യുന്നതിനായി സാധുവായ അപേക്ഷാ ഐഡി ആവശ്യമാണ്.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateApplication(application.id, {
+        officialFormData: data,
+      } as any);
+      toast({
+        title: "വിജയകരമായി സംരക്ഷിച്ചു",
+        description: "അപേക്ഷാ ഫോറത്തിലെ വിവരങ്ങൾ ഫയർബേസ് ഡാറ്റാബേസിൽ വിജയിച്ച് സംരക്ഷിച്ചു.",
+      });
+    } catch (err: any) {
+      console.error("Firebase save error:", err);
+      toast({
+        title: "സേവ് ചെയ്യുന്നതിൽ പിശക്",
+        description: err.message || "ഫയർബേസ് ഡാറ്റാബേസിലേക്ക് വിവരങ്ങൾ സംരക്ഷിക്കാൻ സാധിച്ചില്ല.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -318,9 +372,20 @@ export function RigRegistrationApplicationFormView({
             <p className="text-[11px] text-gray-500">100% Exact Copy of Kerala Ground Water Authority Official Format</p>
           </div>
         </div>
-        <Button size="sm" onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm">
-          <Printer className="w-4 h-4" /> അച്ചടിക്കുക / Print Form
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
+          >
+            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? "സംരക്ഷിക്കുന്നു..." : "സേവ് ചെയ്യുക / Save Data"}
+          </Button>
+          <Button size="sm" onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm">
+            <Printer className="w-4 h-4" /> അച്ചടിക്കുക / Print Form
+          </Button>
+        </div>
       </div>
 
       {/* Printable Sheet Container */}
@@ -348,46 +413,45 @@ export function RigRegistrationApplicationFormView({
             <h2 className="font-bold text-sm sm:text-base underline">1. സ്ഥാപനം / ഏജൻസിയുടെ വിവരം</h2>
 
             <div className="space-y-2 pl-2">
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">എ. ഏജൻസിയുടെ പേര് :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">എ. ഏജൻസിയുടെ പേര് :</span>
                 <FormLineInput value={data.agencyName} onChange={(v) => update("agencyName", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">ബി. മേൽവിലാസം :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">ബി. മേൽവിലാസം :</span>
                 <FormLineInput value={data.address} onChange={(v) => update("address", v)} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">വില്ലേജ് :</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                   <FormLineInput value={data.village} onChange={(v) => update("village", v)} />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">താലൂക്ക് :</span>
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                   <FormLineInput value={data.taluk} onChange={(v) => update("taluk", v)} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
-                  <FormLineInput value={data.panchayath} onChange={(v) => update("panchayath", v)} />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">ജില്ല :</span>
-                  <FormLineInput value={data.district} onChange={(v) => update("district", v)} />
-                </div>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                <span className="font-bold shrink sm:whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
+                <FormLineInput value={data.panchayath} onChange={(v) => update("panchayath", v)} />
               </div>
 
-              <div className="flex items-center gap-3 pl-4">
-                <span className="font-bold">പിൻ കോഡ് :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">ജില്ല :</span>
+                <FormLineInput value={data.district} onChange={(v) => update("district", v)} />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-2 sm:pl-4 min-w-0">
+                <span className="font-bold shrink-0">പിൻ കോഡ് :</span>
                 <PinCodeGrid value={data.pincode} onChange={(v) => update("pincode", v)} />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <span className="font-bold whitespace-nowrap">സി. ജി.എസ്.റ്റി. നമ്പർ :</span>
-                <div className="flex-1 border border-black p-1 bg-white">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-1 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">സി. ജി.എസ്.റ്റി. നമ്പർ :</span>
+                <div className="flex-1 min-w-0 border border-black p-1 bg-white">
                   <input
                     type="text"
                     value={data.gstin || ""}
@@ -398,8 +462,8 @@ export function RigRegistrationApplicationFormView({
                 </div>
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">ഡി. തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം നൽകിയ രജിസ്ട്രേഷൻ നമ്പർ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold shrink sm:whitespace-nowrap">ഡി. തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം നൽകിയ രജിസ്ട്രേഷൻ നമ്പർ :</span>
                 <FormLineInput value={data.lsgdRegNo} onChange={(v) => update("lsgdRegNo", v)} />
               </div>
             </div>
@@ -412,45 +476,44 @@ export function RigRegistrationApplicationFormView({
             <h2 className="font-bold text-sm sm:text-base underline">2. സ്ഥാപനം / ഏജൻസി നടത്തിപ്പുകാരുടെ വിവരം</h2>
 
             {/* Owner A */}
-            <div className="border border-black p-3 space-y-3 relative">
-              <span className="absolute -top-3 left-3 bg-white px-2 font-bold border border-black text-xs">എ.</span>
+            <div className="border border-black p-2.5 sm:p-3 pt-3.5 sm:pt-4 space-y-3 relative min-w-0 mt-3 overflow-visible">
+              <span className="absolute -top-3 left-3 bg-white px-2 py-0.5 font-bold border border-black text-xs z-10">എ.</span>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className="font-bold whitespace-nowrap">1. പേര് :</span>
+              <div className="flex flex-col sm:flex-row gap-3 min-w-0">
+                <div className="flex-1 space-y-2 min-w-0">
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pt-1 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">1. പേര് :</span>
                     <FormLineInput value={data.ownerA_name} onChange={(v) => update("ownerA_name", v)} />
                   </div>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">2. നിലവിലെ മേൽവിലാസം :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">2. നിലവിലെ മേൽവിലാസം :</span>
                     <FormLineInput value={data.ownerA_curr_address} onChange={(v) => update("ownerA_curr_address", v)} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                       <FormLineInput value={data.ownerA_curr_village} onChange={(v) => update("ownerA_curr_village", v)} />
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                       <FormLineInput value={data.ownerA_curr_taluk} onChange={(v) => update("ownerA_curr_taluk", v)} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
-                      <FormLineInput value={data.ownerA_curr_panchayath} onChange={(v) => update("ownerA_curr_panchayath", v)} />
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                      <FormLineInput value={data.ownerA_curr_district} onChange={(v) => update("ownerA_curr_district", v)} />
-                    </div>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink sm:whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
+                    <FormLineInput value={data.ownerA_curr_panchayath} onChange={(v) => update("ownerA_curr_panchayath", v)} />
                   </div>
 
-                  <div className="flex items-center gap-2 pl-2">
-                    <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                    <FormLineInput value={data.ownerA_curr_district} onChange={(v) => update("ownerA_curr_district", v)} />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                     <PinCodeGrid value={data.ownerA_curr_pincode} onChange={(v) => update("ownerA_curr_pincode", v)} />
                   </div>
                 </div>
@@ -460,45 +523,44 @@ export function RigRegistrationApplicationFormView({
               </div>
 
               {/* Permanent Address */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">3. സ്ഥിരം മേൽവിലാസം :</span>
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">3. സ്ഥിരം മേൽവിലാസം :</span>
                   <FormLineInput value={data.ownerA_perm_address} onChange={(v) => update("ownerA_perm_address", v)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                     <FormLineInput value={data.ownerA_perm_village} onChange={(v) => update("ownerA_perm_village", v)} />
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                     <FormLineInput value={data.ownerA_perm_taluk} onChange={(v) => update("ownerA_perm_taluk", v)} />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
-                    <FormLineInput value={data.ownerA_perm_panchayath} onChange={(v) => update("ownerA_perm_panchayath", v)} />
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                    <FormLineInput value={data.ownerA_perm_district} onChange={(v) => update("ownerA_perm_district", v)} />
-                  </div>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink sm:whitespace-nowrap">കോർപ്പറേഷൻ/മുനിസിപ്പാലിറ്റി/പഞ്ചായത്ത് :</span>
+                  <FormLineInput value={data.ownerA_perm_panchayath} onChange={(v) => update("ownerA_perm_panchayath", v)} />
                 </div>
 
-                <div className="flex items-center gap-2 pl-2">
-                  <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                  <FormLineInput value={data.ownerA_perm_district} onChange={(v) => update("ownerA_perm_district", v)} />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                   <PinCodeGrid value={data.ownerA_perm_pincode} onChange={(v) => update("ownerA_perm_pincode", v)} />
                 </div>
               </div>
 
               {/* ID and PAN */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex flex-wrap items-center gap-4">
-                  <span className="font-bold whitespace-nowrap">4. തിരിച്ചറിയൽരേഖ :</span>
-                  <label className="flex items-center gap-1 cursor-pointer">
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">4. തിരിച്ചറിയൽരേഖ :</span>
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerA_id_type"
@@ -508,7 +570,7 @@ export function RigRegistrationApplicationFormView({
                     />
                     <span className="border border-black px-2 py-0.5 font-semibold text-xs">ഇലക്ഷൻ കാർഡ്</span>
                   </label>
-                  <label className="flex items-center gap-1 cursor-pointer">
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerA_id_type"
@@ -520,26 +582,26 @@ export function RigRegistrationApplicationFormView({
                   </label>
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
                   <FormLineInput value={data.ownerA_id_no} onChange={(v) => update("ownerA_id_no", v)} />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-bold whitespace-nowrap">6. പാൻ നമ്പർ :</span>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">6. പാൻ നമ്പർ :</span>
                   <PanGrid value={data.ownerA_pan} onChange={(v) => update("ownerA_pan", v)} />
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold shrink">
                     7. കേരളത്തിലെ കുഴൽ കിണർ നിർമ്മാണ മേഖലയിലെ പ്രവർത്തിപരിചയം :
                   </span>
-                  <FormLineInput value={data.ownerA_exp} onChange={(v) => update("ownerA_exp", v)} width="w-20" />
-                  <span className="font-bold">വർഷം</span>
+                  <FormLineInput value={data.ownerA_exp} onChange={(v) => update("ownerA_exp", v)} width="w-16 sm:w-20" />
+                  <span className="font-bold whitespace-nowrap shrink-0">വർഷം</span>
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">8. നോമിനി :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">8. നോമിനി :</span>
                   <FormLineInput value={data.ownerA_nominee} onChange={(v) => update("ownerA_nominee", v)} />
                 </div>
               </div>
@@ -549,45 +611,44 @@ export function RigRegistrationApplicationFormView({
             <div className="text-center font-bold text-xs text-gray-700 italic">
               (പാർട്ട്ണർഷിപ്പ് ഉണ്ടെങ്കിൽ രണ്ടാമത്തെ വ്യക്തിയുടെ വിവരം)
             </div>
-            <div className="border border-black p-3 space-y-3 relative">
-              <span className="absolute -top-3 left-3 bg-white px-2 font-bold border border-black text-xs">ബി.</span>
+            <div className="border border-black p-2.5 sm:p-3 pt-3.5 sm:pt-4 space-y-3 relative min-w-0 mt-3 overflow-visible">
+              <span className="absolute -top-3 left-3 bg-white px-2 py-0.5 font-bold border border-black text-xs z-10">ബി.</span>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className="font-bold whitespace-nowrap">1. പേര് :</span>
+              <div className="flex flex-col sm:flex-row gap-3 min-w-0">
+                <div className="flex-1 space-y-2 min-w-0">
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pt-1 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">1. പേര് :</span>
                     <FormLineInput value={data.ownerB_name} onChange={(v) => update("ownerB_name", v)} />
                   </div>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">2. നിലവിലെ മേൽവിലാസം :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">2. നിലവിലെ മേൽവിലാസം :</span>
                     <FormLineInput value={data.ownerB_curr_address} onChange={(v) => update("ownerB_curr_address", v)} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                       <FormLineInput value={data.ownerB_curr_village} onChange={(v) => update("ownerB_curr_village", v)} />
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                       <FormLineInput value={data.ownerB_curr_taluk} onChange={(v) => update("ownerB_curr_taluk", v)} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">പഞ്ചായത്ത് :</span>
-                      <FormLineInput value={data.ownerB_curr_panchayath} onChange={(v) => update("ownerB_curr_panchayath", v)} />
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                      <FormLineInput value={data.ownerB_curr_district} onChange={(v) => update("ownerB_curr_district", v)} />
-                    </div>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink sm:whitespace-nowrap">പഞ്ചായത്ത് :</span>
+                    <FormLineInput value={data.ownerB_curr_panchayath} onChange={(v) => update("ownerB_curr_panchayath", v)} />
                   </div>
 
-                  <div className="flex items-center gap-2 pl-2">
-                    <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                    <FormLineInput value={data.ownerB_curr_district} onChange={(v) => update("ownerB_curr_district", v)} />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                     <PinCodeGrid value={data.ownerB_curr_pincode} onChange={(v) => update("ownerB_curr_pincode", v)} />
                   </div>
                 </div>
@@ -596,45 +657,44 @@ export function RigRegistrationApplicationFormView({
               </div>
 
               {/* Permanent B */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">3. സ്ഥിരം മേൽവിലാസം :</span>
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">3. സ്ഥിരം മേൽവിലാസം :</span>
                   <FormLineInput value={data.ownerB_perm_address} onChange={(v) => update("ownerB_perm_address", v)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                     <FormLineInput value={data.ownerB_perm_village} onChange={(v) => update("ownerB_perm_village", v)} />
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                     <FormLineInput value={data.ownerB_perm_taluk} onChange={(v) => update("ownerB_perm_taluk", v)} />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">പഞ്ചായത്ത് :</span>
-                    <FormLineInput value={data.ownerB_perm_panchayath} onChange={(v) => update("ownerB_perm_panchayath", v)} />
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                    <FormLineInput value={data.ownerB_perm_district} onChange={(v) => update("ownerB_perm_district", v)} />
-                  </div>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink sm:whitespace-nowrap">പഞ്ചായത്ത് :</span>
+                  <FormLineInput value={data.ownerB_perm_panchayath} onChange={(v) => update("ownerB_perm_panchayath", v)} />
                 </div>
 
-                <div className="flex items-center gap-2 pl-2">
-                  <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                  <FormLineInput value={data.ownerB_perm_district} onChange={(v) => update("ownerB_perm_district", v)} />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                   <PinCodeGrid value={data.ownerB_perm_pincode} onChange={(v) => update("ownerB_perm_pincode", v)} />
                 </div>
               </div>
 
               {/* ID/PAN B */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex flex-wrap items-center gap-4">
-                  <span className="font-bold whitespace-nowrap">4. തിരിച്ചറിയൽരേഖ :</span>
-                  <label className="flex items-center gap-1 cursor-pointer">
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">4. തിരിച്ചറിയൽരേഖ :</span>
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerB_id_type"
@@ -644,7 +704,7 @@ export function RigRegistrationApplicationFormView({
                     />
                     <span className="border border-black px-2 py-0.5 font-semibold text-xs">ഇലക്ഷൻ കാർഡ്</span>
                   </label>
-                  <label className="flex items-center gap-1 cursor-pointer">
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerB_id_type"
@@ -656,18 +716,18 @@ export function RigRegistrationApplicationFormView({
                   </label>
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
                   <FormLineInput value={data.ownerB_id_no} onChange={(v) => update("ownerB_id_no", v)} />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-bold whitespace-nowrap">6. പാൻ നമ്പർ :</span>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">6. പാൻ നമ്പർ :</span>
                   <PanGrid value={data.ownerB_pan} onChange={(v) => update("ownerB_pan", v)} />
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">7. നോമിനി :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">7. നോമിനി :</span>
                   <FormLineInput value={data.ownerB_nominee} onChange={(v) => update("ownerB_nominee", v)} />
                 </div>
               </div>
@@ -677,45 +737,44 @@ export function RigRegistrationApplicationFormView({
             <div className="text-center font-bold text-xs text-gray-700 italic">
               (പാർട്ട്ണർഷിപ്പ് ഉണ്ടെങ്കിൽ മൂന്നാമത്തെ വ്യക്തിയുടെ വിവരം)
             </div>
-            <div className="border border-black p-3 space-y-3 relative">
-              <span className="absolute -top-3 left-3 bg-white px-2 font-bold border border-black text-xs">സി.</span>
+            <div className="border border-black p-2.5 sm:p-3 pt-3.5 sm:pt-4 space-y-3 relative min-w-0 mt-3 overflow-visible">
+              <span className="absolute -top-3 left-3 bg-white px-2 py-0.5 font-bold border border-black text-xs z-10">സി.</span>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className="font-bold whitespace-nowrap">1. പേര് :</span>
+              <div className="flex flex-col sm:flex-row gap-3 min-w-0">
+                <div className="flex-1 space-y-2 min-w-0">
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pt-1 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">1. പേര് :</span>
                     <FormLineInput value={data.ownerC_name} onChange={(v) => update("ownerC_name", v)} />
                   </div>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">2. നിലവിലെ മേൽവിലാസം :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">2. നിലവിലെ മേൽവിലാസം :</span>
                     <FormLineInput value={data.ownerC_curr_address} onChange={(v) => update("ownerC_curr_address", v)} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                       <FormLineInput value={data.ownerC_curr_village} onChange={(v) => update("ownerC_curr_village", v)} />
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                       <FormLineInput value={data.ownerC_curr_taluk} onChange={(v) => update("ownerC_curr_taluk", v)} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">പഞ്ചായത്ത് :</span>
-                      <FormLineInput value={data.ownerC_curr_panchayath} onChange={(v) => update("ownerC_curr_panchayath", v)} />
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                      <FormLineInput value={data.ownerC_curr_district} onChange={(v) => update("ownerC_curr_district", v)} />
-                    </div>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink sm:whitespace-nowrap">പഞ്ചായത്ത് :</span>
+                    <FormLineInput value={data.ownerC_curr_panchayath} onChange={(v) => update("ownerC_curr_panchayath", v)} />
                   </div>
 
-                  <div className="flex items-center gap-2 pl-2">
-                    <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                    <FormLineInput value={data.ownerC_curr_district} onChange={(v) => update("ownerC_curr_district", v)} />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                    <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                     <PinCodeGrid value={data.ownerC_curr_pincode} onChange={(v) => update("ownerC_curr_pincode", v)} />
                   </div>
                 </div>
@@ -724,45 +783,44 @@ export function RigRegistrationApplicationFormView({
               </div>
 
               {/* Permanent C */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">3. സ്ഥിരം മേൽവിലാസം :</span>
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">3. സ്ഥിരം മേൽവിലാസം :</span>
                   <FormLineInput value={data.ownerC_perm_address} onChange={(v) => update("ownerC_perm_address", v)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">വില്ലേജ് :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 min-w-0">
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                     <FormLineInput value={data.ownerC_perm_village} onChange={(v) => update("ownerC_perm_village", v)} />
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">താലൂക്ക് :</span>
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-semibold text-xs whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                     <FormLineInput value={data.ownerC_perm_taluk} onChange={(v) => update("ownerC_perm_taluk", v)} />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-baseline pl-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">പഞ്ചായത്ത് :</span>
-                    <FormLineInput value={data.ownerC_perm_panchayath} onChange={(v) => update("ownerC_perm_panchayath", v)} />
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-semibold text-xs whitespace-nowrap">ജില്ല :</span>
-                    <FormLineInput value={data.ownerC_perm_district} onChange={(v) => update("ownerC_perm_district", v)} />
-                  </div>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink sm:whitespace-nowrap">പഞ്ചായത്ത് :</span>
+                  <FormLineInput value={data.ownerC_perm_panchayath} onChange={(v) => update("ownerC_perm_panchayath", v)} />
                 </div>
 
-                <div className="flex items-center gap-2 pl-2">
-                  <span className="font-semibold text-xs">പിൻ കോഡ് :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs whitespace-nowrap shrink-0">ജില്ല :</span>
+                  <FormLineInput value={data.ownerC_perm_district} onChange={(v) => update("ownerC_perm_district", v)} />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pl-2 min-w-0">
+                  <span className="font-semibold text-xs shrink-0">പിൻ കോഡ് :</span>
                   <PinCodeGrid value={data.ownerC_perm_pincode} onChange={(v) => update("ownerC_perm_pincode", v)} />
                 </div>
               </div>
 
               {/* ID/PAN C */}
-              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400">
-                <div className="flex flex-wrap items-center gap-4">
-                  <span className="font-bold whitespace-nowrap">4. തിരിച്ചറിയൽരേഖ :</span>
-                  <label className="flex items-center gap-1 cursor-pointer">
+              <div className="space-y-2 pt-2 border-t border-dashed border-gray-400 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">4. തിരിച്ചറിയൽരേഖ :</span>
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerC_id_type"
@@ -772,7 +830,7 @@ export function RigRegistrationApplicationFormView({
                     />
                     <span className="border border-black px-2 py-0.5 font-semibold text-xs">ഇലക്ഷൻ കാർഡ്</span>
                   </label>
-                  <label className="flex items-center gap-1 cursor-pointer">
+                  <label className="flex items-center gap-1 cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="ownerC_id_type"
@@ -784,18 +842,18 @@ export function RigRegistrationApplicationFormView({
                   </label>
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">5. തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
                   <FormLineInput value={data.ownerC_id_no} onChange={(v) => update("ownerC_id_no", v)} />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-bold whitespace-nowrap">6. പാൻ നമ്പർ :</span>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">6. പാൻ നമ്പർ :</span>
                   <PanGrid value={data.ownerC_pan} onChange={(v) => update("ownerC_pan", v)} />
                 </div>
 
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">7. നോമിനി :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">7. നോമിനി :</span>
                   <FormLineInput value={data.ownerC_nominee} onChange={(v) => update("ownerC_nominee", v)} />
                 </div>
               </div>
@@ -811,148 +869,148 @@ export function RigRegistrationApplicationFormView({
             </h2>
 
             {["A", "B", "C"].map((letter) => (
-              <div key={letter} className="border border-black p-3 space-y-3 relative">
-                <span className="absolute -top-3 left-3 bg-white px-2 font-bold border border-black text-xs">
+              <div key={letter} className="border border-black p-2.5 sm:p-3 pt-3.5 sm:pt-4 space-y-3 relative min-w-0 mt-3 overflow-visible">
+                <span className="absolute -top-3 left-3 bg-white px-2 py-0.5 font-bold border border-black text-xs z-10">
                   {letter}
                 </span>
 
-                <div className="space-y-2 pt-1">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">1. റിഗ്ഗിന്റെ തരം :</span>
+                <div className="space-y-2 pt-1 min-w-0">
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">1. റിഗ്ഗിന്റെ തരം :</span>
                     <FormLineInput value={data[`rig${letter}_type`]} onChange={(v) => update(`rig${letter}_type`, v)} />
                   </div>
-                  <p className="text-[10px] text-gray-600 italic pl-4">
+                  <p className="text-[10px] text-gray-600 italic pl-2 sm:pl-4">
                     (റോട്ടറി റിഗ്, റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്, ക്യാലിക്സ് റിഗ്, ഫിൽട്ടർ പോയിന്റ് യൂണിറ്റ്)
                   </p>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">2. റിഗ് ഉടമസ്ഥന്റെ പേര് :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">2. റിഗ് ഉടമസ്ഥന്റെ പേര് :</span>
                     <FormLineInput value={data[`rig${letter}_owner_name`]} onChange={(v) => update(`rig${letter}_owner_name`, v)} />
                   </div>
 
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold whitespace-nowrap">മേൽവിലാസം :</span>
+                  <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                    <span className="font-bold whitespace-nowrap shrink-0">മേൽവിലാസം :</span>
                     <FormLineInput value={data[`rig${letter}_owner_address`]} onChange={(v) => update(`rig${letter}_owner_address`, v)} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 items-baseline pl-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-bold whitespace-nowrap">ജില്ല :</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-baseline pl-2 sm:pl-4 min-w-0">
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">ജില്ല :</span>
                       <FormLineInput value={data[`rig${letter}_district`]} onChange={(v) => update(`rig${letter}_district`, v)} />
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-bold whitespace-nowrap">സംസ്ഥാനം :</span>
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">സംസ്ഥാനം :</span>
                       <FormLineInput value={data[`rig${letter}_state`]} onChange={(v) => update(`rig${letter}_state`, v)} />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pl-4">
-                    <span className="font-bold">പിൻ കോഡ് :</span>
+                  <div className="flex flex-wrap items-center gap-2 pl-2 sm:pl-4 min-w-0">
+                    <span className="font-bold shrink-0">പിൻ കോഡ് :</span>
                     <PinCodeGrid value={data[`rig${letter}_pincode`]} onChange={(v) => update(`rig${letter}_pincode`, v)} />
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 min-w-0">
                     <span className="font-bold block">3. ഉപയോഗിക്കുന്ന വാഹനത്തിന്റെ വിവരം</span>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">എ. തരം :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">എ. തരം :</span>
                         <FormLineInput value={data[`rig${letter}_veh_type`]} onChange={(v) => update(`rig${letter}_veh_type`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ബി. രജി. നമ്പർ :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ബി. രജി. നമ്പർ :</span>
                         <FormLineInput value={data[`rig${letter}_veh_reg`]} onChange={(v) => update(`rig${letter}_veh_reg`, v)} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">സി. ചേസിസ് നമ്പർ :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">സി. ചേസിസ് നമ്പർ :</span>
                         <FormLineInput value={data[`rig${letter}_veh_chassis`]} onChange={(v) => update(`rig${letter}_veh_chassis`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ഡി. എൻജിൻ നമ്പർ :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ഡി. എൻജിൻ നമ്പർ :</span>
                         <FormLineInput value={data[`rig${letter}_veh_engine`]} onChange={(v) => update(`rig${letter}_veh_engine`, v)} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 min-w-0">
                     <span className="font-bold block">
                       4. കംപ്രസറിന്റെ വിവരം <span className="font-normal text-xs">(ഡിറ്റിഎച്ച് / റോട്ടറി കം.ഡിറ്റിഎച്ച് / ഫിൽട്ടർ പോയിന്റ് )</span>
                     </span>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">എ. മോഡൽ :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">എ. മോഡൽ :</span>
                         <FormLineInput value={data[`rig${letter}_comp_model`]} onChange={(v) => update(`rig${letter}_comp_model`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ബി. കപ്പാസിറ്റി :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ബി. കപ്പാസിറ്റി :</span>
                         <FormLineInput value={data[`rig${letter}_comp_cap`]} onChange={(v) => update(`rig${letter}_comp_cap`, v)} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 min-w-0">
                     <span className="font-bold block">
                       5. ജനറേറ്ററിന്റെ വിവരം <span className="font-normal text-xs">(ക്യാലിക്സ് റിഗ്)</span>
                     </span>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">എ. തരം :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">എ. തരം :</span>
                         <FormLineInput value={data[`rig${letter}_gen_type`]} onChange={(v) => update(`rig${letter}_gen_type`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ബി. മോഡൽ :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ബി. മോഡൽ :</span>
                         <FormLineInput value={data[`rig${letter}_gen_model`]} onChange={(v) => update(`rig${letter}_gen_model`, v)} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">സി. കപ്പാസിറ്റി :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">സി. കപ്പാസിറ്റി :</span>
                         <FormLineInput value={data[`rig${letter}_gen_cap`]} onChange={(v) => update(`rig${letter}_gen_cap`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ഡി. എൻജിൻ നമ്പർ :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ഡി. എൻജിൻ നമ്പർ :</span>
                         <FormLineInput value={data[`rig${letter}_gen_engine`]} onChange={(v) => update(`rig${letter}_gen_engine`, v)} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 min-w-0">
                     <span className="font-bold block">
                       6. കുഴിക്കാൻ സാധിക്കുന്ന കിണറിന്റെ സ്പെസിഫിക്കേഷൻ{" "}
                       <span className="font-normal text-xs">(കംപ്രസ്സർ കപ്പാസിറ്റിയുടെ അടിസ്ഥാനത്തിൽ)</span>
                     </span>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">എ. പരമാവധി ആഴം :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">എ. പരമാവധി ആഴം :</span>
                         <FormLineInput value={data[`rig${letter}_well_depth`]} onChange={(v) => update(`rig${letter}_well_depth`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">ബി. പരമാവധി വ്യാസം :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ബി. പരമാവധി വ്യാസം :</span>
                         <FormLineInput value={data[`rig${letter}_well_dia`]} onChange={(v) => update(`rig${letter}_well_dia`, v)} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1 pt-1 min-w-0">
                     <span className="font-bold block">7. ഡ്രില്ലിംഗ് യന്ത്ര ഓപ്പറേറ്ററുടെ വിവരങ്ങൾ</span>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">പേര് :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">പേര് :</span>
                         <FormLineInput value={data[`rig${letter}_op_name`]} onChange={(v) => update(`rig${letter}_op_name`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-semibold whitespace-nowrap">വയസ്സ് :</span>
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">വയസ്സ് :</span>
                         <FormLineInput value={data[`rig${letter}_op_age`]} onChange={(v) => update(`rig${letter}_op_age`, v)} width="w-20" />
                       </div>
                     </div>
-                    <div className="flex items-baseline gap-2 pl-4">
-                      <span className="font-semibold whitespace-nowrap">പ്രവർത്തി പരിചയം :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                      <span className="font-semibold whitespace-nowrap shrink-0">പ്രവർത്തി പരിചയം :</span>
                       <FormLineInput value={data[`rig${letter}_op_exp`]} onChange={(v) => update(`rig${letter}_op_exp`, v)} />
                     </div>
-                    <div className="flex flex-wrap items-center gap-4 pl-4">
-                      <span className="font-semibold whitespace-nowrap">തിരിച്ചറിയൽ രേഖ :</span>
-                      <label className="flex items-center gap-1 cursor-pointer">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 pl-2 sm:pl-4 min-w-0">
+                      <span className="font-semibold whitespace-nowrap shrink-0">തിരിച്ചറിയൽ രേഖ :</span>
+                      <label className="flex items-center gap-1 cursor-pointer shrink-0">
                         <input
                           type="radio"
                           name={`rig${letter}_op_id_type`}
@@ -962,7 +1020,7 @@ export function RigRegistrationApplicationFormView({
                         />
                         <span className="border border-black px-2 py-0.5 text-xs font-semibold">ഇലക്ഷൻ കാർഡ്</span>
                       </label>
-                      <label className="flex items-center gap-1 cursor-pointer">
+                      <label className="flex items-center gap-1 cursor-pointer shrink-0">
                         <input
                           type="radio"
                           name={`rig${letter}_op_id_type`}
@@ -973,8 +1031,8 @@ export function RigRegistrationApplicationFormView({
                         <span className="border border-black px-2 py-0.5 text-xs font-semibold">ആധാർ കാർഡ്</span>
                       </label>
                     </div>
-                    <div className="flex items-baseline gap-2 pl-4">
-                      <span className="font-semibold whitespace-nowrap">തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                      <span className="font-semibold whitespace-nowrap shrink-0">തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
                       <FormLineInput value={data[`rig${letter}_op_id_no`]} onChange={(v) => update(`rig${letter}_op_id_no`, v)} />
                     </div>
                   </div>
@@ -1163,12 +1221,15 @@ export function RigRenewalApplicationFormView({
   application: AgencyApplication;
   onClose?: () => void;
 }) {
+  const { updateApplication } = useAgencyApplications();
   const [data, setData] = useState<Record<string, any>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (application) {
       const activeRigs = (application.rigs || []).filter((r) => r.status === "Active");
       const owner = application.owner || ({} as OwnerInfo);
+      const savedFormData = (application as any)?.renewalFormData || (application as any)?.officialFormData || {};
 
       const initial: Record<string, any> = {
         // Section A
@@ -1224,48 +1285,34 @@ export function RigRenewalApplicationFormView({
         receipt_fee_paid_date: format(new Date(), "dd/MM/yyyy"),
         receipt_renewal_count: "1",
         receipt_new_rig_count: "0",
+
+        ...savedFormData,
       };
 
       // Rig renewal details (RIG-1, RIG-2, RIG-3)
       ["RIG1", "RIG2", "RIG3"].forEach((rigKey, idx) => {
         const rig = activeRigs[idx];
-        initial[`${rigKey}_regNo`] = rig?.rigRegistrationNo || "";
-        initial[`${rigKey}_expiryDate`] = "";
-        initial[`${rigKey}_type`] = rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്";
-        initial[`${rigKey}_ownerName`] = rig ? owner.name : "";
-        initial[`${rigKey}_address`] = rig ? owner.address : "";
-        initial[`${rigKey}_phone`] = owner.phone || "";
-        initial[`${rigKey}_mobile`] = owner.mobile || "";
-        initial[`${rigKey}_email`] = owner.email || "";
-        initial[`${rigKey}_district`] = application.officeLocation || "";
-        initial[`${rigKey}_state`] = "Kerala";
-        initial[`${rigKey}_pincode`] = "";
+        if (!savedFormData[`${rigKey}_regNo`]) initial[`${rigKey}_regNo`] = rig?.rigRegistrationNo || "";
+        if (!savedFormData[`${rigKey}_type`]) initial[`${rigKey}_type`] = rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്";
+        if (!savedFormData[`${rigKey}_ownerName`]) initial[`${rigKey}_ownerName`] = rig ? owner.name : "";
+        if (!savedFormData[`${rigKey}_address`]) initial[`${rigKey}_address`] = rig ? owner.address : "";
+        if (!savedFormData[`${rigKey}_phone`]) initial[`${rigKey}_phone`] = owner.phone || "";
+        if (!savedFormData[`${rigKey}_mobile`]) initial[`${rigKey}_mobile`] = owner.mobile || "";
+        if (!savedFormData[`${rigKey}_email`]) initial[`${rigKey}_email`] = owner.email || "";
+        if (!savedFormData[`${rigKey}_district`]) initial[`${rigKey}_district`] = application.officeLocation || "";
+        if (!savedFormData[`${rigKey}_state`]) initial[`${rigKey}_state`] = "Kerala";
 
-        initial[`${rigKey}_veh_reg`] = rig?.rigVehicle?.regNo || "";
-        initial[`${rigKey}_veh_chassis`] = rig?.rigVehicle?.chassisNo || "";
-        initial[`${rigKey}_veh_engine`] = rig?.rigVehicle?.engineNo || "";
+        if (!savedFormData[`${rigKey}_veh_reg`]) initial[`${rigKey}_veh_reg`] = rig?.rigVehicle?.regNo || "";
+        if (!savedFormData[`${rigKey}_veh_chassis`]) initial[`${rigKey}_veh_chassis`] = rig?.rigVehicle?.chassisNo || "";
+        if (!savedFormData[`${rigKey}_veh_engine`]) initial[`${rigKey}_veh_engine`] = rig?.rigVehicle?.engineNo || "";
 
-        initial[`${rigKey}_supp_veh_has`] = "No"; // Yes / No
-        initial[`${rigKey}_supp_veh_reg`] = "";
-        initial[`${rigKey}_supp_veh_chassis`] = "";
-        initial[`${rigKey}_supp_veh_engine`] = "";
+        if (!savedFormData[`${rigKey}_comp_model`]) initial[`${rigKey}_comp_model`] = rig?.compressorDetails?.model || "";
+        if (!savedFormData[`${rigKey}_comp_cap`]) initial[`${rigKey}_comp_cap`] = rig?.compressorDetails?.capacity || "";
 
-        initial[`${rigKey}_comp_model`] = rig?.compressorDetails?.model || "";
-        initial[`${rigKey}_comp_cap`] = rig?.compressorDetails?.capacity || "";
-
-        initial[`${rigKey}_gen_type`] = rig?.generatorDetails?.type || "";
-        initial[`${rigKey}_gen_model`] = rig?.generatorDetails?.model || "";
-        initial[`${rigKey}_gen_cap`] = rig?.generatorDetails?.capacity || "";
-        initial[`${rigKey}_gen_engine`] = rig?.generatorDetails?.engineNo || "";
-
-        initial[`${rigKey}_well_depth`] = "";
-        initial[`${rigKey}_well_dia`] = "";
-
-        initial[`${rigKey}_op_name`] = "";
-        initial[`${rigKey}_op_age`] = "";
-        initial[`${rigKey}_op_exp`] = "";
-        initial[`${rigKey}_op_id_type`] = "Aadhaar";
-        initial[`${rigKey}_op_id_no`] = "";
+        if (!savedFormData[`${rigKey}_gen_type`]) initial[`${rigKey}_gen_type`] = rig?.generatorDetails?.type || "";
+        if (!savedFormData[`${rigKey}_gen_model`]) initial[`${rigKey}_gen_model`] = rig?.generatorDetails?.model || "";
+        if (!savedFormData[`${rigKey}_gen_cap`]) initial[`${rigKey}_gen_cap`] = rig?.generatorDetails?.capacity || "";
+        if (!savedFormData[`${rigKey}_gen_engine`]) initial[`${rigKey}_gen_engine`] = rig?.generatorDetails?.engineNo || "";
       });
 
       setData(initial);
@@ -1276,6 +1323,36 @@ export function RigRenewalApplicationFormView({
 
   const handlePrint = () => {
     printDocument("rig-renewal-official-form", "റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ/പുതിയ റിഗ് രജിസ്ട്രേഷൻ അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
+  };
+
+  const handleSave = async () => {
+    if (!application?.id) {
+      toast({
+        title: "അപേക്ഷാ ഐഡി ലഭ്യമല്ല",
+        description: "സേവ് ചെയ്യുന്നതിനായി സാധുവായ അപേക്ഷാ ഐഡി ആവശ്യമാണ്.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateApplication(application.id, {
+        renewalFormData: data,
+      } as any);
+      toast({
+        title: "വിജയകരമായി സംരക്ഷിച്ചു",
+        description: "പുതുക്കൽ അപേക്ഷാ ഫോറത്തിലെ വിവരങ്ങൾ ഫയർബേസ് ഡാറ്റാബേസിൽ വിജയിച്ച് സംരക്ഷിച്ചു.",
+      });
+    } catch (err: any) {
+      console.error("Firebase save error:", err);
+      toast({
+        title: "സേവ് ചെയ്യുന്നതിൽ പിശക്",
+        description: err.message || "ഫയർബേസ് ഡാറ്റാബേസിലേക്ക് വിവരങ്ങൾ സംരക്ഷിക്കാൻ സാധിച്ചില്ല.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -1296,16 +1373,27 @@ export function RigRenewalApplicationFormView({
             <p className="text-[11px] text-gray-500">100% Exact Copy of Kerala Ground Water Authority Renewal Format</p>
           </div>
         </div>
-        <Button size="sm" onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm">
-          <Printer className="w-4 h-4" /> അച്ചടിക്കുക / Print Form
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
+          >
+            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? "സംരക്ഷിക്കുന്നു..." : "സേവ് ചെയ്യുക / Save Data"}
+          </Button>
+          <Button size="sm" onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-sm">
+            <Printer className="w-4 h-4" /> അച്ചടിക്കുക / Print Form
+          </Button>
+        </div>
       </div>
 
       {/* Printable Sheet */}
       <div className="overflow-y-auto pb-10 print:p-0 print:overflow-visible">
         <div
           id="rig-renewal-official-form"
-          className="max-w-3xl mx-auto bg-white p-6 sm:p-10 border border-gray-300 shadow-md text-black space-y-5 text-xs sm:text-sm font-serif print:border-none print:shadow-none print:p-0 print:max-w-none"
+          className="max-w-3xl mx-auto bg-white p-4 sm:p-8 md:p-10 border border-gray-300 shadow-md text-black space-y-5 text-xs sm:text-sm font-serif print:border-none print:shadow-none print:p-0 print:max-w-none box-border overflow-hidden"
         >
           {/* Header */}
           <div className="text-center space-y-1 border-b-2 border-black pb-3">
@@ -1327,66 +1415,66 @@ export function RigRenewalApplicationFormView({
             <h2 className="font-bold text-sm sm:text-base underline">A. സ്ഥാപനം / ഏജൻസിയുടെ വിവരം</h2>
 
             <div className="space-y-2 pl-2">
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">1. ഏജൻസിയുടെ പേര് :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">1. ഏജൻസിയുടെ പേര് :</span>
                 <FormLineInput value={data.agencyName} onChange={(v) => update("agencyName", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">2. നിലവിലെ രജിസ്ട്രേഷൻ നമ്പർ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">2. നിലവിലെ രജിസ്ട്രേഷൻ നമ്പർ :</span>
                 <FormLineInput value={data.agencyRegNo} onChange={(v) => update("agencyRegNo", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">3. ഏജൻസി രജിസ്റ്റർ ചെയ്തിട്ടുള്ള ജില്ല :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">3. ഏജൻസി രജിസ്റ്റർ ചെയ്തിട്ടുള്ള ജില്ല :</span>
                 <FormLineInput value={data.registeredDistrict} onChange={(v) => update("registeredDistrict", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">4. മേൽവിലാസം :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">4. മേൽവിലാസം :</span>
                 <FormLineInput value={data.address} onChange={(v) => update("address", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">5. ഫോൺ നമ്പർ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">5. ഫോൺ നമ്പർ :</span>
                 <FormLineInput value={data.phone} onChange={(v) => update("phone", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">6. ഇ മെയിൽ വിലാസം :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">6. ഇ മെയിൽ വിലാസം :</span>
                 <FormLineInput value={data.email} onChange={(v) => update("email", v)} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">വില്ലേജ് :</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">വില്ലേജ് :</span>
                   <FormLineInput value={data.village} onChange={(v) => update("village", v)} />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">താലൂക്ക് :</span>
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">താലൂക്ക് :</span>
                   <FormLineInput value={data.taluk} onChange={(v) => update("taluk", v)} />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">പഞ്ചായത്ത് :</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold shrink">പഞ്ചായത്ത് :</span>
                   <FormLineInput value={data.panchayath} onChange={(v) => update("panchayath", v)} />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold whitespace-nowrap">ജില്ല :</span>
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">ജില്ല :</span>
                   <FormLineInput value={data.district} onChange={(v) => update("district", v)} />
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 pl-4">
-                <span className="font-bold">പിൻ കോഡ് :</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-2 sm:pl-4 min-w-0">
+                <span className="font-bold shrink-0">പിൻ കോഡ് :</span>
                 <PinCodeGrid value={data.pincode} onChange={(v) => update("pincode", v)} />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <span className="font-bold whitespace-nowrap">7. ജി.എസ്.റ്റി. നമ്പർ :</span>
-                <div className="flex-1 border border-black p-1 bg-white">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-1 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">7. ജി.എസ്.റ്റി. നമ്പർ :</span>
+                <div className="flex-1 min-w-0 border border-black p-1 bg-white">
                   <input
                     type="text"
                     value={data.gstin || ""}
@@ -1397,8 +1485,8 @@ export function RigRenewalApplicationFormView({
                 </div>
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">8. തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം നൽകിയ രജിസ്ട്രേഷൻ നമ്പർ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold shrink sm:whitespace-nowrap">8. തദ്ദേശ സ്വയംഭരണ സ്ഥാപനം നൽകിയ രജിസ്ട്രേഷൻ നമ്പർ :</span>
                 <FormLineInput value={data.lsgdRegNo} onChange={(v) => update("lsgdRegNo", v)} />
               </div>
             </div>
@@ -1413,24 +1501,24 @@ export function RigRenewalApplicationFormView({
             </h2>
 
             {[1, 2, 3].map((num) => (
-              <div key={num} className="border border-black p-2.5 space-y-1.5 relative">
+              <div key={num} className="border border-black p-2.5 space-y-1.5 relative min-w-0 overflow-hidden">
                 <span className="font-bold text-xs underline block">Rig-{num}</span>
 
-                <div className="flex items-baseline gap-2 pl-2">
-                  <span className="font-bold whitespace-nowrap">1. റിഗ്ഗിന്റെ തരം :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">1. റിഗ്ഗിന്റെ തരം :</span>
                   <FormLineInput value={data[`regRig${num}_type`]} onChange={(v) => update(`regRig${num}_type`, v)} />
                 </div>
-                <p className="text-[10px] text-gray-600 italic pl-6">
+                <p className="text-[10px] text-gray-600 italic pl-4 sm:pl-6">
                   (റോട്ടറി റിഗ്, റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്, ക്യാലിക്സ് റിഗ്, ഫിൽട്ടർ പോയിന്റ് യൂണിറ്റ്)
                 </p>
 
-                <div className="flex items-baseline gap-2 pl-2">
-                  <span className="font-bold whitespace-nowrap">2. നിലവിലെ രജിസ്ട്രേഷൻ നമ്പർ :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">2. നിലവിലെ രജിസ്ട്രേഷൻ നമ്പർ :</span>
                   <FormLineInput value={data[`regRig${num}_regNo`]} onChange={(v) => update(`regRig${num}_regNo`, v)} />
                 </div>
 
-                <div className="flex items-baseline gap-2 pl-2">
-                  <span className="font-bold whitespace-nowrap">
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-bold shrink">
                     3. അവസാനമായി ഒടുക്കിയ തുക <span className="font-normal text-xs">(ചലാന്റെ പകർപ്പ് ഉള്ളടക്കം ചെയ്യുക)</span> :
                   </span>
                   <FormLineInput
@@ -1439,13 +1527,13 @@ export function RigRenewalApplicationFormView({
                   />
                 </div>
 
-                <div className="flex items-baseline gap-2 pl-2">
-                  <span className="font-bold whitespace-nowrap">4. ചലാൻ നം. തീയതി :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">4. ചലാൻ നം. തീയതി :</span>
                   <FormLineInput value={data[`regRig${num}_challanNoDate`]} onChange={(v) => update(`regRig${num}_challanNoDate`, v)} />
                 </div>
 
-                <div className="flex items-baseline gap-2 pl-2">
-                  <span className="font-bold whitespace-nowrap">5. രജിസ്ട്രേഷൻ അവസാനിക്കുന്ന തീയതി :</span>
+                <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                  <span className="font-bold whitespace-nowrap shrink-0">5. രജിസ്ട്രേഷൻ അവസാനിക്കുന്ന തീയതി :</span>
                   <FormLineInput value={data[`regRig${num}_expiryDate`]} onChange={(v) => update(`regRig${num}_expiryDate`, v)} />
                 </div>
               </div>
@@ -1465,103 +1553,103 @@ export function RigRenewalApplicationFormView({
               const labelNum = idx + 1;
 
               return (
-                <div key={rigKey} className="border border-black p-3 space-y-3 relative">
+                <div key={rigKey} className="border border-black p-2.5 sm:p-3 space-y-3 relative min-w-0 overflow-hidden">
                   <span className="absolute -top-3 left-3 bg-white px-2 font-bold border border-black text-xs">
                     {letter}
                   </span>
                   <span className="font-bold text-xs underline block pt-1">RIG-{labelNum}</span>
 
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-2 pl-2">
-                      <span className="font-bold whitespace-nowrap">
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                      <span className="font-bold shrink">
                         1. നിലവിലെ രജിസ്ട്രേഷൻ നമ്പർ <span className="font-normal text-[11px]">(രജിസ്ട്രേഷൻ പുതുക്കുന്നതിന് മാത്രം)</span> :
                       </span>
                       <FormLineInput value={data[`${rigKey}_regNo`]} onChange={(v) => update(`${rigKey}_regNo`, v)} />
                     </div>
 
-                    <div className="flex items-baseline gap-2 pl-2">
-                      <span className="font-bold whitespace-nowrap">
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                      <span className="font-bold shrink">
                         2. രജിസ്ട്രേഷൻ അവസാനിക്കുന്ന തീയതി <span className="font-normal text-[11px]">(രജിസ്ട്രേഷൻ പുതുക്കുന്നതിന് മാത്രം)</span> :
                       </span>
                       <FormLineInput value={data[`${rigKey}_expiryDate`]} onChange={(v) => update(`${rigKey}_expiryDate`, v)} />
                     </div>
 
-                    <div className="flex items-baseline gap-2 pl-2">
-                      <span className="font-bold whitespace-nowrap">3. റിഗ്ഗിന്റെ തരം :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">3. റിഗ്ഗിന്റെ തരം :</span>
                       <FormLineInput value={data[`${rigKey}_type`]} onChange={(v) => update(`${rigKey}_type`, v)} />
                     </div>
-                    <p className="text-[10px] text-gray-600 italic pl-6">
+                    <p className="text-[10px] text-gray-600 italic pl-4 sm:pl-6">
                       (റോട്ടറി റിഗ്, റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്, ക്യാലിക്സ് റിഗ്, ഫിൽട്ടർ പോയിന്റ് യൂണിറ്റ്)
                     </p>
 
-                    <div className="flex items-baseline gap-2 pl-2">
-                      <span className="font-bold whitespace-nowrap">4. റിഗ് ഉടമസ്ഥന്റെ പേര് :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">4. റിഗ് ഉടമസ്ഥന്റെ പേര് :</span>
                       <FormLineInput value={data[`${rigKey}_ownerName`]} onChange={(v) => update(`${rigKey}_ownerName`, v)} />
                     </div>
 
-                    <div className="flex items-baseline gap-2 pl-2">
-                      <span className="font-bold whitespace-nowrap">മേൽവിലാസം :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">മേൽവിലാസം :</span>
                       <FormLineInput value={data[`${rigKey}_address`]} onChange={(v) => update(`${rigKey}_address`, v)} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-bold whitespace-nowrap">ഫോൺ :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="font-bold whitespace-nowrap shrink-0">ഫോൺ :</span>
                         <FormLineInput value={data[`${rigKey}_phone`]} onChange={(v) => update(`${rigKey}_phone`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-bold whitespace-nowrap">മൊബൈൽ :</span>
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="font-bold whitespace-nowrap shrink-0">മൊബൈൽ :</span>
                         <FormLineInput value={data[`${rigKey}_mobile`]} onChange={(v) => update(`${rigKey}_mobile`, v)} />
                       </div>
                     </div>
 
-                    <div className="flex items-baseline gap-2 pl-4">
-                      <span className="font-bold whitespace-nowrap">ഇ മെയിൽ :</span>
+                    <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                      <span className="font-bold whitespace-nowrap shrink-0">ഇ മെയിൽ :</span>
                       <FormLineInput value={data[`${rigKey}_email`]} onChange={(v) => update(`${rigKey}_email`, v)} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-bold whitespace-nowrap">ജില്ല :</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="font-bold whitespace-nowrap shrink-0">ജില്ല :</span>
                         <FormLineInput value={data[`${rigKey}_district`]} onChange={(v) => update(`${rigKey}_district`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-bold whitespace-nowrap">സംസ്ഥാനം:</span>
+                      <div className="flex items-baseline gap-2 min-w-0">
+                        <span className="font-bold whitespace-nowrap shrink-0">സംസ്ഥാനം:</span>
                         <FormLineInput value={data[`${rigKey}_state`]} onChange={(v) => update(`${rigKey}_state`, v)} />
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pl-4">
-                      <span className="font-bold">പിൻ കോഡ് :</span>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-2 sm:pl-4 min-w-0">
+                      <span className="font-bold shrink-0">പിൻ കോഡ് :</span>
                       <PinCodeGrid value={data[`${rigKey}_pincode`]} onChange={(v) => update(`${rigKey}_pincode`, v)} />
                     </div>
 
                     {/* Vehicles */}
-                    <div className="space-y-2 pt-1 border-t border-dashed border-gray-300 pl-2">
+                    <div className="space-y-2 pt-1 border-t border-dashed border-gray-300 pl-2 min-w-0">
                       <span className="font-bold block">5. ഉപയോഗിക്കുന്ന വാഹനങ്ങളുടെ വിവരങ്ങൾ</span>
 
-                      <div className="space-y-1 pl-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">എ. കംപ്രസ്സർ / റിഗ് ഘടിപ്പിച്ച വാഹനം</span>
-                          <span className="font-bold whitespace-nowrap">രജി. നമ്പർ :</span>
+                      <div className="space-y-1 pl-2 min-w-0">
+                        <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                          <span className="font-semibold shrink">എ. കംപ്രസ്സർ / റിഗ് ഘടിപ്പിച്ച വാഹനം</span>
+                          <span className="font-bold whitespace-nowrap shrink-0">രജി. നമ്പർ :</span>
                           <FormLineInput value={data[`${rigKey}_veh_reg`]} onChange={(v) => update(`${rigKey}_veh_reg`, v)} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold whitespace-nowrap">ചേസിസ് നമ്പർ :</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-semibold whitespace-nowrap shrink-0">ചേസിസ് നമ്പർ :</span>
                             <FormLineInput value={data[`${rigKey}_veh_chassis`]} onChange={(v) => update(`${rigKey}_veh_chassis`, v)} />
                           </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold whitespace-nowrap">എൻജിൻ നമ്പർ :</span>
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-semibold whitespace-nowrap shrink-0">എൻജിൻ നമ്പർ :</span>
                             <FormLineInput value={data[`${rigKey}_veh_engine`]} onChange={(v) => update(`${rigKey}_veh_engine`, v)} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-1 pl-2 pt-1">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold whitespace-nowrap">ബി. സപ്പോർട്ടിങ് വാഹനം</span>
-                          <div className="border border-black px-2 py-0.5 flex items-center gap-2 text-xs font-bold">
+                      <div className="space-y-1 pl-2 pt-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+                          <span className="font-semibold shrink-0">ബി. സപ്പോർട്ടിങ് വാഹനം</span>
+                          <div className="border border-black px-2 py-0.5 flex items-center gap-2 text-xs font-bold shrink-0">
                             <span>Yes / No</span>
                             <input
                               type="checkbox"
@@ -1570,16 +1658,16 @@ export function RigRenewalApplicationFormView({
                               className="w-4 h-4 border-black"
                             />
                           </div>
-                          <span className="font-bold whitespace-nowrap">If Yes രജി. നമ്പർ :</span>
+                          <span className="font-bold whitespace-nowrap shrink-0">If Yes രജി. നമ്പർ :</span>
                           <FormLineInput value={data[`${rigKey}_supp_veh_reg`]} onChange={(v) => update(`${rigKey}_supp_veh_reg`, v)} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold whitespace-nowrap">ചേസിസ് നമ്പർ :</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-semibold whitespace-nowrap shrink-0">ചേസിസ് നമ്പർ :</span>
                             <FormLineInput value={data[`${rigKey}_supp_veh_chassis`]} onChange={(v) => update(`${rigKey}_supp_veh_chassis`, v)} />
                           </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold whitespace-nowrap">എൻജിൻ നമ്പർ :</span>
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span className="font-semibold whitespace-nowrap shrink-0">എൻജിൻ നമ്പർ :</span>
                             <FormLineInput value={data[`${rigKey}_supp_veh_engine`]} onChange={(v) => update(`${rigKey}_supp_veh_engine`, v)} />
                           </div>
                         </div>
@@ -1587,85 +1675,85 @@ export function RigRenewalApplicationFormView({
                     </div>
 
                     {/* Compressor */}
-                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2">
+                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2 min-w-0">
                       <span className="font-bold block">
                         6. കംപ്രസറിന്റെ വിവരം <span className="font-normal text-xs">(ഡിറ്റിഎച്ച് / റോട്ടറി കം.ഡിറ്റിഎച്ച് / ഫിൽട്ടർ പോയിന്റ് )</span>
                       </span>
-                      <div className="flex items-baseline gap-2 pl-4">
-                        <span className="font-semibold whitespace-nowrap">എ. മോഡൽ :</span>
+                      <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">എ. മോഡൽ :</span>
                         <FormLineInput value={data[`${rigKey}_comp_model`]} onChange={(v) => update(`${rigKey}_comp_model`, v)} />
                       </div>
-                      <div className="flex items-baseline gap-2 pl-4">
-                        <span className="font-semibold whitespace-nowrap">ബി. കപ്പാസിറ്റി :</span>
+                      <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">ബി. കപ്പാസിറ്റി :</span>
                         <FormLineInput value={data[`${rigKey}_comp_cap`]} onChange={(v) => update(`${rigKey}_comp_cap`, v)} />
                       </div>
                     </div>
 
                     {/* Generator */}
-                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2">
+                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2 min-w-0">
                       <span className="font-bold block">
                         7. ജനറേറ്ററിന്റെ വിവരം <span className="font-normal text-xs">(ക്യാലിക്സ് റിഗ്)</span>
                       </span>
-                      <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">എ. തരം :</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">എ. തരം :</span>
                           <FormLineInput value={data[`${rigKey}_gen_type`]} onChange={(v) => update(`${rigKey}_gen_type`, v)} />
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">ബി. മോഡൽ :</span>
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">ബി. മോഡൽ :</span>
                           <FormLineInput value={data[`${rigKey}_gen_model`]} onChange={(v) => update(`${rigKey}_gen_model`, v)} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">സി. കപ്പാസിറ്റി :</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">സി. കപ്പാസിറ്റി :</span>
                           <FormLineInput value={data[`${rigKey}_gen_cap`]} onChange={(v) => update(`${rigKey}_gen_cap`, v)} />
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">ഡി. എൻജിൻ നമ്പർ :</span>
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">ഡി. എൻജിൻ നമ്പർ :</span>
                           <FormLineInput value={data[`${rigKey}_gen_engine`]} onChange={(v) => update(`${rigKey}_gen_engine`, v)} />
                         </div>
                       </div>
                     </div>
 
                     {/* Well Specs */}
-                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2">
+                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2 min-w-0">
                       <span className="font-bold block">
                         8. കുഴിക്കാൻ സാധിക്കുന്ന കുഴൽക്കിണറുകളുടെ വിവരം{" "}
                         <span className="font-normal text-xs">(കംപ്രസ്സർ കപ്പാസിറ്റിയുടെ അടിസ്ഥാനത്തിൽ )</span>
                       </span>
-                      <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">എ. പരമാവധി ആഴം :</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">എ. പരമാവധി ആഴം :</span>
                           <FormLineInput value={data[`${rigKey}_well_depth`]} onChange={(v) => update(`${rigKey}_well_depth`, v)} />
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">ബി. പരമാവധി വ്യാസം :</span>
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">ബി. പരമാവധി വ്യാസം :</span>
                           <FormLineInput value={data[`${rigKey}_well_dia`]} onChange={(v) => update(`${rigKey}_well_dia`, v)} />
                         </div>
                       </div>
                     </div>
 
                     {/* Operator */}
-                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2">
+                    <div className="space-y-1 pt-1 border-t border-dashed border-gray-300 pl-2 min-w-0">
                       <span className="font-bold block">9. ഡ്രിളിംഗ് യന്ത്ര ഓപ്പറേറ്ററുടെ വിവരങ്ങൾ</span>
-                      <div className="grid grid-cols-2 gap-4 items-baseline pl-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">പേര് :</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 items-baseline pl-2 sm:pl-4 min-w-0">
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">പേര് :</span>
                           <FormLineInput value={data[`${rigKey}_op_name`]} onChange={(v) => update(`${rigKey}_op_name`, v)} />
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold whitespace-nowrap">വയസ്സ് :</span>
+                        <div className="flex items-baseline gap-2 min-w-0">
+                          <span className="font-semibold whitespace-nowrap shrink-0">വയസ്സ് :</span>
                           <FormLineInput value={data[`${rigKey}_op_age`]} onChange={(v) => update(`${rigKey}_op_age`, v)} width="w-20" />
                         </div>
                       </div>
-                      <div className="flex items-baseline gap-2 pl-4">
-                        <span className="font-semibold whitespace-nowrap">പ്രവർത്തി പരിചയം :</span>
+                      <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">പ്രവർത്തി പരിചയം :</span>
                         <FormLineInput value={data[`${rigKey}_op_exp`]} onChange={(v) => update(`${rigKey}_op_exp`, v)} />
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 pl-4 pt-1">
-                        <span className="font-semibold whitespace-nowrap">തിരിചറിയൽരേഖ :</span>
-                        <label className="flex items-center gap-1 cursor-pointer">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-2 sm:pl-4 pt-1 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">തിരിചറിയൽരേഖ :</span>
+                        <label className="flex items-center gap-1 cursor-pointer shrink-0">
                           <input
                             type="radio"
                             name={`${rigKey}_op_id_type`}
@@ -1674,7 +1762,7 @@ export function RigRenewalApplicationFormView({
                           />
                           <span className="border border-black px-1.5 py-0.5 text-xs font-semibold">ഇലക്ഷൻ കാർഡ്</span>
                         </label>
-                        <label className="flex items-center gap-1 cursor-pointer">
+                        <label className="flex items-center gap-1 cursor-pointer shrink-0">
                           <input
                             type="radio"
                             name={`${rigKey}_op_id_type`}
@@ -1683,7 +1771,7 @@ export function RigRenewalApplicationFormView({
                           />
                           <span className="border border-black px-1.5 py-0.5 text-xs font-semibold">ആധാർ കാർഡ്</span>
                         </label>
-                        <label className="flex items-center gap-1 cursor-pointer">
+                        <label className="flex items-center gap-1 cursor-pointer shrink-0">
                           <input
                             type="radio"
                             name={`${rigKey}_op_id_type`}
@@ -1693,8 +1781,8 @@ export function RigRenewalApplicationFormView({
                           <span className="border border-black px-1.5 py-0.5 text-xs font-semibold">മറ്റുള്ളവ</span>
                         </label>
                       </div>
-                      <div className="flex items-baseline gap-2 pl-4">
-                        <span className="font-semibold whitespace-nowrap">തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
+                      <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 sm:pl-4 min-w-0">
+                        <span className="font-semibold whitespace-nowrap shrink-0">തിരിച്ചറിയൽ രേഖയുടെ നമ്പർ :</span>
                         <FormLineInput value={data[`${rigKey}_op_id_no`]} onChange={(v) => update(`${rigKey}_op_id_no`, v)} />
                       </div>
                     </div>
@@ -1728,100 +1816,100 @@ export function RigRenewalApplicationFormView({
           </div>
 
           {/* Office Use Section */}
-          <div className="pt-4 border-t-2 border-black space-y-2">
+          <div className="pt-4 border-t-2 border-black space-y-2 min-w-0">
             <div className="text-center font-bold text-xs border border-black py-0.5 bg-gray-50">
               ഓഫീസ് ഉപയോഗത്തിന് മാത്രം
             </div>
-            <div className="space-y-1.5 pl-2 text-xs">
-              <div className="flex items-baseline gap-2">
-                <span className="whitespace-nowrap">1. അപേക്ഷ ലഭിച്ച തീയതി :</span>
+            <div className="space-y-1.5 pl-2 text-xs min-w-0">
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="whitespace-nowrap shrink-0">1. അപേക്ഷ ലഭിച്ച തീയതി :</span>
                 <FormLineInput value={data.office_date_recd} onChange={(v) => update("office_date_recd", v)} />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <span className="block font-semibold">2. അപേക്ഷാ ഫീസ് അടച്ച വിവരങ്ങൾ</span>
-                <div className="grid grid-cols-2 gap-4 pl-4 items-baseline">
-                  <div className="flex items-baseline gap-2">
-                    <span className="whitespace-nowrap">അടച്ച തുക :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 pl-2 sm:pl-4 items-baseline min-w-0">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="whitespace-nowrap shrink-0">അടച്ച തുക :</span>
                     <FormLineInput value={data.office_fee_amount} onChange={(v) => update("office_fee_amount", v)} />
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="whitespace-nowrap">തിയതി :</span>
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="whitespace-nowrap shrink-0">തിയതി :</span>
                     <FormLineInput value={data.office_fee_date} onChange={(v) => update("office_fee_date", v)} />
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="whitespace-nowrap">3. റിഗ് പരിശോധിച്ച തീയതി :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="whitespace-nowrap shrink-0">3. റിഗ് പരിശോധിച്ച തീയതി :</span>
                 <FormLineInput value={data.office_rig_inspected_date} onChange={(v) => update("office_rig_inspected_date", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="whitespace-nowrap">4. പരിശോധകന്റെ പാർശ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="whitespace-nowrap shrink-0">4. പരിശോധകന്റെ പാർശ :</span>
                 <FormLineInput value={data.office_recommendation} onChange={(v) => update("office_recommendation", v)} />
               </div>
             </div>
 
-            <div className="flex justify-between items-end pt-8 text-xs">
-              <div className="text-center w-36">
+            <div className="flex justify-between items-end pt-8 text-xs min-w-0">
+              <div className="text-center w-36 shrink-0">
                 <p className="font-semibold border-t border-dotted border-black pt-1">പരിശോധകൻെറ ഒപ്പ്</p>
               </div>
-              <div className="text-center w-36">
+              <div className="text-center w-36 shrink-0">
                 <p className="font-semibold border-t border-dotted border-black pt-1">ജിാ ഓഫീസറുെട ഒപ്പ്</p>
               </div>
             </div>
           </div>
 
           {/* Receipt Section */}
-          <div className="pt-6 border-t-2 border-dashed border-black space-y-3">
+          <div className="pt-6 border-t-2 border-dashed border-black space-y-3 min-w-0">
             <div className="text-center">
               <h3 className="font-bold text-sm underline">രസീത്</h3>
             </div>
 
-            <div className="space-y-2 pl-2 text-xs">
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">1. അപേക്ഷാ നമ്പർ :</span>
+            <div className="space-y-2 pl-2 text-xs min-w-0">
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">1. അപേക്ഷാ നമ്പർ :</span>
                 <FormLineInput value={data.receipt_app_no} onChange={(v) => update("receipt_app_no", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">2. ഏജൻസിയുടെ പേര് :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">2. ഏജൻസിയുടെ പേര് :</span>
                 <FormLineInput value={data.receipt_agency_name} onChange={(v) => update("receipt_agency_name", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">3. ഏജൻസി റെജിസ്ട്രേഷൻ നമ്പർ :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">3. ഏജൻസി റെജിസ്ട്രേഷൻ നമ്പർ :</span>
                 <FormLineInput value={data.receipt_agency_reg_no} onChange={(v) => update("receipt_agency_reg_no", v)} />
               </div>
 
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold whitespace-nowrap">4. അപേക്ഷ ലഭിച്ച തീയതി :</span>
+              <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
+                <span className="font-bold whitespace-nowrap shrink-0">4. അപേക്ഷ ലഭിച്ച തീയതി :</span>
                 <FormLineInput value={data.receipt_date_recd} onChange={(v) => update("receipt_date_recd", v)} />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <span className="font-bold block">5. അപേക്ഷാ ഫീസ് അടച്ച വിവരങ്ങൾ :</span>
-                <div className="grid grid-cols-2 gap-4 pl-4 items-baseline">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-semibold whitespace-nowrap">അടച്ച തുക :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 pl-2 sm:pl-4 items-baseline min-w-0">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="font-semibold whitespace-nowrap shrink-0">അടച്ച തുക :</span>
                     <FormLineInput value={data.receipt_fee_paid_amount} onChange={(v) => update("receipt_fee_paid_amount", v)} />
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-semibold whitespace-nowrap">തിയതി :</span>
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="font-semibold whitespace-nowrap shrink-0">തിയതി :</span>
                     <FormLineInput value={data.receipt_fee_paid_date} onChange={(v) => update("receipt_fee_paid_date", v)} />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-1.5 pt-1 min-w-0">
                 <span className="font-bold block">6. അപേക്ഷാ വിവരങ്ങൾ</span>
 
-                <div className="flex items-center justify-between pl-4 max-w-lg">
-                  <span className="font-semibold">
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pl-2 sm:pl-4 max-w-lg min-w-0">
+                  <span className="font-semibold shrink">
                     1. റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ <span className="font-normal text-[11px]">( നിലവിൽ റെജിസ്ട്രേഷൻ സാധുതയുള്ളതിന്)</span>
                   </span>
-                  <div className="flex items-center gap-1 border border-black px-2 py-0.5 bg-white">
+                  <div className="flex items-center gap-1 border border-black px-2 py-0.5 bg-white shrink-0">
                     <input
                       type="text"
                       value={data.receipt_renewal_count || "1"}
@@ -1832,11 +1920,11 @@ export function RigRenewalApplicationFormView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pl-4 max-w-lg">
-                  <span className="font-semibold">
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pl-2 sm:pl-4 max-w-lg min-w-0">
+                  <span className="font-semibold shrink">
                     2. പുതിയ റിഗ് രജിസ്ട്രേഷൻ/രജിസ്റ്റർ ചെയ്ത റിഗ് മാറ്റുന്നതിന്
                   </span>
-                  <div className="flex items-center gap-1 border border-black px-2 py-0.5 bg-white">
+                  <div className="flex items-center gap-1 border border-black px-2 py-0.5 bg-white shrink-0">
                     <input
                       type="text"
                       value={data.receipt_new_rig_count || "0"}
@@ -1849,12 +1937,12 @@ export function RigRenewalApplicationFormView({
               </div>
             </div>
 
-            <div className="flex justify-between items-end pt-6 text-xs">
-              <div className="flex items-baseline gap-2">
-                <span className="font-bold">തിയതി :</span>
+            <div className="flex justify-between items-end pt-6 text-xs min-w-0">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="font-bold shrink-0">തിയതി :</span>
                 <FormLineInput value={data.date} onChange={(v) => update("date", v)} width="w-28" />
               </div>
-              <div className="text-center w-36">
+              <div className="text-center w-36 shrink-0">
                 <p className="font-bold border-t border-dotted border-black pt-1">ജിാ ഓഫീസർ</p>
               </div>
             </div>

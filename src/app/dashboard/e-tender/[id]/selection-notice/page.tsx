@@ -11,7 +11,7 @@ import { usePageHeader } from '@/hooks/usePageHeader';
 import { isValid } from 'date-fns';
 import { Copy, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { printDocument, copyRichHtml } from '@/lib/print-utils';
+import { printDocument, copyOfficialTable } from '@/lib/print-utils';
 
 const parseStampPaperLogic = (description: string) => {
     const rateBasisMatch = description.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
@@ -193,13 +193,13 @@ export default function SelectionNoticePrintPage() {
             );
         };
 
-    const handleCopyRichHtml = async () => {
+    const handleCopyOfficialTable = async () => {
         try {
-            const success = await copyRichHtml('selection-notice-content');
+            const success = await copyOfficialTable('selection-notice-content');
             if (success) {
                 toast({
-                    title: "Copied Rich HTML!",
-                    description: "Selection Notice copied in Rich HTML format. You can paste it into Word or email.",
+                    title: "Copied Official Table!",
+                    description: "Selection Notice copied in Official Table format for e-Office Draft Editor.",
                 });
             } else {
                 toast({
@@ -209,7 +209,7 @@ export default function SelectionNoticePrintPage() {
                 });
             }
         } catch (err) {
-            console.error("Rich HTML copy error:", err);
+            console.error("Official Table copy error:", err);
             toast({
                 title: "Copy Failed",
                 description: "An error occurred while copying.",
@@ -241,14 +241,14 @@ export default function SelectionNoticePrintPage() {
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
               
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '8px', marginBottom: '16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '8px', marginBottom: '16px' }}>
                   <tbody>
                       <tr>
-                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5' }}>
+                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
                               <p style={{ margin: 0, padding: 0 }}>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
                               <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
                           </td>
-                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5' }}>
+                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
                               {(() => {
                                   const addrMalayalam = officeAddress?.addressMalayalam || "ജില്ലാ ഓഫീസറുടെ കാര്യാലയം\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ, തേവള്ളി പി. ഓ.\nകൊല്ലം - 691009";
                                   const lines = addrMalayalam.split('\n').map(l => l.trim()).filter(Boolean);
@@ -281,21 +281,21 @@ export default function SelectionNoticePrintPage() {
                   <p style={{ margin: 0, padding: 0 }}>സർ,</p>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
                   <tbody>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', paddingRight: '8px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px', fontWeight: 'bold', verticalAlign: 'top', border: '1px solid #000000' }}>
                               വിഷയം:
                           </td>
-                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5' }}>
+                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '8px', border: '1px solid #000000' }}>
                               {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.
                           </td>
                       </tr>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', paddingRight: '8px', paddingTop: '6px', fontWeight: 'bold', verticalAlign: 'top' }}>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px', fontWeight: 'bold', verticalAlign: 'top', border: '1px solid #000000' }}>
                               സൂചന:
                           </td>
-                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', paddingTop: '6px' }}>
+                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px', border: '1px solid #000000' }}>
                               ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}
                           </td>
                       </tr>
@@ -336,9 +336,9 @@ export default function SelectionNoticePrintPage() {
                 >
                     Close
                 </Button>
-                <Button variant="outline" onClick={handleCopyRichHtml} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                <Button variant="outline" onClick={handleCopyOfficialTable} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
                     <Copy className="h-4 w-4" />
-                    Copy Rich HTML
+                    Copy Official Table
                 </Button>
                 <Button onClick={() => printDocument('selection-notice-content', document.title || 'Selection Notice', '1cm 1.5cm 1cm 2.3cm')} className="gap-1.5">
                     <Printer className="h-4 w-4" />

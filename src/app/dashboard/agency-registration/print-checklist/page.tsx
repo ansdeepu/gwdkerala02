@@ -327,21 +327,24 @@ export default function RigChecklistPrintPage() {
     };
 
     // Format inspecting officer for declaration statement
-    const formattedOfficerDisplay = useMemo(() => {
+    const formattedOfficerText = useMemo(() => {
         const officerName = (inspectingOfficer || data?.rig?.inspectingOfficerName || data?.rig?.inspectingOfficer || '').trim();
         const officerDesig = (inspectingOfficerDesig || data?.rig?.inspectingOfficerDesig || '').trim();
 
         if (!officerName) {
-            return <span className="font-bold text-black">[പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ / Officer Assigned]</span>;
+            return '[പരിശോധന നടത്തിയ ഉദ്യോഗസ്ഥൻ / Officer Assigned]';
         }
 
-        let label = officerName;
         if (!officerName.includes('(') && officerDesig) {
-            label = `${officerName} (${officerDesig})`;
+            return `${officerName} (${officerDesig})`;
         }
 
-        return <span className="font-bold">{label}</span>;
+        return officerName;
     }, [inspectingOfficer, inspectingOfficerDesig, data]);
+
+    const formattedOfficerDisplay = useMemo(() => {
+        return <span className="font-bold">{formattedOfficerText}</span>;
+    }, [formattedOfficerText]);
 
     if ((isLoading || isFetchingDoc) && !data) {
         return (
@@ -1048,10 +1051,10 @@ export default function RigChecklistPrintPage() {
                         ${htmlTableRows}
                     </tbody>
                 </table>
-                <div style="border: 1px solid #94a3b8; padding: 12px; font-size: 12px; margin-top: 15px; border-radius: 4px;">
+                <div style="border: 1px solid #000000; padding: 12px; font-size: 12px; margin-top: 15px;">
                     <h3 style="font-size: 13px; font-weight: bold; margin: 0 0 6px 0;">സത്യപ്രസ്താവന (Declaration)</h3>
                     <p style="margin: 0; text-align: justify; text-indent: 20px; line-height: 1.6;">
-                        ഈ ഓഫീസിലെ <b>${formattedOfficerDisplay}</b>, ജില്ലാ ഓഫീസ്, <b>${getDistrictMalayalam(officeAddress?.officeLocation)}</b>, മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <b>${safeString(application.owner?.nameMalayalam || application.owner?.name)}</b> എന്നവരുടെ <b>${safeString(application.agencyNameMalayalam || application.agencyName)}</b> എന്ന ഏജൻസിയുടെ <b>${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</b> ${rig.rigVehicle?.regNo && rig.rigVehicle.regNo !== 'ബാധകമല്ല' ? `(രജി. നമ്പർ: ${rig.rigVehicle.regNo})` : ''} ന് ${isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
+                        ഈ ഓഫീസിലെ <b>${formattedOfficerText}</b>, ജില്ലാ ഓഫീസ്, <b>${getDistrictMalayalam(officeAddress?.officeLocation)}</b>, മേൽ റിഗ് പരിശോധിക്കുകയും മുകളിൽ രേഖപ്പെടുത്തിയിട്ടുള്ള എല്ലാ വിവരങ്ങളും നേരിട്ടും ഒറിജിനൽ രേഖകളുമായും ഒത്തു നോക്കുകയും, ബോധ്യപ്പെടുകയും ചെയ്തിട്ടുണ്ട്. ആയതിനാൽ <b>${safeString(application.owner?.nameMalayalam || application.owner?.name)}</b> എന്നവരുടെ <b>${safeString(application.agencyNameMalayalam || application.agencyName)}</b> എന്ന ഏജൻസിയുടെ <b>${getRigMalayalam(rig.typeOfRig, rig.typeOfRigMalayalam)}</b> ${rig.rigVehicle?.regNo && rig.rigVehicle.regNo !== 'ബാധകമല്ല' ? `(രജി. നമ്പർ: ${rig.rigVehicle.regNo})` : ''} ന് ${isRenewal ? 'പുതുക്കിയ' : ''} രജിസ്ട്രേഷൻ സർട്ടിഫിക്കറ്റ് നൽകുന്നതിനായി ശുപാർശ ചെയ്യുന്നു.
                     </p>
                 </div>
                 <table style="width: 100%; margin-top: 40px; font-size: 12px; font-weight: bold; text-align: center; border: none;">
@@ -1320,17 +1323,6 @@ export default function RigChecklistPrintPage() {
 
                         <Button size="sm" onClick={handleCopyText} variant="outline" className="h-8 text-xs px-2.5 border-slate-300 hover:bg-slate-50 text-slate-700">
                             <Copy className="mr-1.5 h-3.5 w-3.5 text-slate-500" /> Copy Official Table
-                        </Button>
-
-                        <Button 
-                            size="sm" 
-                            onClick={handleCopyRichHtml} 
-                            disabled={isCopying}
-                            variant="outline" 
-                            className="h-8 text-xs px-2.5 border-blue-300 hover:bg-blue-50 text-blue-700 gap-1"
-                        >
-                            <ClipboardCopy className="h-3.5 w-3.5 text-blue-500" /> 
-                            {isCopying ? "Copying..." : "Copy Rich HTML"}
                         </Button>
 
                         <Button size="sm" onClick={handleExportExcel} className="h-8 text-xs px-2.5 bg-green-700 hover:bg-green-800 text-white">

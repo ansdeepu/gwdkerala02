@@ -272,10 +272,11 @@ export const printDocument = (
 };
 
 /**
- * Utility to copy the inner content of a report with its formatting as Rich HTML.
- * This can be pasted directly into editors like e-Office, Word, or Gmail while preserving styles, headings, and tables.
+ * Utility to copy the inner content of an official document or table.
+ * Strips outer card container borders/shadows and formats clean, standardized
+ * HTML markup perfect for e-Office Draft Editor, MS Word, and Excel pasting.
  */
-export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOptions): Promise<boolean> => {
+export const copyOfficialTable = async (elementId: string, options?: ExtendedPrintOptions): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
 
   const element = document.getElementById(elementId);
@@ -315,21 +316,37 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
   const noPrintElements = clone.querySelectorAll('.no-print, .print\\:hidden, button, [class*="DialogFooter"]');
   noPrintElements.forEach((el) => el.remove());
 
+  // Clean top-level container: remove card borders, outer shadows, background colors from root container
+  clone.style.border = 'none';
+  clone.style.boxShadow = 'none';
+  clone.style.background = 'transparent';
+  clone.style.padding = '0';
+  clone.style.margin = '0 auto';
+
   // Inline style transformer for e-Office / CKEditor / MS Word pasting
   const allElements = clone.querySelectorAll('*');
   allElements.forEach((el) => {
     const htmlEl = el as HTMLElement;
     const tagName = htmlEl.tagName.toLowerCase();
 
-    // Preserve text alignment inline
-    if (htmlEl.classList.contains('text-right')) {
+    // Remove outer document card wrapper borders / shadows if applied on nested child containers
+    if (htmlEl.classList.contains('shadow-lg') || htmlEl.classList.contains('shadow-md') || htmlEl.classList.contains('shadow-xl') || htmlEl.classList.contains('shadow')) {
+      htmlEl.style.boxShadow = 'none';
+    }
+
+    // Preserve text alignment inline & as HTML attribute for e-Office editor
+    if (htmlEl.classList.contains('text-right') || htmlEl.classList.contains('sm:text-right')) {
       htmlEl.style.textAlign = 'right';
-    } else if (htmlEl.classList.contains('text-center')) {
+      htmlEl.setAttribute('align', 'right');
+    } else if (htmlEl.classList.contains('text-center') || htmlEl.classList.contains('sm:text-center')) {
       htmlEl.style.textAlign = 'center';
+      htmlEl.setAttribute('align', 'center');
     } else if (htmlEl.classList.contains('text-justify')) {
       htmlEl.style.textAlign = 'justify';
+      htmlEl.setAttribute('align', 'justify');
     } else if (htmlEl.classList.contains('text-left')) {
       htmlEl.style.textAlign = 'left';
+      htmlEl.setAttribute('align', 'left');
     }
 
     // Preserve font weight & decoration inline
@@ -465,7 +482,7 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
       h1, h2, .print-main-heading { font-size: ${headingFontSize}; font-weight: bold; }
       h3, h4, .print-sub-heading { font-size: ${subheadingFontSize}; font-weight: bold; }
       p, div { margin: 0 0 8px 0; font-size: ${bodyFontSize}; }
-      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; }
+      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: transparent; }
       * { font-family: ${fontStack}; }
       .text-right { text-align: right; }
       .text-center { text-align: center; }
@@ -480,7 +497,7 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
   `;
 
   // Wrap inside standard HTML template for clipboard pasting
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><div style="background: white; color: black; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight};">${contentHtml}</div></body></html>`;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><div style="background: transparent; color: black; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight};">${contentHtml}</div></body></html>`;
 
   try {
     const htmlBlob = new Blob([fullHtml], { type: 'text/html' });
@@ -494,7 +511,7 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
     await navigator.clipboard.write([clipboardItem]);
     return true;
   } catch (err) {
-    console.error('Failed to copy rich HTML:', err);
+    console.error('Failed to copy official table:', err);
     try {
       // Fallback: copy as plain text
       await navigator.clipboard.writeText(contentText);
@@ -504,5 +521,7 @@ export const copyRichHtml = async (elementId: string, options?: ExtendedPrintOpt
     }
   }
 };
+
+export const copyRichHtml = copyOfficialTable;
 
 

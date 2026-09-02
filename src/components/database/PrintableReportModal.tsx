@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, FileText, Globe, CheckCircle2, Building2, User, Landmark, DollarSign, Pencil, Check, X, RotateCcw, ExternalLink, Save, Loader2, ClipboardCopy } from "lucide-react";
-import { printDocument, copyRichHtml } from "@/lib/print-utils";
+import { printDocument, copyOfficialTable } from "@/lib/print-utils";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
@@ -2519,11 +2519,11 @@ export default function PrintableReportModal({
     });
   };
 
-  const handleCopyRichHtml = async () => {
+  const handleCopyOfficialTable = async () => {
     setEditingRow(null);
     setIsCopying(true);
     try {
-      const success = await copyRichHtml('printable-report-document', {
+      const success = await copyOfficialTable('printable-report-document', {
         fontSize: printSettings.fontSize,
         lineHeight: printSettings.lineSpacing,
         englishFont: printSettings.englishFont,
@@ -2532,7 +2532,7 @@ export default function PrintableReportModal({
       if (success) {
         toast({
           title: "Copied successfully",
-          description: "Report copied to clipboard as Rich HTML.",
+          description: "Report copied to clipboard in Official Table format for e-Office.",
         });
       } else {
         toast({
@@ -3359,9 +3359,9 @@ export default function PrintableReportModal({
                 </Button>
               )}
 
-              <Button onClick={handleCopyRichHtml} disabled={isCopying} variant="outline" className="gap-1.5 shadow border-primary/20 hover:bg-primary/5 hover:text-primary">
+              <Button onClick={handleCopyOfficialTable} disabled={isCopying} variant="outline" className="gap-1.5 shadow border-primary/20 hover:bg-primary/5 hover:text-primary">
                 <ClipboardCopy className="h-4 w-4 text-primary" />
-                {isCopying ? "Copying..." : "Copy Rich HTML"}
+                {isCopying ? "Copying..." : "Copy Official Table"}
               </Button>
             </div>
           </div>
@@ -3716,10 +3716,16 @@ export default function PrintableReportModal({
                 {lang === 'ml' ? (
                   <>
                     <div>
-                      <div className="text-center space-y-1 pb-2 mb-2 border-b-2 border-black">
-                        <h2 className="text-base sm:text-lg font-extrabold tracking-wide">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                        <h3 className="text-sm sm:text-base font-bold underline">{isTWC ? 'പൂർത്തീകരണറിപ്പോർട്ട് - റ്റ്യൂബ് കിണർ നിർമ്മാണം' : 'പൂർത്തീകരണറിപ്പോർട്ട് - കുഴൽകിണർ നിർമ്മാണം'}</h3>
-                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                        <tbody>
+                          <tr>
+                            <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                              <div style={{ fontSize: '12pt', fontWeight: 'bold', margin: 0, padding: 0 }}>ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</div>
+                              <div style={{ fontSize: '11pt', fontWeight: 'bold', textDecoration: 'underline', margin: '4px 0 0 0', padding: 0 }}>{isTWC ? 'പൂർത്തീകരണറിപ്പോർട്ട് - റ്റ്യൂബ് കിണർ നിർമ്മാണം' : 'പൂർത്തീകരണറിപ്പോർട്ട് - കുഴൽകിണർ നിർമ്മാണം'}</div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
 
                       <div className="flex justify-end text-xs sm:text-[13px] font-semibold mb-2">
                         <div className="min-w-[180px]">
@@ -4138,10 +4144,16 @@ export default function PrintableReportModal({
                 ) : (
                   <>
                     <div>
-                      <div className="text-center space-y-1 pb-2 mb-2 border-b-2 border-black">
-                        <h2 className="text-base sm:text-lg font-extrabold tracking-wide uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                        <h3 className="text-sm sm:text-base font-bold underline">{isTWC ? 'TUBE WELL COMPLETION REPORT' : 'BORE WELL COMPLETION REPORT'}</h3>
-                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                        <tbody>
+                          <tr>
+                            <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                              <div style={{ fontSize: '12pt', fontWeight: 'bold', textTransform: 'uppercase', margin: 0, padding: 0 }}>GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</div>
+                              <div style={{ fontSize: '11pt', fontWeight: 'bold', textDecoration: 'underline', margin: '4px 0 0 0', padding: 0 }}>{isTWC ? 'TUBE WELL COMPLETION REPORT' : 'BORE WELL COMPLETION REPORT'}</div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
 
                       <div className="flex justify-end text-xs sm:text-[13px] font-semibold mb-2">
                         <div className="min-w-[180px]">
@@ -4761,10 +4773,16 @@ export default function PrintableReportModal({
                   return (
                     <div className="flex flex-col justify-between h-full flex-1 space-y-4">
                       <div className="space-y-4">
-                        <div className="text-center space-y-1.5 pb-2 border-b-2 border-black">
-                          <h2 className="text-2xl font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                          <h3 className="text-xl font-bold">കുഴൽകിണർ നിർമ്മാണം - ഫൈനൽ ബിൽ</h3>
-                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '12px' }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '8px' }}>
+                                <div style={{ fontSize: '15pt', fontWeight: 'bold', margin: 0, padding: 0 }}>ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</div>
+                                <div style={{ fontSize: '13pt', fontWeight: 'bold', margin: '4px 0 0 0', padding: 0 }}>കുഴൽകിണർ നിർമ്മാണം - ഫൈനൽ ബിൽ</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
 
                         <div style={{ width: '100%', margin: '8px 0', fontSize: '11pt', fontWeight: 'bold', overflow: 'hidden' }}>
                           <div style={{ float: 'left', width: '60%', textAlign: 'left' }}>
@@ -5216,10 +5234,16 @@ export default function PrintableReportModal({
                   return (
                     <div className="flex flex-col justify-between h-full flex-1 space-y-4">
                       <div className="space-y-4">
-                        <div className="text-center space-y-1.5 pb-2 border-b-2 border-black">
-                          <h2 className="text-2xl font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                          <h3 className="text-xl font-bold underline">FINAL BILL FOR BOREWELL CONSTRUCTION</h3>
-                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '12px' }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '8px' }}>
+                                <div style={{ fontSize: '15pt', fontWeight: 'bold', textTransform: 'uppercase', margin: 0, padding: 0 }}>GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</div>
+                                <div style={{ fontSize: '13pt', fontWeight: 'bold', textDecoration: 'underline', margin: '4px 0 0 0', padding: 0 }}>FINAL BILL FOR BOREWELL CONSTRUCTION</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
 
                         <div className="flex justify-between items-start text-base font-semibold py-1">
                           <div className="flex flex-col space-y-1">
@@ -5562,10 +5586,16 @@ export default function PrintableReportModal({
 
               {lang === 'ml' ? (
                 <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold">ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</h2>
-                    <h3 className="text-base font-bold underline">അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (ABSTRACT OF FINAL BILL)</h3>
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                          <div style={{ fontSize: '13pt', fontWeight: 'bold', margin: 0, padding: 0 }}>ഭൂജലവകുപ്പ്, ജില്ലാ ഓഫീസ്, {districtMl}</div>
+                          <div style={{ fontSize: '11pt', fontWeight: 'bold', textDecoration: 'underline', margin: '4px 0 0 0', padding: 0 }}>അബ്‌സ്ട്രാക്ട് ഫൈനൽ ബിൽ (ABSTRACT OF FINAL BILL)</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="flex justify-between text-xs py-1">
                     <span>ഫയൽ നമ്പർ: <strong>{fileNo}</strong></span>
@@ -5741,10 +5771,16 @@ export default function PrintableReportModal({
                 </>
               ) : (
                 <>
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-lg font-bold uppercase">GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</h2>
-                    <h3 className="text-base font-bold underline">ABSTRACT OF FINAL BILL</h3>
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                          <div style={{ fontSize: '13pt', fontWeight: 'bold', textTransform: 'uppercase', margin: 0, padding: 0 }}>GROUND WATER DEPARTMENT, DISTRICT OFFICE, {district}</div>
+                          <div style={{ fontSize: '11pt', fontWeight: 'bold', textDecoration: 'underline', margin: '4px 0 0 0', padding: 0 }}>ABSTRACT OF FINAL BILL</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="flex justify-between text-xs py-1">
                     <span>File No: <strong>{fileNo}</strong></span>
@@ -5936,18 +5972,24 @@ export default function PrintableReportModal({
               {lang === 'ml' ? (
                 /* MALAYALAM PROCEEDINGS */
                 <div className="space-y-4">
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-[12pt] font-bold uppercase tracking-wide font-serif">
-                      ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസറുടെ നടപടിക്രമങ്ങൾ, {districtMl}
-                    </h2>
-                    {renderEditableCell('proc_officer_ml', 
-                      <p className="text-[11pt] font-semibold text-center">ഹാജർ: {officerNameMl || officerName}, {officerDesignationMl || getDesignationMl(officerDesignation)}</p>,
-                      <div className="flex gap-2">
-                        <MalayalamInput className="h-7 text-xs" placeholder="ഓഫീസറുടെ പേര്" value={officerNameMl} onChange={val => setOfficerNameMl(val)} englishValue={officerName} showAutoTranslateButton={false} />
-                        <MalayalamInput className="h-7 text-xs" placeholder="തസ്തിക" value={officerDesignationMl} onChange={val => setOfficerDesignationMl(val)} englishValue={officerDesignation} showAutoTranslateButton={false} />
-                      </div>
-                    )}
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                          <div style={{ fontSize: '12pt', fontWeight: 'bold', fontFamily: 'serif', margin: 0, padding: 0 }}>
+                            ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസറുടെ നടപടിക്രമങ്ങൾ, {districtMl}
+                          </div>
+                          {renderEditableCell('proc_officer_ml', 
+                            <p style={{ fontSize: '11pt', fontWeight: '600', textAlign: 'center', margin: '4px 0 0 0' }}>ഹാജർ: {officerNameMl || officerName}, {officerDesignationMl || getDesignationMl(officerDesignation)}</p>,
+                            <div className="flex gap-2 justify-center mt-1">
+                              <MalayalamInput className="h-7 text-xs" placeholder="ഓഫീസറുടെ പേര്" value={officerNameMl} onChange={val => setOfficerNameMl(val)} englishValue={officerName} showAutoTranslateButton={false} />
+                              <MalayalamInput className="h-7 text-xs" placeholder="തസ്തിക" value={officerDesignationMl} onChange={val => setOfficerDesignationMl(val)} englishValue={officerDesignation} showAutoTranslateButton={false} />
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
                     <div className="grid grid-cols-[80px_1fr] gap-1 items-start">
@@ -6080,18 +6122,24 @@ export default function PrintableReportModal({
               ) : (
                 /* ENGLISH PROCEEDINGS */
                 <div className="space-y-4">
-                  <div className="text-center space-y-1 pb-2 border-b-2 border-black">
-                    <h2 className="text-[12pt] font-bold uppercase tracking-wider">
-                      PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
-                    </h2>
-                    {renderEditableCell('proc_officer', 
-                      <p className="text-[11pt] italic font-semibold text-center">Present: {officerName}, {officerDesignation}</p>,
-                      <div className="flex gap-1">
-                        <Input className="h-6 text-[11pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
-                        <Input className="h-6 text-[11pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
-                      </div>
-                    )}
-                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '4px', marginBottom: '8px' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                          <div style={{ fontSize: '12pt', fontWeight: 'bold', textTransform: 'uppercase', margin: 0, padding: 0 }}>
+                            PROCEEDINGS OF THE DISTRICT OFFICER, GROUND WATER DEPARTMENT, {district.toUpperCase()}
+                          </div>
+                          {renderEditableCell('proc_officer', 
+                            <p style={{ fontSize: '11pt', fontStyle: 'italic', fontWeight: '600', textAlign: 'center', margin: '4px 0 0 0' }}>Present: {officerName}, {officerDesignation}</p>,
+                            <div className="flex gap-1 justify-center mt-1">
+                              <Input className="h-6 text-[11pt]" value={officerName} onChange={e => setOfficerName(e.target.value)} />
+                              <Input className="h-6 text-[11pt]" value={officerDesignation} onChange={e => setOfficerDesignation(e.target.value)} />
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="text-[11pt] space-y-3 py-2 leading-[1.5]">
                     <div className="grid grid-cols-[60px_1fr] gap-1 items-start">
@@ -6588,7 +6636,15 @@ export default function PrintableReportModal({
                   </div>
 
                   <div className="pt-2">
-                    <h4 className="text-center font-bold text-[10pt] underline mb-2">ധനവിനിയോഗ സാക്ഷ്യപത്രം (UTILIZATION CERTIFICATE)</h4>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '8px', marginBottom: '8px' }}>
+                      <tbody>
+                        <tr>
+                          <td style={{ border: '1px solid #000000', textAlign: 'center', padding: '6px' }}>
+                            <div style={{ fontSize: '11pt', fontWeight: 'bold', textDecoration: 'underline', margin: 0, padding: 0 }}>ധനവിനിയോഗ സാക്ഷ്യപത്രം (UTILIZATION CERTIFICATE)</div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                     
                     {/* Paragraph after UTILIZATION CERTIFICATE heading */}
                     <div className="text-[10pt] space-y-2 text-justify leading-[0.75cm] pb-2" style={{ lineHeight: '0.75cm' }}>
@@ -7170,9 +7226,9 @@ A total expenditure of ${expenditurePartEn} has been incurred for executing the 
                 Print
               </Button>
             )}
-            <Button onClick={handleCopyRichHtml} disabled={isCopying} variant="outline" className="gap-1.5 border-primary/20 hover:bg-primary/5 hover:text-primary">
+            <Button onClick={handleCopyOfficialTable} disabled={isCopying} variant="outline" className="gap-1.5 border-primary/20 hover:bg-primary/5 hover:text-primary">
               <ClipboardCopy className="h-4 w-4 text-primary" />
-              {isCopying ? "Copying..." : "Copy Rich HTML"}
+              {isCopying ? "Copying..." : "Copy Official Table"}
             </Button>
           </div>
         </DialogFooter>

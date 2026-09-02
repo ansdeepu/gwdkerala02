@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
-import { printDocument, copyRichHtml } from "@/lib/print-utils";
+import { printDocument, copyOfficialTable } from "@/lib/print-utils";
 import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
 import { useFileEntries } from "@/hooks/useFileEntries";
@@ -342,15 +342,15 @@ export default function InvestigationReportViewer({
     });
   };
 
-  // Handle Copy as Rich HTML
+  // Handle Copy as Official Table
   const handleCopy = async () => {
     const targetId = activeDocType === "investigation_report" ? "investigation-report-print-target" : "feasibility-report-print-target";
-    const success = await copyRichHtml(targetId);
+    const success = await copyOfficialTable(targetId);
     if (success) {
       setCopied(true);
       toast({
         title: "Copied to Clipboard",
-        description: "Rich formatted report copied. You can paste it into MS Word, LibreOffice, or e-Office.",
+        description: "Official table copied. You can paste it directly into e-Office Draft Editor, Word, or Excel.",
       });
       setTimeout(() => setCopied(false), 2500);
     } else {
@@ -463,7 +463,7 @@ export default function InvestigationReportViewer({
               </Button>
             )}
 
-            {/* Copy Rich HTML */}
+            {/* Copy Official Table */}
             <Button
               type="button"
               variant="outline"
@@ -472,7 +472,7 @@ export default function InvestigationReportViewer({
               onClick={handleCopy}
             >
               {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : "Copy Word/e-Office"}
+              {copied ? "Copied" : "Copy Official Table"}
             </Button>
 
             {/* Print Report Button */}
