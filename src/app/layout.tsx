@@ -1,9 +1,13 @@
-import type {Metadata} from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const dynamic = 'force-dynamic';
+
+export const viewport: Viewport = {
+  themeColor: '#0284c7',
+};
 
 const inter = Inter({
   variable: '--font-sans',
@@ -45,7 +49,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
   manifest: '/manifest.json',
-  themeColor: '#0284c7',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

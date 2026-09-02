@@ -113,6 +113,27 @@ function PhotoBox({ photoUrl, onPhotoChange }: { photoUrl?: string; onPhotoChang
   );
 }
 
+// Helper to format ISO or YYYY-MM-DD dates to dd/MM/yyyy (e.g., 2026-09-02 -> 02/09/2026)
+function formatToDDMMYYYY(val: any): string {
+  if (typeof val !== "string" || !val) return val || "";
+  const trimmed = val.trim();
+  const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const [_, yyyy, mm, dd] = isoMatch;
+    const padDD = dd.padStart(2, "0");
+    const padMM = mm.padStart(2, "0");
+    return `${padDD}/${padMM}/${yyyy}`;
+  }
+  const dashMatch = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dashMatch) {
+    const [_, dd, mm, yyyy] = dashMatch;
+    const padDD = dd.padStart(2, "0");
+    const padMM = mm.padStart(2, "0");
+    return `${padDD}/${padMM}/${yyyy}`;
+  }
+  return trimmed;
+}
+
 // Inline Form Underline Text Input
 function FormLineInput({
   value,
@@ -127,10 +148,11 @@ function FormLineInput({
   placeholder?: string;
   width?: string;
 }) {
+  const displayValue = formatToDDMMYYYY(value);
   return (
     <input
       type="text"
-      value={value || ""}
+      value={displayValue || ""}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={`${width} min-w-0 bg-transparent border-b border-dotted border-black px-1 text-xs sm:text-sm font-semibold focus:outline-none focus:border-solid focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
@@ -314,11 +336,21 @@ export function RigRegistrationApplicationFormView({
         }
       });
 
+      Object.keys(initial).forEach((key) => {
+        if (typeof initial[key] === "string") {
+          initial[key] = formatToDDMMYYYY(initial[key]);
+        }
+      });
+
       setData(initial);
     }
   }, [application]);
 
-  const update = (key: string, val: any) => setData((prev) => ({ ...prev, [key]: val }));
+  const update = (key: string, val: any) =>
+    setData((prev) => ({
+      ...prev,
+      [key]: typeof val === "string" ? formatToDDMMYYYY(val) : val,
+    }));
 
   const handlePrint = () => {
     printDocument("rig-reg-official-form", "ഡ്രില്ലിംഗ് ഏജൻസി/സ്ഥാപനവും ഡ്രില്ലിംഗ് റിഗ്ഗും രജിസ്റ്റർ ചെയ്യുന്നതിനുള്ള അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
@@ -1051,7 +1083,7 @@ export function RigRegistrationApplicationFormView({
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold">തീയതി :</span>
-                  <FormLineInput value={data.date} onChange={(v) => update("date", v)} width="w-28" />
+                  <FormLineInput value={data.date} onChange={(v) => update("date", v)} placeholder="dd/mm/yyyy" width="w-28" />
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold">സ്ഥലം :</span>
@@ -1072,7 +1104,7 @@ export function RigRegistrationApplicationFormView({
             <div className="space-y-1.5 pl-2 text-xs">
               <div className="flex items-baseline gap-2">
                 <span className="whitespace-nowrap">അപേക്ഷ ലഭിച്ച തീയതി :</span>
-                <FormLineInput value={data.office_date_recd} onChange={(v) => update("office_date_recd", v)} />
+                <FormLineInput value={data.office_date_recd} onChange={(v) => update("office_date_recd", v)} placeholder="dd/mm/yyyy" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="whitespace-nowrap">അപേക്ഷാ ഫീസ് അടച്ച വിവരങ്ങൾ :</span>
@@ -1084,7 +1116,7 @@ export function RigRegistrationApplicationFormView({
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="whitespace-nowrap">റിഗ് പരിശോധിച്ച തീയതി :</span>
-                <FormLineInput value={data.office_rig_inspected_date} onChange={(v) => update("office_rig_inspected_date", v)} />
+                <FormLineInput value={data.office_rig_inspected_date} onChange={(v) => update("office_rig_inspected_date", v)} placeholder="dd/mm/yyyy" />
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="whitespace-nowrap">പരിശോധകന്റെ ശുപാർശ :</span>
@@ -1122,7 +1154,7 @@ export function RigRegistrationApplicationFormView({
 
               <div className="flex items-baseline gap-2">
                 <span className="font-bold whitespace-nowrap">അപേക്ഷ ലഭിച്ച തീയതി :</span>
-                <FormLineInput value={data.receipt_date_recd} onChange={(v) => update("receipt_date_recd", v)} />
+                <FormLineInput value={data.receipt_date_recd} onChange={(v) => update("receipt_date_recd", v)} placeholder="dd/mm/yyyy" />
               </div>
 
               <div className="space-y-1">
@@ -1134,7 +1166,7 @@ export function RigRegistrationApplicationFormView({
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-semibold whitespace-nowrap">തീയതി :</span>
-                    <FormLineInput value={data.receipt_paid_date} onChange={(v) => update("receipt_paid_date", v)} />
+                    <FormLineInput value={data.receipt_paid_date} onChange={(v) => update("receipt_paid_date", v)} placeholder="dd/mm/yyyy" />
                   </div>
                 </div>
               </div>
@@ -1179,7 +1211,7 @@ export function RigRegistrationApplicationFormView({
             <div className="flex justify-between items-end pt-6 text-xs">
               <div className="flex items-baseline gap-2">
                 <span className="font-bold">തീയതി :</span>
-                <FormLineInput value={data.date} onChange={(v) => update("date", v)} width="w-28" />
+                <FormLineInput value={data.date} onChange={(v) => update("date", v)} placeholder="dd/mm/yyyy" width="w-28" />
               </div>
               <div className="text-center w-36">
                 <p className="font-bold border-t border-dotted border-black pt-1">ജില്ലാ ഓഫീസർ</p>
@@ -1315,11 +1347,21 @@ export function RigRenewalApplicationFormView({
         if (!savedFormData[`${rigKey}_gen_engine`]) initial[`${rigKey}_gen_engine`] = rig?.generatorDetails?.engineNo || "";
       });
 
+      Object.keys(initial).forEach((key) => {
+        if (typeof initial[key] === "string") {
+          initial[key] = formatToDDMMYYYY(initial[key]);
+        }
+      });
+
       setData(initial);
     }
   }, [application]);
 
-  const update = (key: string, val: any) => setData((prev) => ({ ...prev, [key]: val }));
+  const update = (key: string, val: any) =>
+    setData((prev) => ({
+      ...prev,
+      [key]: typeof val === "string" ? formatToDDMMYYYY(val) : val,
+    }));
 
   const handlePrint = () => {
     printDocument("rig-renewal-official-form", "റിഗ് രജിസ്ട്രേഷൻ പുതുക്കൽ/പുതിയ റിഗ് രജിസ്ട്രേഷൻ അപേക്ഷാ ഫോറം", "1.2cm 1.5cm 1.2cm 1.5cm");
@@ -1534,7 +1576,7 @@ export function RigRenewalApplicationFormView({
 
                 <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 pl-2 min-w-0">
                   <span className="font-bold whitespace-nowrap shrink-0">5. രജിസ്ട്രേഷൻ അവസാനിക്കുന്ന തീയതി :</span>
-                  <FormLineInput value={data[`regRig${num}_expiryDate`]} onChange={(v) => update(`regRig${num}_expiryDate`, v)} />
+                  <FormLineInput value={data[`regRig${num}_expiryDate`]} onChange={(v) => update(`regRig${num}_expiryDate`, v)} placeholder="dd/mm/yyyy" />
                 </div>
               </div>
             ))}
@@ -1802,7 +1844,7 @@ export function RigRenewalApplicationFormView({
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold">തീയതി :</span>
-                  <FormLineInput value={data.date} onChange={(v) => update("date", v)} width="w-28" />
+                  <FormLineInput value={data.date} onChange={(v) => update("date", v)} placeholder="dd/mm/yyyy" width="w-28" />
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold">സ്ഥലം :</span>
@@ -1823,7 +1865,7 @@ export function RigRenewalApplicationFormView({
             <div className="space-y-1.5 pl-2 text-xs min-w-0">
               <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
                 <span className="whitespace-nowrap shrink-0">1. അപേക്ഷ ലഭിച്ച തീയതി :</span>
-                <FormLineInput value={data.office_date_recd} onChange={(v) => update("office_date_recd", v)} />
+                <FormLineInput value={data.office_date_recd} onChange={(v) => update("office_date_recd", v)} placeholder="dd/mm/yyyy" />
               </div>
 
               <div className="space-y-1 min-w-0">
@@ -1835,14 +1877,14 @@ export function RigRenewalApplicationFormView({
                   </div>
                   <div className="flex items-baseline gap-2 min-w-0">
                     <span className="whitespace-nowrap shrink-0">തിയതി :</span>
-                    <FormLineInput value={data.office_fee_date} onChange={(v) => update("office_fee_date", v)} />
+                    <FormLineInput value={data.office_fee_date} onChange={(v) => update("office_fee_date", v)} placeholder="dd/mm/yyyy" />
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
                 <span className="whitespace-nowrap shrink-0">3. റിഗ് പരിശോധിച്ച തീയതി :</span>
-                <FormLineInput value={data.office_rig_inspected_date} onChange={(v) => update("office_rig_inspected_date", v)} />
+                <FormLineInput value={data.office_rig_inspected_date} onChange={(v) => update("office_rig_inspected_date", v)} placeholder="dd/mm/yyyy" />
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
@@ -1885,7 +1927,7 @@ export function RigRenewalApplicationFormView({
 
               <div className="flex flex-wrap sm:flex-nowrap items-baseline gap-2 min-w-0">
                 <span className="font-bold whitespace-nowrap shrink-0">4. അപേക്ഷ ലഭിച്ച തീയതി :</span>
-                <FormLineInput value={data.receipt_date_recd} onChange={(v) => update("receipt_date_recd", v)} />
+                <FormLineInput value={data.receipt_date_recd} onChange={(v) => update("receipt_date_recd", v)} placeholder="dd/mm/yyyy" />
               </div>
 
               <div className="space-y-1 min-w-0">
@@ -1897,7 +1939,7 @@ export function RigRenewalApplicationFormView({
                   </div>
                   <div className="flex items-baseline gap-2 min-w-0">
                     <span className="font-semibold whitespace-nowrap shrink-0">തിയതി :</span>
-                    <FormLineInput value={data.receipt_fee_paid_date} onChange={(v) => update("receipt_fee_paid_date", v)} />
+                    <FormLineInput value={data.receipt_fee_paid_date} onChange={(v) => update("receipt_fee_paid_date", v)} placeholder="dd/mm/yyyy" />
                   </div>
                 </div>
               </div>
@@ -1940,7 +1982,7 @@ export function RigRenewalApplicationFormView({
             <div className="flex justify-between items-end pt-6 text-xs min-w-0">
               <div className="flex items-baseline gap-2 min-w-0">
                 <span className="font-bold shrink-0">തിയതി :</span>
-                <FormLineInput value={data.date} onChange={(v) => update("date", v)} width="w-28" />
+                <FormLineInput value={data.date} onChange={(v) => update("date", v)} placeholder="dd/mm/yyyy" width="w-28" />
               </div>
               <div className="text-center w-36 shrink-0">
                 <p className="font-bold border-t border-dotted border-black pt-1">ജിാ ഓഫീസർ</p>
