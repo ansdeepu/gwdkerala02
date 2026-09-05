@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/shared/DebouncedSearchInput";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -143,12 +144,12 @@ export default function PresentWorkDetails({ allFileEntries, allArsEntries, onOp
                         </CardDescription>
                     </div>
                     <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                        <DebouncedSearchInput 
                             placeholder="Search in current tab..." 
                             className="pl-9 h-9"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onSearchChange={setSearchTerm}
                         />
                     </div>
                 </div>

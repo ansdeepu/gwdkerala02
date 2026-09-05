@@ -51,6 +51,8 @@ export function GlobalSearchCommand({
 }) {
   const router = Router();
   const [query, setQuery] = useState('');
+  const [searchTarget, setSearchTarget] = useState('');
+  const [isPending, startTransition] = React.useTransition();
   const {
     allFileEntries,
     allArsEntries,
@@ -68,12 +70,20 @@ export function GlobalSearchCommand({
   useEffect(() => {
     if (!open) {
       setQuery('');
+      setSearchTarget('');
     }
   }, [open]);
 
-  // Aggregate searchable items
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    startTransition(() => {
+      setSearchTarget(val);
+    });
+  };
+
   const results = useMemo<SearchResultItem[]>(() => {
-    const q = query.trim().toLowerCase();
+    const q = searchTarget.trim().toLowerCase();
     if (!q) return [];
 
     const matched: SearchResultItem[] = [];
@@ -221,7 +231,7 @@ export function GlobalSearchCommand({
     });
 
     return matched.slice(0, 30); // Cap at top 30 most relevant
-  }, [query, allFileEntries, allArsEntries, allAgencyApplications, allE_tenders, allDepartmentVehicles, allHiredVehicles]);
+  }, [searchTarget, allFileEntries, allArsEntries, allAgencyApplications, allE_tenders, allDepartmentVehicles, allHiredVehicles]);
 
   const handleSelect = useCallback(
     (href: string) => {
@@ -243,15 +253,18 @@ export function GlobalSearchCommand({
           <Search className="h-5 w-5 text-muted-foreground shrink-0" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={handleQueryChange}
             placeholder="Search by File No, Applicant, Site Name, Challan No, or Rig No..."
             className="border-none shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70 bg-transparent h-9 p-0"
             autoFocus
           />
           {query ? (
             <button
-              onClick={() => setQuery('')}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors"
+              onClick={() => {
+                setQuery('');
+                setSearchTarget('');
+              }}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>

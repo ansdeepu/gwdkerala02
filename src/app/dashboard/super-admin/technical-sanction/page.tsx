@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useDataStore } from '@/hooks/use-data-store';
 import { Loader2, Search, Eye, FileText } from 'lucide-react';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 import type { DataEntryFormData, SiteDetailFormData, ArsStatus, SiteWorkStatus } from '@/lib/schemas';
 import { usePageHeader } from "@/hooks/usePageHeader";
 
@@ -138,13 +139,13 @@ export default function TechnicalSanctionPage() {
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+              <DebouncedSearchInput
                 type="search"
                 placeholder="Search by office, file, site..."
                 className="w-full pl-10"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onSearchChange={setSearchTerm}
               />
             </div>
             <div className="flex items-center gap-4">

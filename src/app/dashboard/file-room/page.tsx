@@ -25,6 +25,7 @@ import PaginationControls from '@/components/shared/PaginationControls';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Search, PlusCircle, Loader2 } from 'lucide-react';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 import { matchesAllDataSearch } from '@/lib/searchUtils';
 
 
@@ -238,8 +239,8 @@ function FileManagerContent() {
         <CardContent className="p-4 space-y-4">
            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="relative flex-grow w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search files..." className="w-full pl-10 shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <DebouncedSearchInput type="search" placeholder="Search files..." className="w-full pl-10 shadow-sm" value={searchTerm} onSearchChange={setSearchTerm} />
               </div>
                <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
                 <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mr-2">

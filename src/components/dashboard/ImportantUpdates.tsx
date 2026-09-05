@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { DebouncedSearchInput } from "@/components/shared/DebouncedSearchInput";
 import { cn } from "@/lib/utils";
 import type { DataEntryFormData, SiteWorkStatus, PendingUpdate } from '@/lib/schemas';
 import { useAuth } from '@/hooks/useAuth';
@@ -292,23 +293,14 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
               </SelectContent>
             </Select>
 
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
+            <div className="relative min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10 pointer-events-none" />
+              <DebouncedSearchInput
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onSearchChange={setSearchQuery}
                 placeholder="Search file, site, applicant..."
                 className="h-8 pl-8 pr-7 text-xs bg-background focus-visible:ring-1"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs leading-none p-0.5"
-                >
-                  ✕
-                </button>
-              )}
             </div>
           </div>
         </CardHeader>

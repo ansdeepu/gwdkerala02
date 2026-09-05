@@ -11,6 +11,11 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Pass through Next.js navigation redirect errors
+  if (error?.message === 'NEXT_REDIRECT' || error?.digest?.includes('NEXT_REDIRECT')) {
+    throw error;
+  }
+
   useEffect(() => {
     console.error("Unhandled error:", error);
   }, [error]);

@@ -112,6 +112,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    match /systemSettings/{docId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow write: if isSuperAdmin() || isSubOfficeAdmin();
+    }
+
     /* ================= OFFICE SUBCOLLECTIONS ================= */
 
     match /offices/{officeId} {

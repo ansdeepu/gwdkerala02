@@ -19,6 +19,7 @@ import { designationOptions, bloodGroupOptions } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { DebouncedSearchInput } from "@/components/shared/DebouncedSearchInput";
 import {
   Dialog,
   DialogContent,
@@ -355,14 +356,14 @@ export default function EstablishmentPage() {
         <CardContent className="p-4 space-y-4">
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full">
             <div className="relative flex-grow min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+              <DebouncedSearchInput
                 id="staff-search"
                 name="staffSearch"
                 placeholder="Search staff members..."
                 className="w-full pl-10"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onSearchChange={setSearchTerm}
               />
             </div>
             <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">

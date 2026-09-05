@@ -30,8 +30,10 @@ import { cn, formatCase, formatDistrictLocation, getInitials } from '@/lib/utils
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
-import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save, X, Info, PlusCircle, Eye } from 'lucide-react';
+import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save, X, Info, PlusCircle, Eye, HardDrive, Settings2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
+import { getGoogleDriveScriptUrl } from '@/lib/googleDriveUploadClient';
 
 const db = getFirestore(app);
 
@@ -270,7 +272,7 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const { allLsgConstituencyMaps, allStaffMembers, officeAddress, allOfficeAddresses, setSelectedOffice, selectedOffice } = useDataStore();
     const isAdmin = user?.role === 'admin';
-    const isSuperAdmin = user?.role === 'superAdmin';
+    const isSuperAdmin = user?.role === 'superAdmin' || user?.email === 'keralagwd@gmail.com' || user?.email === SUPER_ADMIN_EMAIL;
     const canManage = isAdmin || isSuperAdmin;
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -286,6 +288,12 @@ export default function SettingsPage() {
     const [listDialogContent, setListDialogContent] = useState<{ title: string; items: string[] }>({ title: '', items: [] });
     
     const [mergedOfficeDetails, setMergedOfficeDetails] = useState<Partial<OfficeAddress> | null>(null);
+    const [isDriveSetupOpen, setIsDriveSetupOpen] = useState(false);
+    const [driveScriptUrl, setDriveScriptUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        getGoogleDriveScriptUrl().then((url) => setDriveScriptUrl(url));
+    }, []);
 
     useEffect(() => {
         setHeader('General Settings', 'Manage dropdown options and other application-wide settings.');
@@ -605,7 +613,67 @@ export default function SettingsPage() {
                     <button onClick={() => handleCountClick('constituency')} disabled={allConstituencies.length === 0} className="p-4 border rounded-lg bg-purple-50/10 hover:bg-purple-50/20 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><h4 className="text-sm font-medium text-muted-foreground">Constituencies (LAC)</h4><p className="text-4xl font-bold text-purple-600">{allConstituencies.length}</p></button>
                 </CardContent>
             </Card>
+
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2">
+                                <HardDrive className="h-5 w-5 text-primary" />
+                                Google Drive Media Archive (keralagwd@gmail.com)
+                            </CardTitle>
+                            <CardDescription>
+                                Automatically archives site photos and videos directly into the department&apos;s Google Drive, organized by District/Office folders.
+                            </CardDescription>
+                        </div>
+                        {isSuperAdmin ? (
+                            <Button variant="outline" size="sm" onClick={() => setIsDriveSetupOpen(true)} className="shrink-0 gap-1.5">
+                                <Settings2 className="h-4 w-4" />
+                                {driveScriptUrl ? "Configure Integration" : "Setup Google Drive"}
+                            </Button>
+                        ) : (
+                            <div className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2.5 py-1 rounded border">
+                                Super Admin Controlled
+                            </div>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-muted/20 gap-3">
+                        <div className="space-y-0.5">
+                            <p className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                <span>Integration Status:</span>
+                                {driveScriptUrl ? (
+                                    <span className="text-green-600 flex items-center gap-1 font-bold">
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Connected to keralagwd@gmail.com
+                                    </span>
+                                ) : (
+                                    <span className="text-amber-600 flex items-center gap-1 font-bold">
+                                        <AlertCircle className="h-3.5 w-3.5" /> Setup Pending (Super Admin)
+                                    </span>
+                                )}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                {isSuperAdmin 
+                                    ? "Hierarchy: GWD_Site_Media / [Office Location] / [File No - Site Name]"
+                                    : "Managed centrally by State Super Administrator (keralagwd@gmail.com). District site uploads are routed automatically."}
+                            </p>
+                        </div>
+                        {isSuperAdmin && (
+                            <Button size="sm" variant="secondary" onClick={() => setIsDriveSetupOpen(true)} className="text-xs shrink-0">
+                                {driveScriptUrl ? "View Settings" : "Configure Now"}
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
+
+        <GoogleDriveSetupDialog
+            open={isDriveSetupOpen}
+            onOpenChange={setIsDriveSetupOpen}
+            onConfigured={(url) => setDriveScriptUrl(url)}
+        />
 
         <OfficeAddressDialog
             isOpen={isOfficeDialogOpen}

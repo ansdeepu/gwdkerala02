@@ -21,6 +21,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Loader2, Search, Eye, FileDown, Clock, Building } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 
 
 
@@ -195,13 +196,13 @@ export default function AgencyRegistrationSuperAdminPage() {
         <CardContent className="p-4 space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="relative flex-grow w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
+                <DebouncedSearchInput 
                     type="search" 
                     placeholder="Search by Agency, Owner, File No, Office..." 
                     className="w-full rounded-lg bg-background pl-10 shadow-sm" 
                     value={searchTerm} 
-                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    onSearchChange={setSearchTerm} 
                 />
               </div>
           </div>

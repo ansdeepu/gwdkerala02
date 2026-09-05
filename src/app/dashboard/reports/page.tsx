@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDataStore } from '@/hooks/use-data-store';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 import { RotateCcw, Loader2, FileDown, Search, Layers, CheckCircle, CheckSquare, Square, Filter } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelectFilter } from "@/components/reports/MultiSelectFilter";
@@ -962,8 +963,8 @@ export default function ReportsPage() {
                 <div className="space-y-1.5 lg:col-span-2">
                     <Label className="text-xs font-semibold">Global Search</Label>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Global search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-9 text-xs" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                        <DebouncedSearchInput placeholder="Global search..." value={searchTerm} onSearchChange={setSearchTerm} className="pl-10 h-9 text-xs" />
                     </div>
                 </div>
 

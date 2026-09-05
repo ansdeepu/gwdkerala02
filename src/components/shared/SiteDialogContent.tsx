@@ -1170,6 +1170,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeImage}
                                                         update={updateImage}
                                                         isReadOnly={isFieldReadOnly(true)}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
+                                                        fileNo={initialData?.fileNo || (initialData as any)?.currentFileNo}
+                                                        siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                     <Separator />
                                                     <MediaManager
@@ -1180,6 +1183,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeVideo}
                                                         update={updateVideo}
                                                         isReadOnly={isFieldReadOnly(true)}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
+                                                        fileNo={initialData?.fileNo || (initialData as any)?.currentFileNo}
+                                                        siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                 </CardContent>
                                             </Card>

@@ -26,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { useDataStore } from '@/hooks/use-data-store';
 import { TrendingUp, XCircle, Loader2, PlusCircle, Search, Trash2, Eye, Users, Copy, Clock, FolderOpen, Bell, Hammer, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Link as LinkIcon, ArrowUpRight, ArrowLeft, FileText } from 'lucide-react';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 import ExcelJS from 'exceljs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DataEntryFormData } from '@/lib/schemas';
@@ -1218,13 +1219,13 @@ export default function ETenderListPage() {
                 <CardContent className="p-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <div className="relative flex-grow w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                            <DebouncedSearchInput
                                 type="search"
                                 placeholder="Search across all fields..."
                                 className="w-full pl-10"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onSearchChange={setSearchTerm}
                             />
                         </div>
                         <div className="flex flex-col items-end gap-2 w-full sm:w-auto">

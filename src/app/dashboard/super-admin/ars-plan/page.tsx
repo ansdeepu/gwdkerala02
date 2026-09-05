@@ -27,6 +27,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDataStore } from '@/hooks/use-data-store';
 import { Loader2, Search, Eye, XCircle, Clock, FileDown } from 'lucide-react';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 
 
 
@@ -349,8 +350,8 @@ export default function ArsPlanPage() {
         <CardContent className="p-4 space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="relative w-full sm:flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="search" placeholder="Search across all fields..." className="w-full rounded-lg bg-background pl-10 shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                    <DebouncedSearchInput type="search" placeholder="Search across all fields..." className="w-full rounded-lg bg-background pl-10 shadow-sm" value={searchTerm} onSearchChange={setSearchTerm} />
                 </div>
                 <div className="flex items-center flex-wrap sm:flex-nowrap justify-end gap-2">
                   <Button variant="outline" onClick={handleExportExcel} size="sm" className="shrink-0"> <FileDown className="mr-2 h-4 w-4" /> Export Excel </Button>

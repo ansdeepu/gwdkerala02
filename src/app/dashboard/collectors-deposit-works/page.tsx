@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Search, PlusCircle, Loader2 } from 'lucide-react';
 import { matchesAllDataSearch } from '@/lib/searchUtils';
+import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 
 
 
@@ -223,13 +224,13 @@ function CollectorsDepositWorksContent() {
         <CardContent className="p-4 space-y-4">
            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="relative flex-grow w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/80" />
-                <Input
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/80 z-10 pointer-events-none" />
+                <DebouncedSearchInput
                   type="search"
                   placeholder="Search all fields..."
                   className="w-full rounded-lg bg-background pl-10 shadow-sm"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onSearchChange={setSearchTerm}
                 />
               </div>
                <div className="flex items-center gap-4 w-full sm:w-auto">
