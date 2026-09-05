@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Layers } from "lucide-react";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
@@ -1623,12 +1623,92 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                         </TableCell>
                     )}
                 </TableRow>)) : <TableRow><TableCell colSpan={5 + (isEditor && !isFormDisabled ? 1 : 0)} className="text-center h-24">No payments added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={2} className="text-right font-bold">Total Payment</TableCell><TableCell className="font-bold text-right w-24 sm:w-28 whitespace-nowrap font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 3 : 2}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-xl">{finalDetailsSectionNumber}. Final Details</CardTitle></CardHeader><CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="p-4 border rounded-lg space-y-4 bg-secondary/30"><h3 className="font-semibold text-lg text-primary">Financial Summary</h3><dl className="space-y-2">
-                <div className="flex justify-between items-baseline"><dt>Total Remittance</dt><dd className="font-mono">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
-                <div className="flex justify-between items-baseline text-green-600 font-semibold"><dt>Total Re-appropriation credit</dt><dd className="font-mono font-bold">₹{(totalReappropriationCreditWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</dd></div>
-                <div className="flex justify-between items-baseline"><dt>Total Payment</dt><dd className="font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
-                <div className="flex justify-between items-baseline text-red-600 font-semibold"><dt>Total Re-appropriation debit</dt><dd className="font-mono font-bold">₹{(totalReappropriationWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
-                <Separator /><div className="flex justify-between items-baseline font-bold"><dt>Overall Balance</dt><dd className="font-mono text-xl">₹{(watch('overallBalance') || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div></dl></div><div className="p-4 border rounded-lg space-y-4 bg-secondary/30"><FormField control={control} name="fileStatus" render={({ field }) => <FormItem><FormLabel>File Status <span className="text-destructive">*</span></FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isViewer || isFormDisabled || isSupervisor || isInvestigator}><FormControl><SelectTrigger><SelectValue placeholder="Select final file status" /></SelectTrigger></FormControl><SelectContent>{LOGGING_PUMPING_TEST_FILE_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} /><FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor || isInvestigator} /></FormControl><FormMessage /></FormItem>} /></div></CardContent></Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl">{finalDetailsSectionNumber}. Final Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Abstract of Sites */}
+                    <div className="p-4 border rounded-lg space-y-3 bg-secondary/20">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-base text-primary flex items-center gap-2">
+                                <Layers className="h-4 w-4" />
+                                Abstract of Sites
+                            </h3>
+                            <span className="text-xs text-muted-foreground font-medium">
+                                Total Sites: {(watchedSiteDetails || siteFields || []).length}
+                            </span>
+                        </div>
+
+                        {(watchedSiteDetails && watchedSiteDetails.length > 0) ? (
+                            <div className="overflow-x-auto rounded-md border bg-background">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                            <TableHead className="w-12 text-center text-xs font-semibold py-2">#</TableHead>
+                                            <TableHead className="text-xs font-semibold py-2">Site Name</TableHead>
+                                            <TableHead className="text-xs font-semibold py-2">Purpose</TableHead>
+                                            <TableHead className="text-xs font-semibold py-2 text-right sm:text-left">Work Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {watchedSiteDetails.map((site: any, idx: number) => {
+                                            const status = site.workStatus || site.status || 'Pending';
+                                            const sLower = String(status).toLowerCase();
+                                            let badgeClass = "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-300 dark:border-sky-800";
+                                            if (sLower.includes('completed') || sLower.includes('feasible') || sLower.includes('issued') || sLower.includes('prepared') || sLower.includes('success')) {
+                                                badgeClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
+                                            } else if (sLower.includes('fail') || sLower.includes('cancel') || sLower.includes('non-feasible') || sLower.includes('not feasible') || sLower.includes('dropped')) {
+                                                badgeClass = "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300 dark:border-rose-800";
+                                            } else if (sLower.includes('pending') || sLower.includes('refund') || sLower.includes('hold')) {
+                                                badgeClass = "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-800";
+                                            }
+
+                                            return (
+                                                <TableRow key={site.id || idx} className="text-xs hover:bg-muted/30">
+                                                    <TableCell className="text-center font-mono py-2 font-medium text-muted-foreground">{idx + 1}</TableCell>
+                                                    <TableCell className="font-medium py-2 text-foreground">
+                                                        {site.nameOfSite || site.siteName || <span className="italic text-muted-foreground">Unnamed Site</span>}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-muted-foreground">
+                                                        {site.purpose || site.arsTypeOfScheme || 'N/A'}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right sm:text-left">
+                                                        <Badge variant="outline" className={cn("font-medium text-[11px] whitespace-nowrap", badgeClass)}>
+                                                            {status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md bg-background/50">
+                                No sites added to this file yet.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
+                            <h3 className="font-semibold text-lg text-primary">Financial Summary</h3>
+                            <dl className="space-y-2">
+                                <div className="flex justify-between items-baseline"><dt>Total Remittance</dt><dd className="font-mono">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                <div className="flex justify-between items-baseline text-green-600 font-semibold"><dt>Total Re-appropriation credit</dt><dd className="font-mono font-bold">₹{(totalReappropriationCreditWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</dd></div>
+                                <div className="flex justify-between items-baseline"><dt>Total Payment</dt><dd className="font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                <div className="flex justify-between items-baseline text-red-600 font-semibold"><dt>Total Re-appropriation debit</dt><dd className="font-mono font-bold">₹{(totalReappropriationWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                <Separator /><div className="flex justify-between items-baseline font-bold"><dt>Overall Balance</dt><dd className="font-mono text-xl">₹{(watch('overallBalance') || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                            </dl>
+                        </div>
+                        <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
+                            <FormField control={control} name="fileStatus" render={({ field }) => <FormItem><FormLabel>File Status <span className="text-destructive">*</span></FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isViewer || isFormDisabled || isSupervisor || isInvestigator}><FormControl><SelectTrigger><SelectValue placeholder="Select final file status" /></SelectTrigger></FormControl><SelectContent>{LOGGING_PUMPING_TEST_FILE_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+                            <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor || isInvestigator} /></FormControl><FormMessage /></FormItem>} />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
             <CardFooter className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting}>
                     <X className="mr-2 h-4 w-4" /> Close
