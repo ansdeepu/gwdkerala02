@@ -1,7 +1,7 @@
 // src/hooks/use-data-store.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { getFirestore, collection, onSnapshot, query, Timestamp, DocumentData, orderBy, getDocs, type QuerySnapshot, where, deleteDoc, doc, addDoc, updateDoc, serverTimestamp, writeBatch, collectionGroup, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { useAuth, type UserProfile } from './useAuth';
@@ -44,6 +44,120 @@ const processFirestoreDoc = <T,>(docSnap: any): T => {
     const processed = processFirestoreData(data);
     const id = docSnap.id || (processed as any).id || (processed as any).uid;
     return { ...processed, id: id, uid: id } as T;
+};
+
+const normalizeFileNo = (fn?: string | null): string => {
+    if (!fn) return '';
+    return fn.trim().toUpperCase()
+        .replace(/^[A-Z]{2,}[A-Z0-9_\-\s]*\//, '')
+        .replace(/\s+/g, '');
+};
+
+const matchFileNo = (fn1?: string | null, fn2?: string | null): boolean => {
+    if (!fn1 || !fn2) return false;
+    const n1 = normalizeFileNo(fn1);
+    const n2 = normalizeFileNo(fn2);
+    if (!n1 || !n2) return false;
+    if (n1 === n2) return true;
+    
+    const parts1 = n1.split('/');
+    const parts2 = n2.split('/');
+    if (parts1[0] === parts2[0] && parts1[0].length > 0) {
+        if (parts1.length === 1 || parts2.length === 1) return true;
+        const y1 = parts1[1];
+        const y2 = parts2[1];
+        if (y1 === y2 || y1.slice(-2) === y2.slice(-2)) return true;
+    }
+    return false;
+};
+
+const isTenderCancelledOrRetender = (status?: string | null): boolean => {
+    if (!status) return false;
+    const s = status.trim().toLowerCase();
+    return s === 'tender cancelled' || 
+           s === 'cancelled' || 
+           s === 'retender' || 
+           s === 're-tender' ||
+           s.includes('cancelled') ||
+           s.includes('retender');
+};
+
+const isFinalSiteStatus = (status?: string | null): boolean => {
+    if (!status) return false;
+    return [
+        "Work Completed",
+        "Work Failed",
+        "Work Cancelled",
+        "Bill Prepared",
+        "Payment Completed",
+        "Utilization Certificate Issued",
+        "Completed"
+    ].includes(status);
+};
+
+const getResolvedWorkStatus = (
+    site: any,
+    fileNo: string | undefined,
+    idx: number,
+    tenders: E_tender[]
+): string | null => {
+    if (!tenders || !tenders.length) return null;
+    const siteId = site.id || (fileNo ? `${fileNo}_${idx}` : undefined);
+    const normTenderNo = site.tenderNo?.trim().toUpperCase();
+
+    const matchingTenders = tenders.filter(tender => {
+        // 1. Direct tender number match
+        if (normTenderNo && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) {
+            return true;
+        }
+        // 2. Explicit selection in tender
+        if (siteId && Array.isArray(tender.selectedSiteIds) && tender.selectedSiteIds.includes(siteId)) {
+            return true;
+        }
+        // 3. Linked sites in tender
+        if (Array.isArray(tender.linkedSites) && tender.linkedSites.some(ls => 
+            (siteId && ls.siteId === siteId) ||
+            (matchFileNo(ls.fileNo, fileNo) && ls.nameOfSite === site.nameOfSite)
+        )) {
+            return true;
+        }
+        // 4. File number match
+        if (fileNo && (
+            matchFileNo(tender.fileNo, fileNo) ||
+            matchFileNo(tender.fileNo2, fileNo) ||
+            matchFileNo(tender.fileNo3, fileNo) ||
+            matchFileNo(tender.fileNo4, fileNo)
+        )) {
+            return true;
+        }
+        return false;
+    });
+
+    if (!matchingTenders.length) return null;
+
+    matchingTenders.sort((a, b) => {
+        const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+        const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+        return timeB - timeA;
+    });
+
+    const latestTender = matchingTenders[0];
+    const ts = latestTender.presentStatus;
+
+    if (isTenderCancelledOrRetender(ts)) {
+        if (!isFinalSiteStatus(site.workStatus)) {
+            return "Under Process";
+        }
+    } else if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
+        if (!isFinalSiteStatus(site.workStatus)) {
+            return "Work Order Issued";
+        }
+    } else if (ts === "Selection Notice Issued") {
+        if (!isFinalSiteStatus(site.workStatus)) {
+            return "Selection Notice Issued";
+        }
+    }
+    return null;
 };
 
 export type RateDescriptionId = 'tenderFee' | 'emd' | 'performanceGuarantee' | 'additionalPerformanceGuarantee' | 'stampPaper';
@@ -127,8 +241,8 @@ const DataStoreContext = createContext<DataStoreContextType | undefined>(undefin
 export function DataStoreProvider({ children, user }: { children: ReactNode, user: UserProfile | null }) {
     const [selectedOffice, setSelectedOffice] = useState<string | null>(null);
     const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
-    const [allFileEntries, setAllFileEntries] = useState<DataEntryFormData[]>([]);
-    const [allArsEntries, setAllArsEntries] = useState<ArsEntry[]>([]);
+    const [rawFileEntries, setRawFileEntries] = useState<DataEntryFormData[]>([]);
+    const [rawArsEntries, setRawArsEntries] = useState<ArsEntry[]>([]);
     const [allStaffMembers, setAllStaffMembers] = useState<StaffMember[]>([]);
     const [allAgencyApplications, setAllAgencyApplications] = useState<AgencyApplication[]>([]);
     const [allLsgConstituencyMaps, setAllLsgConstituencyMaps] = useState<LsgConstituencyMap[]>([]);
@@ -303,7 +417,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
 
     useEffect(() => {
         if (!user) {
-            setAllFileEntries([]); setAllArsEntries([]); setAllStaffMembers([]);
+            setRawFileEntries([]); setRawArsEntries([]); setAllStaffMembers([]);
             setAllAgencyApplications([]); setAllE_tenders([]); setAllDepartmentVehicles([]);
             setAllHiredVehicles([]); setAllRigCompressors([]); setAllLsgConstituencyMaps([]);
             setAllSanctionedStrength({}); setAllBidders([]);
@@ -316,8 +430,8 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
         const officeToQuery = isSuperAdminUser ? selectedOffice : user.officeLocation;
 
         const officeScopedCollections: Record<string, { setter: React.Dispatch<React.SetStateAction<any>>, loaderKey: keyof typeof loadingStates, needsSpecialSort?: boolean }> = {
-            fileEntries: { setter: setAllFileEntries, loaderKey: 'files' },
-            arsEntries: { setter: setAllArsEntries, loaderKey: 'ars' },
+            fileEntries: { setter: setRawFileEntries, loaderKey: 'files' },
+            arsEntries: { setter: setRawArsEntries, loaderKey: 'ars' },
             staffMembers: { setter: setAllStaffMembers, loaderKey: 'staff', needsSpecialSort: true },
             agencyApplications: { setter: setAllAgencyApplications, loaderKey: 'agencies' },
             eTenders: { setter: setAllE_tenders, loaderKey: 'eTenders', needsSpecialSort: true },
@@ -395,6 +509,102 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
 
         return () => unsubscribes.forEach(unsub => unsub());
     }, [user, selectedOffice]);
+
+    // --- Dynamic Work Status Resolution for Cancelled / Retendered e-Tenders ---
+    const allFileEntries = useMemo(() => {
+        if (!rawFileEntries.length || !allE_tenders.length) return rawFileEntries;
+
+        return rawFileEntries.map(entry => {
+            if (!entry.siteDetails || entry.siteDetails.length === 0) return entry;
+
+            let entryModified = false;
+            const updatedSites = entry.siteDetails.map((site, idx) => {
+                const resolvedStatus = getResolvedWorkStatus(site, entry.fileNo, idx, allE_tenders);
+                if (resolvedStatus && resolvedStatus !== site.workStatus) {
+                    entryModified = true;
+                    return { ...site, workStatus: resolvedStatus };
+                }
+                return site;
+            });
+
+            if (entryModified) {
+                return { ...entry, siteDetails: updatedSites };
+            }
+            return entry;
+        });
+    }, [rawFileEntries, allE_tenders]);
+
+    const allArsEntries = useMemo(() => {
+        if (!rawArsEntries.length || !allE_tenders.length) return rawArsEntries;
+
+        return rawArsEntries.map(ars => {
+            const normTenderNo = ars.arsTenderNo?.trim().toUpperCase();
+            const matchingTenders = allE_tenders.filter(tender => {
+                if (normTenderNo && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) return true;
+                if (ars.fileNo && (
+                    matchFileNo(tender.fileNo, ars.fileNo) ||
+                    matchFileNo(tender.fileNo2, ars.fileNo) ||
+                    matchFileNo(tender.fileNo3, ars.fileNo) ||
+                    matchFileNo(tender.fileNo4, ars.fileNo)
+                )) return true;
+                return false;
+            });
+
+            if (!matchingTenders.length) return ars;
+
+            matchingTenders.sort((a, b) => {
+                const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+                const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+                return timeB - timeA;
+            });
+
+            const latestTender = matchingTenders[0];
+            if (isTenderCancelledOrRetender(latestTender.presentStatus)) {
+                if (!isFinalSiteStatus(ars.arsStatus as any) && ars.arsStatus !== 'Under Process') {
+                    return { ...ars, arsStatus: 'Under Process' };
+                }
+            }
+            return ars;
+        });
+    }, [rawArsEntries, allE_tenders]);
+
+    // Persistent Firestore Auto-Sync: Updates database documents where work status is not yet "Under Process"
+    const syncedDocIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        if (!user) return;
+        if (!rawFileEntries.length || !allE_tenders.length) return;
+
+        const officeToQuery = user.role === 'superAdmin' ? selectedOffice : user.officeLocation;
+        if (!officeToQuery) return;
+
+        rawFileEntries.forEach(entry => {
+            if (!entry.id || !entry.siteDetails || entry.siteDetails.length === 0) return;
+            if (syncedDocIdsRef.current.has(entry.id)) return;
+
+            let needsDbUpdate = false;
+            const updatedSites = entry.siteDetails.map((site, idx) => {
+                const resolvedStatus = getResolvedWorkStatus(site, entry.fileNo, idx, allE_tenders);
+                if (resolvedStatus && resolvedStatus !== site.workStatus && resolvedStatus === "Under Process") {
+                    needsDbUpdate = true;
+                    return { ...site, workStatus: resolvedStatus };
+                }
+                return site;
+            });
+
+            if (needsDbUpdate) {
+                syncedDocIdsRef.current.add(entry.id);
+                const targetOffice = (entry.officeLocationFromPath || officeToQuery).toLowerCase();
+                const docRef = doc(db, `offices/${targetOffice}/fileEntries`, entry.id);
+                updateDoc(docRef, {
+                    siteDetails: updatedSites,
+                    updatedAt: serverTimestamp()
+                }).catch(err => {
+                    console.error(`Failed to auto-update Firestore for file ${entry.fileNo}:`, err);
+                    syncedDocIdsRef.current.delete(entry.id);
+                });
+            }
+        });
+    }, [rawFileEntries, allE_tenders, user, selectedOffice]);
 
     const isLoading = Object.values(loadingStates).some(Boolean);
 

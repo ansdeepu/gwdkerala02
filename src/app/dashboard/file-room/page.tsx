@@ -1,7 +1,7 @@
 // src/app/dashboard/file-room/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import FileDatabaseTable from "@/components/database/FileDatabaseTable";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 import PaginationControls from '@/components/shared/PaginationControls';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Search, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle, Loader2 } from 'lucide-react';
 import { matchesAllDataSearch } from '@/lib/searchUtils';
 
 
@@ -43,7 +43,7 @@ const safeParseDate = (dateValue: any): Date | null => {
   return null;
 };
 
-export default function FileManagerPage() {
+function FileManagerContent() {
   const { setHeader } = usePageHeader();
   const { user } = useAuth();
   const { fileEntries, isLoading } = useFileEntries(); 
@@ -315,5 +315,17 @@ export default function FileManagerPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function FileManagerPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-48 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <FileManagerContent />
+    </Suspense>
   );
 }

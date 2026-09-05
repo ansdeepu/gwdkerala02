@@ -143,6 +143,14 @@ export const eTenderStatusOptions = [
 ] as const;
 export type E_tenderStatus = typeof eTenderStatusOptions[number];
 
+export const LinkedSiteSchema = z.object({
+    fileNo: z.string(),
+    siteId: z.string(),
+    nameOfSite: z.string().optional(),
+    purpose: z.string().optional(),
+});
+export type LinkedSite = z.infer<typeof LinkedSiteSchema>;
+
 export const BasicDetailsSchema = z.object({
     eTenderNo: optionalStringSchema,
     tenderDate: z.any().optional().nullable(),
@@ -150,6 +158,8 @@ export const BasicDetailsSchema = z.object({
     fileNo2: optionalStringSchema,
     fileNo3: optionalStringSchema,
     fileNo4: optionalStringSchema,
+    selectedSiteIds: z.array(z.string()).optional(),
+    linkedSites: z.array(LinkedSiteSchema).optional(),
     nameOfWork: optionalStringSchema,
     nameOfWorkMalayalam: optionalStringSchema,
     location: optionalStringSchema,
@@ -282,6 +292,8 @@ export const E_tenderSchema = z.object({
     fileNo2: optionalStringSchema,
     fileNo3: optionalStringSchema,
     fileNo4: optionalStringSchema,
+    selectedSiteIds: z.array(z.string()).optional(),
+    linkedSites: z.array(LinkedSiteSchema).optional(),
     nameOfWork: optionalStringSchema,
     nameOfWorkMalayalam: optionalStringSchema,
     location: optionalStringSchema,

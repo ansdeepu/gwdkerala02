@@ -61,15 +61,19 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Under Process",
   "Additional Fund Awaited",
   "TS Pending",
+  "Technical Sanction",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",
+  "Tender Process",
   "Selection Notice Issued",
   "Work Order Issued",
   "Work in Progress",
   "Work Failed",
   "Work Cancelled",
-  "Work Completed"
+  "Work Completed",
+  "File Under Process",
+  "Pending"
 ] as const;
 
 export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails }: {
@@ -380,7 +384,38 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         return false;
     }, [isFieldReadOnly, watchedLsg, constituencyOptionsForLsg]);
 
-    const isTenderSelected = watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_';
+    // Helper to match file numbers cleanly by stripping office prefixes
+    const matchFileNo = useCallback((f1?: string | null, f2?: string | null): boolean => {
+        if (!f1 || !f2) return false;
+        const clean1 = f1.trim().toUpperCase();
+        const clean2 = f2.trim().toUpperCase();
+        if (clean1 === clean2) return true;
+        const stripOfficePrefix = (str: string) => str.replace(/^[A-Z][A-Z0-9_]*\//, '');
+        return stripOfficePrefix(clean1) === stripOfficePrefix(clean2);
+    }, []);
+
+    // Effect to auto-fetch matching e-Tender No. if tenderNo is not explicitly set
+    useEffect(() => {
+        if (!watchedTenderNo && allE_tenders && allE_tenders.length > 0) {
+            const siteFileNo = (initialData as any)?.fileNo;
+            const siteId = initialData?.id;
+            const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
+
+            const matchingTender = allE_tenders.find(t => {
+                if (!t.eTenderNo) return false;
+                const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => matchFileNo(f, siteFileNo));
+                const siteMatch = (t.selectedSiteIds || []).includes(siteId || '') || 
+                    (t.linkedSites || []).some((ls: any) => ls.siteId === siteId || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
+                return fileMatch || siteMatch;
+            });
+
+            if (matchingTender && matchingTender.eTenderNo) {
+                setValue('tenderNo', matchingTender.eTenderNo);
+            }
+        }
+    }, [watchedTenderNo, allE_tenders, initialData, setValue, matchFileNo]);
+
+    const isTenderSelected = !!(watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_');
     const prevTenderNoRef = useRef<any>(initialData?.tenderNo);
 
     useEffect(() => {
@@ -418,6 +453,22 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                     setValue('supervisorName', joinedInfo);
                     setValue('supervisorUid', null);
                 }
+
+                // Sync Work Status according to e-Tender progress
+                const ts = selectedTender.presentStatus;
+                let targetStatus = "Tendered";
+                if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
+                    targetStatus = "Work Order Issued";
+                } else if (ts === "Selection Notice Issued") {
+                    targetStatus = "Selection Notice Issued";
+                } else if (ts === "Tender Cancelled" || ts === "Cancelled" || ts === "Retender" || ts === "Re-tender") {
+                    targetStatus = "Under Process";
+                }
+                
+                const currentWS = getValues('workStatus');
+                if (!currentWS || currentWS === '' || currentWS === 'Under Process' || currentWS === 'Tender Process' || ['Tendered', 'Selection Notice Issued', 'Work Order Issued'].includes(currentWS)) {
+                    setValue('workStatus', targetStatus as any);
+                }
             }
         } else if (watchedTenderNo === '_clear_') {
             if (!isPrivateWork && !isDeptRigWork) {
@@ -427,8 +478,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 setValue('quotedPercentage', '');
             }
         }
+
+        // If workStatus is empty/unassigned, default to 'Under Process'
+        if (!getValues('workStatus')) {
+            setValue('workStatus', 'Under Process' as any);
+        }
+
         prevTenderNoRef.current = watchedTenderNo;
-    }, [watchedTenderNo, isTenderSelected, isQuotation, allE_tenders, allStaffMembers, setValue, isPrivateWork, isDeptRigWork]);
+    }, [watchedTenderNo, isTenderSelected, isQuotation, allE_tenders, allStaffMembers, setValue, getValues, isPrivateWork, isDeptRigWork]);
 
     const rigOptions = useMemo(() => {
         const allUnits = allRigCompressors || [];
@@ -642,8 +699,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 <FormField name="tenderNo" control={control} render={({ field }) => (
                                                                     <FormItem>
                                                                         <FormLabel>Tender No.</FormLabel>
-                                                                        <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(false)}>
-                                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Tender or Quotation" /></SelectTrigger></FormControl>
+                                                                        <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isTenderSelected || isFieldReadOnly(false)}>
+                                                                            <FormControl><SelectTrigger className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed")}><SelectValue placeholder="Select Tender or Quotation" /></SelectTrigger></FormControl>
                                                                             <SelectContent className="max-h-80">
                                                                                 <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
                                                                                 <SelectItem value="Quotation">Quotation</SelectItem>
@@ -662,7 +719,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                                 {...field} 
                                                                                 value={field.value ?? ''} 
                                                                                 readOnly={isTenderSelected || isFieldReadOnly(false)} 
-                                                                                className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted")} 
+                                                                                className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed")} 
                                                                                 placeholder="e.g. 10% Below"
                                                                             />
                                                                         </FormControl>
@@ -683,16 +740,16 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                                     }
                                                                                 }} 
                                                                                 value={watchedContractorName ? watchedContractorName.split(',')[0].trim() : ""}
-                                                                                disabled={isFieldReadOnly(false)}
+                                                                                disabled={isTenderSelected || isFieldReadOnly(false)}
                                                                             >
-                                                                                <FormControl><SelectTrigger><SelectValue placeholder="Select Contractor" /></SelectTrigger></FormControl>
+                                                                                <FormControl><SelectTrigger className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed")}><SelectValue placeholder="Select Contractor" /></SelectTrigger></FormControl>
                                                                                 <SelectContent className="max-h-80">
                                                                                     <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
                                                                                     {(allBidders || []).filter(b => b.name).map(b => <SelectItem key={b.id} value={b.name!}>{b.name}</SelectItem>)}
                                                                                 </SelectContent>
                                                                             </Select>
                                                                         ) : (
-                                                                            <FormControl><Textarea {...field} value={field.value ?? ''} readOnly={isTenderSelected || isFieldReadOnly(false)} className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted min-h-[40px]")} /></FormControl>
+                                                                            <FormControl><Textarea {...field} value={field.value ?? ''} readOnly={isTenderSelected || isFieldReadOnly(false)} className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed min-h-[40px]")} /></FormControl>
                                                                         )}
                                                                         <FormMessage />
                                                                     </FormItem>
@@ -703,7 +760,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormItem className={isPrivateWork || isDeptRigWork ? "md:col-span-4" : ""}>
                                                                 <div className="flex justify-between items-center mb-1">
                                                                     <FormLabel>Supervisor</FormLabel>
-                                                                    {(isQuotation || isPrivateWork || isDeptRigWork) && !isFieldReadOnly(false) && (
+                                                                    {(isQuotation || isPrivateWork || isDeptRigWork) && !isTenderSelected && !isFieldReadOnly(false) && (
                                                                         <Button 
                                                                             type="button" 
                                                                             variant="link" 
@@ -719,7 +776,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                         </Button>
                                                                     )}
                                                                 </div>
-                                                                {((isQuotation || isPrivateWork || isDeptRigWork) && !isManualSupervisor) ? (
+                                                                {((isQuotation || isPrivateWork || isDeptRigWork) && !isManualSupervisor && !isTenderSelected) ? (
                                                                     <Select 
                                                                         onValueChange={(val) => {
                                                                             if (val === '_clear_') {
@@ -737,9 +794,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                             }
                                                                         }} 
                                                                         value={watchedSupervisorName || ""}
-                                                                        disabled={isFieldReadOnly(false)}
+                                                                        disabled={isTenderSelected || isFieldReadOnly(false)}
                                                                     >
-                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Supervisor" /></SelectTrigger></FormControl>
+                                                                        <FormControl><SelectTrigger className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed")}><SelectValue placeholder="Select Supervisor" /></SelectTrigger></FormControl>
                                                                         <SelectContent className="max-h-80">
                                                                             <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
                                                                             {(supervisorListNames || []).map(s => <SelectItem key={s.id} value={s.name}>{s.name} ({s.designation})</SelectItem>)}
@@ -750,8 +807,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                         <Textarea 
                                                                             {...field} 
                                                                             value={field.value ?? ''} 
-                                                                            readOnly={(!isManualSupervisor && isTenderSelected) || isFieldReadOnly(false)} 
-                                                                            className={cn(((!isManualSupervisor && isTenderSelected) || isFieldReadOnly(false)) && "bg-muted", "min-h-[40px]")} 
+                                                                            readOnly={isTenderSelected || isFieldReadOnly(false)} 
+                                                                            className={cn((isTenderSelected || isFieldReadOnly(false)) && "bg-muted cursor-not-allowed min-h-[40px]")} 
                                                                             placeholder={isManualSupervisor ? "Enter external staff name..." : ""}
                                                                         />
                                                                     </FormControl>
@@ -1048,11 +1105,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         <FormField name="workStatus" control={control} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel>Work Status <span className="text-destructive">*</span></FormLabel>
-                                                                <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || "Under Process"} disabled={isFieldReadOnly(true)}>
                                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger></FormControl>
                                                                     <SelectContent className="max-h-80">
                                                                         <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                        {(SITE_DIALOG_WORK_STATUS_OPTIONS || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        {Array.from(new Set([
+                                                                            ...(field.value && !(SITE_DIALOG_WORK_STATUS_OPTIONS as readonly string[]).includes(field.value) ? [field.value] : []),
+                                                                            ...SITE_DIALOG_WORK_STATUS_OPTIONS
+                                                                        ])).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                                                                     </SelectContent>
                                                                 </Select>
                                                                 <FormMessage />

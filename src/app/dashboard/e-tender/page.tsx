@@ -143,12 +143,17 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
     
     const handleTenderNoClick = (tenderNo: string) => {
         const normalizedInput = tenderNo.trim().toUpperCase();
+        const tenderObj = tenders.find(t => t.eTenderNo?.trim().toUpperCase() === normalizedInput);
+        const tenderFileNos = tenderObj ? [tenderObj.fileNo, tenderObj.fileNo2, tenderObj.fileNo3, tenderObj.fileNo4].filter(Boolean) as string[] : [];
+        const tenderSelectedSiteIds = Array.isArray(tenderObj?.selectedSiteIds) ? tenderObj.selectedSiteIds : [];
+
         const getSites = (dataSource: (DataEntryFormData[] | ArsEntry[]), isArs: boolean) => {
             const sites: any[] = [];
             dataSource.forEach((entry: any) => {
                 if (isArs) {
                     const entryTenderNo = entry.arsTenderNo?.trim().toUpperCase();
-                    if (entryTenderNo === normalizedInput) {
+                    const isFileMatch = tenderFileNos.some(fn => fn && entry.fileNo && entry.fileNo.trim().toUpperCase() === fn.trim().toUpperCase());
+                    if (entryTenderNo === normalizedInput || isFileMatch) {
                         sites.push({
                             name: entry.nameOfSite,
                             status: entry.arsStatus,
@@ -158,9 +163,13 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
                         });
                     }
                 } else {
-                    entry.siteDetails?.forEach((site: any) => {
+                    entry.siteDetails?.forEach((site: any, idx: number) => {
                         const siteTenderNo = site.tenderNo?.trim().toUpperCase();
-                        if (siteTenderNo === normalizedInput) {
+                        const siteId = site.id || (entry.fileNo ? `${entry.fileNo}_${idx}` : undefined);
+                        const isSiteIdMatch = siteId && tenderSelectedSiteIds.includes(siteId);
+                        const isFileMatch = tenderFileNos.some(fn => fn && entry.fileNo && entry.fileNo.trim().toUpperCase() === fn.trim().toUpperCase());
+
+                        if (siteTenderNo === normalizedInput || isSiteIdMatch || isFileMatch) {
                             sites.push({
                                 name: site.nameOfSite,
                                 status: site.workStatus,

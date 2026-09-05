@@ -123,7 +123,7 @@ const DateTimePicker12h = ({
 };
 
 export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: BasicDetailsFormProps) {
-    const { allRateDescriptionDetails } = useDataStore();
+    const { allRateDescriptionDetails, allFileEntries } = useDataStore();
     const { tender } = useTenderData();
 
     const form = useForm<BasicDetailsFormData>({
@@ -131,6 +131,8 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
         defaultValues: {
             ...tender,
             tenderDate: formatDateForInput(tender.tenderDate),
+            selectedSiteIds: tender.selectedSiteIds || [],
+            linkedSites: tender.linkedSites || [],
             // dateTimeOfReceipt and dateTimeOfOpening are kept as Date/String objects in the form state
             // but the DateTimePicker12h handles the conversion for the UI.
         }
@@ -138,11 +140,69 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
     
     const { control, setValue, handleSubmit, watch, formState: { isDirty } } = form;
 
-    const [estimateAmount, tenderType, tenderDate] = watch([
+    const [estimateAmount, tenderType, tenderDate, fileNo, fileNo2, fileNo3, fileNo4, selectedSiteIds] = watch([
         'estimateAmount',
         'tenderType',
         'tenderDate',
+        'fileNo',
+        'fileNo2',
+        'fileNo3',
+        'fileNo4',
+        'selectedSiteIds'
     ]);
+
+    const matchingFiles = React.useMemo(() => {
+        const enteredNos = [fileNo, fileNo2, fileNo3, fileNo4]
+            .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+            .map(f => f.trim().toUpperCase());
+
+        if (enteredNos.length === 0 || !allFileEntries) return [];
+
+        const matchFileNo = (fileNoInDb?: string | null, searchNo?: string | null): boolean => {
+            if (!fileNoInDb || !searchNo) return false;
+            const dbClean = fileNoInDb.trim().toUpperCase();
+            const searchClean = searchNo.trim().toUpperCase();
+            if (!searchClean) return false;
+            if (dbClean === searchClean) return true;
+
+            const stripOfficePrefix = (str: string) => str.replace(/^[A-Z][A-Z0-9_]*\//, '');
+            const dbNoPrefix = stripOfficePrefix(dbClean);
+            const searchNoPrefix = stripOfficePrefix(searchClean);
+
+            return dbNoPrefix === searchNoPrefix;
+        };
+
+        return allFileEntries.filter(entry => 
+            enteredNos.some(targetNo => matchFileNo(entry.fileNo, targetNo))
+        );
+    }, [fileNo, fileNo2, fileNo3, fileNo4, allFileEntries]);
+
+    const availableSites = React.useMemo(() => {
+        const sitesList: Array<{
+            fileNo: string;
+            siteId: string;
+            nameOfSite: string;
+            purpose?: string;
+            workStatus?: string;
+        }> = [];
+
+        matchingFiles.forEach(file => {
+            if (Array.isArray(file.siteDetails)) {
+                file.siteDetails.forEach((site, idx) => {
+                    const sId = site.id || `${file.fileNo}_${idx}`;
+                    sitesList.push({
+                        fileNo: file.fileNo || '',
+                        siteId: sId,
+                        nameOfSite: site.nameOfSite || `Site ${idx + 1}`,
+                        purpose: site.purpose || 'N/A',
+                        workStatus: site.workStatus || 'Pending'
+                    });
+                });
+            }
+        });
+
+        return sitesList;
+    }, [matchingFiles]);
 
     const calculateFees = useCallback(() => {
         const amount = (typeof estimateAmount !== 'number' || isNaN(estimateAmount)) ? 0 : estimateAmount;
@@ -225,8 +285,24 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
             if (!val) return val;
             return val.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '').trim();
         };
+
+        const selectedIds = data.selectedSiteIds && data.selectedSiteIds.length > 0 
+            ? data.selectedSiteIds 
+            : availableSites.map(s => s.siteId);
+
+        const linkedSites = availableSites
+            .filter(s => selectedIds.includes(s.siteId))
+            .map(s => ({
+                fileNo: s.fileNo,
+                siteId: s.siteId,
+                nameOfSite: s.nameOfSite,
+                purpose: s.purpose
+            }));
+
         const formData: Partial<E_tenderFormData> = {
             ...data,
+            selectedSiteIds: selectedIds,
+            linkedSites: linkedSites,
             fileNo: cleanFileNo(data.fileNo),
             fileNo2: cleanFileNo(data.fileNo2),
             fileNo3: cleanFileNo(data.fileNo3),
@@ -320,6 +396,90 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                             <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
                                 Office code (e.g., GWDKLM) is not required. Enter only number/year (e.g., 1956/2023) for each File No.
                             </p>
+
+                            {availableSites.length > 0 && (
+                                <div className="border rounded-md p-3.5 bg-muted/20 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
+                                                Select Sites for Tender ({availableSites.filter(s => (selectedSiteIds || availableSites.map(x => x.siteId)).includes(s.siteId)).length}/{availableSites.length} selected)
+                                            </h4>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                Uncheck sites assigned to Dept. Rig or other tasks.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-6 text-[11px] px-2"
+                                                onClick={() => {
+                                                    const allIds = availableSites.map(s => s.siteId);
+                                                    setValue('selectedSiteIds', allIds, { shouldDirty: true, shouldValidate: true });
+                                                }}
+                                            >
+                                                Select All
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-[11px] px-2 text-muted-foreground"
+                                                onClick={() => {
+                                                    setValue('selectedSiteIds', [], { shouldDirty: true, shouldValidate: true });
+                                                }}
+                                            >
+                                                Clear
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                                        {availableSites.map(site => {
+                                            const currentSelected = selectedSiteIds || availableSites.map(s => s.siteId);
+                                            const isSelected = currentSelected.includes(site.siteId);
+                                            return (
+                                                <label
+                                                    key={site.siteId}
+                                                    className={`flex items-start gap-2.5 p-2 rounded border text-xs cursor-pointer transition-colors ${
+                                                        isSelected
+                                                            ? 'bg-primary/5 border-primary/40 font-medium'
+                                                            : 'bg-background hover:bg-muted/40 border-border text-muted-foreground'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                                        onChange={(e) => {
+                                                            let updated: string[];
+                                                            if (e.target.checked) {
+                                                                updated = [...new Set([...currentSelected, site.siteId])];
+                                                            } else {
+                                                                updated = currentSelected.filter(id => id !== site.siteId);
+                                                            }
+                                                            setValue('selectedSiteIds', updated, { shouldDirty: true, shouldValidate: true });
+                                                        }}
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-semibold text-foreground truncate flex items-center gap-1.5 flex-wrap">
+                                                            <span>{site.nameOfSite}</span>
+                                                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-normal">
+                                                                File: {site.fileNo}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[11px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                                                            <span><strong>Purpose:</strong> {site.purpose}</span>
+                                                            <span>• <strong>Status:</strong> {site.workStatus}</span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 gap-4">
                                <FormField name="nameOfWork" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
                                <FormField name="nameOfWorkMalayalam" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work (in Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ''} onChange={field.onChange} englishValue={watch('nameOfWork') || ''} multiline rows={2} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>

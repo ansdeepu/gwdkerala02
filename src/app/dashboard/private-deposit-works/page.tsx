@@ -1,7 +1,7 @@
 // src/app/dashboard/private-deposit-works/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import FileDatabaseTable from "@/components/database/FileDatabaseTable";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 import PaginationControls from '@/components/shared/PaginationControls';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import { matchesAllDataSearch } from '@/lib/searchUtils';
 
 
@@ -37,7 +37,7 @@ const safeParseDate = (dateValue: any): Date | null => {
   return null;
 };
 
-export default function PrivateDepositWorksPage() {
+function PrivateDepositWorksContent() {
   const { setHeader } = usePageHeader();
   const { user } = useAuth();
   const { fileEntries, isLoading } = useFileEntries(); 
@@ -299,5 +299,17 @@ export default function PrivateDepositWorksPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function PrivateDepositWorksPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-48 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <PrivateDepositWorksContent />
+    </Suspense>
   );
 }
