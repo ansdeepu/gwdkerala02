@@ -61,19 +61,15 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Under Process",
   "Additional Fund Awaited",
   "TS Pending",
-  "Technical Sanction",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",
-  "Tender Process",
   "Selection Notice Issued",
   "Work Order Issued",
   "Work in Progress",
   "Work Failed",
   "Work Cancelled",
-  "Work Completed",
-  "File Under Process",
-  "Pending"
+  "Work Completed"
 ] as const;
 
 export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails }: {
