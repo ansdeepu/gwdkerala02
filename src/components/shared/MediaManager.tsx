@@ -31,7 +31,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
-import { uploadMediaToGoogleDrive, getGoogleDriveScriptUrl } from '@/lib/googleDriveUploadClient';
+import { uploadMediaToGoogleDrive, getGoogleDriveScriptUrl, compressImage, fileToBase64 } from '@/lib/googleDriveUploadClient';
 import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
 
 interface MediaManagerProps {
@@ -79,7 +79,12 @@ export default function MediaManager({
   const effectiveFileNo = propFileNo || 'General';
   const effectiveSiteName = propSiteName || '';
 
-  const isSuperAdmin = user?.role === 'superAdmin' || user?.email === 'keralagwd@gmail.com' || user?.email === SUPER_ADMIN_EMAIL;
+  const isSuperAdmin = 
+    user?.role === 'superAdmin' || 
+    user?.role === 'admin' || 
+    user?.email === 'keralagwd@gmail.com' || 
+    user?.email === 'ss.deepu@gmail.com' || 
+    user?.email === SUPER_ADMIN_EMAIL;
 
   // Check if Google Drive is configured
   const checkDriveConfig = useCallback(async () => {
@@ -174,7 +179,51 @@ export default function MediaManager({
     return url;
   };
 
-  // Process file upload(s) to Google Drive
+  // Helper for saving photo/video directly as base64 data URL
+  const saveMediaDirectly = async (file: File) => {
+    if (type === 'image') {
+      const compressed = await compressImage(file, 1920, 0.82);
+      const dataUrl = `data:${compressed.mimeType};base64,${compressed.base64Data}`;
+      append({
+        id: uuidv4(),
+        url: dataUrl,
+        fileName: file.name,
+        description: "",
+        storageType: 'direct',
+        createdAt: new Date().toISOString(),
+      });
+      toast({
+        title: "Photo Attached to Site Record",
+        description: `${file.name} saved directly to record media.`,
+      });
+    } else {
+      // Video
+      if (file.size <= 20 * 1024 * 1024) {
+        const converted = await fileToBase64(file);
+        const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
+        append({
+          id: uuidv4(),
+          url: dataUrl,
+          fileName: file.name,
+          description: "",
+          storageType: 'direct',
+          createdAt: new Date().toISOString(),
+        });
+        toast({
+          title: "Video Attached to Site Record",
+          description: `${file.name} saved directly to record media.`,
+        });
+      } else {
+        toast({
+          title: "Large Video File",
+          description: "For videos larger than 20 MB, please paste a YouTube / Google Drive link using 'Add Link'.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Process file upload(s) to Google Drive or direct record storage
   const handleFilesSelected = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
@@ -184,68 +233,57 @@ export default function MediaManager({
     try {
       for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
-        setUploadStatusText(`Uploading ${i + 1} of ${filesArray.length}: ${file.name}...`);
+        setUploadStatusText(`Processing ${i + 1} of ${filesArray.length}: ${file.name}...`);
 
-        const result = await uploadMediaToGoogleDrive({
-          file,
-          officeLocation: effectiveOffice,
-          fileNo: effectiveFileNo,
-          siteName: effectiveSiteName,
-          type,
-        });
-
-        if (result.requiresSetup) {
-          if (isSuperAdmin) {
-            toast({
-              title: "Google Drive Setup Required",
-              description: "Please configure the Google Apps Script URL for keralagwd@gmail.com.",
-              variant: "destructive",
-            });
-            setIsSetupDialogOpen(true);
-          } else {
-            toast({
-              title: "Google Drive Setup Pending",
-              description: "Google Drive integration must be configured by the State Super Administrator (keralagwd@gmail.com). You can still add media using the 'Add Link' button.",
-              variant: "destructive",
-            });
-          }
-          break;
-        }
-
-        if (!result.success || result.error) {
-          toast({
-            title: "Upload Failed",
-            description: result.error || `Could not upload ${file.name} to Google Drive.`,
-            variant: "destructive",
+        // If drive is configured, attempt Drive upload
+        if (hasDriveConfig) {
+          const result = await uploadMediaToGoogleDrive({
+            file,
+            officeLocation: effectiveOffice,
+            fileNo: effectiveFileNo,
+            siteName: effectiveSiteName,
+            type,
           });
-          continue;
+
+          if (result.success && (result.url || result.viewUrl || result.directImageUrl)) {
+            // Successfully uploaded to Google Drive!
+            append({
+              id: uuidv4(),
+              url: result.url || result.directImageUrl || result.viewUrl,
+              driveFileId: result.fileId,
+              driveViewUrl: result.viewUrl,
+              driveThumbnailUrl: result.thumbnailUrl,
+              fileName: result.fileName || file.name,
+              description: "",
+              storageType: 'drive',
+              createdAt: new Date().toISOString(),
+            });
+
+            toast({
+              title: `${type === 'image' ? 'Photo' : 'Video'} Uploaded to Google Drive`,
+              description: `Saved in keralagwd@gmail.com Drive under ${effectiveOffice} folder.`,
+            });
+            continue;
+          }
         }
 
-        // Successfully uploaded to Google Drive!
-        append({
-          id: uuidv4(),
-          url: result.url || result.directImageUrl || result.viewUrl,
-          driveFileId: result.fileId,
-          driveViewUrl: result.viewUrl,
-          driveThumbnailUrl: result.thumbnailUrl,
-          fileName: result.fileName || file.name,
-          description: "",
-          storageType: 'drive',
-          createdAt: new Date().toISOString(),
-        });
-
-        toast({
-          title: `${type === 'image' ? 'Photo' : 'Video'} Uploaded to Google Drive`,
-          description: `Saved in keralagwd@gmail.com Drive under ${effectiveOffice} folder.`,
-        });
+        // Seamless fallback: Save media directly to site record
+        await saveMediaDirectly(file);
       }
     } catch (err: any) {
       console.error("Upload error:", err);
-      toast({
-        title: "Upload Error",
-        description: err?.message || "An error occurred during file upload.",
-        variant: "destructive",
-      });
+      // Even on error, attempt direct fallback for first file if not yet saved
+      try {
+        if (filesArray[0]) {
+          await saveMediaDirectly(filesArray[0]);
+        }
+      } catch (fallbackErr) {
+        toast({
+          title: "Upload Error",
+          description: err?.message || "An error occurred during file selection.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsUploading(false);
       setUploadStatusText('');
@@ -501,7 +539,11 @@ export default function MediaManager({
             </p>
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
               <HardDrive className="h-3 w-3" />
-              Directly saved to <strong>keralagwd@gmail.com</strong> Google Drive ({effectiveOffice} folder)
+              {hasDriveConfig ? (
+                <>Saved to <strong>keralagwd@gmail.com</strong> Google Drive ({effectiveOffice} folder)</>
+              ) : (
+                <>Direct site media attachment (Google Drive sync available)</>
+              )}
             </p>
           </div>
         )}

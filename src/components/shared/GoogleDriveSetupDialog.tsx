@@ -33,7 +33,12 @@ export default function GoogleDriveSetupDialog({
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const isSuperAdmin = user?.role === 'superAdmin' || user?.email === 'keralagwd@gmail.com' || user?.email === SUPER_ADMIN_EMAIL;
+  const isSuperAdmin = 
+    user?.role === 'superAdmin' || 
+    user?.role === 'admin' || 
+    user?.email === 'keralagwd@gmail.com' || 
+    user?.email === 'ss.deepu@gmail.com' || 
+    user?.email === SUPER_ADMIN_EMAIL;
 
   useEffect(() => {
     if (open) {
