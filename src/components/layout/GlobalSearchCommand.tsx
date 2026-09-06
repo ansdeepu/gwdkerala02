@@ -264,14 +264,13 @@ export function GlobalSearchCommand({
                 setQuery('');
                 setSearchTarget('');
               }}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="mr-6 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Clear search"
             >
               <X className="h-4 w-4" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              ESC
-            </kbd>
+            <div className="w-6 shrink-0" />
           )}
         </div>
 
