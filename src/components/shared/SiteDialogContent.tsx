@@ -22,6 +22,9 @@ import {
   siteDiameterOptions,
   siteTypeOfRigOptions,
   siteConditionsOptions,
+  drillingConditionsOptions,
+  developingConditionsOptions,
+  schemeConditionsOptions,
   yieldCategoryOptions,
   type Constituency,
   type StaffMember,
@@ -72,7 +75,7 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Work Completed"
 ] as const;
 
-export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails }: {
+export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails, remittanceDetails }: {
     initialData: Partial<SiteDetailFormData>;
     onConfirm: (data: SiteDetailFormData) => void;
     onCancel: () => void;
@@ -87,17 +90,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     workTypeContext: 'public' | 'private' | 'collector' | 'planFund' | 'gwInvestigation' | 'loggingPumpingTest' | null;
     applicationType?: string | null;
     paymentDetails?: any[];
+    remittanceDetails?: any[];
 }) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
-    const hasExplicitCasing8kg = initialData?.casing8kgPipe !== undefined && initialData?.casing8kgPipe !== null;
-    const hasExplicitCasing10kg = initialData?.casing10kgPipe !== undefined && initialData?.casing10kgPipe !== null;
-    const fallbackCasing = (!hasExplicitCasing6kg && !hasExplicitCasing8kg && !hasExplicitCasing10kg)
-        ? (initialData?.casingPipeUsed || initialData?.surveyRecommendedCasingPipe || "")
-        : "";
-    const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : fallbackCasing;
+    const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : (initialData?.casingPipeUsed || "");
     const initialObValue = (initialData?.surveyOB !== undefined && initialData?.surveyOB !== null)
         ? String(initialData.surveyOB)
-        : (initialData?.surveyRecommendedOB ? String(initialData.surveyRecommendedOB) : "");
+        : "";
 
     const computedExpenditure = useMemo(() => {
         if (!paymentDetails || !Array.isArray(paymentDetails) || paymentDetails.length === 0) {
@@ -152,7 +151,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             casing6kgPipe: initialCasing6kg ?? "",
             casing8kgPipe: initialData?.casing8kgPipe ?? "",
             casing10kgPipe: initialData?.casing10kgPipe ?? "",
-            casingPipeUsed: initialData?.casingPipeUsed ?? fallbackCasing,
+            casingPipeUsed: initialData?.casingPipeUsed ?? "",
             surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? "",
             surveyOB: initialObValue,
             surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
@@ -175,6 +174,22 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedContractorName = watch('contractorName');
     const watchedSupervisorName = watch('supervisorName');
     const watchedSiteConditions = watch('siteConditions');
+    const watchedDrillingConditions = watch('drillingConditions');
+    const watchedDevelopingConditions = watch('developingConditions');
+    const watchedSchemeConditions = watch('schemeConditions');
+    const watchedCompletionDate = watch('dateOfCompletion');
+    const watchedStartDate = watch('startDate');
+    const watchedEstimateAmount = watch('estimateAmount');
+    const watchedTsAmount = watch('tsAmount');
+    const watchedTotalDepth = watch('totalDepth');
+    const watchedDateOfDrilling = watch('dateOfDrilling');
+
+    const totalRemittedAmount = useMemo(() => {
+        if (remittanceDetails && Array.isArray(remittanceDetails)) {
+            return remittanceDetails.reduce((sum, r) => sum + (Number(r?.amountRemitted) || 0), 0);
+        }
+        return 0;
+    }, [remittanceDetails]);
 
     const isPrivateWork = workTypeContext === 'private';
     const isPrivateIrrigation = applicationType === 'Private_Irrigation' || applicationType === 'Private Irrigation';
@@ -450,21 +465,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                     setValue('supervisorUid', null);
                 }
 
-                // Sync Work Status according to e-Tender progress
-                const ts = selectedTender.presentStatus;
-                let targetStatus = "Tendered";
-                if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
-                    targetStatus = "Work Order Issued";
-                } else if (ts === "Selection Notice Issued") {
-                    targetStatus = "Selection Notice Issued";
-                } else if (ts === "Tender Cancelled" || ts === "Cancelled" || ts === "Retender" || ts === "Re-tender") {
-                    targetStatus = "Under Process";
-                }
-                
-                const currentWS = getValues('workStatus');
-                if (!currentWS || currentWS === '' || currentWS === 'Under Process' || currentWS === 'Tender Process' || ['Tendered', 'Selection Notice Issued', 'Work Order Issued'].includes(currentWS)) {
-                    setValue('workStatus', targetStatus as any);
-                }
+                // Tender details linked
             }
         } else if (watchedTenderNo === '_clear_') {
             if (!isPrivateWork && !isDeptRigWork) {
@@ -475,13 +476,132 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             }
         }
 
-        // If workStatus is empty/unassigned, default to 'Under Process'
-        if (!getValues('workStatus')) {
-            setValue('workStatus', 'Under Process' as any);
-        }
-
         prevTenderNoRef.current = watchedTenderNo;
     }, [watchedTenderNo, isTenderSelected, isQuotation, allE_tenders, allStaffMembers, setValue, getValues, isPrivateWork, isDeptRigWork]);
+
+    // Automated Work Status Calculation based on Priority Rules
+    useEffect(() => {
+        const activeCondition = watchedDrillingConditions || watchedDevelopingConditions || watchedSchemeConditions;
+
+        // 1. Terminal / Final Outcomes (Highest Priority)
+        // Work Completed - Completion Date is present
+        if (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') {
+            setValue('workStatus', 'Work Completed');
+            return;
+        }
+        // Work Failed - Drilling Conditions is Failed (or Collapsed)
+        if (activeCondition === 'Failed' || activeCondition === 'Collapsed') {
+            setValue('workStatus', 'Work Failed');
+            return;
+        }
+        // Work Cancelled - Drilling Conditions is Cancelled
+        if (activeCondition === 'Cancelled') {
+            setValue('workStatus', 'Work Cancelled');
+            return;
+        }
+        // Refund Pending - Conditions is Refund
+        if (activeCondition === 'Refund') {
+            setValue('workStatus', 'Refund Pending');
+            return;
+        }
+
+        // 2. Active Execution Stage
+        // Work in Progress - Start Date is not blank (or actual drilling/execution commenced)
+        const hasStarted = watchedStartDate && String(watchedStartDate).trim() !== '';
+        const hasActualDrilling = (Number(watchedTotalDepth) > 0) || (watchedDateOfDrilling && String(watchedDateOfDrilling).trim() !== '');
+        if (hasStarted || hasActualDrilling) {
+            setValue('workStatus', 'Work in Progress');
+            return;
+        }
+
+        // 3. e-Tender / Rig Allotment Stage
+        let activeTender: any = null;
+        if (watchedTenderNo && watchedTenderNo !== '_clear_' && watchedTenderNo !== 'Quotation') {
+            const cleanWatched = watchedTenderNo.trim().toUpperCase();
+            activeTender = (allE_tenders || []).find(t => 
+                (t.eTenderNo && t.eTenderNo.trim().toUpperCase() === cleanWatched) ||
+                ((t as any).tenderNo && (t as any).tenderNo.trim().toUpperCase() === cleanWatched)
+            );
+        }
+        if (!activeTender && allE_tenders && allE_tenders.length > 0) {
+            const siteFileNo = (initialData as any)?.fileNo;
+            const siteId = initialData?.id;
+            const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
+            activeTender = allE_tenders.find(t => {
+                if (!t.eTenderNo) return false;
+                const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => matchFileNo(f, siteFileNo));
+                const siteMatch = (siteId && (t.selectedSiteIds || []).includes(siteId)) || 
+                    (t.linkedSites || []).some((ls: any) => (siteId && ls.siteId === siteId) || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
+                return fileMatch || siteMatch;
+            });
+        }
+
+        if (activeTender) {
+            const ts = activeTender.presentStatus;
+            // Work Order Issued - is already linked with e-tender module
+            if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
+                setValue('workStatus', 'Work Order Issued');
+                return;
+            }
+            // Selection Notice Issued - is already linked with e-tender module
+            if (ts === 'Selection Notice Issued') {
+                setValue('workStatus', 'Selection Notice Issued');
+                return;
+            }
+            // Tendered - is already linked with e-tender module
+            if (!ts || !['Cancelled', 'Tender Cancelled', 'Retender', 'Re-tender'].includes(ts)) {
+                setValue('workStatus', 'Tendered');
+                return;
+            }
+        } else if (watchedTenderNo && watchedTenderNo !== '_clear_' && watchedTenderNo !== 'Quotation') {
+            setValue('workStatus', 'Tendered');
+            return;
+        }
+
+        // Department Rig Allotted - Rig and Site Accessibility is Accessible to Dept. Rig
+        if (watchedSiteConditions === 'Accessible to Dept. Rig') {
+            setValue('workStatus', 'Department Rig Allotted');
+            return;
+        }
+
+        // 4. Financial & TS Readiness
+        // Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
+        const est = Number(watchedEstimateAmount) || 0;
+        const rem = totalRemittedAmount || 0;
+        if (workTypeContext !== 'planFund' && est > 0 && rem > 0 && est > rem) {
+            setValue('workStatus', 'Additional Fund Awaited');
+            return;
+        }
+
+        // TS Pending - TS Amount (₹) is zero or blank
+        const ts = Number(watchedTsAmount) || 0;
+        if (!ts || ts === 0) {
+            setValue('workStatus', 'TS Pending');
+            return;
+        }
+
+        // 5. Baseline State (Lowest Priority)
+        // Under Process - Sites having no Drilling Details (Actuals), Developing Details, Scheme Details and remaining sections
+        setValue('workStatus', 'Under Process');
+    }, [
+        watchedCompletionDate,
+        watchedStartDate,
+        watchedTotalDepth,
+        watchedDateOfDrilling,
+        watchedDrillingConditions,
+        watchedDevelopingConditions,
+        watchedSchemeConditions,
+        watchedSiteConditions,
+        watchedEstimateAmount,
+        watchedTsAmount,
+        watchedTenderNo,
+        totalRemittedAmount,
+        allE_tenders,
+        initialData,
+        matchFileNo,
+        workTypeContext,
+        setValue
+    ]);
 
     const rigOptions = useMemo(() => {
         const allUnits = allRigCompressors || [];
@@ -940,6 +1060,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
+                                                            <FormField name="drillingConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Drilling Conditions</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Drilling Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(drillingConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                             {watchedPurpose === 'TWC' && (
                                                                 <FormField name="geophysicalLogging" control={control} render={({ field }) => (
                                                                     <FormItem>
@@ -1017,6 +1150,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}/>
+                                                            <FormField name="developingConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Developing Conditions</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Developing Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(developingConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <FormField name="developingRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -1041,6 +1187,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="waterTankCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Tank Capacity (L)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 5000" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="noOfTapConnections" control={control} render={({ field }) => <FormItem><FormLabel># Taps</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 12" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="schemeConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Scheme Conditions</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Scheme Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(schemeConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -1057,10 +1216,23 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                 <Card>
                                                     <CardHeader><CardTitle className="text-lg text-primary">Scheme Details</CardTitle></CardHeader>
                                                     <CardContent className="space-y-4">
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                             <FormField name="totalDepth" control={control} render={({ field }) => <FormItem><FormLabel>Depth Erected (m)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 35.00" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="waterLevel" control={control} render={({ field }) => <FormItem><FormLabel>Water Level (m)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 12.50" readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="schemeConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Scheme Conditions</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Scheme Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(schemeConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -1082,6 +1254,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormField name="arsStorageCapacity" control={control} render={({ field }) => <FormItem><FormLabel>Storage Capacity (m³)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 250" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)}/></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="arsNumberOfFillings" control={control} render={({ field }) => <FormItem><FormLabel>Number of Fillings</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} placeholder="e.g. 4" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                             <FormField name="noOfBeneficiary" control={control} render={({ field }) => <FormItem><FormLabel># Beneficiaries</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 45" readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                            <FormField name="schemeConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Scheme Conditions</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(true)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Scheme Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(schemeConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
                                                         </div>
                                                         <FormField name="schemeRemarks" control={control} render={({ field }) => (
                                                             <FormItem>
@@ -1100,17 +1285,18 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         <FormField name="workStatus" control={control} render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Work Status <span className="text-destructive">*</span></FormLabel>
-                                                                <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || "Under Process"} disabled={isFieldReadOnly(true)}>
-                                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger></FormControl>
-                                                                    <SelectContent className="max-h-80">
-                                                                        <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                        {Array.from(new Set([
-                                                                            ...(field.value && !(SITE_DIALOG_WORK_STATUS_OPTIONS as readonly string[]).includes(field.value) ? [field.value] : []),
-                                                                            ...SITE_DIALOG_WORK_STATUS_OPTIONS
-                                                                        ])).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                                                                    </SelectContent>
-                                                                </Select>
+                                                                <FormLabel>Work Status <span className="text-muted-foreground font-normal text-xs">(Auto-populated)</span></FormLabel>
+                                                                <FormControl>
+                                                                    <Input 
+                                                                        type="text" 
+                                                                        {...field} 
+                                                                        value={field.value || "Under Process"} 
+                                                                        readOnly 
+                                                                        disabled 
+                                                                        className="bg-muted/60 font-semibold cursor-not-allowed text-foreground"
+                                                                    />
+                                                                </FormControl>
+                                                                <p className="text-[11px] text-muted-foreground mt-0.5">Auto-computed from conditions, dates, and tender status</p>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />

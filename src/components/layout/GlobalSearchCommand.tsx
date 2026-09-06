@@ -192,18 +192,18 @@ export function GlobalSearchCommand({
 
     // 4. e-Tenders
     (allE_tenders as any[]).forEach((et) => {
-      const tNo = (et.tenderNo || '').toLowerCase();
-      const work = (et.workName || '').toLowerCase();
-      const bidderMatch = et.bidders?.some((b: any) => (b.bidderName || '').toLowerCase().includes(q));
+      const tNo = (et.eTenderNo || et.tenderNo || '').toLowerCase();
+      const work = (et.nameOfWork || et.workName || '').toLowerCase();
+      const bidderMatch = et.bidders?.some((b: any) => (b.bidderName || b.name || '').toLowerCase().includes(q));
 
       if (tNo.includes(q) || work.includes(q) || bidderMatch) {
         matched.push({
           id: et.id,
           category: 'e-Tender',
-          title: et.workName || 'e-Tender Notice',
-          subtitle: `Tender No: ${et.tenderNo || 'N/A'} • Status: ${et.status || 'Active'}`,
-          fileNo: et.tenderNo,
-          status: et.status,
+          title: et.nameOfWork || et.workName || 'e-Tender Notice',
+          subtitle: `Tender No: ${et.eTenderNo || et.tenderNo || 'N/A'} • Status: ${et.presentStatus || et.status || 'Active'}`,
+          fileNo: et.eTenderNo || et.tenderNo,
+          status: et.presentStatus || et.status,
           href: `/dashboard/e-tender?id=${et.id}`,
           icon: <Gavel className="h-4 w-4 text-purple-500" />,
         });

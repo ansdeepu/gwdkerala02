@@ -404,8 +404,24 @@ export type SiteDiameter = typeof siteDiameterOptions[number];
 export const siteTypeOfRigOptions = ["Rotary 7", "Rotary 8", "DTH Rig", "DTH Rig, W&S", "Other Dept Rig", "Filter Point Rig", "Private Rig"] as const;
 export type SiteTypeOfRig = typeof siteTypeOfRigOptions[number];
 
-export const siteConditionsOptions = ['Accessible to Dept. Rig', 'Accessible to Private Rig', 'Inaccessible to Other Rigs', 'Land Dispute', 'Work Disputes and Conflicts'] as const;
+export const siteConditionsOptions = ['Accessible to Dept. Rig', 'Accessible to Private Rig', 'Inaccessible to Other Rigs'] as const;
 export type SiteConditions = typeof siteConditionsOptions[number];
+
+export const drillingConditionsOptions = [
+  "Land Disputes",
+  "Work Disputes and Conflicts",
+  "Collapsed",
+  "Refund",
+  "Cancelled",
+  "Failed"
+] as const;
+export type DrillingConditions = typeof drillingConditionsOptions[number];
+
+export const developingConditionsOptions = drillingConditionsOptions;
+export type DevelopingConditions = typeof developingConditionsOptions[number];
+
+export const schemeConditionsOptions = drillingConditionsOptions;
+export type SchemeConditions = typeof schemeConditionsOptions[number];
 
 export const typeOfWellOptions = ["Open Well", "Pond", "Bore Well", "Tube Well", "Filter Point Well"] as const;
 export type TypeOfWell = typeof typeOfWellOptions[number];
@@ -527,6 +543,9 @@ export const SiteDetailSchema = z.object({
   dateOfCompletion: nativeDateSchema.optional().nullable(),
   startDate: nativeDateSchema.optional().nullable(),
   typeOfRig: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional()),
+  drillingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
+  developingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
+  schemeConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   geophysicalLogging: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   contractorName: z.string().optional().nullable(),
   supervisorUid: z.string().optional().nullable(),

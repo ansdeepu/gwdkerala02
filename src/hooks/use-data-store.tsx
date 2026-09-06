@@ -88,6 +88,7 @@ const isFinalSiteStatus = (status?: string | null): boolean => {
         "Work Completed",
         "Work Failed",
         "Work Cancelled",
+        "Refund Pending",
         "Bill Prepared",
         "Payment Completed",
         "Utilization Certificate Issued",
@@ -101,13 +102,41 @@ const getResolvedWorkStatus = (
     idx: number,
     tenders: E_tender[]
 ): string | null => {
-    if (!tenders || !tenders.length) return null;
+    // 1. Terminal / Final Outcomes (Highest Priority)
+    if (site.dateOfCompletion && String(site.dateOfCompletion).trim() !== '') {
+        return "Work Completed";
+    }
+    const activeCondition = site.drillingConditions || site.developingConditions || site.schemeConditions;
+    if (activeCondition === 'Failed' || activeCondition === 'Collapsed') {
+        return "Work Failed";
+    }
+    if (activeCondition === 'Cancelled') {
+        return "Work Cancelled";
+    }
+    if (activeCondition === 'Refund') {
+        return "Refund Pending";
+    }
+    if (isFinalSiteStatus(site.workStatus)) {
+        return null;
+    }
+
+    // 2. Physical Execution Stage
+    const hasStarted = site.startDate && String(site.startDate).trim() !== '';
+    const hasActualDrilling = (Number(site.totalDepth) > 0) || (site.dateOfDrilling && String(site.dateOfDrilling).trim() !== '');
+    if (hasStarted || hasActualDrilling) {
+        return "Work in Progress";
+    }
+    if (site.workStatus === "Work in Progress" || site.workStatus === "Work Initiated") {
+        return null;
+    }
+
+    // 3. e-Tender / Rig Allotment Stage
     const siteId = site.id || (fileNo ? `${fileNo}_${idx}` : undefined);
     const normTenderNo = site.tenderNo?.trim().toUpperCase();
 
-    const matchingTenders = tenders.filter(tender => {
+    const matchingTenders = (tenders || []).filter(tender => {
         // 1. Direct tender number match
-        if (normTenderNo && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) {
+        if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION' && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) {
             return true;
         }
         // 2. Explicit selection in tender
@@ -133,31 +162,42 @@ const getResolvedWorkStatus = (
         return false;
     });
 
-    if (!matchingTenders.length) return null;
+    if (matchingTenders.length > 0) {
+        matchingTenders.sort((a, b) => {
+            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+            return timeB - timeA;
+        });
 
-    matchingTenders.sort((a, b) => {
-        const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
-        const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
-        return timeB - timeA;
-    });
+        const latestTender = matchingTenders[0];
+        const ts = latestTender.presentStatus;
 
-    const latestTender = matchingTenders[0];
-    const ts = latestTender.presentStatus;
-
-    if (isTenderCancelledOrRetender(ts)) {
-        if (!isFinalSiteStatus(site.workStatus)) {
-            return "Under Process";
-        }
-    } else if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
-        if (!isFinalSiteStatus(site.workStatus)) {
+        if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
             return "Work Order Issued";
         }
-    } else if (ts === "Selection Notice Issued") {
-        if (!isFinalSiteStatus(site.workStatus)) {
+        if (ts === "Selection Notice Issued") {
             return "Selection Notice Issued";
         }
+        if (!isTenderCancelledOrRetender(ts)) {
+            return "Tendered";
+        }
+    } else if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION') {
+        return "Tendered";
     }
-    return null;
+
+    // 4. Department Rig Allotted
+    if (site.siteConditions === 'Accessible to Dept. Rig') {
+        return "Department Rig Allotted";
+    }
+
+    // 5. TS Pending
+    const tsAmt = Number(site.tsAmount) || 0;
+    if (!tsAmt || tsAmt === 0) {
+        return "TS Pending";
+    }
+
+    // 6. Baseline State - Under Process
+    return "Under Process";
 };
 
 export type RateDescriptionId = 'tenderFee' | 'emd' | 'performanceGuarantee' | 'additionalPerformanceGuarantee' | 'stampPaper';
@@ -510,7 +550,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
         return () => unsubscribes.forEach(unsub => unsub());
     }, [user, selectedOffice]);
 
-    // --- Dynamic Work Status Resolution for Cancelled / Retendered e-Tenders ---
+    // --- Dynamic Work Status Resolution for Cancelled / Retendered / Active e-Tenders ---
     const allFileEntries = useMemo(() => {
         if (!rawFileEntries.length || !allE_tenders.length) return rawFileEntries;
 
@@ -528,7 +568,12 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
             });
 
             if (entryModified) {
-                return { ...entry, siteDetails: updatedSites };
+                let resolvedFileStatus = entry.fileStatus;
+                const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
+                if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
+                    resolvedFileStatus = "Tender Process";
+                }
+                return { ...entry, siteDetails: updatedSites, fileStatus: resolvedFileStatus };
             }
             return entry;
         });
@@ -559,16 +604,31 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
             });
 
             const latestTender = matchingTenders[0];
-            if (isTenderCancelledOrRetender(latestTender.presentStatus)) {
+            const ts = latestTender.presentStatus;
+            if (isTenderCancelledOrRetender(ts)) {
                 if (!isFinalSiteStatus(ars.arsStatus as any) && ars.arsStatus !== 'Under Process') {
                     return { ...ars, arsStatus: 'Under Process' };
+                }
+            } else if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
+                if (!isFinalSiteStatus(ars.arsStatus as any)) {
+                    return { ...ars, arsStatus: 'Work Order Issued' };
+                }
+            } else if (ts === "Selection Notice Issued") {
+                if (!isFinalSiteStatus(ars.arsStatus as any)) {
+                    return { ...ars, arsStatus: 'Selection Notice Issued' };
+                }
+            } else {
+                if (!isFinalSiteStatus(ars.arsStatus as any) && !["Work Order Issued", "Selection Notice Issued", "Work in Progress"].includes(ars.arsStatus as any)) {
+                    if (ars.arsStatus !== 'Tendered') {
+                        return { ...ars, arsStatus: 'Tendered' };
+                    }
                 }
             }
             return ars;
         });
     }, [rawArsEntries, allE_tenders]);
 
-    // Persistent Firestore Auto-Sync: Updates database documents where work status is not yet "Under Process"
+    // Persistent Firestore Auto-Sync: Updates database documents where work status needs sync with e-Tenders
     const syncedDocIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
         if (!user) return;
@@ -582,23 +642,34 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
             if (syncedDocIdsRef.current.has(entry.id)) return;
 
             let needsDbUpdate = false;
+            let resolvedFileStatus = entry.fileStatus;
             const updatedSites = entry.siteDetails.map((site, idx) => {
                 const resolvedStatus = getResolvedWorkStatus(site, entry.fileNo, idx, allE_tenders);
-                if (resolvedStatus && resolvedStatus !== site.workStatus && resolvedStatus === "Under Process") {
+                if (resolvedStatus && resolvedStatus !== site.workStatus && (resolvedStatus === "Under Process" || resolvedStatus === "Tendered" || resolvedStatus === "Work Order Issued" || resolvedStatus === "Selection Notice Issued")) {
                     needsDbUpdate = true;
                     return { ...site, workStatus: resolvedStatus };
                 }
                 return site;
             });
 
+            const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
+            if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
+                resolvedFileStatus = "Tender Process";
+                needsDbUpdate = true;
+            }
+
             if (needsDbUpdate) {
                 syncedDocIdsRef.current.add(entry.id);
                 const targetOffice = (entry.officeLocationFromPath || officeToQuery).toLowerCase();
                 const docRef = doc(db, `offices/${targetOffice}/fileEntries`, entry.id);
-                updateDoc(docRef, {
+                const payload: any = {
                     siteDetails: updatedSites,
                     updatedAt: serverTimestamp()
-                }).catch(err => {
+                };
+                if (resolvedFileStatus !== entry.fileStatus) {
+                    payload.fileStatus = resolvedFileStatus;
+                }
+                updateDoc(docRef, payload).catch(err => {
                     console.error(`Failed to auto-update Firestore for file ${entry.fileNo}:`, err);
                     syncedDocIdsRef.current.delete(entry.id);
                 });

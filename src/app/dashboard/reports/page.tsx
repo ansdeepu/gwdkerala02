@@ -153,6 +153,9 @@ export const reportFieldDefinitions: ReportFieldDefinition[] = [
   { id: 'innerCasing6kgPipe', label: 'Inner Casing 6kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'innerCasing4kgPipe', label: 'Inner Casing 4kg (m)', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'drillingRemarks', label: 'Drilling Remarks', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'drillingConditions', label: 'Drilling Conditions', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'developingConditions', label: 'Developing Conditions', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
+  { id: 'schemeConditions', label: 'Scheme Conditions', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
   { id: 'developingRemarks', label: 'Developing Remarks', category: 'Technical & Drilling Specifications', sources: ['depositWorks', 'private', 'collector', 'planFund'] },
 
   // 6. Survey Details
@@ -618,6 +621,9 @@ export default function ReportsPage() {
                     innerCasing6kgPipe: site.innerCasing6kgPipe || 'N/A',
                     innerCasing4kgPipe: site.innerCasing4kgPipe || 'N/A',
                     drillingRemarks: site.drillingRemarks || 'N/A',
+                    drillingConditions: site.drillingConditions || 'N/A',
+                    developingConditions: site.developingConditions || 'N/A',
+                    schemeConditions: site.schemeConditions || 'N/A',
                     developingRemarks: site.developingRemarks || 'N/A',
 
                     surveyOB: site.surveyOB || 'N/A',
