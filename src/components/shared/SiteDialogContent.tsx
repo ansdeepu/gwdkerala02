@@ -180,6 +180,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedCompletionDate = watch('dateOfCompletion');
     const watchedStartDate = watch('startDate');
     const watchedEstimateAmount = watch('estimateAmount');
+    const watchedRemittedAmount = watch('remittedAmount');
     const watchedTsAmount = watch('tsAmount');
     const watchedTotalDepth = watch('totalDepth');
     const watchedDateOfDrilling = watch('dateOfDrilling');
@@ -567,8 +568,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         // 4. Financial & TS Readiness
         // Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
         const est = Number(watchedEstimateAmount) || 0;
-        const rem = totalRemittedAmount || 0;
-        if (workTypeContext !== 'planFund' && est > 0 && rem > 0 && est > rem) {
+        const siteRem = (watchedRemittedAmount !== undefined && watchedRemittedAmount !== null && watchedRemittedAmount !== '') 
+            ? Number(watchedRemittedAmount) 
+            : null;
+        const rem = (siteRem !== null && !isNaN(siteRem)) ? siteRem : (totalRemittedAmount || 0);
+
+        if (workTypeContext !== 'planFund' && est > 0 && est > rem) {
             setValue('workStatus', 'Additional Fund Awaited');
             return;
         }
@@ -593,6 +598,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         watchedSchemeConditions,
         watchedSiteConditions,
         watchedEstimateAmount,
+        watchedRemittedAmount,
         watchedTsAmount,
         watchedTenderNo,
         totalRemittedAmount,

@@ -190,13 +190,20 @@ const getResolvedWorkStatus = (
         return "Department Rig Allotted";
     }
 
-    // 5. TS Pending
+    // 5. Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
+    const est = Number(site.estimateAmount) || 0;
+    const rem = Number(site.remittedAmount) || 0;
+    if (est > 0 && est > rem) {
+        return "Additional Fund Awaited";
+    }
+
+    // 6. TS Pending
     const tsAmt = Number(site.tsAmount) || 0;
     if (!tsAmt || tsAmt === 0) {
         return "TS Pending";
     }
 
-    // 6. Baseline State - Under Process
+    // 7. Baseline State - Under Process
     return "Under Process";
 };
 
