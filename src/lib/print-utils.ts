@@ -178,7 +178,7 @@ export const printDocument = (
       /* Force display and clean print formatting for the print target element */
       .print-target-element {
         display: block !important;
-        position: absolute !important;
+        position: static !important;
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
@@ -195,6 +195,28 @@ export const printDocument = (
 
       .print-target-element * {
         font-family: ${fontStack} !important;
+        box-sizing: border-box !important;
+      }
+
+      .official-form-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .official-form-page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+
+      .print-page-badge {
+        display: none !important;
       }
 
       .print-target-element h1,
@@ -228,10 +250,23 @@ export const printDocument = (
         border-collapse: collapse !important;
       }
       
-      input, textarea {
+      input:not([type="checkbox"]):not([type="radio"]):not(.keep-border),
+      textarea:not(.keep-border) {
         border: none !important;
         background: transparent !important;
         resize: none !important;
+      }
+
+      .form-line-input,
+      input.print-border-b,
+      .print\\:border-b {
+        border-bottom: 1px dotted #000000 !important;
+      }
+
+      .border-black,
+      .border,
+      [class*="border-black"] {
+        border-color: #000000 !important;
       }
     }
   `;

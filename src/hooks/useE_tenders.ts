@@ -9,6 +9,7 @@ import type { E_tenderFormData } from '@/lib/schemas/eTenderSchema';
 import { toast } from './use-toast';
 import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
+import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 
 const db = getFirestore(app);
 
@@ -152,16 +153,31 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                     let changed = false;
 
                     if (isTenderCancelled) {
-                        // ON CANCELLATION: Set work status to "Under Process", remove tenderNo link
+                        // ON CANCELLATION OR DELETION: Remove tender links and revert to proper pre-tender status
                         if (newSite.tenderNo && newSite.tenderNo.trim().toUpperCase() === eTenderNo.toUpperCase()) {
                             delete newSite.tenderNo;
+                            delete newSite.contractorName;
+                            delete newSite.quotedPercentage;
                             changed = true;
                         }
 
                         if (isTargetedSite || (site.tenderNo && site.tenderNo.trim().toUpperCase() === eTenderNo.toUpperCase())) {
-                            if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
-                                if (newSite.workStatus !== "Under Process") {
-                                    newSite.workStatus = "Under Process";
+                            if (!["Work Completed", "Work Failed", "Work Cancelled", "Refund Pending", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
+                                let computedStatus = "Under Process";
+                                if (newSite.startDate || (Number(newSite.totalDepth) > 0)) {
+                                    computedStatus = "Work in Progress";
+                                } else if (newSite.siteConditions === 'Accessible to Dept. Rig') {
+                                    computedStatus = "Department Rig Allotted";
+                                } else if (Number(newSite.estimateAmount) > (Number(newSite.remittedAmount) || 0)) {
+                                    computedStatus = "Additional Fund Awaited";
+                                } else if (newSite.isAwaitingTS && (!newSite.tsAmount || Number(newSite.tsAmount) === 0)) {
+                                    computedStatus = "TS Pending";
+                                } else if (newSite.previousWorkStatus) {
+                                    computedStatus = newSite.previousWorkStatus;
+                                }
+
+                                if (newSite.workStatus !== computedStatus) {
+                                    newSite.workStatus = computedStatus;
                                     changed = true;
                                 }
                             }
@@ -185,7 +201,20 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
 
                             if (tenderStatus === "Work Order Issued" || tenderStatus === "Supply Order Issued") {
                                 if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
-                                    nextWorkStatus = "Work Order Issued";
+                                    // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
+                                    if (!newSite.startDate || String(newSite.startDate).trim() === '') {
+                                        const calculatedStart = calculateWorkCommencementDate(tenderData.dateWorkOrder);
+                                        if (calculatedStart) {
+                                            newSite.startDate = calculatedStart;
+                                            changed = true;
+                                        }
+                                    }
+
+                                    if (newSite.startDate && String(newSite.startDate).trim() !== '') {
+                                        nextWorkStatus = "Work in Progress";
+                                    } else {
+                                        nextWorkStatus = "Work Order Issued";
+                                    }
                                 }
                             } else if (tenderStatus === "Selection Notice Issued") {
                                 if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
@@ -375,8 +404,34 @@ export function useE_tenders() {
         }
         if (!user.officeLocation) throw new Error("User has no office location.");
         const collectionPath = `offices/${user.officeLocation.toLowerCase()}/eTenders`;
-        await deleteDoc(doc(db, collectionPath, id));
-    }, [user]);
+        const docRef = doc(db, collectionPath, id);
+
+        // Fetch tender details before deleting so we can clean up linked sites
+        let tenderData = allE_tenders.find(t => t.id === id);
+        if (!tenderData) {
+            try {
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    tenderData = processDoc(snap) as E_tender;
+                }
+            } catch (err) {
+                console.error("Could not fetch tender prior to deletion:", err);
+            }
+        }
+
+        if (tenderData) {
+            try {
+                await syncTenderWithSiteDetails(user.officeLocation, {
+                    ...tenderData,
+                    presentStatus: "Tender Cancelled"
+                });
+            } catch (syncErr) {
+                console.error("Error unlinking tender from sites:", syncErr);
+            }
+        }
+
+        await deleteDoc(docRef);
+    }, [user, allE_tenders]);
     
     const getTender = useCallback(async (id: string): Promise<E_tender | null> => {
         // If data store is still loading, wait a bit or try to find in list

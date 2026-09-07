@@ -506,6 +506,7 @@ export const SiteDetailSchema = z.object({
   siteConditions: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(siteConditionsOptions).optional()),
   accessibleRig: z.string().optional().nullable(),
   tsAmount: optionalNumber(),
+  isAwaitingTS: z.boolean().optional().default(false),
   tenderNo: z.string().optional().nullable(),
   quotedPercentage: flexibleStringSchema,
   diameter: flexibleStringSchema,

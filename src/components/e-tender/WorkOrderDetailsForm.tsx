@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Save, X } from 'lucide-react';
 import { WorkOrderDetailsSchema, type E_tenderFormData, type WorkOrderDetailsFormData, type Designation, designationOptions } from '@/lib/schemas';
 import { formatDateForInput } from './utils';
+import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -196,7 +197,22 @@ export default function WorkOrderDetailsForm({ initialData, onSubmit, onCancel, 
                                 <CardContent>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField name="agreementDate" control={control} render={({ field }) => ( <FormItem><FormLabel>Agreement Date</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)} /></FormControl><FormMessage /></FormItem> )}/>
-                                        <FormField name="dateWorkOrder" control={control} render={({ field }) => ( <FormItem><FormLabel>Date - {tenderType === 'Purchase' ? 'Supply Order' : 'Work Order'}</FormLabel><FormControl><Input type="date" {...field} value={formatDateForInput(field.value)}/></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField name="dateWorkOrder" control={control} render={({ field }) => {
+                                            const formattedVal = formatDateForInput(field.value);
+                                            const calculatedStart = formattedVal ? calculateWorkCommencementDate(formattedVal) : null;
+                                            return (
+                                                <FormItem>
+                                                    <FormLabel>Date - {tenderType === 'Purchase' ? 'Supply Order' : 'Work Order'}</FormLabel>
+                                                    <FormControl><Input type="date" {...field} value={formattedVal}/></FormControl>
+                                                    {calculatedStart && (
+                                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                                            Site Start Date auto-defaults to: <span className="font-semibold text-foreground">{calculatedStart}</span> (4th day, skipping Sundays & Public Holidays)
+                                                        </p>
+                                                    )}
+                                                    <FormMessage />
+                                                </FormItem>
+                                            );
+                                        }}/>
                                     </div>
                                 </CardContent>
                             </Card>

@@ -16,6 +16,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { E_tender } from './useE_tenders';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { formatDistrictLocation } from '@/lib/utils';
+import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 
 const db = getFirestore(app);
 
@@ -173,6 +174,9 @@ const getResolvedWorkStatus = (
         const ts = latestTender.presentStatus;
 
         if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
+            if ((site.startDate && String(site.startDate).trim() !== '') || latestTender.dateWorkOrder) {
+                return "Work in Progress";
+            }
             return "Work Order Issued";
         }
         if (ts === "Selection Notice Issued") {
@@ -181,7 +185,7 @@ const getResolvedWorkStatus = (
         if (!isTenderCancelledOrRetender(ts)) {
             return "Tendered";
         }
-    } else if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION') {
+    } else if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION' && (!tenders || tenders.length === 0)) {
         return "Tendered";
     }
 
@@ -197,9 +201,9 @@ const getResolvedWorkStatus = (
         return "Additional Fund Awaited";
     }
 
-    // 6. TS Pending
+    // 6. TS Pending - Only when site is explicitly marked as awaiting TS
     const tsAmt = Number(site.tsAmount) || 0;
-    if (!tsAmt || tsAmt === 0) {
+    if ((site as any).isAwaitingTS && (!tsAmt || tsAmt === 0)) {
         return "TS Pending";
     }
 
@@ -566,18 +570,50 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
 
             let entryModified = false;
             const updatedSites = entry.siteDetails.map((site, idx) => {
-                const resolvedStatus = getResolvedWorkStatus(site, entry.fileNo, idx, allE_tenders);
-                if (resolvedStatus && resolvedStatus !== site.workStatus) {
-                    entryModified = true;
-                    return { ...site, workStatus: resolvedStatus };
+                let currentSite = { ...site };
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
+                if (!currentSite.startDate || String(currentSite.startDate).trim() === '') {
+                    const normTenderNo = currentSite.tenderNo?.trim().toUpperCase();
+                    const siteId = currentSite.id || (entry.fileNo ? `${entry.fileNo}_${idx}` : undefined);
+                    const matchingTenders = (allE_tenders || []).filter(tender => {
+                        if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION' && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) return true;
+                        if (siteId && Array.isArray(tender.selectedSiteIds) && tender.selectedSiteIds.includes(siteId)) return true;
+                        if (Array.isArray(tender.linkedSites) && tender.linkedSites.some(ls => (siteId && ls.siteId === siteId) || (matchFileNo(ls.fileNo, entry.fileNo) && ls.nameOfSite === currentSite.nameOfSite))) return true;
+                        if (entry.fileNo && [tender.fileNo, tender.fileNo2, tender.fileNo3, tender.fileNo4].some(f => matchFileNo(f, entry.fileNo))) return true;
+                        return false;
+                    });
+                    if (matchingTenders.length > 0) {
+                        matchingTenders.sort((a, b) => {
+                            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+                            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+                            return timeB - timeA;
+                        });
+                        const latest = matchingTenders[0];
+                        if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
+                            const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
+                            if (autoStart) {
+                                currentSite.startDate = autoStart;
+                                entryModified = true;
+                            }
+                        }
+                    }
                 }
-                return site;
+
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders);
+                if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
+                    entryModified = true;
+                    return { ...currentSite, workStatus: resolvedStatus };
+                }
+                return currentSite;
             });
 
             if (entryModified) {
                 let resolvedFileStatus = entry.fileStatus;
+                const hasWip = updatedSites.some(s => s.workStatus === "Work in Progress");
                 const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
-                if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
+                if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {
+                    resolvedFileStatus = "Work Initiated";
+                } else if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
                     resolvedFileStatus = "Tender Process";
                 }
                 return { ...entry, siteDetails: updatedSites, fileStatus: resolvedFileStatus };
@@ -651,16 +687,49 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
             let needsDbUpdate = false;
             let resolvedFileStatus = entry.fileStatus;
             const updatedSites = entry.siteDetails.map((site, idx) => {
-                const resolvedStatus = getResolvedWorkStatus(site, entry.fileNo, idx, allE_tenders);
-                if (resolvedStatus && resolvedStatus !== site.workStatus && (resolvedStatus === "Under Process" || resolvedStatus === "Tendered" || resolvedStatus === "Work Order Issued" || resolvedStatus === "Selection Notice Issued")) {
-                    needsDbUpdate = true;
-                    return { ...site, workStatus: resolvedStatus };
+                let currentSite = { ...site };
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
+                if (!currentSite.startDate || String(currentSite.startDate).trim() === '') {
+                    const normTenderNo = currentSite.tenderNo?.trim().toUpperCase();
+                    const siteId = currentSite.id || (entry.fileNo ? `${entry.fileNo}_${idx}` : undefined);
+                    const matchingTenders = (allE_tenders || []).filter(tender => {
+                        if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION' && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) return true;
+                        if (siteId && Array.isArray(tender.selectedSiteIds) && tender.selectedSiteIds.includes(siteId)) return true;
+                        if (Array.isArray(tender.linkedSites) && tender.linkedSites.some(ls => (siteId && ls.siteId === siteId) || (matchFileNo(ls.fileNo, entry.fileNo) && ls.nameOfSite === currentSite.nameOfSite))) return true;
+                        if (entry.fileNo && [tender.fileNo, tender.fileNo2, tender.fileNo3, tender.fileNo4].some(f => matchFileNo(f, entry.fileNo))) return true;
+                        return false;
+                    });
+                    if (matchingTenders.length > 0) {
+                        matchingTenders.sort((a, b) => {
+                            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+                            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+                            return timeB - timeA;
+                        });
+                        const latest = matchingTenders[0];
+                        if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
+                            const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
+                            if (autoStart) {
+                                currentSite.startDate = autoStart;
+                                needsDbUpdate = true;
+                            }
+                        }
+                    }
                 }
-                return site;
+
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders);
+                if (resolvedStatus && resolvedStatus !== currentSite.workStatus && (resolvedStatus === "Under Process" || resolvedStatus === "Tendered" || resolvedStatus === "Work Order Issued" || resolvedStatus === "Selection Notice Issued" || resolvedStatus === "Work in Progress")) {
+                    needsDbUpdate = true;
+                    return { ...currentSite, workStatus: resolvedStatus };
+                }
+                return currentSite;
             });
 
+            const hasWip = updatedSites.some(s => s.workStatus === "Work in Progress");
             const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
-            if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
+            if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {
+                resolvedFileStatus = "Work Initiated";
+                needsDbUpdate = true;
+            } else if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
                 resolvedFileStatus = "Tender Process";
                 needsDbUpdate = true;
             }

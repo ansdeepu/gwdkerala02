@@ -33,11 +33,13 @@ import {
   type RigCompressor
 } from '@/lib/schemas';
 import type { E_tender } from '@/hooks/useE_tenders';
+import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import MediaManager from '@/components/shared/MediaManager';
 
 const toDateOrNull = (value: any): Date | null => {
@@ -143,10 +145,45 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         return initialData?.totalExpenditure !== undefined && initialData?.totalExpenditure !== null ? Number(initialData.totalExpenditure) : undefined;
     }, [paymentDetails, initialData?.nameOfSite, initialData?.purpose, initialData?.id, initialData?.totalExpenditure]);
 
+    const initialMatchedTender = useMemo(() => {
+        if (!allE_tenders || allE_tenders.length === 0) return null;
+        const normTenderNo = initialData?.tenderNo?.trim().toUpperCase();
+        if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION') {
+            const found = allE_tenders.find(t => t.eTenderNo && t.eTenderNo.trim().toUpperCase() === normTenderNo);
+            if (found) return found;
+        }
+        const siteFileNo = (initialData as any)?.fileNo;
+        const siteId = initialData?.id;
+        const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
+        return allE_tenders.find(t => {
+            if (!t.eTenderNo) return false;
+            const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => {
+                if (!f || !siteFileNo) return false;
+                const cleanF = f.trim().toUpperCase().replace(/^[A-Z][A-Z0-9_]*\//, '');
+                const cleanSite = siteFileNo.trim().toUpperCase().replace(/^[A-Z][A-Z0-9_]*\//, '');
+                return cleanF === cleanSite;
+            });
+            const siteMatch = (siteId && (t.selectedSiteIds || []).includes(siteId)) || 
+                (t.linkedSites || []).some((ls: any) => (siteId && ls.siteId === siteId) || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
+            return fileMatch || siteMatch;
+        });
+    }, [allE_tenders, initialData]);
+
+    const initialComputedStartDate = useMemo(() => {
+        if (initialData?.startDate && String(initialData.startDate).trim() !== '') {
+            return formatDateForInput(initialData.startDate);
+        }
+        if (initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
+            return calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder) || "";
+        }
+        return "";
+    }, [initialData?.startDate, initialMatchedTender]);
+
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
             ...initialData,
+            startDate: initialComputedStartDate,
             totalExpenditure: computedExpenditure !== undefined ? computedExpenditure : (initialData?.totalExpenditure ?? undefined),
             casing6kgPipe: initialCasing6kg ?? "",
             casing8kgPipe: initialData?.casing8kgPipe ?? "",
@@ -157,6 +194,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
             dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
             arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
+            isAwaitingTS: initialData?.isAwaitingTS ?? false,
             workImages: initialData?.workImages || [],
             workVideos: initialData?.workVideos || [],
         },
@@ -182,6 +220,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedEstimateAmount = watch('estimateAmount');
     const watchedRemittedAmount = watch('remittedAmount');
     const watchedTsAmount = watch('tsAmount');
+    const watchedIsAwaitingTS = watch('isAwaitingTS');
     const watchedTotalDepth = watch('totalDepth');
     const watchedDateOfDrilling = watch('dateOfDrilling');
 
@@ -427,8 +466,29 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         }
     }, [watchedTenderNo, allE_tenders, initialData, setValue, matchFileNo]);
 
-    const isTenderSelected = !!(watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_');
+    const matchingTenderInStore = (allE_tenders || []).find(t => 
+        (t.eTenderNo && t.eTenderNo.trim().toUpperCase() === (watchedTenderNo || '').trim().toUpperCase()) ||
+        ((t as any).tenderNo && (t as any).tenderNo.trim().toUpperCase() === (watchedTenderNo || '').trim().toUpperCase())
+    );
+    const isTenderSelected = !!(watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_' && matchingTenderInStore);
     const prevTenderNoRef = useRef<any>(initialData?.tenderNo);
+
+    // If site has a recorded tenderNo that does not exist in allE_tenders (e.g. deleted e-tender), auto-clear it
+    useEffect(() => {
+        if (watchedTenderNo && watchedTenderNo !== 'Quotation' && watchedTenderNo !== '_clear_' && allE_tenders && allE_tenders.length > 0) {
+            const exists = allE_tenders.some(t => 
+                (t.eTenderNo && t.eTenderNo.trim().toUpperCase() === watchedTenderNo.trim().toUpperCase()) ||
+                ((t as any).tenderNo && (t as any).tenderNo.trim().toUpperCase() === watchedTenderNo.trim().toUpperCase())
+            );
+            if (!exists) {
+                setValue('tenderNo', undefined);
+                if (!isPrivateWork && !isDeptRigWork) {
+                    setValue('contractorName', '');
+                    setValue('quotedPercentage', '');
+                }
+            }
+        }
+    }, [watchedTenderNo, allE_tenders, setValue, isPrivateWork, isDeptRigWork]);
 
     useEffect(() => {
         if (isTenderSelected) {
@@ -464,6 +524,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 if (joinedInfo) {
                     setValue('supervisorName', joinedInfo);
                     setValue('supervisorUid', null);
+                }
+
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
+                if (!getValues('startDate') && (selectedTender.presentStatus === 'Work Order Issued' || selectedTender.presentStatus === 'Supply Order Issued') && selectedTender.dateWorkOrder) {
+                    const autoStart = calculateWorkCommencementDate(selectedTender.dateWorkOrder);
+                    if (autoStart) {
+                        setValue('startDate', autoStart, { shouldDirty: true });
+                    }
                 }
 
                 // Tender details linked
@@ -541,6 +609,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             const ts = activeTender.presentStatus;
             // Work Order Issued - is already linked with e-tender module
             if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
+                if (!watchedStartDate && activeTender.dateWorkOrder) {
+                    const autoStart = calculateWorkCommencementDate(activeTender.dateWorkOrder);
+                    if (autoStart) {
+                        setValue('startDate', autoStart);
+                        setValue('workStatus', 'Work in Progress');
+                        return;
+                    }
+                }
                 setValue('workStatus', 'Work Order Issued');
                 return;
             }
@@ -554,7 +630,10 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 setValue('workStatus', 'Tendered');
                 return;
             }
-        } else if (watchedTenderNo && watchedTenderNo !== '_clear_' && watchedTenderNo !== 'Quotation') {
+        } else if (watchedTenderNo === 'Quotation') {
+            setValue('workStatus', 'Tendered');
+            return;
+        } else if (watchedTenderNo && watchedTenderNo !== '_clear_' && (!allE_tenders || allE_tenders.length === 0)) {
             setValue('workStatus', 'Tendered');
             return;
         }
@@ -578,9 +657,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             return;
         }
 
-        // TS Pending - TS Amount (₹) is zero or blank
+        // TS Pending - Only when explicitly toggled ON as Awaiting TS (and TS Amount is zero or not yet sanctioned)
         const ts = Number(watchedTsAmount) || 0;
-        if (!ts || ts === 0) {
+        if (watchedIsAwaitingTS && (!ts || ts === 0)) {
             setValue('workStatus', 'TS Pending');
             return;
         }
@@ -600,6 +679,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         watchedEstimateAmount,
         watchedRemittedAmount,
         watchedTsAmount,
+        watchedIsAwaitingTS,
         watchedTenderNo,
         totalRemittedAmount,
         allE_tenders,
@@ -813,7 +893,55 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         )}/>
                                                         <FormField name="estimateAmount" control={control} render={({ field }) => <FormItem><FormLabel>Estimate Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
-                                                        <FormField name="tsAmount" control={control} render={({ field }) => <FormItem><FormLabel>TS Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField 
+                                                            name="tsAmount" 
+                                                            control={control} 
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <FormLabel>TS Amount (₹)</FormLabel>
+                                                                        <FormField
+                                                                            name="isAwaitingTS"
+                                                                            control={control}
+                                                                            render={({ field: switchField }) => (
+                                                                                <div className="flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded text-xs">
+                                                                                    <span className={cn("text-[11px] font-medium select-none cursor-pointer", switchField.value ? "text-amber-800 dark:text-amber-300 font-semibold" : "text-muted-foreground")} onClick={() => !isFieldReadOnly(false) && switchField.onChange(!switchField.value)}>
+                                                                                        Awaiting TS
+                                                                                    </span>
+                                                                                    <Switch
+                                                                                        id="isAwaitingTS-toggle"
+                                                                                        checked={!!switchField.value}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            switchField.onChange(checked);
+                                                                                        }}
+                                                                                        disabled={isFieldReadOnly(false)}
+                                                                                        className="scale-75 origin-right data-[state=checked]:bg-amber-600"
+                                                                                    />
+                                                                                </div>
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                    <FormControl>
+                                                                        <Input 
+                                                                            type="number" 
+                                                                            step="any" 
+                                                                            {...field} 
+                                                                            value={field.value ?? ""} 
+                                                                            placeholder="e.g. 45000" 
+                                                                            onChange={e => {
+                                                                                const val = e.target.value === '' ? null : Number(e.target.value);
+                                                                                field.onChange(val);
+                                                                                if (val && val > 0) {
+                                                                                    setValue('isAwaitingTS', false);
+                                                                                }
+                                                                            }} 
+                                                                            readOnly={isFieldReadOnly(false)} 
+                                                                        />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} 
+                                                        />
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                         {!isPrivateWork && !isDeptRigWork && (
@@ -1306,7 +1434,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
-                                                        <FormField name="startDate" control={control} render={({ field }) => <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
+                                                        <FormField name="startDate" control={control} render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Start Date</FormLabel>
+                                                                <FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl>
+                                                                <p className="text-[11px] text-muted-foreground mt-0.5">Defaults to 4th day after Work Order Date (skipping Sundays & Public Holidays)</p>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
                                                         <FormField name="dateOfCompletion" control={control} render={({ field }) => <FormItem><FormLabel>Completion Date {isCompletionDateRequired && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="totalExpenditure" control={control} render={({ field }) => (
                                                             <FormItem>
