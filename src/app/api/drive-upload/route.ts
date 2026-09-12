@@ -20,7 +20,19 @@ function getStoredScriptUrl(): string | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { base64Data, fileName, mimeType, officeLocation, fileNo, siteName, type, customScriptUrl } = body;
+    const { 
+      base64Data, 
+      fileName, 
+      mimeType, 
+      officeLocation, 
+      fileNo, 
+      siteName, 
+      type, 
+      customScriptUrl,
+      rootFolder,
+      skipSubFolder,
+      subFolder
+    } = body;
 
     if (!base64Data) {
       return NextResponse.json({ success: false, error: "Missing base64Data" }, { status: 400 });
@@ -52,6 +64,9 @@ export async function POST(req: NextRequest) {
         fileNo,
         siteName,
         type,
+        rootFolder,
+        skipSubFolder,
+        subFolder,
       }),
       redirect: "follow",
     });

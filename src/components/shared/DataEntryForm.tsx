@@ -63,7 +63,7 @@ import {
   StaffMember
 } from '@/lib/schemas';
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useFileEntries } from "@/hooks/useFileEntries";
 import { usePendingUpdates } from "@/hooks/usePendingUpdates";
 import { z } from "zod";
@@ -72,6 +72,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { getFirestore, doc, query, collection, where, getDocs, Timestamp, serverTimestamp, writeBatch, updateDoc, addDoc } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { useDataStore } from "@/hooks/use-data-store";
+import { isSiteTargetedByTender, getResolvedWorkStatus } from "@/lib/tenderUtils";
 import { ScrollArea } from "../ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -1057,6 +1058,92 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const { allFileEntries, allArsEntries, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors } = useDataStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isManualDirty, setIsManualDirty] = useState(false);
+
+  const parseDateValue = useCallback((val: any): Date | null => {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    if (typeof val?.toDate === 'function') {
+      const d = val.toDate();
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (val?.seconds) {
+      const d = new Date(val.seconds * 1000);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }, []);
+
+  const determineSaveType = useCallback((data: any): 'manual' | 'auto' | 'initial' => {
+    if (data?.lastSavedType === 'auto' || data?.lastSavedType === 'manual') {
+      return data.lastSavedType;
+    }
+    const sites = data?.siteDetails || [];
+    const hasLinkedTender = sites.some((s: any) => 
+      (s.tenderNo && s.tenderNo !== 'Quotation' && s.tenderNo !== '_clear_') ||
+      ['Tendered', 'Selection Notice Issued', 'Work Order Issued'].includes(s.workStatus)
+    );
+    const fileStatus = data?.fileStatus;
+    if (hasLinkedTender || ['Tender Process', 'Selection Notice Issued', 'Work Order Issued'].includes(fileStatus)) {
+      return 'auto';
+    }
+    return data?.lastSavedType || 'manual';
+  }, []);
+
+  const [lastSavedType, setLastSavedType] = useState<'manual' | 'auto' | 'initial'>(() => {
+    return determineSaveType(initialData);
+  });
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
+    const parsed = parseDateValue((initialData as any)?.updatedAt || (initialData as any)?.lastSavedAt || (initialData as any)?.createdAt);
+    if (parsed) return parsed;
+    return fileIdToEdit ? new Date() : null;
+  });
+  const lastSavedTypeRef = useRef<'manual' | 'auto' | 'initial'>(determineSaveType(initialData));
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isAutoReconciledRef = useRef<boolean>(false);
+
+  const serializeDataForSnapshot = useCallback((data: any) => {
+    if (!data) return '';
+    return JSON.stringify({
+      fileStatus: data.fileStatus || '',
+      totalRemittance: Number(data.totalRemittance) || 0,
+      totalReappropriation: Number(data.totalReappropriation) || 0,
+      totalReappropriationCredit: Number(data.totalReappropriationCredit) || 0,
+      totalPaymentAllEntries: Number(data.totalPaymentAllEntries) || 0,
+      overallBalance: Number(data.overallBalance) || 0,
+      paymentDetails: (data.paymentDetails || []).map((p: any) => ({
+        id: p.id || '',
+        remittanceId: p.remittanceId || '',
+        dateOfPayment: p.dateOfPayment || '',
+        paymentAccount: p.paymentAccount || '',
+        revenueHead: Number(p.revenueHead) || 0,
+        contractorsPayment: Number(p.contractorsPayment) || 0,
+        gst: Number(p.gst) || 0,
+        incomeTax: Number(p.incomeTax) || 0,
+        kbcwb: Number(p.kbcwb) || 0,
+        refundToParty: Number(p.refundToParty) || 0,
+        totalPaymentPerEntry: Number(p.totalPaymentPerEntry) || 0,
+      })),
+    });
+  }, []);
+
+  const savedSnapshotRef = useRef<string>(serializeDataForSnapshot(initialData));
+
+  useEffect(() => {
+    const parsed = parseDateValue((initialData as any)?.updatedAt || (initialData as any)?.lastSavedAt || (initialData as any)?.createdAt);
+    if (parsed) {
+      setLastSavedAt(parsed);
+    } else if (fileIdToEdit) {
+      setLastSavedAt(new Date());
+    }
+    const computedType = determineSaveType(initialData);
+    setLastSavedType(computedType);
+    lastSavedTypeRef.current = computedType;
+    savedSnapshotRef.current = serializeDataForSnapshot(initialData);
+  }, [initialData, fileIdToEdit, parseDateValue, serializeDataForSnapshot, determineSaveType]);
+
   const [activeAccordionItem, setActiveAccordionItem] = useState<string>("");
   const [reappAccordionValue, setReappAccordionValue] = useState<string>("");
   const [dialogState, setDialogState] = useState<{ type: null | 'application' | 'remittance' | 'reappropriation' | 'payment' | 'site' | 'reorderSite' | 'viewSite' | 'moveCopySite'; data: any, isView?: boolean }>({ type: null, data: null, isView: false });
@@ -1105,8 +1192,13 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   
   const { fields: remittanceFields, append: appendRemittance, remove: removeRemittance, update: updateRemittance } = useFieldArray({ control, name: "remittanceDetails" });
   const { fields: reappropriationFields, append: appendReappropriation, remove: removeReappropriation, update: updateReappropriation } = useFieldArray({ control, name: "reappropriationDetails" });
-  const { fields: siteFields, append: appendSite, remove: removeSite, update: updateSite, move: moveSite } = useFieldArray({ control, name: "siteDetails" });
+  const { fields: siteFields, append: appendSite, remove: removeSite, update: updateSite, move: moveSite, replace: replaceSiteFields } = useFieldArray({ control, name: "siteDetails" });
   const { fields: paymentFields, append: appendPayment, remove: removePayment, update: updatePayment, replace: replacePayments } = useFieldArray({ control, name: "paymentDetails" });
+
+  const replaceSites = useCallback((newSites: SiteDetailFormData[]) => {
+      setValue("siteDetails", newSites, { shouldDirty: true });
+      setIsManualDirty(true);
+  }, [setValue]);
 
   const sortedPaymentFields = useMemo(() => {
     return paymentFields
@@ -1125,7 +1217,18 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
 
   useEffect(() => {
     reset(initialData);
+    setIsManualDirty(false);
   }, [initialData, reset]);
+
+  // Track any manual changes directly emitted by user typing/inputs
+  useEffect(() => {
+    const subscription = form.watch((_, { type }) => {
+      if (type === 'change') {
+        setIsManualDirty(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // AUTOMATIC FILE STATUS DETERMINATION
   useEffect(() => {
@@ -1158,7 +1261,9 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     // 1. Check for File Closed (Financial Closure)
     const allSitesClosed = watchedSiteDetails.every(isClosedSite);
     if (allSitesClosed) {
-        setValue('fileStatus', 'File Closed', { shouldDirty: true });
+        if (getValues('fileStatus') !== 'File Closed') {
+            setValue('fileStatus', 'File Closed', { shouldDirty: false });
+        }
         return;
     }
 
@@ -1195,10 +1300,53 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         calculatedStatus = "File Under Process";
     }
 
-    if (calculatedStatus !== getValues('fileStatus')) {
-        setValue('fileStatus', calculatedStatus, { shouldDirty: true });
+    if (calculatedStatus && calculatedStatus !== getValues('fileStatus')) {
+        setValue('fileStatus', calculatedStatus, { shouldDirty: false });
+        isAutoReconciledRef.current = true;
     }
   }, [watchedSiteDetails, setValue, getValues, watch, workTypeContext]);
+
+  // AUTOMATIC SITE STATUS & TENDER LINKAGE RECONCILIATION
+  useEffect(() => {
+    if (!watchedSiteDetails || watchedSiteDetails.length === 0) return;
+    if (!allE_tenders || allE_tenders.length === 0) return;
+
+    let hasAnyChanges = false;
+    const reconciled = watchedSiteDetails.map((site, idx) => {
+      let currentSite = { ...site };
+      let changed = false;
+
+      // If site is marked with a tender number that no longer targets this site, clean it up
+      if (currentSite.tenderNo && currentSite.tenderNo !== '_CLEAR_' && currentSite.tenderNo !== 'QUOTATION') {
+        const assignedTender = allE_tenders.find(t => 
+          (t.eTenderNo && t.eTenderNo.trim().toUpperCase() === currentSite.tenderNo?.trim().toUpperCase()) ||
+          ((t as any).tenderNo && (t as any).tenderNo.trim().toUpperCase() === currentSite.tenderNo?.trim().toUpperCase())
+        );
+        if (assignedTender && !isSiteTargetedByTender(currentSite, currentFileNo, idx, assignedTender)) {
+          delete currentSite.tenderNo;
+          delete currentSite.contractorName;
+          delete currentSite.quotedPercentage;
+          changed = true;
+        }
+      }
+
+      const resolved = getResolvedWorkStatus(currentSite, currentFileNo, idx, allE_tenders);
+      if (resolved && resolved !== currentSite.workStatus) {
+        currentSite.workStatus = resolved as any;
+        changed = true;
+      }
+
+      if (changed) {
+        hasAnyChanges = true;
+      }
+      return currentSite;
+    });
+
+    if (hasAnyChanges) {
+      setValue("siteDetails", reconciled, { shouldDirty: false });
+      isAutoReconciledRef.current = true;
+    }
+  }, [allE_tenders, currentFileNo, watchedSiteDetails, setValue]);
 
   const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null) => {
       if (!refFileNo) return fallback ?? 0;
@@ -1451,34 +1599,123 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         return sum + (Number(item.amountRemitted) || 0);
     }, 0) || 0;
     if (getValues("totalRemittance") !== totalRemittance) {
-      setValue("totalRemittance", totalRemittance);
+      setValue("totalRemittance", totalRemittance, { shouldDirty: false });
     }
 
     const totalReappDebit = watchedReappropriationDetails?.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0) || 0;
     if (getValues("totalReappropriation") !== totalReappDebit) {
-      setValue("totalReappropriation", totalReappDebit);
+      setValue("totalReappropriation", totalReappDebit, { shouldDirty: false });
     }
 
     const totalReappCredit = autoCredits.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0);
     if (getValues("totalReappropriationCredit") !== totalReappCredit) {
-      setValue("totalReappropriationCredit", totalReappCredit);
+      setValue("totalReappropriationCredit", totalReappCredit, { shouldDirty: false });
     }
     
     const totalPayment = watchedPaymentDetails?.reduce((sum, item) => sum + calculatePaymentEntryTotalGlobal(item), 0) || 0;
     if (getValues("totalPaymentAllEntries") !== totalPayment) {
-      setValue("totalPaymentAllEntries", totalPayment);
+      setValue("totalPaymentAllEntries", totalPayment, { shouldDirty: false });
     }
 
     const overallBal = totalRemittance + totalReappCredit - totalPayment - totalReappDebit;
     if (getValues("overallBalance") !== overallBal) {
-      setValue("overallBalance", overallBal);
+      setValue("overallBalance", overallBal, { shouldDirty: false });
     }
     
   }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, getValues]);
+
+  // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist or when status reconciliation triggers
+  useEffect(() => {
+    // Only auto-save existing files already present in the database
+    if (!fileIdToEdit) return;
+    // If user has unsaved manual changes and no automatic reconciliation occurred, wait for manual save
+    if (isManualDirty && !isAutoReconciledRef.current) return;
+    // Do not auto-save if permissions forbid updates
+    if (isViewer || isFormDisabled || isSupervisor) return;
+    if (isSubmitting || isAutoSaving) return;
+
+    const currentValues = getValues();
+    const currentSnapshot = serializeDataForSnapshot(currentValues);
+
+    // If automatic data has changed from the saved baseline
+    if (savedSnapshotRef.current && currentSnapshot !== savedSnapshotRef.current) {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+      autoSaveTimerRef.current = setTimeout(async () => {
+        if (isSubmitting) return;
+
+        try {
+          setIsAutoSaving(true);
+          const dataToSave = getValues();
+          const sanitizedData = {
+            ...dataToSave,
+            constituency: dataToSave.constituency === undefined ? null : dataToSave.constituency,
+            lastSavedType: 'auto' as const,
+          };
+
+          if (sanitizedData.reappropriationDetails) {
+            sanitizedData.reappropriationDetails = sanitizedData.reappropriationDetails.map((reapp: any) => {
+              const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, reapp.expenditure);
+              return {
+                ...reapp,
+                expenditure: calculatedExp > 0 ? calculatedExp : reapp.expenditure,
+              };
+            });
+          }
+
+          await updateFileEntry(fileIdToEdit, sanitizedData, approveUpdateId || undefined);
+          const now = new Date();
+          setLastSavedAt(now);
+          setLastSavedType('auto');
+          lastSavedTypeRef.current = 'auto';
+          savedSnapshotRef.current = serializeDataForSnapshot(sanitizedData);
+          setIsManualDirty(false);
+          isAutoReconciledRef.current = false;
+          toast({
+            title: "Calculations & Status Auto-Saved",
+            description: `Auto-saved calculated updates at ${format(now, "hh:mm:ss a")}.`,
+            duration: 3000,
+          });
+        } catch (err: any) {
+          console.error("Auto-save failed:", err);
+        } finally {
+          setIsAutoSaving(false);
+        }
+      }, 1200);
+    }
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [
+    fileIdToEdit,
+    isManualDirty,
+    isSubmitting,
+    isAutoSaving,
+    isViewer,
+    isFormDisabled,
+    isSupervisor,
+    watchedSiteDetails,
+    watchedRemittanceDetails,
+    watchedReappropriationDetails,
+    watchedPaymentDetails,
+    watch('fileStatus'),
+    watch('totalRemittance'),
+    watch('totalReappropriation'),
+    watch('totalReappropriationCredit'),
+    watch('totalPaymentAllEntries'),
+    watch('overallBalance'),
+    getValues,
+    updateFileEntry,
+    approveUpdateId,
+    getReferencedExpenditure,
+    serializeDataForSnapshot,
+    toast,
+  ]);
 
     const paymentFieldsToDisplay = useMemo(() => {
         const fields: { key: keyof PaymentDetailFormData; label: string }[] = [
@@ -1509,6 +1746,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         const sanitizedData = {
           ...data,
           constituency: data.constituency === undefined ? null : data.constituency,
+          lastSavedType: 'manual' as const,
         };
 
         if (sanitizedData.reappropriationDetails) {
@@ -1544,6 +1782,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             remarks: sanitizedData.remarks
         }
         
+        const now = new Date();
         if (isSupervisor) {
             await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
             toast({ title: "Update Submitted" });
@@ -1559,6 +1798,11 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 router.push(`${pathname}?id=${newDocId}${workTypeContext ? `&workType=${workTypeContext}` : ''}${pageToReturnTo ? `&page=${pageToReturnTo}` : ''}`);
             }
         }
+        setLastSavedAt(now);
+        setLastSavedType('manual');
+        lastSavedTypeRef.current = 'manual';
+        setIsManualDirty(false);
+        savedSnapshotRef.current = serializeDataForSnapshot(sanitizedData);
     } catch (error: any) { 
         toast({ title: "Submission Failed", description: error.message, variant: "destructive" });
     } finally { 
@@ -1572,6 +1816,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const handleDialogConfirm = (data: any) => {
         const { type, data: originalData } = dialogState;
         if (!type) return;
+        setIsManualDirty(true);
 
         if (type === 'application') {
             setValue("fileNo", data.fileNo, { shouldDirty: true });
@@ -1630,12 +1875,9 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         closeDialog();
     };
 
-    const replaceSites = useCallback((newSites: SiteDetailFormData[]) => {
-        setValue("siteDetails", newSites, { shouldDirty: true });
-    }, [setValue]);
-
     const handleDeleteItem = () => {
         if (!itemToDelete) return;
+        setIsManualDirty(true);
         const { type, index } = itemToDelete;
 
         if (type === 'remittance') {
@@ -1672,6 +1914,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const handleMoveCopySiteConfirm = async (op: 'move' | 'copy', targetFileNo: string) => {
         const { index } = dialogState.data;
         if (!fileIdToEdit) return;
+        setIsManualDirty(true);
         try {
             await moveCopySite(fileIdToEdit, index, op, targetFileNo);
             toast({ title: op === 'move' ? "Site Moved" : "Site Copied" });
@@ -1702,17 +1945,18 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     let activeEstimateSum = 0;
 
     siteFields.forEach((field, index) => {
-        const isClosed = ((field.workStatus === 'Work Completed' || field.workStatus === 'Work Failed') && (Number(field.totalExpenditure) || 0) > 0) || field.workStatus === 'Work Cancelled';
+        const liveField = watchedSiteDetails?.[index] ? { ...field, ...watchedSiteDetails[index] } : field;
+        const isClosed = ((liveField.workStatus === 'Work Completed' || liveField.workStatus === 'Work Failed') && (Number(liveField.totalExpenditure) || 0) > 0) || liveField.workStatus === 'Work Cancelled';
         if (isClosed) {
-            closed.push({ field, originalIndex: index });
+            closed.push({ field: liveField, originalIndex: index });
         } else {
-            active.push({ field, originalIndex: index });
-            activeEstimateSum += (Number(field.estimateAmount) || 0);
+            active.push({ field: liveField, originalIndex: index });
+            activeEstimateSum += (Number(liveField.estimateAmount) || 0);
         }
     });
 
     return { activeSites: active, closedSites: closed, totalActiveEstimate: activeEstimateSum };
-  }, [siteFields]);
+  }, [siteFields, watchedSiteDetails]);
 
   if (isPrintModalOpen) {
     return (
@@ -1786,6 +2030,51 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     <FormProvider {...form}>
       <div>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+            {/* Top Status & Timestamp Banner */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-lg border bg-card/70 backdrop-blur-xs text-xs shadow-2xs">
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">Save Status:</span>
+                    {isAutoSaving && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Auto-saving calculations...
+                        </span>
+                    )}
+                    {isSubmitting && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving file...
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && isManualDirty && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" /> Unsaved manual changes (Click Save to update)
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && lastSavedAt && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> {lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'}
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && !lastSavedAt && (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" /> New Draft (Not saved yet)
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    {lastSavedAt ? (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'} at <strong className="text-foreground font-semibold">{format(lastSavedAt, "dd/MM/yyyy, hh:mm:ss a")}</strong></span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Not saved yet</span>
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">1. Application Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}</CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Name &amp; Address of Applicant (English)" value={watch('applicantName')} /><DetailRow label="Name &amp; Address of Applicant (Malayalam)" value={watch('applicantNameMl')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /><DetailRow label="Bank Name" value={watch('bankName')} /><DetailRow label="Branch" value={watch('branch')} /><DetailRow label="Bank Account No." value={watch('bankAccountNo')} /><DetailRow label="IFSC" value={watch('ifsc')} /></div></CardContent></Card>
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{remittanceTitle}</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('remittance', createDefaultRemittanceDetail())} disabled={isSupervisor || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount (₹)</TableHead><TableHead>Account</TableHead><TableHead>DD / Bank Details</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{remittanceFields.length > 0 ? remittanceFields.map((item, index) => (
               <TableRow key={item.id}>
@@ -2124,7 +2413,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor} /></FormControl><FormMessage /></FormItem>} />
+                            <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} onChange={(e) => { field.onChange(e); setIsManualDirty(true); }} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor} /></FormControl><FormMessage /></FormItem>} />
                         </div>
                     </div>
                 </CardContent>
@@ -2211,15 +2500,66 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 </CardContent>
             </Card>
 
-            <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting}>
-                    <X className="mr-2 h-4 w-4" /> Close
-                </Button>
-                {!(isViewer || isFormDisabled) && (
-                    <Button type="submit" disabled={isSubmitting || !isDirty}>
-                        <Save className="mr-2 h-4 w-4"/> {isSubmitting ? "Saving..." : 'Save'}
+            <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t bg-muted/20 py-3 px-6">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {isAutoSaving && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Auto-saving calculations...</span>
+                        </div>
+                    )}
+                    {isSubmitting && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Saving file...</span>
+                        </div>
+                    )}
+                    {!isSubmitting && !isAutoSaving && isManualDirty && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                            <span>Unsaved manual changes</span>
+                        </div>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && lastSavedAt && (
+                        lastSavedType === 'auto' ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                <span>Auto Saved</span>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <span>Manually Saved</span>
+                            </div>
+                        )
+                    )}
+                    {lastSavedAt ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'} at <strong className="text-foreground font-semibold">{format(lastSavedAt, "dd/MM/yyyy, hh:mm:ss a")}</strong></span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Not saved yet</span>
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 shrink-0">
+                    <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting || isAutoSaving}>
+                        <X className="mr-2 h-4 w-4" /> Close
                     </Button>
-                )}
+                    {!(isViewer || isFormDisabled) && (
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting || isAutoSaving || !isManualDirty}
+                            className={isManualDirty ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 font-semibold" : "opacity-50 cursor-not-allowed"}
+                        >
+                            <Save className="mr-2 h-4 w-4"/> {isSubmitting ? "Saving..." : 'Save'}
+                        </Button>
+                    )}
+                </div>
             </CardFooter>
         </form>
         <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} formOptions={formOptions} isEditing={isEditing} /></DialogContent></Dialog>

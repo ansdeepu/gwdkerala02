@@ -266,9 +266,13 @@ export default function DataEntryPage() {
                 }
             }
             
-            const { createdAt, updatedAt, ...restOfData } = dataForForm as any;
+            const processedData = processDataForForm(dataForForm);
+            if ((dataForForm as any).updatedAt) processedData.updatedAt = (dataForForm as any).updatedAt;
+            if ((dataForForm as any).createdAt) processedData.createdAt = (dataForForm as any).createdAt;
+            if ((dataForForm as any).lastSavedAt) processedData.lastSavedAt = (dataForForm as any).lastSavedAt;
+            if ((dataForForm as any).lastSavedType) processedData.lastSavedType = (dataForForm as any).lastSavedType;
             setFileNoForHeader(dataForForm.fileNo);
-            setPageData({ initialData: processDataForForm(restOfData) });
+            setPageData({ initialData: processedData });
 
         } catch (error) {
             setErrorState("Could not load all required data.");

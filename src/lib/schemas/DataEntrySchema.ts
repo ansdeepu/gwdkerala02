@@ -662,6 +662,9 @@ export const DataEntrySchema = z.object({
     invalid_type_error: "Please select a valid file status."
   }),
   remarks: z.string().optional().nullable(),
+  lastSavedAt: z.any().optional().nullable(),
+  updatedAt: z.any().optional().nullable(),
+  createdAt: z.any().optional().nullable(),
   reportOverrides: z.record(z.any()).optional().nullable(),
   printOverrides: z.record(z.any()).optional().nullable(),
 }).superRefine((data, ctx) => {

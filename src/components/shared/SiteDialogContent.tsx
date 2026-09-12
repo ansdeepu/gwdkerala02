@@ -34,6 +34,7 @@ import {
 } from '@/lib/schemas';
 import type { E_tender } from '@/hooks/useE_tenders';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
+import { isSiteTargetedByTender, matchFileNo } from '@/lib/tenderUtils';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
@@ -147,26 +148,18 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     const initialMatchedTender = useMemo(() => {
         if (!allE_tenders || allE_tenders.length === 0) return null;
-        const normTenderNo = initialData?.tenderNo?.trim().toUpperCase();
-        if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION') {
-            const found = allE_tenders.find(t => t.eTenderNo && t.eTenderNo.trim().toUpperCase() === normTenderNo);
-            if (found) return found;
-        }
         const siteFileNo = (initialData as any)?.fileNo;
-        const siteId = initialData?.id;
-        const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
-        return allE_tenders.find(t => {
-            if (!t.eTenderNo) return false;
-            const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => {
-                if (!f || !siteFileNo) return false;
-                const cleanF = f.trim().toUpperCase().replace(/^[A-Z][A-Z0-9_]*\//, '');
-                const cleanSite = siteFileNo.trim().toUpperCase().replace(/^[A-Z][A-Z0-9_]*\//, '');
-                return cleanF === cleanSite;
-            });
-            const siteMatch = (siteId && (t.selectedSiteIds || []).includes(siteId)) || 
-                (t.linkedSites || []).some((ls: any) => (siteId && ls.siteId === siteId) || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
-            return fileMatch || siteMatch;
+        const siteIdx = (initialData as any)?.index ?? 0;
+
+        const matchingTenders = allE_tenders.filter(t => isSiteTargetedByTender(initialData, siteFileNo, siteIdx, t));
+        if (matchingTenders.length === 0) return null;
+
+        matchingTenders.sort((a, b) => {
+            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+            return timeB - timeA;
         });
+        return matchingTenders[0];
     }, [allE_tenders, initialData]);
 
     const initialComputedStartDate = useMemo(() => {
@@ -451,13 +444,29 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             const siteFileNo = (initialData as any)?.fileNo;
             const siteId = initialData?.id;
             const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
+            const sitePurpose = (initialData?.purpose || '').trim().toLowerCase();
 
             const matchingTender = allE_tenders.find(t => {
                 if (!t.eTenderNo) return false;
+                const hasExplicitSelection = (Array.isArray(t.selectedSiteIds) && t.selectedSiteIds.length > 0) || 
+                    (Array.isArray(t.linkedSites) && t.linkedSites.length > 0);
+                const siteMatch = (siteId && Array.isArray(t.selectedSiteIds) && t.selectedSiteIds.includes(siteId)) || 
+                    (Array.isArray(t.linkedSites) && t.linkedSites.some((ls: any) => {
+                        const lsSiteId = ls.siteId || ls.id;
+                        if (siteId && lsSiteId === siteId) return true;
+                        const lsName = (ls.nameOfSite || '').trim().toLowerCase();
+                        const lsPurpose = (ls.purpose || '').trim().toLowerCase();
+                        const nameMatches = siteName && lsName === siteName;
+                        const purposeMatches = !lsPurpose || !sitePurpose || lsPurpose === sitePurpose;
+                        return nameMatches && purposeMatches;
+                    }));
+
+                if (hasExplicitSelection) {
+                    return siteMatch;
+                }
+
                 const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => matchFileNo(f, siteFileNo));
-                const siteMatch = (t.selectedSiteIds || []).includes(siteId || '') || 
-                    (t.linkedSites || []).some((ls: any) => ls.siteId === siteId || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
-                return fileMatch || siteMatch;
+                return fileMatch;
             });
 
             if (matchingTender && matchingTender.eTenderNo) {
@@ -585,24 +594,35 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
         // 3. e-Tender / Rig Allotment Stage
         let activeTender: any = null;
+        const siteFileNo = (initialData as any)?.fileNo;
+        const siteIdx = (initialData as any)?.index ?? 0;
+        const currentSiteSnapshot = {
+            ...initialData,
+            nameOfSite: watch('nameOfSite'),
+            purpose: watchedPurpose,
+            tenderNo: watchedTenderNo
+        };
+
         if (watchedTenderNo && watchedTenderNo !== '_clear_' && watchedTenderNo !== 'Quotation') {
             const cleanWatched = watchedTenderNo.trim().toUpperCase();
-            activeTender = (allE_tenders || []).find(t => 
+            const cand = (allE_tenders || []).find(t => 
                 (t.eTenderNo && t.eTenderNo.trim().toUpperCase() === cleanWatched) ||
                 ((t as any).tenderNo && (t as any).tenderNo.trim().toUpperCase() === cleanWatched)
             );
+            if (cand && isSiteTargetedByTender(currentSiteSnapshot, siteFileNo, siteIdx, cand)) {
+                activeTender = cand;
+            }
         }
         if (!activeTender && allE_tenders && allE_tenders.length > 0) {
-            const siteFileNo = (initialData as any)?.fileNo;
-            const siteId = initialData?.id;
-            const siteName = (initialData?.nameOfSite || '').trim().toLowerCase();
-            activeTender = allE_tenders.find(t => {
-                if (!t.eTenderNo) return false;
-                const fileMatch = siteFileNo && [t.fileNo, t.fileNo2, t.fileNo3, t.fileNo4].some(f => matchFileNo(f, siteFileNo));
-                const siteMatch = (siteId && (t.selectedSiteIds || []).includes(siteId)) || 
-                    (t.linkedSites || []).some((ls: any) => (siteId && ls.siteId === siteId) || (siteName && (ls.nameOfSite || '').trim().toLowerCase() === siteName));
-                return fileMatch || siteMatch;
-            });
+            const matchingTenders = allE_tenders.filter(t => isSiteTargetedByTender(currentSiteSnapshot, siteFileNo, siteIdx, t));
+            if (matchingTenders.length > 0) {
+                matchingTenders.sort((a, b) => {
+                    const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
+                    const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
+                    return timeB - timeA;
+                });
+                activeTender = matchingTenders[0];
+            }
         }
 
         if (activeTender) {
@@ -1494,7 +1514,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         update={updateImage}
                                                         isReadOnly={isFieldReadOnly(true)}
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
-                                                        fileNo={initialData?.fileNo || (initialData as any)?.currentFileNo}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                     <Separator />
@@ -1507,7 +1527,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         update={updateVideo}
                                                         isReadOnly={isFieldReadOnly(true)}
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
-                                                        fileNo={initialData?.fileNo || (initialData as any)?.currentFileNo}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                 </CardContent>

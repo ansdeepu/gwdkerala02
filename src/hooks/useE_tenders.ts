@@ -10,6 +10,7 @@ import { toast } from './use-toast';
 import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
+import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, getResolvedWorkStatus } from '@/lib/tenderUtils';
 
 const db = getFirestore(app);
 
@@ -82,9 +83,8 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
     const officePath = officeLocation.toLowerCase();
 
     const eTenderNo = tenderData.eTenderNo?.trim() || '';
-    const selectedSiteIds = tenderData.selectedSiteIds || [];
-    const linkedSites = tenderData.linkedSites || [];
-    const hasExplicitSelection = selectedSiteIds.length > 0 || linkedSites.length > 0;
+    const selectedSiteIds = Array.isArray(tenderData.selectedSiteIds) ? tenderData.selectedSiteIds : [];
+    const linkedSites = Array.isArray(tenderData.linkedSites) ? tenderData.linkedSites : [];
 
     const targetFileNos = [
         tenderData.fileNo,
@@ -111,10 +111,11 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
         return dbNoPrefix === searchNoPrefix;
     };
 
-    const isTenderCancelled = tenderData.presentStatus === "Tender Cancelled" || 
-                              tenderData.presentStatus === "Cancelled" || 
-                              tenderData.presentStatus === "Retender" || 
-                              tenderData.presentStatus === "Re-tender";
+    const presentStatusStr = (tenderData.presentStatus as string) || '';
+    const isTenderCancelled = presentStatusStr === "Tender Cancelled" || 
+                              presentStatusStr === "Cancelled" || 
+                              presentStatusStr === "Retender" || 
+                              presentStatusStr === "Re-tender";
 
     try {
         // 1. Sync fileEntries
@@ -139,14 +140,16 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                     const newSite = { ...site };
                     const siteId = site.id || `${entryFileNo}_${idx}`;
 
-                    // Check if this site is selected for this tender
-                    let isTargetedSite = true;
-                    if (hasExplicitSelection) {
-                        isTargetedSite = selectedSiteIds.includes(siteId) || 
-                            linkedSites.some((ls: any) => ls.siteId === siteId || ls.nameOfSite === site.nameOfSite);
-                    }
+                    // Explicit check: Is this site targeted by this tender?
+                    const isTargetedSite = !isTenderCancelled && isSiteTargetedByTender(site, entryFileNo, idx, tenderData as E_tender);
 
-                    if (!isTargetedSite && !hasMatchingTenderNoInSites) {
+                    const isCurrentlyLinkedToThisTender = Boolean(
+                        eTenderNo && site.tenderNo && site.tenderNo.trim().toUpperCase() === eTenderNo.toUpperCase()
+                    );
+
+                    const isStaleTenderStatus = isFileNoMatch && !isTargetedSite && (site.workStatus === "Tendered" || site.workStatus === "Selection Notice Issued" || site.workStatus === "Work Order Issued");
+
+                    if (!isTargetedSite && !isCurrentlyLinkedToThisTender && !isStaleTenderStatus && !hasMatchingTenderNoInSites) {
                         return newSite;
                     }
 
@@ -154,28 +157,16 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
 
                     if (isTenderCancelled) {
                         // ON CANCELLATION OR DELETION: Remove tender links and revert to proper pre-tender status
-                        if (newSite.tenderNo && newSite.tenderNo.trim().toUpperCase() === eTenderNo.toUpperCase()) {
+                        if (isCurrentlyLinkedToThisTender || isStaleTenderStatus) {
                             delete newSite.tenderNo;
                             delete newSite.contractorName;
                             delete newSite.quotedPercentage;
                             changed = true;
                         }
 
-                        if (isTargetedSite || (site.tenderNo && site.tenderNo.trim().toUpperCase() === eTenderNo.toUpperCase())) {
+                        if (isTargetedSite || isCurrentlyLinkedToThisTender || isStaleTenderStatus) {
                             if (!["Work Completed", "Work Failed", "Work Cancelled", "Refund Pending", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
-                                let computedStatus = "Under Process";
-                                if (newSite.startDate || (Number(newSite.totalDepth) > 0)) {
-                                    computedStatus = "Work in Progress";
-                                } else if (newSite.siteConditions === 'Accessible to Dept. Rig') {
-                                    computedStatus = "Department Rig Allotted";
-                                } else if (Number(newSite.estimateAmount) > (Number(newSite.remittedAmount) || 0)) {
-                                    computedStatus = "Additional Fund Awaited";
-                                } else if (newSite.isAwaitingTS && (!newSite.tsAmount || Number(newSite.tsAmount) === 0)) {
-                                    computedStatus = "TS Pending";
-                                } else if (newSite.previousWorkStatus) {
-                                    computedStatus = newSite.previousWorkStatus;
-                                }
-
+                                const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, []) || "Under Process";
                                 if (newSite.workStatus !== computedStatus) {
                                     newSite.workStatus = computedStatus;
                                     changed = true;
@@ -183,8 +174,23 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                             }
                             delete newSite.previousWorkStatus;
                         }
+                    } else if (!isTargetedSite && (isCurrentlyLinkedToThisTender || isStaleTenderStatus)) {
+                        // ON UNLINKING A SITE: Remove tender link and return status back to pre-tender status
+                        delete newSite.tenderNo;
+                        delete newSite.contractorName;
+                        delete newSite.quotedPercentage;
+                        changed = true;
+
+                        if (!["Work Completed", "Work Failed", "Work Cancelled", "Refund Pending", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
+                            const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, []) || "Under Process";
+                            if (newSite.workStatus !== computedStatus) {
+                                newSite.workStatus = computedStatus;
+                                changed = true;
+                            }
+                        }
+                        delete newSite.previousWorkStatus;
                     } else if (isTargetedSite) {
-                        // ON ACTIVE TENDER: Store previous status and update work status
+                        // ON ACTIVE TENDER TARGET SITE: Store previous status and update work status
                         if (eTenderNo && newSite.tenderNo !== eTenderNo) {
                             newSite.tenderNo = eTenderNo;
                             changed = true;
@@ -220,7 +226,7 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                                 if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
                                     nextWorkStatus = "Selection Notice Issued";
                                 }
-                            } else if (tenderStatus === "Tender Cancelled" || tenderStatus === "Cancelled" || tenderStatus === "Retender") {
+                            } else if ((tenderStatus as string) === "Tender Cancelled" || (tenderStatus as string) === "Cancelled" || (tenderStatus as string) === "Retender") {
                                 if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
                                     nextWorkStatus = "Under Process";
                                 }
@@ -241,21 +247,25 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                     return newSite;
                 });
 
+                const hasAnyActiveTenderInSites = updatedSites.some((s: any) => Boolean(s.tenderNo && s.tenderNo.trim().length > 0));
                 let newFileStatus = entryData.fileStatus;
                 let fileStatusChanged = false;
+                const updatePayload: any = {};
 
-                if (isTenderCancelled) {
+                if (isTenderCancelled || !hasAnyActiveTenderInSites) {
+                    // When tender cancelled or all sites in file unlinked from any active tender: revert file status
                     if (entryData.previousFileStatus) {
                         newFileStatus = entryData.previousFileStatus;
                         fileStatusChanged = true;
-                    } else if (newFileStatus === "Tender Process") {
+                    } else if (newFileStatus === "Tender Process" || newFileStatus === "Work Initiated") {
                         newFileStatus = "Technical Sanction";
                         fileStatusChanged = true;
                     }
+                    updatePayload.previousFileStatus = null;
                 } else {
-                    if (!entryData.previousFileStatus && entryData.fileStatus && entryData.fileStatus !== "Tender Process") {
+                    if (!entryData.previousFileStatus && entryData.fileStatus && entryData.fileStatus !== "Tender Process" && entryData.fileStatus !== "Work Initiated") {
                         // Store previous file status
-                        await updateDoc(docSnap.ref, { previousFileStatus: entryData.fileStatus });
+                        updatePayload.previousFileStatus = entryData.fileStatus;
                     }
 
                     if (tenderData.presentStatus === "Work Order Issued" || tenderData.presentStatus === "Supply Order Issued") {
@@ -272,14 +282,11 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                 }
 
                 if (siteModified || fileStatusChanged) {
-                    const updatePayload: any = {
-                        siteDetails: updatedSites,
-                        fileStatus: newFileStatus,
-                        updatedAt: serverTimestamp()
-                    };
-                    if (isTenderCancelled) {
-                        updatePayload.previousFileStatus = null;
-                    }
+                    updatePayload.siteDetails = updatedSites;
+                    updatePayload.fileStatus = newFileStatus;
+                    updatePayload.lastSavedType = 'auto';
+                    updatePayload.updatedAt = serverTimestamp();
+
                     await updateDoc(docSnap.ref, updatePayload);
                     updatedFileCount++;
                 }
@@ -327,7 +334,7 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                             targetArsStatus = "Work Order Issued";
                         } else if (tenderStatus === "Selection Notice Issued") {
                             targetArsStatus = "Selection Notice Issued";
-                        } else if (tenderStatus === "Tender Cancelled" || tenderStatus === "Cancelled" || tenderStatus === "Retender") {
+                        } else if ((tenderStatus as string) === "Tender Cancelled" || (tenderStatus as string) === "Cancelled" || (tenderStatus as string) === "Retender") {
                             targetArsStatus = "Under Process";
                         } else {
                             if (["Proposal Submitted", "AS & TS Issued"].includes(arsData.arsStatus) || !arsData.arsStatus) {
@@ -393,8 +400,19 @@ export function useE_tenders() {
         const sanitizedPayload = sanitizeDataForFirestore(payload);
         await updateDoc(docRef, sanitizedPayload);
 
+        // Fetch the full merged tender before syncing site details to ensure complete context
+        let fullTender: Partial<E_tender> = tenderData;
+        try {
+            const updatedDocSnap = await getDoc(docRef);
+            if (updatedDocSnap.exists()) {
+                fullTender = { id, ...updatedDocSnap.data() } as Partial<E_tender>;
+            }
+        } catch (err) {
+            console.error("Could not fetch full tender for sync, using partial:", err);
+        }
+
         // Auto-sync site details in matching file entries
-        await syncTenderWithSiteDetails(user.officeLocation, tenderData);
+        await syncTenderWithSiteDetails(user.officeLocation, fullTender);
     }, [user]);
 
     const deleteTender = useCallback(async (id: string) => {

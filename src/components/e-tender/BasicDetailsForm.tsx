@@ -10,12 +10,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { MalayalamInput } from '@/components/ui/malayalam-input-helper';
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save, X, FileText, Upload, Trash2, CheckCircle2 } from 'lucide-react';
 import type { E_tenderFormData, BasicDetailsFormData } from '@/lib/schemas/eTenderSchema';
 import { formatDateForInput, toDateOrNull, getRateDetailForDate, calculateStructuredRate } from './utils';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useDataStore } from '@/hooks/use-data-store';
 import { useTenderData } from './TenderDataContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { uploadTenderEstimateToGoogleDrive } from '@/lib/googleDriveUploadClient';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BasicDetailsSchema } from '@/lib/schemas/eTenderSchema';
 import { formatCase } from '@/lib/utils';
@@ -125,6 +131,21 @@ const DateTimePicker12h = ({
 export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: BasicDetailsFormProps) {
     const { allRateDescriptionDetails, allFileEntries } = useDataStore();
     const { tender } = useTenderData();
+    const { user } = useAuth();
+    const { toast } = useToast();
+
+    const [isUploadingEstimate, setIsUploadingEstimate] = React.useState(false);
+    const [uploadProgressText, setUploadProgressText] = React.useState('');
+    const [estimateUploadProgress, setEstimateUploadProgress] = React.useState<{
+        percent: number;
+        statusText: string;
+        fileName: string;
+        fileSizeMB: string;
+    } | null>(null);
+    const [isDriveSetupOpen, setIsDriveSetupOpen] = React.useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const effectiveOffice = tender.officeLocation || user?.officeLocation || 'General';
 
     const form = useForm<BasicDetailsFormData>({
         resolver: zodResolver(BasicDetailsSchema),
@@ -133,6 +154,10 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
             tenderDate: formatDateForInput(tender.tenderDate),
             selectedSiteIds: tender.selectedSiteIds || [],
             linkedSites: tender.linkedSites || [],
+            detailedEstimateUrl: tender.detailedEstimateUrl ?? '',
+            detailedEstimateDriveFileId: tender.detailedEstimateDriveFileId ?? null,
+            detailedEstimateFileName: tender.detailedEstimateFileName ?? null,
+            detailedEstimateUploadedAt: tender.detailedEstimateUploadedAt ?? null,
             // dateTimeOfReceipt and dateTimeOfOpening are kept as Date/String objects in the form state
             // but the DateTimePicker12h handles the conversion for the UI.
         }
@@ -140,7 +165,19 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
     
     const { control, setValue, handleSubmit, watch, formState: { isDirty } } = form;
 
-    const [estimateAmount, tenderType, tenderDate, fileNo, fileNo2, fileNo3, fileNo4, selectedSiteIds] = watch([
+    const [
+        estimateAmount, 
+        tenderType, 
+        tenderDate, 
+        fileNo, 
+        fileNo2, 
+        fileNo3, 
+        fileNo4, 
+        selectedSiteIds,
+        detailedEstimateUrl,
+        detailedEstimateFileName,
+        eTenderNo
+    ] = watch([
         'estimateAmount',
         'tenderType',
         'tenderDate',
@@ -148,8 +185,171 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
         'fileNo2',
         'fileNo3',
         'fileNo4',
-        'selectedSiteIds'
+        'selectedSiteIds',
+        'detailedEstimateUrl',
+        'detailedEstimateFileName',
+        'eTenderNo'
     ]);
+
+    const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            toast({
+                title: "Invalid File Format",
+                description: "Please upload a valid PDF document (.pdf).",
+                variant: "destructive",
+            });
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        // Strict 25MB check for Detailed Estimate PDF
+        const MAX_PDF_SIZE_BYTES = 25 * 1024 * 1024;
+        if (file.size > MAX_PDF_SIZE_BYTES) {
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+            toast({
+                title: "File Exceeds 25MB Limit",
+                description: `Selected PDF "${file.name}" (${sizeMb} MB) exceeds maximum allowed upload limit of 25MB. Please upload a smaller or compressed PDF.`,
+                variant: "destructive",
+            });
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        setIsUploadingEstimate(true);
+        setUploadProgressText(`Uploading Detailed Estimate PDF (${fileSizeMB} MB) to Google Drive...`);
+        setEstimateUploadProgress({
+            percent: 10,
+            statusText: `Preparing Detailed Estimate PDF (${fileSizeMB} MB)...`,
+            fileName: file.name,
+            fileSizeMB,
+        });
+
+        try {
+            let result;
+            if (typeof uploadTenderEstimateToGoogleDrive === 'function') {
+                result = await uploadTenderEstimateToGoogleDrive({
+                    file,
+                    officeLocation: effectiveOffice,
+                    tenderNo: eTenderNo || tender.eTenderNo,
+                    onProgress: (percent, statusText) => {
+                        setEstimateUploadProgress({
+                            percent,
+                            statusText,
+                            fileName: file.name,
+                            fileSizeMB,
+                        });
+                    },
+                });
+            } else {
+                // Inline resilient fallback if module chunk is stale
+                const base64Data = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const dataUrl = reader.result as string;
+                        resolve(dataUrl.split(',')[1] || '');
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                const cleanTenderNo = (eTenderNo || tender.eTenderNo) ? String(eTenderNo || tender.eTenderNo).replace(/[/\\?%*:|"<>]/g, '_').trim() : 'Draft';
+                const cleanOriginalName = String(file.name).replace(/[/\\?%*:|"<>]/g, '_').trim();
+                const fileName = `Detailed_Estimate_${cleanTenderNo}_${cleanOriginalName}`;
+
+                const response = await fetch("/api/drive-upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        base64Data,
+                        fileName,
+                        mimeType: "application/pdf",
+                        officeLocation: effectiveOffice,
+                        rootFolder: "GWD_e-Tender",
+                        skipSubFolder: true,
+                        type: "document",
+                    }),
+                });
+                result = await response.json();
+            }
+
+            if (result && result.success && (result.url || result.viewUrl)) {
+                const finalUrl = result.viewUrl || result.url || '';
+                const driveFileId = result.fileId || '';
+                const fileName = result.fileName || file.name;
+
+                setValue('detailedEstimateUrl', finalUrl, { shouldDirty: true });
+                setValue('detailedEstimateDriveFileId', driveFileId, { shouldDirty: true });
+                setValue('detailedEstimateFileName', fileName, { shouldDirty: true });
+                setValue('detailedEstimateUploadedAt', new Date().toISOString(), { shouldDirty: true });
+
+                setEstimateUploadProgress({
+                    percent: 100,
+                    statusText: "Detailed Estimate PDF uploaded successfully!",
+                    fileName: file.name,
+                    fileSizeMB,
+                });
+
+                toast({
+                    title: "Detailed Estimate Uploaded",
+                    description: `Saved to keralagwd@gmail.com Google Drive: GWD_e-Tender > ${effectiveOffice}`,
+                });
+            } else {
+                if (result.requiresSetup) {
+                    toast({
+                        title: "Google Drive Setup Required",
+                        description: "Google Drive integration for keralagwd@gmail.com is not yet configured. Please configure it now.",
+                        variant: "destructive",
+                    });
+                    setIsDriveSetupOpen(true);
+                } else {
+                    toast({
+                        title: "Upload Failed",
+                        description: result.error || "Failed to upload Detailed Estimate to Google Drive.",
+                        variant: "destructive",
+                    });
+                }
+            }
+        } catch (err: any) {
+            toast({
+                title: "Upload Error",
+                description: err?.message || "An unexpected error occurred during file upload.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsUploadingEstimate(false);
+            setUploadProgressText('');
+            setTimeout(() => setEstimateUploadProgress(null), 3000);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleRemoveEstimate = () => {
+        setValue('detailedEstimateUrl', '', { shouldDirty: true });
+        setValue('detailedEstimateDriveFileId', null, { shouldDirty: true });
+        setValue('detailedEstimateFileName', null, { shouldDirty: true });
+        setValue('detailedEstimateUploadedAt', null, { shouldDirty: true });
+        toast({
+            title: "Detailed Estimate Cleared",
+            description: "The estimate attachment has been removed from this tender.",
+        });
+    };
+
+    const matchFileNo = useCallback((fileNoInDb?: string | null, searchNo?: string | null): boolean => {
+        if (!fileNoInDb || !searchNo) return false;
+        const dbClean = fileNoInDb.trim().toUpperCase();
+        const searchClean = searchNo.trim().toUpperCase();
+        if (!searchClean) return false;
+        if (dbClean === searchClean) return true;
+
+        const stripOfficePrefix = (str: string) => str.replace(/^[A-Z][A-Z0-9_]*\//, '');
+        const dbNoPrefix = stripOfficePrefix(dbClean);
+        const searchNoPrefix = stripOfficePrefix(searchClean);
+
+        return dbNoPrefix === searchNoPrefix;
+    }, []);
 
     const matchingFiles = React.useMemo(() => {
         const enteredNos = [fileNo, fileNo2, fileNo3, fileNo4]
@@ -158,24 +358,56 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
 
         if (enteredNos.length === 0 || !allFileEntries) return [];
 
-        const matchFileNo = (fileNoInDb?: string | null, searchNo?: string | null): boolean => {
-            if (!fileNoInDb || !searchNo) return false;
-            const dbClean = fileNoInDb.trim().toUpperCase();
-            const searchClean = searchNo.trim().toUpperCase();
-            if (!searchClean) return false;
-            if (dbClean === searchClean) return true;
-
-            const stripOfficePrefix = (str: string) => str.replace(/^[A-Z][A-Z0-9_]*\//, '');
-            const dbNoPrefix = stripOfficePrefix(dbClean);
-            const searchNoPrefix = stripOfficePrefix(searchClean);
-
-            return dbNoPrefix === searchNoPrefix;
-        };
-
         return allFileEntries.filter(entry => 
             enteredNos.some(targetNo => matchFileNo(entry.fileNo, targetNo))
         );
-    }, [fileNo, fileNo2, fileNo3, fileNo4, allFileEntries]);
+    }, [fileNo, fileNo2, fileNo3, fileNo4, allFileEntries, matchFileNo]);
+
+    // When editing file numbers, completely clear the selection of sites belonging to the edited/replaced file
+    const prevFileNosRef = React.useRef<{ fileNo: string; fileNo2: string; fileNo3: string; fileNo4: string }>({
+        fileNo: (tender.fileNo || '').trim(),
+        fileNo2: (tender.fileNo2 || '').trim(),
+        fileNo3: (tender.fileNo3 || '').trim(),
+        fileNo4: (tender.fileNo4 || '').trim(),
+    });
+
+    useEffect(() => {
+        const prev = prevFileNosRef.current;
+        const current = {
+            fileNo: (fileNo || '').trim(),
+            fileNo2: (fileNo2 || '').trim(),
+            fileNo3: (fileNo3 || '').trim(),
+            fileNo4: (fileNo4 || '').trim(),
+        };
+
+        const changedOldFileNos: string[] = [];
+        if (prev.fileNo !== current.fileNo && prev.fileNo) changedOldFileNos.push(prev.fileNo);
+        if (prev.fileNo2 !== current.fileNo2 && prev.fileNo2) changedOldFileNos.push(prev.fileNo2);
+        if (prev.fileNo3 !== current.fileNo3 && prev.fileNo3) changedOldFileNos.push(prev.fileNo3);
+        if (prev.fileNo4 !== current.fileNo4 && prev.fileNo4) changedOldFileNos.push(prev.fileNo4);
+
+        if (changedOldFileNos.length > 0 && Array.isArray(allFileEntries)) {
+            const oldSiteIdsToRemove = new Set<string>();
+            changedOldFileNos.forEach(oldFn => {
+                const oldFileEntry = allFileEntries.find(e => matchFileNo(e.fileNo, oldFn));
+                if (oldFileEntry && Array.isArray(oldFileEntry.siteDetails)) {
+                    oldFileEntry.siteDetails.forEach((site: any, idx: number) => {
+                        const sId = site.id || `${oldFileEntry.fileNo}_${idx}`;
+                        oldSiteIdsToRemove.add(sId);
+                    });
+                }
+            });
+
+            if (oldSiteIdsToRemove.size > 0 && Array.isArray(selectedSiteIds) && selectedSiteIds.length > 0) {
+                const filtered = selectedSiteIds.filter(id => !oldSiteIdsToRemove.has(id));
+                if (filtered.length !== selectedSiteIds.length) {
+                    setValue('selectedSiteIds', filtered, { shouldDirty: true, shouldValidate: true });
+                }
+            }
+        }
+
+        prevFileNosRef.current = current;
+    }, [fileNo, fileNo2, fileNo3, fileNo4, allFileEntries, selectedSiteIds, setValue, matchFileNo]);
 
     const availableSites = React.useMemo(() => {
         const sitesList: Array<{
@@ -286,9 +518,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
             return val.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '').trim();
         };
 
-        const selectedIds = data.selectedSiteIds && data.selectedSiteIds.length > 0 
-            ? data.selectedSiteIds 
-            : availableSites.map(s => s.siteId);
+        const selectedIds = Array.isArray(data.selectedSiteIds) ? data.selectedSiteIds : [];
 
         const linkedSites = availableSites
             .filter(s => selectedIds.includes(s.siteId))
@@ -397,15 +627,18 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                 Office code (e.g., GWDKLM) is not required. Enter only number/year (e.g., 1956/2023) for each File No.
                             </p>
 
-                            {availableSites.length > 0 && (
+                            {availableSites.length > 0 && (() => {
+                                const currentSelected = Array.isArray(selectedSiteIds) ? selectedSiteIds : [];
+                                const selectedCount = availableSites.filter(s => currentSelected.includes(s.siteId)).length;
+                                return (
                                 <div className="border rounded-md p-3.5 bg-muted/20 space-y-2.5">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
                                         <div>
                                             <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
-                                                Select Sites for Tender ({availableSites.filter(s => (selectedSiteIds || availableSites.map(x => x.siteId)).includes(s.siteId)).length}/{availableSites.length} selected)
+                                                Select Sites for Tender ({selectedCount}/{availableSites.length} selected)
                                             </h4>
                                             <p className="text-[11px] text-muted-foreground">
-                                                Uncheck sites assigned to Dept. Rig or other tasks.
+                                                Check specific sites to include in this tender. Unchecked sites remain in their pre-tender status.
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
@@ -435,9 +668,14 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                         </div>
                                     </div>
 
+                                    {selectedCount === 0 && (
+                                        <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded px-2.5 py-1.5">
+                                            No sites selected yet. Check the boxes below or click &quot;Select All&quot;. Unselected sites will not be marked as Tendered.
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                                         {availableSites.map(site => {
-                                            const currentSelected = selectedSiteIds || availableSites.map(s => s.siteId);
                                             const isSelected = currentSelected.includes(site.siteId);
                                             return (
                                                 <label
@@ -479,7 +717,8 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                         })}
                                     </div>
                                 </div>
-                            )}
+                                );
+                            })()}
                             <div className="grid grid-cols-1 gap-4">
                                <FormField name="nameOfWork" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
                                <FormField name="nameOfWorkMalayalam" control={control} render={({ field }) => ( <FormItem><FormLabel>Name of Work (in Malayalam)</FormLabel><FormControl><MalayalamInput value={field.value ?? ''} onChange={field.onChange} englishValue={watch('nameOfWork') || ''} multiline rows={2} className="min-h-[60px]"/></FormControl><FormMessage /></FormItem> )}/>
@@ -544,26 +783,164 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                     )}
                                 />
                             </div>
-                            <FormField name="detailedEstimateUrl" control={control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Detailed Estimate PDF Link</FormLabel>
-                                    <FormControl><Input {...field} value={field.value ?? ''} placeholder="https://docs.google.com/..." /></FormControl>
-                                    <FormDescription className="text-xs">Enter a public Google Drive link for the estimate PDF.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}/>
+
+                            {/* Detailed Estimate PDF Upload - Stored directly into keralagwd@gmail.com Drive > GWD_e-Tender > [Sub-Office] */}
+                            <div className="space-y-2 border rounded-lg p-4 bg-muted/20">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                                            <FileText className="h-4 w-4 text-primary" /> Detailed Estimate PDF
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Uploads directly to <span className="font-medium text-foreground">keralagwd@gmail.com</span> Drive folder: <span className="font-mono text-primary font-semibold">GWD_e-Tender / {effectiveOffice}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] text-muted-foreground font-normal px-2 py-0.5 rounded bg-muted/60 border hidden sm:inline">
+                                            Max: 25MB
+                                        </span>
+                                        {detailedEstimateUrl && (
+                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs gap-1 font-normal">
+                                                <CheckCircle2 className="h-3 w-3 text-green-600" /> Uploaded to Drive
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <input 
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="application/pdf,.pdf"
+                                    className="hidden"
+                                    onChange={handleFileSelected}
+                                    disabled={isUploadingEstimate || isSubmitting}
+                                />
+
+                                {(isUploadingEstimate || estimateUploadProgress) ? (
+                                    <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3 shadow-sm">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                                                    {estimateUploadProgress?.percent === 100 ? (
+                                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                                    ) : (
+                                                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-xs font-semibold text-foreground truncate">
+                                                            {estimateUploadProgress?.fileName ? `Uploading: ${estimateUploadProgress.fileName}` : (uploadProgressText || 'Uploading PDF to Google Drive...')}
+                                                        </p>
+                                                        {estimateUploadProgress?.fileSizeMB && (
+                                                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono">
+                                                                {estimateUploadProgress.fileSizeMB} MB
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-medium border border-amber-200/50">
+                                                            Max 25MB
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11px] text-primary/80 truncate mt-0.5">
+                                                        {estimateUploadProgress?.statusText || uploadProgressText || 'Processing Detailed Estimate PDF...'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <span className="text-sm font-bold text-primary">
+                                                    {estimateUploadProgress ? `${estimateUploadProgress.percent}%` : '...'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Animated Progress Bar Track */}
+                                        <div className="w-full bg-primary/20 rounded-full h-2.5 overflow-hidden">
+                                            <div
+                                                className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-out"
+                                                style={{ width: `${estimateUploadProgress?.percent ?? 25}%` }}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                            <span className="truncate">
+                                                Folder: <code className="text-[10px]">GWD_e-Tender / {effectiveOffice}</code>
+                                            </span>
+                                            <span className="shrink-0 font-medium text-emerald-700 dark:text-emerald-400">
+                                                keralagwd@gmail.com Drive
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : detailedEstimateUrl ? (
+                                    <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                                                <FileText className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium truncate text-foreground">
+                                                    {detailedEstimateFileName || 'Detailed_Estimate.pdf'}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Saved in Google Drive ({effectiveOffice} sub-office folder). Download is available in Tender PDF Reports section.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isSubmitting}
+                                                className="text-xs h-8"
+                                            >
+                                                <Upload className="h-3.5 w-3.5 mr-1" /> Replace PDF
+                                            </Button>
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="sm"
+                                                onClick={handleRemoveEstimate}
+                                                disabled={isSubmitting}
+                                                className="text-xs h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-background hover:bg-muted/40 cursor-pointer transition-colors space-y-2 border-muted-foreground/30 hover:border-primary"
+                                    >
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                            <Upload className="h-5 w-5" />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm font-medium text-foreground">Click to upload Detailed Estimate PDF</p>
+                                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mt-1">
+                                                Maximum size: up to 25MB
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                Saved directly to <span className="font-semibold text-foreground">keralagwd@gmail.com</span> Google Drive under <span className="font-semibold text-foreground">My Drive &gt; GWD_e-Tender &gt; {effectiveOffice}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </ScrollArea>
                 </div>
                 <DialogFooter className="p-6 pt-4">
-                    <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
+                    <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting || isUploadingEstimate}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting || (tender.id !== 'new' && !isDirty)}>
+                    <Button type="submit" disabled={isSubmitting || isUploadingEstimate || (tender.id !== 'new' && !isDirty)}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
                     </Button>
                 </DialogFooter>
             </form>
+            <GoogleDriveSetupDialog open={isDriveSetupOpen} onOpenChange={setIsDriveSetupOpen} />
         </FormProvider>
     );
 }

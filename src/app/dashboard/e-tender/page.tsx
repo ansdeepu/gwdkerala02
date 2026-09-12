@@ -153,8 +153,8 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
             dataSource.forEach((entry: any) => {
                 if (isArs) {
                     const entryTenderNo = entry.arsTenderNo?.trim().toUpperCase();
-                    const isFileMatch = tenderFileNos.some(fn => fn && entry.fileNo && entry.fileNo.trim().toUpperCase() === fn.trim().toUpperCase());
-                    if (entryTenderNo === normalizedInput || isFileMatch) {
+                    const isSiteIdMatch = tenderSelectedSiteIds.includes(entry.id);
+                    if (entryTenderNo === normalizedInput || isSiteIdMatch) {
                         sites.push({
                             name: entry.nameOfSite,
                             status: entry.arsStatus,
@@ -167,10 +167,10 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
                     entry.siteDetails?.forEach((site: any, idx: number) => {
                         const siteTenderNo = site.tenderNo?.trim().toUpperCase();
                         const siteId = site.id || (entry.fileNo ? `${entry.fileNo}_${idx}` : undefined);
-                        const isSiteIdMatch = siteId && tenderSelectedSiteIds.includes(siteId);
-                        const isFileMatch = tenderFileNos.some(fn => fn && entry.fileNo && entry.fileNo.trim().toUpperCase() === fn.trim().toUpperCase());
+                        const isSiteIdMatch = Boolean(siteId && tenderSelectedSiteIds.includes(siteId));
 
-                        if (siteTenderNo === normalizedInput || isSiteIdMatch || isFileMatch) {
+                        // Only display sites that are explicitly linked by siteId or site.tenderNo
+                        if (siteTenderNo === normalizedInput || isSiteIdMatch) {
                             sites.push({
                                 name: site.nameOfSite,
                                 status: site.workStatus,

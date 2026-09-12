@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Layers } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Layers, CheckCircle2 } from "lucide-react";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
@@ -75,7 +75,7 @@ import {
   type StaffMember,
 } from '@/lib/schemas';
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useFileEntries } from "@/hooks/useFileEntries";
 import { usePendingUpdates } from "@/hooks/usePendingUpdates";
 import { z } from "zod";
@@ -1033,6 +1033,91 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
   const { allFileEntries, allArsEntries } = useDataStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isManualDirty, setIsManualDirty] = useState(false);
+
+  const parseDateValue = useCallback((val: any): Date | null => {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    if (typeof val?.toDate === 'function') {
+      const d = val.toDate();
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (val?.seconds) {
+      const d = new Date(val.seconds * 1000);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }, []);
+
+  const determineSaveType = useCallback((data: any): 'manual' | 'auto' | 'initial' => {
+    if (data?.lastSavedType === 'auto' || data?.lastSavedType === 'manual') {
+      return data.lastSavedType;
+    }
+    const sites = data?.siteDetails || [];
+    const hasLinkedTender = sites.some((s: any) => 
+      (s.tenderNo && s.tenderNo !== 'Quotation' && s.tenderNo !== '_clear_') ||
+      ['Tendered', 'Selection Notice Issued', 'Work Order Issued'].includes(s.workStatus)
+    );
+    const fileStatus = data?.fileStatus;
+    if (hasLinkedTender || ['Tender Process', 'Selection Notice Issued', 'Work Order Issued'].includes(fileStatus)) {
+      return 'auto';
+    }
+    return data?.lastSavedType || 'manual';
+  }, []);
+
+  const [lastSavedType, setLastSavedType] = useState<'manual' | 'auto' | 'initial'>(() => {
+    return determineSaveType(initialData);
+  });
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
+    const parsed = parseDateValue((initialData as any)?.updatedAt || (initialData as any)?.lastSavedAt || (initialData as any)?.createdAt);
+    if (parsed) return parsed;
+    return fileIdToEdit ? new Date() : null;
+  });
+  const lastSavedTypeRef = useRef<'manual' | 'auto' | 'initial'>(determineSaveType(initialData));
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const serializeDataForSnapshot = useCallback((data: any) => {
+    if (!data) return '';
+    return JSON.stringify({
+      fileStatus: data.fileStatus || '',
+      totalRemittance: Number(data.totalRemittance) || 0,
+      totalReappropriation: Number(data.totalReappropriation) || 0,
+      totalReappropriationCredit: Number(data.totalReappropriationCredit) || 0,
+      totalPaymentAllEntries: Number(data.totalPaymentAllEntries) || 0,
+      overallBalance: Number(data.overallBalance) || 0,
+      paymentDetails: (data.paymentDetails || []).map((p: any) => ({
+        id: p.id || '',
+        remittanceId: p.remittanceId || '',
+        dateOfPayment: p.dateOfPayment || '',
+        paymentAccount: p.paymentAccount || '',
+        revenueHead: Number(p.revenueHead) || 0,
+        contractorsPayment: Number(p.contractorsPayment) || 0,
+        gst: Number(p.gst) || 0,
+        incomeTax: Number(p.incomeTax) || 0,
+        kbcwb: Number(p.kbcwb) || 0,
+        refundToParty: Number(p.refundToParty) || 0,
+        totalPaymentPerEntry: Number(p.totalPaymentPerEntry) || 0,
+      })),
+    });
+  }, []);
+
+  const savedSnapshotRef = useRef<string>(serializeDataForSnapshot(initialData));
+
+  useEffect(() => {
+    const parsed = parseDateValue((initialData as any)?.updatedAt || (initialData as any)?.lastSavedAt || (initialData as any)?.createdAt);
+    if (parsed) {
+      setLastSavedAt(parsed);
+    } else if (fileIdToEdit) {
+      setLastSavedAt(new Date());
+    }
+    const computedType = determineSaveType(initialData);
+    setLastSavedType(computedType);
+    lastSavedTypeRef.current = computedType;
+    savedSnapshotRef.current = serializeDataForSnapshot(initialData);
+  }, [initialData, fileIdToEdit, parseDateValue, serializeDataForSnapshot, determineSaveType]);
+
   const [activeAccordionItem, setActiveAccordionItem] = useState<string>("");
   const [reappAccordionValue, setReappAccordionValue] = useState<string>("");
   const [dialogState, setDialogState] = useState<{ type: null | 'application' | 'remittance' | 'reappropriation' | 'payment' | 'site' | 'reorderSite' | 'viewSite' | 'moveCopySite'; data: any, isView?: boolean }>({ type: null, data: null, isView: false });
@@ -1089,7 +1174,18 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         ...initialData,
         fileStatus: (initialData.fileStatus || LOGGING_PUMPING_TEST_FILE_STATUS_OPTIONS[0]) as any
     });
+    setIsManualDirty(false);
   }, [initialData, reset]);
+
+  // Track any manual changes directly emitted by user typing/inputs
+  useEffect(() => {
+    const subscription = form.watch((_, { type }) => {
+      if (type === 'change') {
+        setIsManualDirty(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null) => {
       if (!refFileNo) return fallback ?? 0;
@@ -1323,24 +1419,108 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     const totalRemittance = watchedRemittanceDetails?.reduce((sum, item) => {
         return sum + (Number(item.amountRemitted) || 0);
     }, 0) || 0;
-    setValue("totalRemittance", totalRemittance);
+    setValue("totalRemittance", totalRemittance, { shouldDirty: false });
 
     const totalReappDebit = watchedReappropriationDetails?.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0) || 0;
-    setValue("totalReappropriation", totalReappDebit);
+    setValue("totalReappropriation", totalReappDebit, { shouldDirty: false });
 
     const totalReappCredit = autoCredits.reduce((sum, item) => {
         return sum + (Number(item.amount) || 0);
     }, 0);
-    setValue("totalReappropriationCredit", totalReappCredit);
+    setValue("totalReappropriationCredit", totalReappCredit, { shouldDirty: false });
     
     const totalPayment = watchedPaymentDetails?.reduce((sum, item) => sum + calculatePaymentEntryTotalGlobal(item), 0) || 0;
-    setValue("totalPaymentAllEntries", totalPayment);
+    setValue("totalPaymentAllEntries", totalPayment, { shouldDirty: false });
 
-    setValue("overallBalance", totalRemittance + totalReappCredit - totalPayment - totalReappDebit);
+    setValue("overallBalance", totalRemittance + totalReappCredit - totalPayment - totalReappDebit, { shouldDirty: false });
     
   }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue]);
+
+  // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist
+  useEffect(() => {
+    if (!fileIdToEdit) return;
+    if (isManualDirty) return;
+    if (isViewer || isFormDisabled || isSupervisor || isInvestigator) return;
+    if (isSubmitting || isAutoSaving) return;
+
+    const currentValues = getValues();
+    const currentSnapshot = serializeDataForSnapshot(currentValues);
+
+    if (savedSnapshotRef.current && currentSnapshot !== savedSnapshotRef.current) {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+      autoSaveTimerRef.current = setTimeout(async () => {
+        if (isManualDirty || isSubmitting) return;
+
+        try {
+          setIsAutoSaving(true);
+          const dataToSave = getValues();
+          const sanitizedData = {
+            ...dataToSave,
+            constituency: dataToSave.constituency === undefined ? null : dataToSave.constituency,
+            lastSavedType: 'auto' as const,
+          };
+
+          if (sanitizedData.reappropriationDetails) {
+            sanitizedData.reappropriationDetails = sanitizedData.reappropriationDetails.map((reapp: any) => {
+              const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, reapp.expenditure);
+              return {
+                ...reapp,
+                expenditure: calculatedExp > 0 ? calculatedExp : reapp.expenditure,
+              };
+            });
+          }
+
+          await updateFileEntry(fileIdToEdit, sanitizedData, approveUpdateId || undefined);
+          const now = new Date();
+          setLastSavedAt(now);
+          setLastSavedType('auto');
+          lastSavedTypeRef.current = 'auto';
+          savedSnapshotRef.current = serializeDataForSnapshot(sanitizedData);
+          toast({
+            title: "Calculations Auto-Saved",
+            description: `Auto-saved calculated updates at ${format(now, "hh:mm:ss a")}.`,
+            duration: 3000,
+          });
+        } catch (err: any) {
+          console.error("Auto-save failed:", err);
+        } finally {
+          setIsAutoSaving(false);
+        }
+      }, 1200);
+    }
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [
+    fileIdToEdit,
+    isManualDirty,
+    isSubmitting,
+    isAutoSaving,
+    isViewer,
+    isFormDisabled,
+    isSupervisor,
+    isInvestigator,
+    watchedSiteDetails,
+    watchedRemittanceDetails,
+    watchedReappropriationDetails,
+    watchedPaymentDetails,
+    watch('fileStatus'),
+    watch('totalRemittance'),
+    watch('totalReappropriation'),
+    watch('totalReappropriationCredit'),
+    watch('totalPaymentAllEntries'),
+    watch('overallBalance'),
+    getValues,
+    updateFileEntry,
+    approveUpdateId,
+    getReferencedExpenditure,
+    serializeDataForSnapshot,
+    toast,
+  ]);
 
     const paymentFieldsToDisplay = useMemo(() => {
         const fields: { key: keyof PaymentDetailFormData; label: string }[] = [
@@ -1371,6 +1551,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         const sanitizedData = {
           ...data,
           constituency: data.constituency === undefined ? null : data.constituency,
+          lastSavedType: 'manual' as const,
         };
 
         if (sanitizedData.reappropriationDetails) {
@@ -1390,12 +1571,15 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
             remarks: sanitizedData.remarks
         }
         
+        const now = new Date();
         if (isSupervisor || isInvestigator) {
             await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
             toast({ title: "Update Submitted" });
+            reset(sanitizedData);
         } else if (fileIdToEdit) {
             await updateFileEntry(fileIdToEdit, sanitizedData, approveUpdateId || undefined);
             toast({ title: "File Updated" });
+            reset(sanitizedData);
         } else {
             const newDocId = await addFileEntry(sanitizedData);
             toast({ title: "File Created" });
@@ -1404,6 +1588,11 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                 router.push(newPath);
             }
         }
+        setLastSavedAt(now);
+        setLastSavedType('manual');
+        lastSavedTypeRef.current = 'manual';
+        setIsManualDirty(false);
+        savedSnapshotRef.current = serializeDataForSnapshot(sanitizedData);
     } catch (error: any) { 
         toast({ title: "Submission Failed", description: error.message, variant: "destructive" });
     } finally { 
@@ -1417,6 +1606,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     const handleDialogConfirm = (data: any) => {
         const { type, data: originalData } = dialogState;
         if (!type) return;
+        setIsManualDirty(true);
 
         if (type === 'application') {
             setValue("fileNo", data.fileNo, { shouldDirty: true });
@@ -1466,6 +1656,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
     const handleDeleteItem = () => {
         if (!itemToDelete) return;
+        setIsManualDirty(true);
         const { type, index } = itemToDelete;
 
         if (type === 'remittance') {
@@ -1490,6 +1681,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     const handleMoveCopySiteConfirm = async (op: 'move' | 'copy', targetFileNo: string) => {
         const { index } = dialogState.data;
         if (!fileIdToEdit) return;
+        setIsManualDirty(true);
         try {
             await moveCopySite(fileIdToEdit, index, op, targetFileNo);
             toast({ title: op === 'move' ? "Site Moved" : "Site Copied" });
@@ -1509,6 +1701,51 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     <FormProvider {...form}>
       <div>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+            {/* Top Status & Timestamp Banner */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-lg border bg-card/70 backdrop-blur-xs text-xs shadow-2xs">
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">Save Status:</span>
+                    {isAutoSaving && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Auto-saving calculations...
+                        </span>
+                    )}
+                    {isSubmitting && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving file...
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && isManualDirty && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" /> Unsaved manual changes (Click Save to update)
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && lastSavedAt && (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> {lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'}
+                        </span>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && !lastSavedAt && (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" /> New Draft (Not saved yet)
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    {lastSavedAt ? (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'} at <strong className="text-foreground font-semibold">{format(lastSavedAt, "dd/MM/yyyy, hh:mm:ss a")}</strong></span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Not saved yet</span>
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">1. Application Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}</CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Applicant Name &amp; Address" value={watch('applicantName')} /><DetailRow label="Applicant Name &amp; Address (Malayalam)" value={watch('applicantNameMl')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Category" value={watch('category')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /><DetailRow label="Bank Name" value={watch('bankName')} /><DetailRow label="Branch" value={watch('branch')} /><DetailRow label="Bank Account No." value={watch('bankAccountNo')} /><DetailRow label="IFSC" value={watch('ifsc')} /></div></CardContent></Card>
             <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{remittanceTitle}</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('remittance', createDefaultRemittanceDetail())} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount (₹)</TableHead><TableHead>Account</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{remittanceFields.length > 0 ? remittanceFields.map((item, index) => (
               <TableRow key={item.id}>
@@ -1704,20 +1941,71 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                         </div>
                         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
                             <FormField control={control} name="fileStatus" render={({ field }) => <FormItem><FormLabel>File Status <span className="text-destructive">*</span></FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isViewer || isFormDisabled || isSupervisor || isInvestigator}><FormControl><SelectTrigger><SelectValue placeholder="Select final file status" /></SelectTrigger></FormControl><SelectContent>{LOGGING_PUMPING_TEST_FILE_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-                            <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor || isInvestigator} /></FormControl><FormMessage /></FormItem>} />
+                            <FormField control={control} name="remarks" render={({ field }) => <FormItem><FormLabel>Final Remarks</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} onChange={(e) => { field.onChange(e); setIsManualDirty(true); }} placeholder="Final remarks..." readOnly={isViewer || isFormDisabled || isSupervisor || isInvestigator} /></FormControl><FormMessage /></FormItem>} />
                         </div>
                     </div>
                 </CardContent>
             </Card>
-            <CardFooter className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting}>
-                    <X className="mr-2 h-4 w-4" /> Close
-                </Button>
-                {!(isViewer || isFormDisabled) && (
-                    <Button type="submit" disabled={isSubmitting || !isDirty}>
-                        <Save className="mr-2 h-4 w-4"/> {isSubmitting ? "Saving..." : 'Save'}
+            <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t bg-muted/20 py-3 px-6">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {isAutoSaving && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Auto-saving calculations...</span>
+                        </div>
+                    )}
+                    {isSubmitting && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 animate-pulse">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Saving file...</span>
+                        </div>
+                    )}
+                    {!isSubmitting && !isAutoSaving && isManualDirty && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                            <span>Unsaved manual changes</span>
+                        </div>
+                    )}
+                    {!isSubmitting && !isAutoSaving && !isManualDirty && lastSavedAt && (
+                        lastSavedType === 'auto' ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                <span>Auto Saved</span>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <span>Manually Saved</span>
+                            </div>
+                        )
+                    )}
+                    {lastSavedAt ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{lastSavedType === 'auto' ? 'Auto Saved' : 'Manually Saved'} at <strong className="text-foreground font-semibold">{format(lastSavedAt, "dd/MM/yyyy, hh:mm:ss a")}</strong></span>
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>Not saved yet</span>
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 shrink-0">
+                    <Button type="button" variant="outline" onClick={() => router.push(returnPath)} disabled={isSubmitting || isAutoSaving}>
+                        <X className="mr-2 h-4 w-4" /> Close
                     </Button>
-                )}
+                    {!(isViewer || isFormDisabled) && (
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting || isAutoSaving || !isManualDirty}
+                            className={isManualDirty ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 font-semibold" : "opacity-50 cursor-not-allowed"}
+                        >
+                            <Save className="mr-2 h-4 w-4"/> {isSubmitting ? "Saving..." : 'Save'}
+                        </Button>
+                    )}
+                </div>
             </CardFooter>
         </form>
         <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} workTypeContext={workTypeContext} isEditing={isEditing} /></DialogContent></Dialog>

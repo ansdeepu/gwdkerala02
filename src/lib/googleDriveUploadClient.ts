@@ -9,6 +9,7 @@ export interface DriveUploadOptions {
   siteName?: string;
   type: 'image' | 'video';
   customScriptUrl?: string;
+  onProgress?: (percent: number, statusText: string) => void;
 }
 
 export interface DriveUploadResult {
@@ -51,7 +52,7 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
       try { data = JSON.parse(text); } catch (e) {}
       if (data?.success && data?.scriptUrl) {
         cachedScriptUrl = data.scriptUrl.trim();
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && cachedScriptUrl) {
           try {
             localStorage.setItem(LOCAL_STORAGE_KEY, cachedScriptUrl);
           } catch (e) {}
@@ -69,7 +70,7 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
     const snap = await getDoc(docRef);
     if (snap.exists() && snap.data()?.scriptUrl) {
       cachedScriptUrl = snap.data().scriptUrl.trim();
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && cachedScriptUrl) {
         try {
           localStorage.setItem(LOCAL_STORAGE_KEY, cachedScriptUrl);
         } catch (e) {}
@@ -223,39 +224,112 @@ export async function fileToBase64(file: File): Promise<{ base64Data: string; mi
 }
 
 /**
+ * Helper to upload JSON payload with live progress reporting via XMLHttpRequest.
+ */
+function postJsonWithProgress(
+  url: string,
+  payload: any,
+  onProgress?: (percent: number, statusText: string) => void,
+  startPercent = 25,
+  maxPercent = 90,
+  uploadingText = "Uploading to Google Drive..."
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || typeof XMLHttpRequest === "undefined") {
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(res => res.json())
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    if (onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && event.total > 0) {
+          const ratio = event.loaded / event.total;
+          const current = Math.round(startPercent + ratio * (maxPercent - startPercent));
+          onProgress(Math.min(current, maxPercent), uploadingText);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        resolve(data);
+      } catch (e) {
+        if (xhr.status === 413 || xhr.responseText.toLowerCase().includes("payload too large")) {
+          resolve({
+            success: false,
+            error: "File size exceeds server payload limits. Maximum allowed file size is 25MB."
+          });
+        } else {
+          resolve({
+            success: false,
+            error: `Server returned non-JSON response (Status ${xhr.status}): ${xhr.responseText.slice(0, 150)}...`
+          });
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network connection interrupted during upload. Please check your connection."));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error("Upload timed out. Please verify your connection."));
+    };
+
+    xhr.send(JSON.stringify(payload));
+  });
+}
+
+/**
  * Uploads a file (photo or video) to Google Drive under keralagwd@gmail.com.
  * Automatically saves into: GWD_Site_Media / [officeLocation] / [fileNo - siteName]
  */
 export async function uploadMediaToGoogleDrive(options: DriveUploadOptions): Promise<DriveUploadResult> {
-  const { file, officeLocation = "General", fileNo = "General", siteName = "", type, customScriptUrl } = options;
+  const { file, officeLocation = "General", fileNo = "General", siteName = "", type, customScriptUrl, onProgress } = options;
 
-  // 1. Get or determine script URL
-  const scriptUrl = customScriptUrl || (await getGoogleDriveScriptUrl()) || undefined;
-
-  // 2. Video file size check (Google Apps Script / server proxy limit)
-  const MAX_VIDEO_SIZE_MB = 25;
-  if (type === "video" && file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+  // 1. Strict 25MB file size check for both photos and videos
+  const MAX_FILE_SIZE_MB = 25;
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
     return {
       success: false,
-      error: `Video size (${fileSizeMB} MB) exceeds maximum upload limit of ${MAX_VIDEO_SIZE_MB} MB. Please select or record a shorter video.`
+      error: `File size (${fileSizeMB} MB) exceeds maximum upload limit of ${MAX_FILE_SIZE_MB} MB. Please select or compress your file.`
     };
   }
 
-  // 3. Prepare payload
+  // 2. Get or determine script URL
+  const scriptUrl = customScriptUrl || (await getGoogleDriveScriptUrl()) || undefined;
+
+  // 3. Prepare payload with initial progress status
   let base64Data = "";
   let mimeType = file.type || (type === "image" ? "image/jpeg" : "video/mp4");
 
   try {
     if (type === "image") {
+      onProgress?.(10, "Compressing and preparing photo...");
       const compressed = await compressImage(file);
       base64Data = compressed.base64Data;
       mimeType = compressed.mimeType;
+      onProgress?.(25, "Starting photo upload to Google Drive...");
     } else {
       // For video
+      onProgress?.(10, "Encoding video file...");
       const converted = await fileToBase64(file);
       base64Data = converted.base64Data;
       mimeType = converted.mimeType;
+      onProgress?.(25, "Starting video upload to Google Drive...");
     }
   } catch (prepErr: any) {
     return {
@@ -264,14 +338,11 @@ export async function uploadMediaToGoogleDrive(options: DriveUploadOptions): Pro
     };
   }
 
-  // 4. Send to API route with safety checks
+  // 4. Send to API route with live progress reporting
   try {
-    const response = await fetch("/api/drive-upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const data: DriveUploadResult = await postJsonWithProgress(
+      "/api/drive-upload",
+      {
         base64Data,
         fileName: file.name,
         mimeType,
@@ -280,29 +351,125 @@ export async function uploadMediaToGoogleDrive(options: DriveUploadOptions): Pro
         siteName,
         type,
         customScriptUrl: scriptUrl,
-      }),
-    });
+      },
+      onProgress,
+      25,
+      92,
+      `Uploading ${type === "image" ? "photo" : "video"} to Google Drive (keralagwd@gmail.com)...`
+    );
 
-    const responseText = await response.text();
-    let data: DriveUploadResult;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      return {
-        success: false,
-        error: responseText.includes("413") || responseText.toLowerCase().includes("payload too large")
-          ? "File size exceeds server payload limits. Please choose a smaller file."
-          : `Server returned non-JSON response: ${responseText.slice(0, 150)}...`
-      };
+    if (data.success) {
+      onProgress?.(100, "Upload completed successfully!");
     }
     return data;
   } catch (netErr: any) {
     console.error("Network error during drive upload fetch:", netErr);
     return {
       success: false,
-      error: netErr?.message === "Failed to fetch"
-        ? "Network connection interrupted or file size exceeded server limits. Please check network connection or reduce file size."
-        : (netErr?.message || "Failed to communicate with Google Drive upload service.")
+      error: netErr?.message || "Failed to communicate with Google Drive upload service."
     };
   }
 }
+
+export interface TenderEstimateUploadOptions {
+  file: File;
+  officeLocation?: string;
+  tenderNo?: string;
+  customScriptUrl?: string;
+  onProgress?: (percent: number, statusText: string) => void;
+}
+
+/**
+ * Uploads a Detailed Estimate PDF directly into Google Drive under keralagwd@gmail.com.
+ * Folder structure: My Drive > GWD_e-Tender > [Sub-Office (e.g. Kollam)] > [Detailed Estimate PDF]
+ */
+export async function uploadTenderEstimateToGoogleDrive(
+  options: TenderEstimateUploadOptions
+): Promise<DriveUploadResult> {
+  const { file, officeLocation = "General", tenderNo, customScriptUrl, onProgress } = options;
+
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    return {
+      success: false,
+      error: "Only PDF files (.pdf) are allowed for the Detailed Estimate."
+    };
+  }
+
+  // Strict 25MB check for Detailed Estimate PDF
+  const MAX_FILE_SIZE_MB = 25;
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    return {
+      success: false,
+      error: `PDF file size (${sizeMb} MB) exceeds maximum allowed limit of ${MAX_FILE_SIZE_MB} MB. Please upload a compressed PDF.`
+    };
+  }
+
+  // 1. Get or determine script URL
+  const scriptUrl = customScriptUrl || (await getGoogleDriveScriptUrl()) || undefined;
+
+  // 2. Convert to base64 quickly
+  let base64Data = "";
+  let mimeType = "application/pdf";
+  try {
+    onProgress?.(12, "Reading and preparing Detailed Estimate PDF...");
+    const converted = await fileToBase64(file);
+    base64Data = converted.base64Data;
+    mimeType = converted.mimeType || "application/pdf";
+    onProgress?.(25, "Uploading PDF to Google Drive (keralagwd@gmail.com)...");
+  } catch (prepErr: any) {
+    return {
+      success: false,
+      error: prepErr?.message || "Failed to prepare PDF file for upload."
+    };
+  }
+
+  // 3. Format filename: Detailed_Estimate_<tenderNo>_<originalName>
+  const cleanTenderNo = tenderNo ? String(tenderNo).replace(/[/\\?%*:|"<>]/g, '_').trim() : 'Draft';
+  const cleanOriginalName = String(file.name).replace(/[/\\?%*:|"<>]/g, '_').trim();
+  const fileName = `Detailed_Estimate_${cleanTenderNo}_${cleanOriginalName}`;
+
+  try {
+    const data: DriveUploadResult = await postJsonWithProgress(
+      "/api/drive-upload",
+      {
+        base64Data,
+        fileName,
+        mimeType,
+        officeLocation,
+        rootFolder: "GWD_e-Tender",
+        skipSubFolder: true,
+        type: "document",
+        customScriptUrl: scriptUrl,
+      },
+      onProgress,
+      25,
+      92,
+      "Uploading Detailed Estimate to Google Drive..."
+    );
+
+    if (data.success) {
+      onProgress?.(100, "Detailed Estimate PDF uploaded successfully!");
+    }
+    return data;
+  } catch (netErr: any) {
+    console.error("Network error during tender estimate upload:", netErr);
+    return {
+      success: false,
+      error: netErr?.message || "Failed to communicate with Google Drive upload service."
+    };
+  }
+}
+
+const googleDriveUploadClient = {
+  getGoogleDriveScriptUrl,
+  saveGoogleDriveScriptUrl,
+  compressImage,
+  fileToBase64,
+  uploadMediaToGoogleDrive,
+  uploadTenderEstimateToGoogleDrive,
+};
+
+export default googleDriveUploadClient;
+
+

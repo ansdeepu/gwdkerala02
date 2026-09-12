@@ -211,7 +211,7 @@ export default function PdfReportDialogs() {
     const hasBidders = (tender.bidders || []).length > 0;
     const hasSelectionNotice = !!tender.selectionNoticeDate;
     const hasWorkOrder = !!tender.agreementDate || !!tender.dateWorkOrder;
-    const hasDetailedEstimate = !!tender.detailedEstimateUrl;
+    const hasDetailedEstimate = !!tender.detailedEstimateUrl || !!tender.detailedEstimateDriveFileId;
     const hasRetenders = (tender.retenders || []).length > 0;
 
     const workOrderButtonLabel = tender.tenderType === 'Work'
@@ -235,9 +235,9 @@ export default function PdfReportDialogs() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <ReportButton 
                                 label="Detailed Estimate"
-                                href={tender.detailedEstimateUrl ?? undefined}
+                                href={tender.detailedEstimateUrl ?? (tender.detailedEstimateDriveFileId ? `https://drive.google.com/file/d/${tender.detailedEstimateDriveFileId}/view` : undefined)}
                                 disabled={!isTenderSaved || !hasDetailedEstimate}
-                                tooltipContent={!isTenderSaved ? "Save the tender first." : "Add a Detailed Estimate URL in Basic Details."}
+                                tooltipContent={!isTenderSaved ? "Save the tender first." : (!hasDetailedEstimate ? "Upload a Detailed Estimate PDF in Basic Tender Details first." : "Download / View Detailed Estimate PDF from Google Drive.")}
                             />
                             <ReportButton 
                                 label="Notice Inviting Tender (NIT)"

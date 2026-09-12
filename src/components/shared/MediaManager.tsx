@@ -67,6 +67,14 @@ export default function MediaManager({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusText, setUploadStatusText] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{
+    percent: number;
+    statusText: string;
+    fileName: string;
+    fileSizeMB: string;
+    currentIndex: number;
+    totalFiles: number;
+  } | null>(null);
   const [isSetupDialogOpen, setIsSetupDialogOpen] = useState(false);
   const [hasDriveConfig, setHasDriveConfig] = useState<boolean | null>(null);
 
@@ -181,6 +189,17 @@ export default function MediaManager({
 
   // Helper for saving photo/video directly as base64 data URL
   const saveMediaDirectly = async (file: File) => {
+    const MAX_LIMIT = 25 * 1024 * 1024;
+    if (file.size > MAX_LIMIT) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      toast({
+        title: "File Exceeds 25MB Limit",
+        description: `"${file.name}" (${sizeMb} MB) exceeds the maximum allowed limit of 25MB.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (type === 'image') {
       const compressed = await compressImage(file, 1920, 0.82);
       const dataUrl = `data:${compressed.mimeType};base64,${compressed.base64Data}`;
@@ -198,28 +217,20 @@ export default function MediaManager({
       });
     } else {
       // Video
-      if (file.size <= 20 * 1024 * 1024) {
-        const converted = await fileToBase64(file);
-        const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
-        append({
-          id: uuidv4(),
-          url: dataUrl,
-          fileName: file.name,
-          description: "",
-          storageType: 'direct',
-          createdAt: new Date().toISOString(),
-        });
-        toast({
-          title: "Video Attached to Site Record",
-          description: `${file.name} saved directly to record media.`,
-        });
-      } else {
-        toast({
-          title: "Large Video File",
-          description: "For videos larger than 20 MB, please paste a YouTube / Google Drive link using 'Add Link'.",
-          variant: "destructive",
-        });
-      }
+      const converted = await fileToBase64(file);
+      const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
+      append({
+        id: uuidv4(),
+        url: dataUrl,
+        fileName: file.name,
+        description: "",
+        storageType: 'direct',
+        createdAt: new Date().toISOString(),
+      });
+      toast({
+        title: "Video Attached to Site Record",
+        description: `${file.name} saved directly to record media.`,
+      });
     }
   };
 
@@ -228,12 +239,51 @@ export default function MediaManager({
     if (!fileList || fileList.length === 0) return;
 
     const filesArray = Array.from(fileList);
+
+    // 1. Strict 25MB check across all selected photos and videos
+    const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+    for (const file of filesArray) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        toast({
+          title: "File Exceeds 25MB Limit",
+          description: `"${file.name}" (${sizeMb} MB) exceeds maximum allowed size of 25MB. Please choose files up to 25MB.`,
+          variant: "destructive",
+        });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (cameraInputRef.current) cameraInputRef.current.value = '';
+        return;
+      }
+    }
+
     setIsUploading(true);
+    const firstFile = filesArray[0];
+    const initialSizeMB = (firstFile.size / (1024 * 1024)).toFixed(1);
+    setUploadProgress({
+      percent: 5,
+      statusText: `Preparing 1 of ${filesArray.length}: ${firstFile.name}...`,
+      fileName: firstFile.name,
+      fileSizeMB: initialSizeMB,
+      currentIndex: 1,
+      totalFiles: filesArray.length,
+    });
 
     try {
       for (let i = 0; i < filesArray.length; i++) {
         const file = filesArray[i];
-        setUploadStatusText(`Processing ${i + 1} of ${filesArray.length}: ${file.name}...`);
+        const currentFileName = file.name;
+        const currentSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const currentIndex = i + 1;
+
+        setUploadStatusText(`Processing ${currentIndex} of ${filesArray.length}: ${currentFileName}...`);
+        setUploadProgress({
+          percent: 10,
+          statusText: `Preparing ${type === 'image' ? 'photo' : 'video'} ${currentIndex} of ${filesArray.length}...`,
+          fileName: currentFileName,
+          fileSizeMB: currentSizeMB,
+          currentIndex,
+          totalFiles: filesArray.length,
+        });
 
         // If drive is configured, attempt Drive upload
         if (hasDriveConfig) {
@@ -243,6 +293,16 @@ export default function MediaManager({
             fileNo: effectiveFileNo,
             siteName: effectiveSiteName,
             type,
+            onProgress: (percent, statusText) => {
+              setUploadProgress({
+                percent,
+                statusText,
+                fileName: currentFileName,
+                fileSizeMB: currentSizeMB,
+                currentIndex,
+                totalFiles: filesArray.length,
+              });
+            },
           });
 
           if (result.success && (result.url || result.viewUrl || result.directImageUrl)) {
@@ -287,6 +347,7 @@ export default function MediaManager({
     } finally {
       setIsUploading(false);
       setUploadStatusText('');
+      setTimeout(() => setUploadProgress(null), 3000);
       // Reset file inputs so the same file can be chosen again if needed
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -320,6 +381,9 @@ export default function MediaManager({
             {type === 'image' ? <ImagePlus className="h-4 w-4 text-primary" /> : <Video className="h-4 w-4 text-primary" />}
             {title}
           </h4>
+          <span className="text-[11px] text-muted-foreground font-normal px-2 py-0.5 rounded bg-muted/60 border hidden sm:inline">
+            Max: 25MB
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -399,17 +463,65 @@ export default function MediaManager({
         )}
       </div>
 
-      {/* Uploading progress notification */}
-      {isUploading && (
-        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 flex items-center gap-3 animate-pulse">
-          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-primary truncate">
-              {uploadStatusText || "Uploading to keralagwd@gmail.com Google Drive..."}
-            </p>
-            <p className="text-[10px] text-muted-foreground truncate">
+      {/* Uploading progress notification with animated progress bar */}
+      {(isUploading || uploadProgress) && (
+        <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-2.5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                {uploadProgress?.percent === 100 ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                ) : (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {uploadProgress ? (
+                      <>
+                        Uploading {type === 'image' ? 'Photo' : 'Video'} ({uploadProgress.currentIndex}/{uploadProgress.totalFiles}): {uploadProgress.fileName}
+                      </>
+                    ) : (
+                      uploadStatusText || "Uploading to Google Drive..."
+                    )}
+                  </p>
+                  {uploadProgress?.fileSizeMB && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono">
+                      {uploadProgress.fileSizeMB} MB
+                    </span>
+                  )}
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-medium border border-amber-200/50">
+                    Max 25MB
+                  </span>
+                </div>
+                <p className="text-[11px] text-primary/80 truncate mt-0.5">
+                  {uploadProgress?.statusText || uploadStatusText || "Processing upload..."}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-sm font-bold text-primary">
+                {uploadProgress ? `${uploadProgress.percent}%` : '...'}
+              </span>
+            </div>
+          </div>
+
+          {/* Animated Progress Bar Track */}
+          <div className="w-full bg-primary/20 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${uploadProgress?.percent ?? 25}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span className="truncate">
               Archiving under: <code>GWD_Site_Media / {effectiveOffice} / {effectiveFileNo}</code>
-            </p>
+            </span>
+            <span className="shrink-0 font-medium text-emerald-700 dark:text-emerald-400">
+              keralagwd@gmail.com Drive
+            </span>
           </div>
         </div>
       )}
@@ -536,6 +648,9 @@ export default function MediaManager({
               {!isReadOnly
                 ? `Click to upload ${type === 'image' ? 'site photos' : 'site videos'} or use buttons above`
                 : `No ${type}s added yet.`}
+            </p>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-0.5">
+              Maximum allowed size: up to 25MB per {type === 'image' ? 'photo' : 'video'}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
               <HardDrive className="h-3 w-3" />
