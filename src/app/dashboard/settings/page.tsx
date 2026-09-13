@@ -655,8 +655,8 @@ export default function SettingsPage() {
                             </p>
                             <p className="text-[11px] text-muted-foreground">
                                 {isSuperAdmin 
-                                    ? "Hierarchy: GWD_Site_Media / [Office Location] / [File No - Site Name]"
-                                    : "Managed centrally by State Super Administrator (keralagwd@gmail.com). District site uploads are routed automatically."}
+                                    ? "Hierarchies: GWD_Staff_Photos / [Office], GWD_e-Tender / [Sub-Office], GWD_Site_Media / [Office] / [File No - Site]"
+                                    : "Managed centrally by State Super Administrator (keralagwd@gmail.com). Staff photos and site media are routed automatically."}
                             </p>
                         </div>
                         {isSuperAdmin && (

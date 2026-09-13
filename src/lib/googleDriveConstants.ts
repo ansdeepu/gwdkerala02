@@ -2,14 +2,16 @@
 
 export const DEFAULT_DRIVE_FOLDER_NAME = "GWD_Site_Media";
 export const E_TENDER_DRIVE_FOLDER_NAME = "GWD_e-Tender";
+export const STAFF_PHOTOS_DRIVE_FOLDER_NAME = "GWD_Staff_Photos";
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================
  * GROUND WATER DEPARTMENT, KERALA (keralagwd@gmail.com)
  * Google Drive Automated File Receiver for Dashboard
  * Supports:
- *  - Site Media (GWD_Site_Media / [District] / [File No - Site])
- *  - e-Tender Detailed Estimates (GWD_e-Tender / [Sub-Office])
+ *  - Staff Photos: GWD_Staff_Photos / [Office Location]
+ *  - e-Tender Detailed Estimates: GWD_e-Tender / [Sub-Office]
+ *  - Site Media: GWD_Site_Media / [Office Location] / [File No - Site Name]
  * =========================================================================
  * 
  * Instructions:
@@ -60,33 +62,65 @@ function doPost(e) {
     var fileName = data.fileName || ("file_" + new Date().getTime());
     var mimeType = data.mimeType || "application/octet-stream";
     var officeLocation = cleanName(data.officeLocation || "General");
-    var fileNo = cleanName(data.fileNo || "General");
-    var siteName = cleanName(data.siteName || "");
     var mediaType = data.type || "document";
 
-    // 1. Root folder: GWD_e-Tender or GWD_Site_Media
-    var rootFolderName = cleanName(data.rootFolder || "GWD_Site_Media");
+    // 1. Identify destination Root Folder
+    // A) Staff Photos: GWD_Staff_Photos
+    // B) Tender Estimates: GWD_e-Tender
+    // C) Site Media: GWD_Site_Media
+    var isStaffPhoto = (
+      data.rootFolder === "GWD_Staff_Photos" || 
+      data.type === "staff_photo" || 
+      data.type === "staff" || 
+      fileName.indexOf("Staff_") === 0
+    );
+    var isTenderEstimate = (
+      data.rootFolder === "GWD_e-Tender" || 
+      data.type === "tender_estimate" || 
+      fileName.indexOf("Detailed_Estimate_") === 0
+    );
+
+    var rootFolderName = "GWD_Site_Media";
+    if (isStaffPhoto) {
+      rootFolderName = "GWD_Staff_Photos";
+    } else if (isTenderEstimate) {
+      rootFolderName = "GWD_e-Tender";
+    } else if (data.rootFolder) {
+      rootFolderName = cleanName(data.rootFolder);
+    }
+
     var rootFolders = DriveApp.getFoldersByName(rootFolderName);
     var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootFolderName);
 
-    // 2. Sub-office folder (e.g., Kollam, Kottayam, Thiruvananthapuram)
+    // 2. Sub-office / Office Location folder (e.g., Thiruvananthapuram, Kollam, Kottayam, Directorate TVM)
     var officeFolders = rootFolder.getFoldersByName(officeLocation);
     var officeFolder = officeFolders.hasNext() ? officeFolders.next() : rootFolder.createFolder(officeLocation);
 
-    // 3. Target folder:
-    // If skipSubFolder is true (e.g., e-Tender Detailed Estimates), files are stored directly in the sub-office folder:
-    // My Drive > GWD_e-Tender > Kollam > Detailed_Estimate_...pdf
+    // 3. Target folder determination:
+    // For Staff Photos & Tender Estimates:
+    // Files sit directly under: My Drive > [Root Folder] > [Office Location]
+    // Example: GWD_Staff_Photos / Kollam / Staff_PEN_Name_photo.jpg
     var targetFolder = officeFolder;
     var folderPath = rootFolderName + "/" + officeLocation;
 
-    if (!data.skipSubFolder && (data.subFolder || data.fileNo || data.siteName)) {
-      var siteFolderName = cleanName(data.subFolder || data.fileNo || "General");
-      if (data.siteName && data.siteName.length > 0 && !data.subFolder) {
-        siteFolderName += " - " + cleanName(data.siteName);
+    var shouldSkipSubFolder = Boolean(data.skipSubFolder || isStaffPhoto || isTenderEstimate);
+
+    if (!shouldSkipSubFolder && (data.subFolder || data.fileNo || data.siteName)) {
+      var fileNo = cleanName(data.fileNo || "");
+      var siteName = cleanName(data.siteName || "");
+      var subFolder = cleanName(data.subFolder || "");
+      
+      var siteFolderName = subFolder || fileNo || "General";
+      if (siteName && siteName.length > 0 && !subFolder) {
+        siteFolderName = (fileNo ? fileNo + " - " : "") + siteName;
       }
-      var siteFolders = officeFolder.getFoldersByName(siteFolderName);
-      targetFolder = siteFolders.hasNext() ? siteFolders.next() : officeFolder.createFolder(siteFolderName);
-      folderPath += "/" + siteFolderName;
+
+      // Ignore dummy "staff - staff" or blank folders
+      if (siteFolderName && siteFolderName !== "staff - staff" && siteFolderName !== "General - General") {
+        var siteFolders = officeFolder.getFoldersByName(siteFolderName);
+        targetFolder = siteFolders.hasNext() ? siteFolders.next() : officeFolder.createFolder(siteFolderName);
+        folderPath += "/" + siteFolderName;
+      }
     }
 
     // 4. Decode base64 and create file
@@ -94,7 +128,7 @@ function doPost(e) {
     var blob = Utilities.newBlob(decoded, mimeType, fileName);
     var file = targetFolder.createFile(blob);
 
-    // 5. Set sharing permission to "Anyone with the link can view" so view and download links work
+    // 5. Set sharing permission to "Anyone with the link can view"
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     } catch (shareErr) {

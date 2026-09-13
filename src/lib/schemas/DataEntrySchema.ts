@@ -164,7 +164,7 @@ export const StaffMemberFormDataSchema = z.object({
   serviceEndDate: optionalDateSchema,
   phoneNo: optionalStringSchema,
   roles: optionalStringSchema,
-  photoUrl: z.string().url().optional().or(z.literal('')),
+  photoUrl: optionalStringSchema,
   status: z.enum(staffStatusOptions),
   remarks: optionalStringSchema,
   officeLocation: z.string().optional().nullable(),

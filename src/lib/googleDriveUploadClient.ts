@@ -461,6 +461,100 @@ export async function uploadTenderEstimateToGoogleDrive(
   }
 }
 
+export interface StaffPhotoUploadOptions {
+  file: File;
+  officeLocation?: string;
+  pen?: string;
+  staffName?: string;
+  customScriptUrl?: string;
+  onProgress?: (percent: number, statusText: string) => void;
+}
+
+/**
+ * Uploads a Staff Member Photo directly into Google Drive under keralagwd@gmail.com.
+ * Folder structure: My Drive > GWD_Staff_Photos > [Office Location (e.g. Kollam)] > [Staff_PEN_Name_photo.jpg]
+ */
+export async function uploadStaffPhotoToGoogleDrive(
+  options: StaffPhotoUploadOptions
+): Promise<DriveUploadResult> {
+  const { file, officeLocation = "General", pen = "", staffName = "", customScriptUrl, onProgress } = options;
+
+  if (!file.type.startsWith('image/')) {
+    return {
+      success: false,
+      error: "Only image files (.jpg, .jpeg, .png, .webp) are allowed for staff photos."
+    };
+  }
+
+  // Strict 25MB check
+  const MAX_FILE_SIZE_MB = 25;
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    return {
+      success: false,
+      error: `Photo file size (${sizeMb} MB) exceeds maximum allowed limit of ${MAX_FILE_SIZE_MB} MB. Please select or compress your file.`
+    };
+  }
+
+  // 1. Get or determine script URL
+  const scriptUrl = customScriptUrl || (await getGoogleDriveScriptUrl()) || undefined;
+
+  // 2. Compress image client-side to ~150-250KB for rapid upload
+  let base64Data = "";
+  let mimeType = "image/jpeg";
+  try {
+    onProgress?.(12, "Compressing staff photo...");
+    const compressed = await compressImage(file, 1600, 0.85);
+    base64Data = compressed.base64Data;
+    mimeType = compressed.mimeType || "image/jpeg";
+    onProgress?.(25, "Uploading photo to Google Drive (keralagwd@gmail.com)...");
+  } catch (prepErr: any) {
+    return {
+      success: false,
+      error: prepErr?.message || "Failed to compress staff photo for upload."
+    };
+  }
+
+  // 3. Format filename: Staff_<pen>_<name>_photo.jpg
+  const cleanPen = pen ? String(pen).replace(/[/\\?%*:|"<>]/g, '_').trim() : '';
+  const cleanName = staffName ? String(staffName).replace(/[/\\?%*:|"<>]/g, '_').trim() : '';
+  const fileName = `Staff_${cleanPen ? cleanPen + '_' : ''}${cleanName ? cleanName + '_' : ''}photo.jpg`;
+
+  try {
+    const data: DriveUploadResult = await postJsonWithProgress(
+      "/api/drive-upload",
+      {
+        base64Data,
+        fileName,
+        mimeType,
+        officeLocation,
+        fileNo: "",
+        siteName: "",
+        subFolder: "",
+        rootFolder: "GWD_Staff_Photos",
+        skipSubFolder: true,
+        type: "staff_photo",
+        customScriptUrl: scriptUrl,
+      },
+      onProgress,
+      25,
+      92,
+      `Uploading Staff Photo to Google Drive (keralagwd@gmail.com - GWD_Staff_Photos / ${officeLocation})...`
+    );
+
+    if (data.success) {
+      onProgress?.(100, "Staff photo uploaded successfully!");
+    }
+    return data;
+  } catch (netErr: any) {
+    console.error("Network error during staff photo upload:", netErr);
+    return {
+      success: false,
+      error: netErr?.message || "Failed to communicate with Google Drive upload service."
+    };
+  }
+}
+
 const googleDriveUploadClient = {
   getGoogleDriveScriptUrl,
   saveGoogleDriveScriptUrl,
@@ -468,6 +562,7 @@ const googleDriveUploadClient = {
   fileToBase64,
   uploadMediaToGoogleDrive,
   uploadTenderEstimateToGoogleDrive,
+  uploadStaffPhotoToGoogleDrive,
 };
 
 export default googleDriveUploadClient;

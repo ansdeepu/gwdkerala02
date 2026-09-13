@@ -248,7 +248,7 @@ export default function GoogleDriveSetupDialog({
               </p>
             )}
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-1.5 leading-relaxed">
-              Once saved, files are automatically sorted into <code>GWD_Site_Media / [Office] / [FileNo - SiteName]</code> on Google Drive.
+              Files are automatically routed to your organized folders: <code>GWD_Staff_Photos / [Office]</code> for staff profiles, <code>GWD_e-Tender / [Sub-Office]</code> for detailed estimates, and <code>GWD_Site_Media / [Office] / [FileNo - SiteName]</code> for site media.
             </p>
           </div>
         </div>

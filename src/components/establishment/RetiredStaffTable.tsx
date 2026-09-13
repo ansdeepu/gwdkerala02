@@ -45,6 +45,27 @@ const formatDateSafe = (dateInput: Date | string | null | undefined): string => 
   return isValid(date) ? format(date, "dd/MM/yyyy") : "";
 };
 
+const extractDriveFileId = (url?: string | null): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) return match[1];
+  return null;
+};
+
+const getPhotoDisplayUrl = (url?: string | null): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:image/')) return trimmed;
+  const driveId = extractDriveFileId(trimmed);
+  if (driveId) {
+    return `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+  }
+  return trimmed;
+};
+
 const isPlaceholderUrl = (url?: string | null): boolean => {
   if (!url) return false;
   return url.startsWith("https://placehold.co");
@@ -93,7 +114,8 @@ export default function RetiredStaffTable({
           </TableHeader>
           <TableBody>
             {paginatedStaff.length > 0 ? paginatedStaff.map((staff, index) => {
-              const canExpandAvatar = staff.photoUrl && !isPlaceholderUrl(staff.photoUrl) && onImageClick;
+              const photoDisplayUrl = getPhotoDisplayUrl(staff.photoUrl);
+              const canExpandAvatar = photoDisplayUrl && !isPlaceholderUrl(photoDisplayUrl) && onImageClick;
               const serviceStart = formatDateSafe(staff.serviceStartDate);
               const serviceEnd = formatDateSafe(staff.serviceEndDate);
 
@@ -103,7 +125,7 @@ export default function RetiredStaffTable({
                  <TableCell className="px-2 py-2 text-center">
                     <button
                       type="button"
-                      onClick={() => canExpandAvatar && onImageClick(staff.photoUrl ?? null)}
+                      onClick={() => canExpandAvatar && onImageClick(photoDisplayUrl ?? null)}
                       disabled={!canExpandAvatar}
                       className={cn(
                         "relative rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 mx-auto",
@@ -112,7 +134,11 @@ export default function RetiredStaffTable({
                       aria-label={canExpandAvatar ? "View larger image" : "Staff photo"}
                     >
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={staff.photoUrl ? staff.photoUrl : `https://placehold.co/96x96.png?text=${getInitials(staff.name)}`} alt={staff.name} data-ai-hint="person user"/>
+                        {photoDisplayUrl ? (
+                          <AvatarImage src={photoDisplayUrl} alt={staff.name} data-ai-hint="person user"/>
+                        ) : (
+                          <AvatarImage src={`https://placehold.co/96x96.png?text=${getInitials(staff.name)}`} alt={staff.name} data-ai-hint="person user"/>
+                        )}
                         <AvatarFallback>{getInitials(staff.name)}</AvatarFallback>
                       </Avatar>
                        {canExpandAvatar && (

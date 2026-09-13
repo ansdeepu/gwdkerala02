@@ -488,6 +488,7 @@ export default function EstablishmentPage() {
                 alt="Enlarged staff photo" 
                 fill 
                 className="object-contain rounded-lg"
+                unoptimized={true}
                 referrerPolicy="no-referrer"
               />
             )}
