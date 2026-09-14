@@ -3,23 +3,47 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __googleDriveScriptUrl: string | undefined;
+}
+
 const CONFIG_PATH = path.join(process.cwd(), "google-drive-settings.json");
+const TMP_CONFIG_PATH = "/tmp/google-drive-settings.json";
+
+function readScriptUrl(): string | null {
+  if (globalThis.__googleDriveScriptUrl) {
+    return globalThis.__googleDriveScriptUrl;
+  }
+
+  // 1. Check /tmp
+  try {
+    if (fs.existsSync(TMP_CONFIG_PATH)) {
+      const data = JSON.parse(fs.readFileSync(TMP_CONFIG_PATH, "utf-8"));
+      if (data.scriptUrl) return data.scriptUrl.trim();
+    }
+  } catch (e) {}
+
+  // 2. Check process.cwd()
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const data = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+      if (data.scriptUrl) return data.scriptUrl.trim();
+    }
+  } catch (e) {}
+
+  // 3. Check environment
+  if (process.env.GOOGLE_DRIVE_SCRIPT_URL) {
+    return process.env.GOOGLE_DRIVE_SCRIPT_URL.trim();
+  }
+
+  return null;
+}
 
 export async function GET() {
   try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      const content = fs.readFileSync(CONFIG_PATH, "utf-8");
-      const data = JSON.parse(content);
-      if (data.scriptUrl) {
-        return NextResponse.json({ success: true, scriptUrl: data.scriptUrl });
-      }
-    }
-
-    if (process.env.GOOGLE_DRIVE_SCRIPT_URL) {
-      return NextResponse.json({ success: true, scriptUrl: process.env.GOOGLE_DRIVE_SCRIPT_URL });
-    }
-
-    return NextResponse.json({ success: true, scriptUrl: null });
+    const scriptUrl = readScriptUrl();
+    return NextResponse.json({ success: true, scriptUrl });
   } catch (err: any) {
     console.error("Error reading Google Drive settings:", err);
     return NextResponse.json({ success: false, error: err?.message }, { status: 500 });
@@ -49,8 +73,23 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(configData, null, 2), "utf-8");
+    // 1. Set in-memory global
+    globalThis.__googleDriveScriptUrl = trimmed;
     process.env.GOOGLE_DRIVE_SCRIPT_URL = trimmed;
+
+    // 2. Write to /tmp (always writable in Cloud Run / Lambda container environments)
+    try {
+      fs.writeFileSync(TMP_CONFIG_PATH, JSON.stringify(configData, null, 2), "utf-8");
+    } catch (tmpErr) {
+      console.warn("Notice: could not write to /tmp:", tmpErr);
+    }
+
+    // 3. Attempt write to root project path (works in local dev, gracefully skips if read-only container)
+    try {
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(configData, null, 2), "utf-8");
+    } catch (e) {
+      // Container root is read-only (EROFS), which is completely fine since /tmp & memory cache are updated
+    }
 
     return NextResponse.json({ success: true, scriptUrl: trimmed });
   } catch (err: any) {
@@ -58,3 +97,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: err?.message || "Internal server error" }, { status: 500 });
   }
 }
+

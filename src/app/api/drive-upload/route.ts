@@ -6,7 +6,21 @@ import path from "path";
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds timeout for video uploads
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __googleDriveScriptUrl: string | undefined;
+}
+
 function getStoredScriptUrl(): string | null {
+  if (globalThis.__googleDriveScriptUrl) {
+    return globalThis.__googleDriveScriptUrl;
+  }
+  try {
+    if (fs.existsSync("/tmp/google-drive-settings.json")) {
+      const data = JSON.parse(fs.readFileSync("/tmp/google-drive-settings.json", "utf-8"));
+      if (data.scriptUrl) return data.scriptUrl.trim();
+    }
+  } catch (e) {}
   try {
     const configPath = path.join(process.cwd(), "google-drive-settings.json");
     if (fs.existsSync(configPath)) {
