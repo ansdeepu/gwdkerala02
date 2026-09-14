@@ -127,6 +127,7 @@ export async function getGoogleDriveStorageQuota(customScriptUrl?: string): Prom
 
 export async function saveGoogleDriveScriptUrl(scriptUrl: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const trimmed = (scriptUrl || "").trim();
     if (!trimmed.startsWith("https://script.google.com/macros/s/")) {
       return {
         success: false,
