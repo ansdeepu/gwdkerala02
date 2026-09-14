@@ -233,6 +233,11 @@ service cloud.firestore {
         allow write: if canManageAll();
       }
     }
+
+    match /systemSettings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
     
     /* ================= COLLECTION GROUP RULES FOR SUPER ADMIN LISTS ================= */
 

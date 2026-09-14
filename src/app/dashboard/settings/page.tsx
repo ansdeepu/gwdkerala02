@@ -681,93 +681,101 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     {/* Status Banner */}
                     <div className="p-3.5 rounded-xl border bg-muted/30">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                        <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">Connected Account:</span>
                                 <span className="text-xs font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">
                                     keralagwd@gmail.com
                                 </span>
                                 {driveScriptUrl ? (
-                                    <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-                                        <CheckCircle2 className="h-3 w-3" /> Active & Verified
+                                    <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                        <CheckCircle2 className="h-3 w-3" /> Active & Connected (Central Archive)
+                                    </span>
+                                ) : isSuperAdmin ? (
+                                    <span className="text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                        <AlertCircle className="h-3 w-3" /> Setup Required (Super Admin)
                                     </span>
                                 ) : (
-                                    <span className="text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-                                        <AlertCircle className="h-3 w-3" /> Setup Required
+                                    <span className="text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                        <Info className="h-3 w-3" /> Managed by State Super Admin
                                     </span>
                                 )}
                             </div>
                             <p className="text-[11px] text-muted-foreground">
-                                All uploaded photos &amp; videos in <strong>GW Investigation, Logging &amp; Pumping, Deposit, Collector&apos;s Deposit, Private Deposit, Plan Fund, ARS, Rig Registration,</strong> and <strong>Establishment</strong> are routed directly into structured district folders.
+                                {isSuperAdmin 
+                                    ? "All uploaded photos & videos in GW Investigation, Logging & Pumping, Deposit, Collector's Deposit, Private Deposit, Plan Fund, ARS, Rig Registration, and Establishment are routed directly into structured district folders in keralagwd@gmail.com."
+                                    : "Central Google Drive storage is maintained by Directorate Super Administrator (keralagwd@gmail.com). All district uploads and site media sync automatically into your district folder."}
                             </p>
                         </div>
                     </div>
 
-                    {/* Super Admin Storage Usage Gauge / Progress Bar */}
-                    {(isSuperAdmin || isAdmin) && (
-                        <div className="p-4 rounded-xl border bg-card/60 shadow-xs space-y-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <div className="space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                        <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                        <h4 className="text-sm font-semibold text-foreground">
-                                            Google Drive Storage Used
-                                        </h4>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Total space consumed across all office uploads in <code>keralagwd@gmail.com</code>
-                                    </p>
+                    {/* Storage Usage Gauge / Progress Bar */}
+                    <div className="p-4 rounded-xl border bg-card/60 shadow-xs space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                    <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <h4 className="text-sm font-semibold text-foreground">
+                                        Google Drive Storage Used
+                                    </h4>
                                 </div>
-                                <div className="text-right flex items-baseline sm:flex-col sm:items-end gap-2 sm:gap-0">
-                                    <span className="text-base sm:text-lg font-bold text-foreground">
-                                        {storageQuota?.displayText || `${storageQuota?.usedGB ?? '0.00'} GB used out of ${storageQuota?.limitGB ?? '15.00'} GB`}
-                                    </span>
-                                    <span className="text-[11px] font-medium text-muted-foreground">
-                                        {storageQuota?.freeGB !== undefined ? `${storageQuota.freeGB} GB available free` : '15 GB standard capacity'}
-                                    </span>
-                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Total department repository consumption in <code>keralagwd@gmail.com</code>
+                                </p>
                             </div>
-
-                            {/* Progress bar */}
-                            <div className="space-y-1.5">
-                                <Progress
-                                    value={storageQuota ? Math.max(1, storageQuota.percentUsed ?? 0) : (driveScriptUrl ? 2 : 0)}
-                                    className="h-2.5 bg-muted rounded-full"
-                                />
-                                <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
-                                    <span className="font-medium">
-                                        0 GB
-                                    </span>
-                                    <span className="font-semibold text-primary">
-                                        {storageQuota?.percentUsed !== undefined ? `${storageQuota.percentUsed}% Capacity Used` : (driveScriptUrl ? "Connected" : "Not connected")}
-                                    </span>
-                                    <span className="font-medium">
-                                        {storageQuota?.limitGB ? `${storageQuota.limitGB} GB Total` : '15 GB Total'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Active Module Badges */}
-                            <div className="pt-2 border-t flex flex-wrap items-center gap-1.5 text-[11px]">
-                                <span className="font-semibold text-muted-foreground mr-1">Active Modules:</span>
-                                {[
-                                    'GW Investigation',
-                                    'Logging & Pumping Test',
-                                    'Deposit Works',
-                                    "Collector's Deposit",
-                                    'Private Deposit',
-                                    'Plan Fund Works',
-                                    'ARS',
-                                    'Rig Registration',
-                                    'Establishment'
-                                ].map((mod) => (
-                                    <span key={mod} className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium text-[10.5px]">
-                                        ✓ {mod}
-                                    </span>
-                                ))}
+                            <div className="text-right flex items-baseline sm:flex-col sm:items-end gap-2 sm:gap-0">
+                                <span className="text-base sm:text-lg font-bold text-foreground">
+                                    {driveScriptUrl 
+                                        ? (storageQuota?.displayText || `${storageQuota?.usedGB ?? '0.00'} GB used out of ${storageQuota?.limitGB ?? '15.00'} GB`)
+                                        : (isSuperAdmin ? "Setup Required" : "15.00 GB Department Pool")}
+                                </span>
+                                <span className="text-[11px] font-medium text-muted-foreground">
+                                    {storageQuota?.freeGB !== undefined ? `${storageQuota.freeGB} GB available free` : '15 GB standard capacity'}
+                                </span>
                             </div>
                         </div>
-                    )}
+
+                        {/* Progress bar */}
+                        <div className="space-y-1.5">
+                            <Progress
+                                value={storageQuota ? Math.max(1, storageQuota.percentUsed ?? 0) : (driveScriptUrl ? 2 : 0)}
+                                className="h-2.5 bg-muted rounded-full"
+                            />
+                            <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
+                                <span className="font-medium">
+                                    0 GB
+                                </span>
+                                <span className="font-semibold text-primary">
+                                    {storageQuota?.percentUsed !== undefined 
+                                        ? `${storageQuota.percentUsed}% Capacity Used` 
+                                        : (driveScriptUrl ? "Connected" : (isSuperAdmin ? "Pending Setup" : "Centralized Pool"))}
+                                </span>
+                                <span className="font-medium">
+                                    {storageQuota?.limitGB ? `${storageQuota.limitGB} GB Total` : '15 GB Total'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Active Module Badges */}
+                        <div className="pt-2 border-t flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="font-semibold text-muted-foreground mr-1">Active Modules:</span>
+                            {[
+                                'GW Investigation',
+                                'Logging & Pumping Test',
+                                'Deposit Works',
+                                "Collector's Deposit",
+                                'Private Deposit',
+                                'Plan Fund Works',
+                                'ARS',
+                                'Rig Registration',
+                                'Establishment'
+                            ].map((mod) => (
+                                <span key={mod} className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium text-[10.5px]">
+                                    ✓ {mod}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>
