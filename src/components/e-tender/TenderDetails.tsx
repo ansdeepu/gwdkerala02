@@ -37,6 +37,9 @@ import { useDataStore } from '@/hooks/use-data-store';
 import PdfReportDialogs from './pdf/PdfReportDialogs'; 
 import { Textarea } from '../ui/textarea';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { evaluateLabourSociety } from '@/lib/labourSocietyUtils';
+import LabourSocietyNegotiationCard from './LabourSocietyNegotiationCard';
+import LabourSocietyNegotiationDialog from './LabourSocietyNegotiationDialog';
 
 
 type ModalType = 'basic' | 'opening' | 'bidders' | 'addBidder' | 'editBidder' | 'workOrder' | 'selectionNotice' | 'addCorrigendum' | 'editCorrigendum' | 'addRetender' | 'editRetender' | null;
@@ -149,6 +152,7 @@ export default function TenderDetails() {
     const [isClearSelectionNoticeConfirmOpen, setIsClearSelectionNoticeConfirmOpen] = useState(false);
     const [isClearWorkOrderConfirmOpen, setIsClearWorkOrderConfirmOpen] = useState(false);
     const [retenderToDelete, setRetenderToDelete] = useState<{ id: string; index: number } | null>(null);
+    const [isNegotiationOpen, setIsNegotiationOpen] = useState(false);
 
     const isReadOnly = isAuthLoading || !user || user.role === 'viewer' || user.role === 'supervisor';
 
@@ -222,7 +226,11 @@ export default function TenderDetails() {
                 retenderDate: toDateOrNull(r.retenderDate),
                 lastDateOfReceipt: toDateOrNull(r.lastDateOfReceipt),
                 dateOfOpeningTender: toDateOrNull(r.dateOfOpeningTender),
-              }))
+              })),
+              labourSocietyNegotiation: updatedData.labourSocietyNegotiation ? {
+                ...updatedData.labourSocietyNegotiation,
+                negotiationDate: toDateOrNull(updatedData.labourSocietyNegotiation.negotiationDate),
+              } : null,
             };
 
             if (tender.id === 'new') {
@@ -251,12 +259,24 @@ export default function TenderDetails() {
 
     const syncSelectionNoticeWithBidders = (updatedBidders: Bidder[]) => {
         const currentFormValues = getValues();
+        const evalResult = evaluateLabourSociety({
+            bidders: updatedBidders,
+            estimateAmount: currentFormValues.estimateAmount ?? tender.estimateAmount,
+            savedNegotiation: currentFormValues.labourSocietyNegotiation ?? tender.labourSocietyNegotiation,
+        });
+
+        const effectiveAmount = (evalResult.isNegotiationAgreed && typeof evalResult.negotiatedAmount === 'number')
+            ? evalResult.negotiatedAmount
+            : undefined;
+
         const snValues = calculateSelectionNoticeValues({
             tender: {
                 ...tender,
                 ...currentFormValues,
+                contractAmount: effectiveAmount ?? currentFormValues.contractAmount,
             },
             bidders: updatedBidders,
+            l1Amount: effectiveAmount,
         });
 
         setValue('performanceGuaranteeAmount', snValues.performanceGuaranteeAmount, { shouldDirty: true, shouldValidate: true });
@@ -512,6 +532,179 @@ export default function TenderDetails() {
         );
     }, [bidderFields]);
 
+    const labourSocietyEval = useMemo(() => {
+        return evaluateLabourSociety({
+            bidders: bidderFields as Bidder[],
+            estimateAmount: watch('estimateAmount') ?? tender.estimateAmount,
+            savedNegotiation: watch('labourSocietyNegotiation') ?? tender.labourSocietyNegotiation,
+        });
+    }, [bidderFields, watch, tender.estimateAmount, tender.labourSocietyNegotiation]);
+
+    const effectiveAwardAmount = useMemo(() => {
+        if (labourSocietyEval.isNegotiationAgreed && typeof labourSocietyEval.negotiatedAmount === 'number') {
+            return labourSocietyEval.negotiatedAmount;
+        }
+        return (hasRejectedBids && watch('agreedAmount')) ? watch('agreedAmount') : l1Bidder?.quotedAmount;
+    }, [labourSocietyEval, hasRejectedBids, watch, l1Bidder]);
+
+    const handleSaveLabourNegotiation = async (data: {
+        negotiationStatus: 'Agreed' | 'Not Agreed';
+        negotiatedAmount?: number | null;
+        negotiationDate?: string | null;
+        negotiationMinutesOrLetterRef?: string;
+        remarks?: string;
+        isTenderAwardedToSociety: boolean;
+    }) => {
+        setIsSubmitting(true);
+        try {
+            const currentData = getValues();
+            let updatedData: Partial<E_tenderFormData>;
+
+            if (data.negotiationStatus === 'Agreed') {
+                const primarySociety = labourSocietyEval.primarySociety;
+                const negPayload = {
+                    societyBidderId: primarySociety?.id,
+                    societyName: primarySociety?.name,
+                    govtOrderAndDate: primarySociety?.govtOrderAndDate,
+                    l1BidderId: labourSocietyEval.l1Bidder?.id,
+                    l1BidderName: labourSocietyEval.l1Bidder?.name,
+                    l1Amount: labourSocietyEval.l1Amount,
+                    societyQuotedAmount: primarySociety?.quotedAmount,
+                    percentageAboveL1: labourSocietyEval.percentageAboveL1,
+                    estimateAmount: currentData.estimateAmount ?? tender.estimateAmount,
+                    isEligible: true,
+                    eligibilityReason: labourSocietyEval.eligibilityReason,
+                    negotiationStatus: 'Agreed' as const,
+                    negotiatedAmount: data.negotiatedAmount,
+                    negotiationDate: toDateOrNull(data.negotiationDate),
+                    negotiationMinutesOrLetterRef: data.negotiationMinutesOrLetterRef,
+                    remarks: data.remarks,
+                    isTenderAwardedToSociety: true,
+                };
+
+                const snValues = calculateSelectionNoticeValues({
+                    tender: {
+                        ...tender,
+                        ...currentData,
+                        labourSocietyNegotiation: negPayload,
+                        contractAmount: data.negotiatedAmount,
+                    },
+                    bidders: bidderFields as Bidder[],
+                    l1Amount: data.negotiatedAmount,
+                });
+
+                updatedData = {
+                    labourSocietyNegotiation: negPayload,
+                    awardedBidderId: primarySociety?.id,
+                    awardedBidderName: primarySociety?.name,
+                    agreedAmount: data.negotiatedAmount,
+                    contractAmount: data.negotiatedAmount,
+                    performanceGuaranteeAmount: snValues.performanceGuaranteeAmount,
+                    additionalPerformanceGuaranteeAmount: snValues.additionalPerformanceGuaranteeAmount,
+                    stampPaperAmount: snValues.stampPaperAmount,
+                };
+
+                setValue('labourSocietyNegotiation', negPayload, { shouldDirty: true, shouldValidate: true });
+                setValue('awardedBidderId', primarySociety?.id, { shouldDirty: true });
+                setValue('awardedBidderName', primarySociety?.name, { shouldDirty: true });
+                setValue('agreedAmount', data.negotiatedAmount, { shouldDirty: true });
+                setValue('contractAmount', data.negotiatedAmount, { shouldDirty: true });
+                setValue('performanceGuaranteeAmount', snValues.performanceGuaranteeAmount, { shouldDirty: true });
+                setValue('additionalPerformanceGuaranteeAmount', snValues.additionalPerformanceGuaranteeAmount, { shouldDirty: true });
+                setValue('stampPaperAmount', snValues.stampPaperAmount, { shouldDirty: true });
+
+                toast({
+                    title: "Negotiation Agreed",
+                    description: `Tender awarded to ${primarySociety?.name} at negotiated amount ₹${(data.negotiatedAmount ?? 0).toLocaleString('en-IN')}.`,
+                });
+            } else {
+                const negPayload = {
+                    societyBidderId: labourSocietyEval.primarySociety?.id,
+                    societyName: labourSocietyEval.primarySociety?.name,
+                    govtOrderAndDate: labourSocietyEval.primarySociety?.govtOrderAndDate,
+                    l1BidderId: labourSocietyEval.l1Bidder?.id,
+                    l1BidderName: labourSocietyEval.l1Bidder?.name,
+                    l1Amount: labourSocietyEval.l1Amount,
+                    societyQuotedAmount: labourSocietyEval.primarySociety?.quotedAmount,
+                    percentageAboveL1: labourSocietyEval.percentageAboveL1,
+                    estimateAmount: currentData.estimateAmount ?? tender.estimateAmount,
+                    isEligible: true,
+                    eligibilityReason: labourSocietyEval.eligibilityReason,
+                    negotiationStatus: 'Not Agreed' as const,
+                    negotiatedAmount: null,
+                    negotiationDate: toDateOrNull(data.negotiationDate),
+                    negotiationMinutesOrLetterRef: data.negotiationMinutesOrLetterRef,
+                    remarks: data.remarks,
+                    isTenderAwardedToSociety: false,
+                };
+
+                const cancellationRemark = `[Tender Cancelled]: Unsuccessful negotiation with Labour Contract Society (${labourSocietyEval.primarySociety?.name || 'Society'}).`;
+                const combinedRemarks = currentData.remarks 
+                    ? `${currentData.remarks}\n${cancellationRemark}`
+                    : cancellationRemark;
+
+                updatedData = {
+                    labourSocietyNegotiation: negPayload,
+                    presentStatus: 'Tender Cancelled',
+                    awardedBidderId: null,
+                    awardedBidderName: null,
+                    remarks: combinedRemarks,
+                };
+
+                setValue('labourSocietyNegotiation', negPayload, { shouldDirty: true, shouldValidate: true });
+                setValue('presentStatus', 'Tender Cancelled', { shouldDirty: true, shouldValidate: true });
+                setValue('awardedBidderId', null, { shouldDirty: true });
+                setValue('awardedBidderName', null, { shouldDirty: true });
+                setValue('remarks', combinedRemarks, { shouldDirty: true });
+
+                toast({
+                    title: "Tender Cancelled",
+                    description: "Negotiation was unsuccessful. Tender has been marked as Cancelled and no award issued.",
+                    variant: "destructive",
+                });
+            }
+
+            if (tender.id !== 'new') {
+                await saveTenderToDb(tender.id, updatedData);
+                updateTender(updatedData);
+            }
+            setIsNegotiationOpen(false);
+        } catch (err: any) {
+            console.error("Negotiation save error:", err);
+            toast({
+                title: "Error Saving Negotiation",
+                description: err?.message || "Failed to update negotiation status.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResetLabourNegotiation = async () => {
+        setIsSubmitting(true);
+        try {
+            const clearedPayload = {
+                labourSocietyNegotiation: null,
+                awardedBidderId: null,
+                awardedBidderName: null,
+            };
+            setValue('labourSocietyNegotiation', null, { shouldDirty: true });
+            setValue('awardedBidderId', null, { shouldDirty: true });
+            setValue('awardedBidderName', null, { shouldDirty: true });
+
+            if (tender.id !== 'new') {
+                await saveTenderToDb(tender.id, clearedPayload);
+                updateTender(clearedPayload);
+            }
+            toast({ title: "Negotiation Reset", description: "Negotiation record has been reset." });
+        } catch (err: any) {
+            toast({ title: "Reset Error", description: err.message, variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const dynamicStatusOptions = useMemo(() => {
         if (tender.id === 'new') return eTenderStatusOptions;
       if (tenderType === 'Work') {
@@ -721,9 +914,15 @@ export default function TenderDetails() {
                                                 return (
                                                     <div key={bidder.id} className="p-3 border rounded-md bg-secondary/30 relative">
                                                         <div className="flex items-start justify-between mb-2">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 <h5 className="font-bold text-sm">Bidder #{index + 1}: {bidder.name}</h5>
                                                                 {isL1 && <Badge className="bg-green-600 text-white">L1</Badge>}
+                                                                {(bidder.bidderType === 'Labour Society' || bidder.bidderType === 'Labour Contract Society') && (
+                                                                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-medium">Labour Contract Society</Badge>
+                                                                )}
+                                                                {labourSocietyEval.isNegotiationAgreed && bidder.id === labourSocietyEval.primarySociety?.id && (
+                                                                    <Badge className="bg-blue-600 text-white">Awarded (Negotiated)</Badge>
+                                                                )}
                                                                 {bidder.status && <Badge variant={bidder.status === 'Accepted' ? 'default' : 'destructive'} className="mt-1">{bidder.status}</Badge>}
                                                             </div>
                                                             <div className="flex items-center gap-1">
@@ -751,6 +950,16 @@ export default function TenderDetails() {
                                 )}
                             </Card>
 
+                            {labourSocietyEval.hasLabourSociety && (
+                                <LabourSocietyNegotiationCard
+                                    evaluation={labourSocietyEval}
+                                    negotiationData={watch('labourSocietyNegotiation')}
+                                    isReadOnly={isReadOnly}
+                                    onOpenNegotiate={() => setIsNegotiationOpen(true)}
+                                    onResetNegotiate={handleResetLabourNegotiation}
+                                />
+                            )}
+
                             <Card className="border rounded-lg">
                                 <CardHeader className="flex flex-row justify-between items-center p-4">
                                     <div className="flex items-center gap-3">
@@ -764,6 +973,12 @@ export default function TenderDetails() {
                                 </CardHeader>
                                 {hasAnySelectionNoticeData ? (
                                     <CardContent className="p-6 pt-0">
+                                        {labourSocietyEval.isNegotiationAgreed && (
+                                            <div className="mt-3 mb-2 p-2.5 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-2">
+                                                <span>Awarded to Labour Contract Society: <strong className="font-semibold">{labourSocietyEval.primarySociety?.name}</strong></span>
+                                                <span>Negotiated Contract Rate: <strong className="font-semibold">₹{(labourSocietyEval.negotiatedAmount ?? 0).toLocaleString('en-IN')}</strong></span>
+                                            </div>
+                                        )}
                                         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
                                             <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
                                             <DetailRow label="Basis for Calculation" value={watch('amountType')} />
@@ -940,7 +1155,7 @@ export default function TenderDetails() {
                            onSubmit={handleSave}
                            onCancel={() => setActiveModal(null)}
                            isSubmitting={isSubmitting}
-                           l1Amount={l1Bidder?.quotedAmount}
+                           l1Amount={effectiveAwardAmount}
                            hasRejectedBids={hasRejectedBids}
                         />}
                     </DialogContent>
@@ -950,6 +1165,20 @@ export default function TenderDetails() {
                         {activeModal === 'workOrder' && <WorkOrderDetailsForm initialData={getValues()} onSubmit={handleSave} onCancel={() => setActiveModal(null)} isSubmitting={isSubmitting} tenderType={tenderType ?? undefined}/>}
                     </DialogContent>
                 </Dialog>
+
+                {labourSocietyEval.primarySociety && (
+                    <LabourSocietyNegotiationDialog
+                        isOpen={isNegotiationOpen}
+                        onClose={() => setIsNegotiationOpen(false)}
+                        primarySociety={labourSocietyEval.primarySociety}
+                        l1Bidder={labourSocietyEval.l1Bidder}
+                        estimateAmount={watch('estimateAmount') ?? tender.estimateAmount}
+                        percentageAboveL1={labourSocietyEval.percentageAboveL1}
+                        existingNegotiation={watch('labourSocietyNegotiation')}
+                        onSaveNegotiation={handleSaveLabourNegotiation}
+                        isSubmitting={isSubmitting}
+                    />
+                )}
                 
                 <AlertDialog open={isClearOpeningDetailsConfirmOpen} onOpenChange={setIsClearOpeningDetailsConfirmOpen}>
                     <AlertDialogContent>

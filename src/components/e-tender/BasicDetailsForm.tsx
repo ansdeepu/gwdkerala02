@@ -738,10 +738,61 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                <FormField name="periodOfCompletion" control={control} render={({ field }) => ( <FormItem><FormLabel>Period of Completion (Days)</FormLabel><FormControl><Input type="number" {...field} value={(field.value === undefined || field.value === null || isNaN(field.value)) ? '' : field.value} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField 
+                                  name="periodOfCompletion" 
+                                  control={control} 
+                                  render={({ field }) => ( 
+                                    <FormItem>
+                                      <FormLabel>Period of Completion (Days)</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="number" 
+                                          {...field} 
+                                          value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                          onChange={e => {
+                                            const val = e.target.value.trim();
+                                            if (val === '') {
+                                              field.onChange(undefined);
+                                            } else {
+                                              const num = parseInt(val, 10);
+                                              field.onChange(isNaN(num) ? undefined : num);
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem> 
+                                  )}
+                                />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField name="estimateAmount" control={control} render={({ field }) => ( <FormItem><FormLabel>Tender Amount (Rs.)</FormLabel><FormControl><Input type="number" {...field} value={(field.value === undefined || field.value === null || isNaN(field.value)) ? '' : field.value} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField 
+                                  name="estimateAmount" 
+                                  control={control} 
+                                  render={({ field }) => ( 
+                                    <FormItem>
+                                      <FormLabel>Tender Amount (Rs.)</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="number" 
+                                          step="any"
+                                          {...field} 
+                                          value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                          onChange={e => {
+                                            const val = e.target.value.trim();
+                                            if (val === '') {
+                                              field.onChange(undefined);
+                                            } else {
+                                              const num = parseFloat(val);
+                                              field.onChange(isNaN(num) ? undefined : num);
+                                            }
+                                          }} 
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem> 
+                                  )}
+                                />
                                 <FormField name="tenderFormFee" control={control} render={({ field }) => ( 
                                     <FormItem>
                                         <FormLabel>Tender Fee (Rs.)</FormLabel>

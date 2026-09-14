@@ -327,13 +327,24 @@ export const calculateSelectionNoticeValues = (params: {
     l1Amount?: number | null;
 }) => {
     const { tender, bidders, l1Amount } = params;
-    const acceptedBidders = (bidders || tender.bidders || []).filter((b: any) => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
+    const allBiddersList = bidders || tender.bidders || [];
+    const acceptedBidders = allBiddersList.filter((b: any) => b.status === 'Accepted' && typeof b.quotedAmount === 'number' && b.quotedAmount > 0);
     const l1Bidder = acceptedBidders.length > 0 ? acceptedBidders.reduce((lowest: any, current: any) => (current.quotedAmount! < lowest.quotedAmount!) ? current : lowest) : null;
     
-    const hasRejectedBids = (bidders || tender.bidders || []).some((b: any) => b.status === 'Rejected');
+    const hasNegotiatedSociety = tender.labourSocietyNegotiation?.isTenderAwardedToSociety && 
+                                  tender.labourSocietyNegotiation.negotiationStatus === 'Agreed' && 
+                                  typeof tender.labourSocietyNegotiation.negotiatedAmount === 'number';
+    
+    const awardedSocietyBidder = hasNegotiatedSociety 
+      ? allBiddersList.find((b: any) => b.id === tender.labourSocietyNegotiation.societyBidderId || b.name === tender.labourSocietyNegotiation.societyName)
+      : null;
+
+    const hasRejectedBids = allBiddersList.some((b: any) => b.status === 'Rejected');
     const effectiveL1Amount = l1Amount !== undefined && l1Amount !== null 
         ? l1Amount 
-        : (hasRejectedBids && tender.agreedAmount ? tender.agreedAmount : l1Bidder?.quotedAmount);
+        : (hasNegotiatedSociety 
+            ? tender.labourSocietyNegotiation.negotiatedAmount
+            : (hasRejectedBids && tender.agreedAmount ? tender.agreedAmount : l1Bidder?.quotedAmount));
 
     const baseAmountType = tender.amountType || 'Contract Amount';
     const baseAmount = baseAmountType === 'Tender Amount' ? tender.estimateAmount : (effectiveL1Amount ?? tender.contractAmount ?? undefined);
@@ -342,9 +353,12 @@ export const calculateSelectionNoticeValues = (params: {
     const pgRateMatch = pgDesc.match(/(\d+)%/);
     const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
 
-    const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
+    const isPgExempt = awardedSocietyBidder?.performanceGuaranteeExemption === 'Yes';
+    const isApgExempt = awardedSocietyBidder?.additionalPgExemption === 'Yes';
+
+    const pg = isPgExempt ? 0 : (baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0);
     const stamp = calculateStampPaperValue(baseAmount, tender.stampPaperDescription);
-    const additionalPg = calculateAdditionalPG(tender.estimateAmount, effectiveL1Amount, tender.additionalPerformanceGuaranteeDescription);
+    const additionalPg = isApgExempt ? 0 : calculateAdditionalPG(tender.estimateAmount, effectiveL1Amount, tender.additionalPerformanceGuaranteeDescription);
 
     return {
         performanceGuaranteeAmount: pg,

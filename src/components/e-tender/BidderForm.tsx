@@ -28,6 +28,16 @@ const createDefaultBidder = (): Bidder => ({
     id: uuidv4(), // Assign a temporary client-side ID
     name: '',
     address: '',
+    phoneNo: '',
+    secondaryPhoneNo: '',
+    email: '',
+    bidderType: 'Contractor',
+    govtOrderAndDate: '',
+    maxQuotedPercentageAboveL1: undefined,
+    tenderFeeExemption: 'Yes',
+    emdExemption: 'Yes',
+    performanceGuaranteeExemption: 'Yes',
+    additionalPgExemption: 'Yes',
     quotedAmount: undefined,
     quotedPercentage: undefined,
     aboveBelow: undefined,
@@ -35,37 +45,61 @@ const createDefaultBidder = (): Bidder => ({
     remarks: '',
 });
 
+const sanitizeBidder = (data?: Bidder | null): Bidder => {
+    const base = createDefaultBidder();
+    if (!data) return base;
+    const qAmount = data.quotedAmount != null && !isNaN(Number(data.quotedAmount)) ? Number(data.quotedAmount) : undefined;
+    const qPercent = data.quotedPercentage != null && !isNaN(Number(data.quotedPercentage)) ? Number(data.quotedPercentage) : undefined;
+    return {
+        ...base,
+        ...data,
+        quotedAmount: qAmount,
+        quotedPercentage: qPercent,
+        bidderType: data.bidderType || 'Contractor',
+        tenderFeeExemption: data.tenderFeeExemption || 'Yes',
+        emdExemption: data.emdExemption || 'Yes',
+        performanceGuaranteeExemption: data.performanceGuaranteeExemption || 'Yes',
+        additionalPgExemption: data.additionalPgExemption || 'Yes',
+    };
+};
+
 export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialData, tenderAmount }: BidderFormProps) {
     const { allBidders } = useDataStore();
     
     const form = useForm<Bidder>({
         resolver: zodResolver(BidderSchema),
-        defaultValues: initialData ?? createDefaultBidder(),
+        defaultValues: sanitizeBidder(initialData),
     });
 
     const { control, setValue, watch, reset, formState: { isDirty } } = form;
     const [quotedPercentage, aboveBelow, selectedBidderName, status] = watch(['quotedPercentage', 'aboveBelow', 'name', 'status']);
 
-
     useEffect(() => {
-        reset(initialData ?? createDefaultBidder());
+        reset(sanitizeBidder(initialData));
     }, [initialData, reset]);
 
+    const parsedTenderAmount = typeof tenderAmount === 'number' && !isNaN(tenderAmount) && tenderAmount > 0 
+        ? tenderAmount 
+        : typeof tenderAmount === 'string' && !isNaN(parseFloat(tenderAmount)) && parseFloat(tenderAmount) > 0
+            ? parseFloat(tenderAmount)
+            : null;
+
     useEffect(() => {
-        if (tenderAmount && quotedPercentage != null && aboveBelow) {
-            const percentage = quotedPercentage / 100;
+        const numPercent = typeof quotedPercentage === 'number' && !isNaN(quotedPercentage) ? quotedPercentage : null;
+        if (parsedTenderAmount && numPercent !== null && aboveBelow) {
+            const percentage = numPercent / 100;
             let calculatedAmount = 0;
             if (aboveBelow === 'Above') {
-                calculatedAmount = tenderAmount * (1 + percentage);
+                calculatedAmount = parsedTenderAmount * (1 + percentage);
             } else {
-                calculatedAmount = tenderAmount * (1 - percentage);
+                calculatedAmount = parsedTenderAmount * (1 - percentage);
             }
             const roundedAmount = Math.round(calculatedAmount * 100) / 100;
-            if (watch('quotedAmount') !== roundedAmount) {
-              setValue('quotedAmount', roundedAmount);
+            if (!isNaN(roundedAmount) && watch('quotedAmount') !== roundedAmount) {
+              setValue('quotedAmount', roundedAmount, { shouldDirty: true });
             }
         }
-    }, [tenderAmount, quotedPercentage, aboveBelow, setValue, watch]);
+    }, [parsedTenderAmount, quotedPercentage, aboveBelow, setValue, watch]);
     
     const handleBidderSelect = (bidderName: string) => {
         const selected = allBidders.find(b => b.name === bidderName);
@@ -74,13 +108,27 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
             setValue('address', selected.address, { shouldValidate: true });
             setValue('phoneNo', selected.phoneNo || '', { shouldValidate: true });
             setValue('secondaryPhoneNo', selected.secondaryPhoneNo || '', { shouldValidate: true });
+            setValue('bidderType', selected.bidderType || 'Contractor', { shouldValidate: true });
             setValue('email', selected.email || '', { shouldValidate: true });
+            setValue('govtOrderAndDate', selected.govtOrderAndDate || '', { shouldValidate: true });
+            setValue('maxQuotedPercentageAboveL1', selected.maxQuotedPercentageAboveL1, { shouldValidate: true });
+            setValue('tenderFeeExemption', selected.tenderFeeExemption || 'Yes', { shouldValidate: true });
+            setValue('emdExemption', selected.emdExemption || 'Yes', { shouldValidate: true });
+            setValue('performanceGuaranteeExemption', selected.performanceGuaranteeExemption || 'Yes', { shouldValidate: true });
+            setValue('additionalPgExemption', selected.additionalPgExemption || 'Yes', { shouldValidate: true });
         } else {
             setValue('name', '', { shouldValidate: true });
             setValue('address', '', { shouldValidate: true });
             setValue('phoneNo', '', { shouldValidate: true });
             setValue('secondaryPhoneNo', '', { shouldValidate: true });
+            setValue('bidderType', 'Contractor', { shouldValidate: true });
             setValue('email', '', { shouldValidate: true });
+            setValue('govtOrderAndDate', '', { shouldValidate: true });
+            setValue('maxQuotedPercentageAboveL1', undefined, { shouldValidate: true });
+            setValue('tenderFeeExemption', 'Yes', { shouldValidate: true });
+            setValue('emdExemption', 'Yes', { shouldValidate: true });
+            setValue('performanceGuaranteeExemption', 'Yes', { shouldValidate: true });
+            setValue('additionalPgExemption', 'Yes', { shouldValidate: true });
         }
     };
 
@@ -119,11 +167,56 @@ export default function BidderForm({ onSubmit, onCancel, isSubmitting, initialDa
                                 <FormField name="address" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[100px]" readOnly disabled={!!selectedBidderName} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                             </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField name="quotedPercentage" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Quoted Percentage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField 
+                                  name="quotedPercentage" 
+                                  control={form.control} 
+                                  render={({ field }) => ( 
+                                    <FormItem>
+                                      <FormLabel>Quoted Percentage</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="number" 
+                                          step="any"
+                                          {...field} 
+                                          value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                          onChange={e => {
+                                            const val = e.target.value.trim();
+                                            if (val === '') {
+                                              field.onChange(undefined);
+                                            } else {
+                                              const num = parseFloat(val);
+                                              field.onChange(isNaN(num) ? undefined : num);
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem> 
+                                  )}
+                                />
                                 <FormField name="aboveBelow" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Above/Below</FormLabel><Select onValueChange={field.onChange} value={field.value ?? undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Above">Above</SelectItem><SelectItem value="Below">Below</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField name="quotedAmount" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Quoted Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly className="bg-muted/50" /></FormControl><FormMessage /></FormItem> )}/>
+                                <FormField 
+                                  name="quotedAmount" 
+                                  control={form.control} 
+                                  render={({ field }) => ( 
+                                    <FormItem>
+                                      <FormLabel>Quoted Amount</FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="number" 
+                                          step="any"
+                                          {...field} 
+                                          value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                          readOnly 
+                                          className="bg-muted/50 font-mono" 
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem> 
+                                  )}
+                                />
                                 <FormField name="status" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value ?? undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Accepted">Accepted</SelectItem><SelectItem value="Rejected">Rejected</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                            </div>
                            {status === 'Rejected' && (

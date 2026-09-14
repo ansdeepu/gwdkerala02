@@ -12,7 +12,8 @@ import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/co
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Save, X, UserPlus } from 'lucide-react';
 import { z } from 'zod';
-import { type Bidder, NewBidderSchema, type NewBidderFormData } from '@/lib/schemas/eTenderSchema';
+import { type Bidder, NewBidderSchema, type NewBidderFormData, BIDDER_TYPES } from '@/lib/schemas/eTenderSchema';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCase } from '@/lib/utils';
 
 
@@ -21,7 +22,14 @@ const createDefaultBidder = (): NewBidderFormData => ({
     address: '',
     phoneNo: '',
     secondaryPhoneNo: '',
+    bidderType: 'Contractor',
     email: '',
+    govtOrderAndDate: '',
+    maxQuotedPercentageAboveL1: undefined,
+    tenderFeeExemption: 'Yes',
+    emdExemption: 'Yes',
+    performanceGuaranteeExemption: 'Yes',
+    additionalPgExemption: 'Yes',
     order: 0,
 });
 
@@ -38,9 +46,20 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
         defaultValues: initialData || createDefaultBidder(),
     });
 
+    const selectedBidderType = form.watch('bidderType');
+    const isLabourSociety = selectedBidderType === 'Labour Contract Society' || selectedBidderType === 'Labour Society';
+
     useEffect(() => {
         if (initialData) {
-            form.reset(initialData);
+            form.reset({
+                ...createDefaultBidder(),
+                ...initialData,
+                bidderType: initialData.bidderType === 'Labour Society' ? 'Labour Contract Society' : (initialData.bidderType || 'Contractor'),
+                tenderFeeExemption: initialData.tenderFeeExemption || 'Yes',
+                emdExemption: initialData.emdExemption || 'Yes',
+                performanceGuaranteeExemption: initialData.performanceGuaranteeExemption || 'Yes',
+                additionalPgExemption: initialData.additionalPgExemption || 'Yes',
+            });
         } else {
             form.reset(createDefaultBidder());
         }
@@ -60,9 +79,9 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
             <form onSubmit={form.handleSubmit(handleInternalSubmit)} className="flex flex-col h-full">
                 <DialogHeader className="p-6 pb-4">
                     <DialogTitle>{initialData ? 'Edit Bidder Details' : 'Add New Bidder'}</DialogTitle>
-                    <DialogDescription>Enter the contact information for the bidder.</DialogDescription>
+                    <DialogDescription>Enter the contact and registration details for the bidder.</DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 p-6 py-4">
+                <div className="flex-1 overflow-y-auto max-h-[65vh] p-6 py-2">
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField name="name" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Bidder Name</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
@@ -72,7 +91,183 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                             <FormField name="phoneNo" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Phone No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                             <FormField name="secondaryPhoneNo" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Secondary Phone No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                          </div>
-                         <FormField name="email" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                name="bidderType"
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Bidder Type</FormLabel>
+                                        <Select
+                                            onValueChange={(val) => field.onChange(val)}
+                                            value={field.value === 'Labour Society' ? 'Labour Contract Society' : (field.value || 'Contractor')}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Bidder Type" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Contractor">Contractor</SelectItem>
+                                                <SelectItem value="Firm">Firm</SelectItem>
+                                                <SelectItem value="Labour Contract Society">Labour Contract Society</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField name="email" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                         </div>
+
+                         {isLabourSociety && (
+                            <div className="space-y-4 pt-2">
+                                <FormField
+                                    name="govtOrderAndDate"
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Govt order and date</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter Govt. Order No. and Date"
+                                                    {...field}
+                                                    value={field.value ?? ''}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <div className="rounded-lg border border-border/80 bg-muted/30 p-4 space-y-4">
+                                    <div className="border-b border-border/60 pb-2">
+                                        <h4 className="text-sm font-semibold text-foreground">Exceptions</h4>
+                                    </div>
+
+                                    <FormField
+                                        name="maxQuotedPercentageAboveL1"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Maximum quoted percentage above L1</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="any"
+                                                        placeholder="e.g. 10"
+                                                        {...field}
+                                                        value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.trim();
+                                                            if (val === '') {
+                                                                field.onChange(undefined);
+                                                            } else {
+                                                                const num = parseFloat(val);
+                                                                field.onChange(isNaN(num) ? undefined : num);
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            name="tenderFeeExemption"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Tender Fee (Rs.)</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                            <SelectItem value="No">No</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            name="emdExemption"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>EMD (Rs.)</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                            <SelectItem value="No">No</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            name="performanceGuaranteeExemption"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Performance Guarantee (₹)</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                            <SelectItem value="No">No</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            name="additionalPgExemption"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Additional PG (₹)</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Yes">Yes</SelectItem>
+                                                            <SelectItem value="No">No</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                         )}
                     </div>
                 </div>
                 <DialogFooter className="p-6 pt-4 mt-auto">

@@ -18,6 +18,7 @@ import NewBidderForm from '@/components/e-tender/NewBidderForm';
 import type { NewBidderFormData, Bidder as BidderType } from '@/lib/schemas/eTenderSchema';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, UserPlus, Trash2, Move, Eye, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -192,6 +193,7 @@ export default function BiddersListPage() {
                                     <TableRow>
                                         <TableHead>Sl. No.</TableHead>
                                         <TableHead><Button variant="ghost" onClick={() => requestSort('name')} className="px-0 hover:bg-transparent">Name{getSortIcon('name')}</Button></TableHead>
+                                        <TableHead><Button variant="ghost" onClick={() => requestSort('bidderType')} className="px-0 hover:bg-transparent">Bidder Type{getSortIcon('bidderType')}</Button></TableHead>
                                         <TableHead><Button variant="ghost" onClick={() => requestSort('address')} className="px-0 hover:bg-transparent">Address{getSortIcon('address')}</Button></TableHead>
                                         <TableHead><Button variant="ghost" onClick={() => requestSort('phoneNo')} className="px-0 hover:bg-transparent">Contact{getSortIcon('phoneNo')}</Button></TableHead>
                                         <TableHead><Button variant="ghost" onClick={() => requestSort('email')} className="px-0 hover:bg-transparent">Email{getSortIcon('email')}</Button></TableHead>
@@ -204,6 +206,15 @@ export default function BiddersListPage() {
                                             <TableRow key={bidder.id}>
                                                 <TableCell>{index + 1}</TableCell>
                                                 <TableCell className="font-medium">{bidder.name}</TableCell>
+                                                <TableCell>
+                                                    {bidder.bidderType ? (
+                                                        <Badge variant="secondary" className="font-medium text-xs">
+                                                            {bidder.bidderType === 'Labour Society' ? 'Labour Contract Society' : bidder.bidderType}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">—</span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="max-w-[300px]">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -231,7 +242,7 @@ export default function BiddersListPage() {
                                             </TableRow>
                                         ))
                                     ) : (
-                                        <TableRow><TableCell colSpan={6} className="h-24 text-center">No bidders found. Add one to get started.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={7} className="h-24 text-center">No bidders found. Add one to get started.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>

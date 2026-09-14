@@ -33,7 +33,9 @@ export async function generateFinancialSummary(tender: E_tender, officeAddress: 
     const header = "Sl. No.    Name of Bidder                                Quoted Amount (Rs.)     Rank";
     const bidderRows = acceptedBidders.map((bidder, index) => {
         const sl = `${index + 1}.`.padEnd(10);
-        const name = (bidder.name || 'N/A').padEnd(45);
+        const isSociety = bidder.bidderType === 'Labour Society' || bidder.bidderType === 'Labour Contract Society';
+        const displayName = isSociety ? `${bidder.name || 'N/A'} (Labour Contract Society)` : (bidder.name || 'N/A');
+        const name = displayName.padEnd(45);
         const amount = (bidder.quotedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(25);
         const rank = `L${index + 1}`.padEnd(5);
         return `${sl}${name}${amount}     ${rank}`;
@@ -41,7 +43,13 @@ export async function generateFinancialSummary(tender: E_tender, officeAddress: 
     const finTableText = `${header}\n${"-".repeat(header.length + 10)}\n${bidderRows}`;
     
     let finResultText = `${INDENT}No valid bids to recommend.`;
-    if (l1Bidder) {
+    if (tender.labourSocietyNegotiation?.isTenderAwardedToSociety && tender.labourSocietyNegotiation.negotiationStatus === 'Agreed') {
+        const societyName = tender.labourSocietyNegotiation.societyName || 'Labour Contract Co-operative Society';
+        const negAmt = tender.labourSocietyNegotiation.negotiatedAmount ? `Rs. ${tender.labourSocietyNegotiation.negotiatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+        finResultText = `${INDENT}In accordance with Government Orders for Labour Contract Societies, negotiation was conducted with ${societyName}. The society agreed to execute the work at the negotiated rate of ${negAmt} (below estimated amount). Hence, ${societyName} is accepted and recommended for issuance of the selection notice.`;
+    } else if (tender.labourSocietyNegotiation?.negotiationStatus === 'Not Agreed') {
+        finResultText = `${INDENT}Negotiation with the Labour Contract Society was unsuccessful as the society declined to execute below the estimated rate. In terms of tender guidelines, the tender stands cancelled and no bid is recommended for award.`;
+    } else if (l1Bidder) {
         const bidderName = l1Bidder.name || 'N/A';
         finResultText = `${INDENT}${bidderName}, who quoted the lowest rate, may be accepted and recommended for issuance of the selection notice.`;
     }

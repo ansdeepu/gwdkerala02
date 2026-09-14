@@ -34,6 +34,13 @@ const createDefaultBidder = (): Bidder => ({
     phoneNo: '',
     secondaryPhoneNo: '',
     email: '',
+    bidderType: 'Contractor',
+    govtOrderAndDate: '',
+    maxQuotedPercentageAboveL1: undefined,
+    tenderFeeExemption: 'Yes',
+    emdExemption: 'Yes',
+    performanceGuaranteeExemption: 'Yes',
+    additionalPgExemption: 'Yes',
     securityDepositType: '',
     securityDepositAmount: undefined,
     agreementAmount: undefined,
@@ -77,7 +84,33 @@ export default function ManageBiddersForm({ initialData, onSubmit, onCancel, isS
                                     <FormField name={`bidders.${index}.name`} control={control} render={({ field }) => ( <FormItem><FormLabel>Bidder Name</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                                     <FormField name={`bidders.${index}.address`} control={control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[40px]" value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <FormField name={`bidders.${index}.quotedAmount`} control={control} render={({ field }) => ( <FormItem><FormLabel>Quoted Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField 
+                                          name={`bidders.${index}.quotedAmount`} 
+                                          control={control} 
+                                          render={({ field }) => ( 
+                                            <FormItem>
+                                              <FormLabel>Quoted Amount</FormLabel>
+                                              <FormControl>
+                                                <Input 
+                                                  type="number" 
+                                                  step="any"
+                                                  {...field} 
+                                                  value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                                  onChange={e => {
+                                                    const val = e.target.value.trim();
+                                                    if (val === '') {
+                                                      field.onChange(undefined);
+                                                    } else {
+                                                      const num = parseFloat(val);
+                                                      field.onChange(isNaN(num) ? undefined : num);
+                                                    }
+                                                  }}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem> 
+                                          )}
+                                        />
                                         {/* Fields removed as per request */}
                                     </div>
                                 </div>

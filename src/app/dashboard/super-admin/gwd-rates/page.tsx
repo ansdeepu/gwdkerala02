@@ -826,8 +826,16 @@ export default function GwdRatesPage() {
                       type="number"
                       placeholder="0.00"
                       {...field}
-                      onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)}
-                      value={field.value ?? ''}
+                      value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value}
+                      onChange={e => {
+                        const val = e.target.value.trim();
+                        if (val === '') {
+                          field.onChange(undefined);
+                        } else {
+                          const num = parseFloat(val);
+                          field.onChange(isNaN(num) ? undefined : num);
+                        }
+                      }}
                     /></FormControl>
                     <FormMessage />
                   </FormItem>

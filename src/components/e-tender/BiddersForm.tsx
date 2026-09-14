@@ -28,6 +28,16 @@ const createDefaultBidder = (): Bidder => ({
     id: uuidv4(),
     name: '',
     address: '',
+    phoneNo: '',
+    secondaryPhoneNo: '',
+    email: '',
+    bidderType: 'Contractor',
+    govtOrderAndDate: '',
+    maxQuotedPercentageAboveL1: undefined,
+    tenderFeeExemption: 'Yes',
+    emdExemption: 'Yes',
+    performanceGuaranteeExemption: 'Yes',
+    additionalPgExemption: 'Yes',
     quotedAmount: undefined,
     quotedPercentage: undefined,
     aboveBelow: undefined,
@@ -47,23 +57,31 @@ export default function BiddersForm({ onSubmit, onCancel, isSubmitting, initialB
 
     const watchedBidders = watch('bidders');
 
+    const parsedTenderAmount = typeof tenderAmount === 'number' && !isNaN(tenderAmount) && tenderAmount > 0 
+        ? tenderAmount 
+        : typeof tenderAmount === 'string' && !isNaN(parseFloat(tenderAmount)) && parseFloat(tenderAmount) > 0
+            ? parseFloat(tenderAmount)
+            : null;
+
     useEffect(() => {
+        if (!parsedTenderAmount || !watchedBidders) return;
         watchedBidders.forEach((bidder, index) => {
-            if (tenderAmount && bidder.quotedPercentage != null && bidder.aboveBelow) {
-                const percentage = bidder.quotedPercentage / 100;
+            const numPercent = typeof bidder.quotedPercentage === 'number' && !isNaN(bidder.quotedPercentage) ? bidder.quotedPercentage : null;
+            if (numPercent !== null && bidder.aboveBelow) {
+                const percentage = numPercent / 100;
                 let calculatedAmount = 0;
                 if (bidder.aboveBelow === 'Above') {
-                    calculatedAmount = tenderAmount * (1 + percentage);
+                    calculatedAmount = parsedTenderAmount * (1 + percentage);
                 } else {
-                    calculatedAmount = tenderAmount * (1 - percentage);
+                    calculatedAmount = parsedTenderAmount * (1 - percentage);
                 }
                 const roundedAmount = Math.round(calculatedAmount * 100) / 100;
-                if (bidder.quotedAmount !== roundedAmount) {
+                if (!isNaN(roundedAmount) && bidder.quotedAmount !== roundedAmount) {
                   setValue(`bidders.${index}.quotedAmount`, roundedAmount);
                 }
             }
         });
-    }, [watchedBidders, tenderAmount, setValue]);
+    }, [watchedBidders, parsedTenderAmount, setValue]);
     
     const handleBidderSelect = (bidderName: string, index: number) => {
         const selected = allBidders.find(b => b.name === bidderName);
@@ -72,13 +90,27 @@ export default function BiddersForm({ onSubmit, onCancel, isSubmitting, initialB
             setValue(`bidders.${index}.address`, selected.address, { shouldValidate: true });
             setValue(`bidders.${index}.phoneNo`, selected.phoneNo || '', { shouldValidate: true });
             setValue(`bidders.${index}.secondaryPhoneNo`, selected.secondaryPhoneNo || '', { shouldValidate: true });
+            setValue(`bidders.${index}.bidderType`, selected.bidderType || 'Contractor', { shouldValidate: true });
             setValue(`bidders.${index}.email`, selected.email || '', { shouldValidate: true });
+            setValue(`bidders.${index}.govtOrderAndDate`, selected.govtOrderAndDate || '', { shouldValidate: true });
+            setValue(`bidders.${index}.maxQuotedPercentageAboveL1`, selected.maxQuotedPercentageAboveL1, { shouldValidate: true });
+            setValue(`bidders.${index}.tenderFeeExemption`, selected.tenderFeeExemption || 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.emdExemption`, selected.emdExemption || 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.performanceGuaranteeExemption`, selected.performanceGuaranteeExemption || 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.additionalPgExemption`, selected.additionalPgExemption || 'Yes', { shouldValidate: true });
         } else {
             setValue(`bidders.${index}.name`, '', { shouldValidate: true });
             setValue(`bidders.${index}.address`, '', { shouldValidate: true });
             setValue(`bidders.${index}.phoneNo`, '', { shouldValidate: true });
             setValue(`bidders.${index}.secondaryPhoneNo`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.bidderType`, 'Contractor', { shouldValidate: true });
             setValue(`bidders.${index}.email`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.govtOrderAndDate`, '', { shouldValidate: true });
+            setValue(`bidders.${index}.maxQuotedPercentageAboveL1`, undefined, { shouldValidate: true });
+            setValue(`bidders.${index}.tenderFeeExemption`, 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.emdExemption`, 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.performanceGuaranteeExemption`, 'Yes', { shouldValidate: true });
+            setValue(`bidders.${index}.additionalPgExemption`, 'Yes', { shouldValidate: true });
         }
     };
 
@@ -125,11 +157,56 @@ export default function BiddersForm({ onSubmit, onCancel, isSubmitting, initialB
                                        <FormField name={`bidders.${index}.address`} control={control} render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Textarea {...field} className="min-h-[40px]" readOnly disabled={!!field.value && allBidders.some(b => b.name === watch(`bidders.${index}.name`))} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
                                     </div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField name={`bidders.${index}.quotedPercentage`} control={control} render={({ field }) => ( <FormItem><FormLabel>Quoted Percentage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)}/></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField 
+                                          name={`bidders.${index}.quotedPercentage`} 
+                                          control={control} 
+                                          render={({ field }) => ( 
+                                            <FormItem>
+                                              <FormLabel>Quoted Percentage</FormLabel>
+                                              <FormControl>
+                                                <Input 
+                                                  type="number" 
+                                                  step="any"
+                                                  {...field} 
+                                                  value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                                  onChange={e => {
+                                                    const val = e.target.value.trim();
+                                                    if (val === '') {
+                                                      field.onChange(undefined);
+                                                    } else {
+                                                      const num = parseFloat(val);
+                                                      field.onChange(isNaN(num) ? undefined : num);
+                                                    }
+                                                  }}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem> 
+                                          )}
+                                        />
                                         <FormField name={`bidders.${index}.aboveBelow`} control={control} render={({ field }) => ( <FormItem><FormLabel>Above/Below</FormLabel><Select onValueChange={field.onChange} value={field.value ?? undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Above">Above</SelectItem><SelectItem value="Below">Below</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField name={`bidders.${index}.quotedAmount`} control={control} render={({ field }) => ( <FormItem><FormLabel>Quoted Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly className="bg-muted/50" /></FormControl><FormMessage /></FormItem> )}/>
+                                        <FormField 
+                                          name={`bidders.${index}.quotedAmount`} 
+                                          control={control} 
+                                          render={({ field }) => ( 
+                                            <FormItem>
+                                              <FormLabel>Quoted Amount</FormLabel>
+                                              <FormControl>
+                                                <Input 
+                                                  type="number" 
+                                                  step="any"
+                                                  {...field} 
+                                                  value={(field.value === undefined || field.value === null || (typeof field.value === 'number' && isNaN(field.value))) ? '' : field.value} 
+                                                  readOnly 
+                                                  className="bg-muted/50 font-mono" 
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem> 
+                                          )}
+                                        />
                                         <FormField name={`bidders.${index}.status`} control={control} render={({ field }) => ( <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value ?? undefined}><FormControl><SelectTrigger><SelectValue placeholder="Select..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Accepted">Accepted</SelectItem><SelectItem value="Rejected">Rejected</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                                    </div>
                                    {watch(`bidders.${index}.status`) === 'Rejected' && (

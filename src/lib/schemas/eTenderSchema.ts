@@ -202,12 +202,25 @@ export const RetenderDetailsSchema = z.object({
 export type RetenderDetails = z.infer<typeof RetenderDetailsSchema>;
 
 
+export const BIDDER_TYPES = ['Contractor', 'Firm', 'Labour Society', 'Labour Contract Society'] as const;
+export type BidderTypeOption = typeof BIDDER_TYPES[number];
+
+export const YES_NO_OPTIONS = ['Yes', 'No'] as const;
+export type YesNoOption = typeof YES_NO_OPTIONS[number];
+
 export const NewBidderSchema = z.object({
   name: z.string().min(1, "Bidder Name is required."),
   address: optionalStringSchema,
   phoneNo: optionalStringSchema,
   secondaryPhoneNo: optionalStringSchema,
+  bidderType: z.enum(BIDDER_TYPES).optional().nullable().or(z.literal('')).default('Contractor'),
   email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')).nullable(),
+  govtOrderAndDate: optionalStringSchema,
+  maxQuotedPercentageAboveL1: optionalNumberSchema,
+  tenderFeeExemption: z.enum(['Yes', 'No']).optional().nullable().or(z.literal('')).default('Yes'),
+  emdExemption: z.enum(['Yes', 'No']).optional().nullable().or(z.literal('')).default('Yes'),
+  performanceGuaranteeExemption: z.enum(['Yes', 'No']).optional().nullable().or(z.literal('')).default('Yes'),
+  additionalPgExemption: z.enum(['Yes', 'No']).optional().nullable().or(z.literal('')).default('Yes'),
   order: z.number().optional(),
 });
 export type NewBidderFormData = z.infer<typeof NewBidderSchema>;
@@ -286,6 +299,27 @@ export const SelectionNoticeDetailsSchema = z.object({
 });
 export type SelectionNoticeDetailsFormData = z.infer<typeof SelectionNoticeDetailsSchema>;
 
+export const LabourSocietyNegotiationSchema = z.object({
+    societyBidderId: optionalStringSchema,
+    societyName: optionalStringSchema,
+    govtOrderAndDate: optionalStringSchema,
+    l1BidderId: optionalStringSchema,
+    l1BidderName: optionalStringSchema,
+    l1Amount: optionalNumberSchema,
+    societyQuotedAmount: optionalNumberSchema,
+    percentageAboveL1: optionalNumberSchema,
+    estimateAmount: optionalNumberSchema,
+    isEligible: z.boolean().optional(),
+    eligibilityReason: optionalStringSchema,
+    negotiationStatus: z.enum(['Eligible', 'Agreed', 'Not Agreed', 'Not Required']).optional().nullable(),
+    negotiatedAmount: optionalNumberSchema,
+    negotiationDate: z.any().optional().nullable(),
+    negotiationMinutesOrLetterRef: optionalStringSchema,
+    remarks: optionalStringSchema,
+    isTenderAwardedToSociety: z.boolean().optional(),
+});
+export type LabourSocietyNegotiation = z.infer<typeof LabourSocietyNegotiationSchema>;
+
 // This is the main schema for the entire form
 export const E_tenderSchema = z.object({
     id: z.string().optional(),
@@ -329,6 +363,11 @@ export const E_tenderSchema = z.object({
     stampPaperAmount: optionalNumberSchema,
     amountType: z.enum(['Tender Amount', 'Contract Amount']).optional().nullable(),
     agreedAmount: optionalNumberSchema,
+    
+    // Labour Contract Society Negotiation & Award
+    labourSocietyNegotiation: LabourSocietyNegotiationSchema.optional().nullable(),
+    awardedBidderId: optionalStringSchema,
+    awardedBidderName: optionalStringSchema,
     
     agreementDate: z.any().optional().nullable(),
     dateWorkOrder: z.any().optional().nullable(),

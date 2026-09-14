@@ -74,16 +74,57 @@ export default function SelectionNoticePrintPage() {
         );
     }, [tender.bidders]);
     
+    const isAwardedToLabourSociety = useMemo(() => {
+        return Boolean(
+            tender.labourSocietyNegotiation?.isTenderAwardedToSociety && 
+            tender.labourSocietyNegotiation.negotiationStatus === 'Agreed'
+        );
+    }, [tender.labourSocietyNegotiation]);
+
+    const awardedBidder = useMemo(() => {
+        if (isAwardedToLabourSociety) {
+            const found = tender.bidders?.find(b => b.id === tender.labourSocietyNegotiation?.societyBidderId || b.name === tender.labourSocietyNegotiation?.societyName);
+            if (found) return found;
+            return {
+                name: tender.labourSocietyNegotiation?.societyName || 'Labour Contract Co-operative Society',
+                address: '',
+                quotedAmount: tender.labourSocietyNegotiation?.negotiatedAmount,
+                performanceGuaranteeExemption: 'Yes',
+                additionalPgExemption: 'Yes',
+            } as any;
+        }
+        return l1Bidder;
+    }, [isAwardedToLabourSociety, tender.labourSocietyNegotiation, tender.bidders, l1Bidder]);
+
     const hasRejectedBids = useMemo(() => tender.bidders?.some(b => b.status === 'Rejected'), [tender.bidders]);
     
     const actualQuotedAmount = useMemo(() => {
+        if (isAwardedToLabourSociety && typeof tender.labourSocietyNegotiation?.negotiatedAmount === 'number') {
+            return tender.labourSocietyNegotiation.negotiatedAmount;
+        }
         return (hasRejectedBids && tender.agreedAmount) ? tender.agreedAmount : (l1Bidder?.quotedAmount ?? tender.contractAmount);
-    }, [hasRejectedBids, tender.agreedAmount, l1Bidder?.quotedAmount, tender.contractAmount]);
+    }, [isAwardedToLabourSociety, tender.labourSocietyNegotiation, hasRejectedBids, tender.agreedAmount, l1Bidder?.quotedAmount, tender.contractAmount]);
 
     const contractAmount = useMemo(() => {
         if (tender.amountType === 'Tender Amount') return tender.estimateAmount;
         return actualQuotedAmount;
     }, [tender.amountType, tender.estimateAmount, actualQuotedAmount]);
+
+    const references = useMemo(() => {
+        const refs: string[] = [
+            `ഈ ഓഫീസിലെ ${formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ ${tender.eTenderNo || '__________'}`
+        ];
+        if (isAwardedToLabourSociety) {
+            if (tender.labourSocietyNegotiation?.govtOrderAndDate) {
+                refs.push(`ലേബർ കോൺട്രാക്ട് സൊസൈറ്റി സംബന്ധിച്ച ഗവ. ഉത്തരവ്: ${tender.labourSocietyNegotiation.govtOrderAndDate}`);
+            }
+            if (tender.labourSocietyNegotiation?.negotiationMinutesOrLetterRef || tender.labourSocietyNegotiation?.negotiationDate) {
+                const dateStr = tender.labourSocietyNegotiation?.negotiationDate ? formatDateSafe(tender.labourSocietyNegotiation.negotiationDate) : '';
+                refs.push(`ചർച്ചാ തീരുമാന പ്രകാരമുള്ള സമ്മതപത്രം / മിനിറ്റ്സ്: ${tender.labourSocietyNegotiation?.negotiationMinutesOrLetterRef || ''} ${dateStr ? `(തീയതി: ${dateStr})` : ''}`.trim());
+            }
+        }
+        return refs;
+    }, [tender, isAwardedToLabourSociety]);
 
     // --- Dynamic Calculation Logic ---
     
@@ -272,8 +313,8 @@ export default function SelectionNoticePrintPage() {
               <div style={{ marginTop: '12px', fontSize: '12pt' }}>
                   <p style={{ margin: 0, padding: 0 }}>സ്വീകർത്താവ്</p>
                   <div style={{ margin: '0 0 0 32px', padding: 0, minHeight: '60px' }}>
-                      <p style={{ margin: 0, padding: 0, fontSize: '13pt', fontWeight: 'bold' }}>{l1Bidder?.name || '____________________'}</p>
-                      <p style={{ margin: 0, padding: 0, fontSize: '12pt' }}>{l1Bidder?.address || '____________________'}</p>
+                      <p style={{ margin: 0, padding: 0, fontSize: '13pt', fontWeight: 'bold' }}>{awardedBidder?.name || '____________________'}</p>
+                      <p style={{ margin: 0, padding: 0, fontSize: '12pt' }}>{awardedBidder?.address || '____________________'}</p>
                   </div>
               </div>
               
@@ -296,7 +337,15 @@ export default function SelectionNoticePrintPage() {
                               സൂചന:
                           </td>
                           <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px', border: '1px solid #000000' }}>
-                              ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfTechnicalAndFinancialBidOpening) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}
+                              {references.length <= 1 ? (
+                                  references[0]
+                              ) : (
+                                  <ol style={{ margin: 0, paddingLeft: '20px' }}>
+                                      {references.map((refText, idx) => (
+                                          <li key={idx} style={{ marginBottom: '4px' }}>{refText}</li>
+                                      ))}
+                                  </ol>
+                              )}
                           </td>
                       </tr>
                   </tbody>
