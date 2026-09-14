@@ -661,7 +661,12 @@ export default function SettingsPage() {
                                 </Button>
                             )}
                             {isSuperAdmin ? (
-                                <Button variant="default" size="sm" onClick={() => setIsDriveSetupOpen(true)} className="h-8 shrink-0 gap-1.5 text-xs">
+                                <Button 
+                                    variant={driveScriptUrl ? "outline" : "default"} 
+                                    size="sm" 
+                                    onClick={() => setIsDriveSetupOpen(true)} 
+                                    className="h-8 shrink-0 gap-1.5 text-xs"
+                                >
                                     <Settings2 className="h-3.5 w-3.5" />
                                     {driveScriptUrl ? "Settings & Script" : "Setup Google Drive"}
                                 </Button>
@@ -675,7 +680,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {/* Status Banner */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border bg-muted/30 gap-3">
+                    <div className="p-3.5 rounded-xl border bg-muted/30">
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">Connected Account:</span>
@@ -696,11 +701,6 @@ export default function SettingsPage() {
                                 All uploaded photos &amp; videos in <strong>GW Investigation, Logging &amp; Pumping, Deposit, Collector&apos;s Deposit, Private Deposit, Plan Fund, ARS, Rig Registration,</strong> and <strong>Establishment</strong> are routed directly into structured district folders.
                             </p>
                         </div>
-                        {isSuperAdmin && !driveScriptUrl && (
-                            <Button size="sm" variant="default" onClick={() => setIsDriveSetupOpen(true)} className="text-xs shrink-0">
-                                Configure Web App URL
-                            </Button>
-                        )}
                     </div>
 
                     {/* Super Admin Storage Usage Gauge / Progress Bar */}
