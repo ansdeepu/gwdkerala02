@@ -309,11 +309,11 @@ export default function SettingsPage() {
     useEffect(() => {
         getGoogleDriveScriptUrl().then((url) => {
             setDriveScriptUrl(url);
-            if (url) {
+            if (url && isSuperAdmin) {
                 fetchStorageQuota(url);
             }
         });
-    }, [fetchStorageQuota]);
+    }, [fetchStorageQuota, isSuperAdmin]);
 
     useEffect(() => {
         setHeader('General Settings', 'Manage dropdown options and other application-wide settings.');
@@ -647,7 +647,7 @@ export default function SettingsPage() {
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
-                            {driveScriptUrl && (
+                            {isSuperAdmin && driveScriptUrl && (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -680,7 +680,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {/* Status Banner */}
-                    <div className="p-3.5 rounded-xl border bg-muted/30">
+                    <div className="p-3.5 rounded-xl border bg-muted/30 space-y-2.5">
                         <div className="space-y-1.5">
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">Connected Account:</span>
@@ -707,54 +707,6 @@ export default function SettingsPage() {
                                     : "Central Google Drive storage is maintained by Directorate Super Administrator (keralagwd@gmail.com). All district uploads and site media sync automatically into your district folder."}
                             </p>
                         </div>
-                    </div>
-
-                    {/* Storage Usage Gauge / Progress Bar */}
-                    <div className="p-4 rounded-xl border bg-card/60 shadow-xs space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div className="space-y-0.5">
-                                <div className="flex items-center gap-2">
-                                    <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                    <h4 className="text-sm font-semibold text-foreground">
-                                        Google Drive Storage Used
-                                    </h4>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Total department repository consumption in <code>keralagwd@gmail.com</code>
-                                </p>
-                            </div>
-                            <div className="text-right flex items-baseline sm:flex-col sm:items-end gap-2 sm:gap-0">
-                                <span className="text-base sm:text-lg font-bold text-foreground">
-                                    {driveScriptUrl 
-                                        ? (storageQuota?.displayText || `${storageQuota?.usedGB ?? '0.00'} GB used out of ${storageQuota?.limitGB ?? '15.00'} GB`)
-                                        : (isSuperAdmin ? "Setup Required" : "15.00 GB Department Pool")}
-                                </span>
-                                <span className="text-[11px] font-medium text-muted-foreground">
-                                    {storageQuota?.freeGB !== undefined ? `${storageQuota.freeGB} GB available free` : '15 GB standard capacity'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Progress bar */}
-                        <div className="space-y-1.5">
-                            <Progress
-                                value={storageQuota ? Math.max(1, storageQuota.percentUsed ?? 0) : (driveScriptUrl ? 2 : 0)}
-                                className="h-2.5 bg-muted rounded-full"
-                            />
-                            <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
-                                <span className="font-medium">
-                                    0 GB
-                                </span>
-                                <span className="font-semibold text-primary">
-                                    {storageQuota?.percentUsed !== undefined 
-                                        ? `${storageQuota.percentUsed}% Capacity Used` 
-                                        : (driveScriptUrl ? "Connected" : (isSuperAdmin ? "Pending Setup" : "Centralized Pool"))}
-                                </span>
-                                <span className="font-medium">
-                                    {storageQuota?.limitGB ? `${storageQuota.limitGB} GB Total` : '15 GB Total'}
-                                </span>
-                            </div>
-                        </div>
 
                         {/* Active Module Badges */}
                         <div className="pt-2 border-t flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -776,6 +728,56 @@ export default function SettingsPage() {
                             ))}
                         </div>
                     </div>
+
+                    {/* Storage Usage Gauge / Progress Bar - Visible ONLY for Super Admin */}
+                    {isSuperAdmin && (
+                        <div className="p-4 rounded-xl border bg-card/60 shadow-xs space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                        <h4 className="text-sm font-semibold text-foreground">
+                                            Google Drive Storage Used
+                                        </h4>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Total department repository consumption in <code>keralagwd@gmail.com</code>
+                                    </p>
+                                </div>
+                                <div className="text-right flex items-baseline sm:flex-col sm:items-end gap-2 sm:gap-0">
+                                    <span className="text-base sm:text-lg font-bold text-foreground">
+                                        {driveScriptUrl 
+                                            ? (storageQuota?.displayText || `${storageQuota?.usedGB ?? '0.00'} GB used out of ${storageQuota?.limitGB ?? '15.00'} GB`)
+                                            : "Setup Required"}
+                                    </span>
+                                    <span className="text-[11px] font-medium text-muted-foreground">
+                                        {storageQuota?.freeGB !== undefined ? `${storageQuota.freeGB} GB available free` : '15 GB standard capacity'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="space-y-1.5">
+                                <Progress
+                                    value={storageQuota ? Math.max(1, storageQuota.percentUsed ?? 0) : (driveScriptUrl ? 2 : 0)}
+                                    className="h-2.5 bg-muted rounded-full"
+                                />
+                                <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
+                                    <span className="font-medium">
+                                        0 GB
+                                    </span>
+                                    <span className="font-semibold text-primary">
+                                        {storageQuota?.percentUsed !== undefined 
+                                            ? `${storageQuota.percentUsed}% Capacity Used` 
+                                            : (driveScriptUrl ? "Connected" : "Pending Setup")}
+                                    </span>
+                                    <span className="font-medium">
+                                        {storageQuota?.limitGB ? `${storageQuota.limitGB} GB Total` : '15 GB Total'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
