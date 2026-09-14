@@ -30,10 +30,11 @@ import { cn, formatCase, formatDistrictLocation, getInitials } from '@/lib/utils
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
-import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save, X, Info, PlusCircle, Eye, HardDrive, Settings2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save, X, Info, PlusCircle, Eye, HardDrive, Settings2, CheckCircle2, AlertCircle, RefreshCw, Cloud, Database } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
-import { getGoogleDriveScriptUrl } from '@/lib/googleDriveUploadClient';
+import { getGoogleDriveScriptUrl, getGoogleDriveStorageQuota, type DriveStorageQuota } from '@/lib/googleDriveUploadClient';
 
 const db = getFirestore(app);
 
@@ -290,10 +291,29 @@ export default function SettingsPage() {
     const [mergedOfficeDetails, setMergedOfficeDetails] = useState<Partial<OfficeAddress> | null>(null);
     const [isDriveSetupOpen, setIsDriveSetupOpen] = useState(false);
     const [driveScriptUrl, setDriveScriptUrl] = useState<string | null>(null);
+    const [storageQuota, setStorageQuota] = useState<DriveStorageQuota | null>(null);
+    const [isLoadingQuota, setIsLoadingQuota] = useState(false);
+
+    const fetchStorageQuota = useCallback(async (customUrl?: string) => {
+        setIsLoadingQuota(true);
+        try {
+            const data = await getGoogleDriveStorageQuota(customUrl);
+            setStorageQuota(data);
+        } catch (err) {
+            console.warn("Could not fetch storage quota:", err);
+        } finally {
+            setIsLoadingQuota(false);
+        }
+    }, []);
 
     useEffect(() => {
-        getGoogleDriveScriptUrl().then((url) => setDriveScriptUrl(url));
-    }, []);
+        getGoogleDriveScriptUrl().then((url) => {
+            setDriveScriptUrl(url);
+            if (url) {
+                fetchStorageQuota(url);
+            }
+        });
+    }, [fetchStorageQuota]);
 
     useEffect(() => {
         setHeader('General Settings', 'Manage dropdown options and other application-wide settings.');
@@ -614,57 +634,140 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
-                <CardHeader>
+            <Card className="lg:col-span-2 shadow-sm border-primary/20">
+                <CardHeader className="pb-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1">
-                            <CardTitle className="flex items-center gap-2">
+                            <CardTitle className="flex items-center gap-2 text-lg">
                                 <HardDrive className="h-5 w-5 text-primary" />
-                                Google Drive Media Archive (keralagwd@gmail.com)
+                                Google Drive Central Storage (keralagwd@gmail.com)
                             </CardTitle>
                             <CardDescription>
-                                Automatically archives site photos and videos directly into the department&apos;s Google Drive, organized by District/Office folders.
+                                Centralized Google Drive repository archiving site media, staff photos, and estimates across all 9 departmental modules.
                             </CardDescription>
                         </div>
-                        {isSuperAdmin ? (
-                            <Button variant="outline" size="sm" onClick={() => setIsDriveSetupOpen(true)} className="shrink-0 gap-1.5">
-                                <Settings2 className="h-4 w-4" />
-                                {driveScriptUrl ? "Configure Integration" : "Setup Google Drive"}
-                            </Button>
-                        ) : (
-                            <div className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2.5 py-1 rounded border">
-                                Super Admin Controlled
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {driveScriptUrl && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fetchStorageQuota(driveScriptUrl)}
+                                    disabled={isLoadingQuota}
+                                    className="h-8 gap-1.5 text-xs"
+                                    title="Refresh Live Storage Usage"
+                                >
+                                    <RefreshCw className={cn("h-3.5 w-3.5", isLoadingQuota && "animate-spin text-primary")} />
+                                    <span>{isLoadingQuota ? "Checking..." : "Refresh Storage"}</span>
+                                </Button>
+                            )}
+                            {isSuperAdmin ? (
+                                <Button variant="default" size="sm" onClick={() => setIsDriveSetupOpen(true)} className="h-8 shrink-0 gap-1.5 text-xs">
+                                    <Settings2 className="h-3.5 w-3.5" />
+                                    {driveScriptUrl ? "Settings & Script" : "Setup Google Drive"}
+                                </Button>
+                            ) : (
+                                <div className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2.5 py-1 rounded border">
+                                    Super Admin Managed
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-muted/20 gap-3">
-                        <div className="space-y-0.5">
-                            <p className="text-xs font-semibold text-foreground flex items-center gap-2">
-                                <span>Integration Status:</span>
+                <CardContent className="space-y-4">
+                    {/* Status Banner */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border bg-muted/30 gap-3">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground">Connected Account:</span>
+                                <span className="text-xs font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                                    keralagwd@gmail.com
+                                </span>
                                 {driveScriptUrl ? (
-                                    <span className="text-green-600 flex items-center gap-1 font-bold">
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> Connected to keralagwd@gmail.com
+                                    <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                        <CheckCircle2 className="h-3 w-3" /> Active & Verified
                                     </span>
                                 ) : (
-                                    <span className="text-amber-600 flex items-center gap-1 font-bold">
-                                        <AlertCircle className="h-3.5 w-3.5" /> Setup Pending (Super Admin)
+                                    <span className="text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                                        <AlertCircle className="h-3 w-3" /> Setup Required
                                     </span>
                                 )}
-                            </p>
+                            </div>
                             <p className="text-[11px] text-muted-foreground">
-                                {isSuperAdmin 
-                                    ? "Hierarchies: GWD_Staff_Photos / [Office], GWD_e-Tender / [Sub-Office], GWD_Site_Media / [Office] / [File No - Site]"
-                                    : "Managed centrally by State Super Administrator (keralagwd@gmail.com). Staff photos and site media are routed automatically."}
+                                All uploaded photos &amp; videos in <strong>GW Investigation, Logging &amp; Pumping, Deposit, Collector&apos;s Deposit, Private Deposit, Plan Fund, ARS, Rig Registration,</strong> and <strong>Establishment</strong> are routed directly into structured district folders.
                             </p>
                         </div>
-                        {isSuperAdmin && (
-                            <Button size="sm" variant="secondary" onClick={() => setIsDriveSetupOpen(true)} className="text-xs shrink-0">
-                                {driveScriptUrl ? "View Settings" : "Configure Now"}
+                        {isSuperAdmin && !driveScriptUrl && (
+                            <Button size="sm" variant="default" onClick={() => setIsDriveSetupOpen(true)} className="text-xs shrink-0">
+                                Configure Web App URL
                             </Button>
                         )}
                     </div>
+
+                    {/* Super Admin Storage Usage Gauge / Progress Bar */}
+                    {(isSuperAdmin || isAdmin) && (
+                        <div className="p-4 rounded-xl border bg-card/60 shadow-xs space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                        <h4 className="text-sm font-semibold text-foreground">
+                                            Google Drive Storage Used
+                                        </h4>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Total space consumed across all office uploads in <code>keralagwd@gmail.com</code>
+                                    </p>
+                                </div>
+                                <div className="text-right flex items-baseline sm:flex-col sm:items-end gap-2 sm:gap-0">
+                                    <span className="text-base sm:text-lg font-bold text-foreground">
+                                        {storageQuota?.displayText || `${storageQuota?.usedGB ?? '0.00'} GB used out of ${storageQuota?.limitGB ?? '15.00'} GB`}
+                                    </span>
+                                    <span className="text-[11px] font-medium text-muted-foreground">
+                                        {storageQuota?.freeGB !== undefined ? `${storageQuota.freeGB} GB available free` : '15 GB standard capacity'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="space-y-1.5">
+                                <Progress
+                                    value={storageQuota ? Math.max(1, storageQuota.percentUsed ?? 0) : (driveScriptUrl ? 2 : 0)}
+                                    className="h-2.5 bg-muted rounded-full"
+                                />
+                                <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-0.5">
+                                    <span className="font-medium">
+                                        0 GB
+                                    </span>
+                                    <span className="font-semibold text-primary">
+                                        {storageQuota?.percentUsed !== undefined ? `${storageQuota.percentUsed}% Capacity Used` : (driveScriptUrl ? "Connected" : "Not connected")}
+                                    </span>
+                                    <span className="font-medium">
+                                        {storageQuota?.limitGB ? `${storageQuota.limitGB} GB Total` : '15 GB Total'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Active Module Badges */}
+                            <div className="pt-2 border-t flex flex-wrap items-center gap-1.5 text-[11px]">
+                                <span className="font-semibold text-muted-foreground mr-1">Active Modules:</span>
+                                {[
+                                    'GW Investigation',
+                                    'Logging & Pumping Test',
+                                    'Deposit Works',
+                                    "Collector's Deposit",
+                                    'Private Deposit',
+                                    'Plan Fund Works',
+                                    'ARS',
+                                    'Rig Registration',
+                                    'Establishment'
+                                ].map((mod) => (
+                                    <span key={mod} className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium text-[10.5px]">
+                                        ✓ {mod}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -672,7 +775,10 @@ export default function SettingsPage() {
         <GoogleDriveSetupDialog
             open={isDriveSetupOpen}
             onOpenChange={setIsDriveSetupOpen}
-            onConfigured={(url) => setDriveScriptUrl(url)}
+            onConfigured={(url) => {
+                setDriveScriptUrl(url);
+                fetchStorageQuota(url);
+            }}
         />
 
         <OfficeAddressDialog

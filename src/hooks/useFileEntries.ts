@@ -62,6 +62,25 @@ const sanitizeDataForFirestore = (data: any): any => {
     return data;
 };
 
+// Validates that the payload does not exceed Firestore's 1 MiB hard document limit
+const assertFirestoreDocumentSize = (payload: any, fileNo?: string) => {
+    try {
+        const jsonString = JSON.stringify(payload);
+        const approxBytes = typeof Blob !== 'undefined' ? new Blob([jsonString]).size : jsonString.length;
+        // Firestore limit is 1,048,576 bytes. Warn/block if approaching 1,000,000 bytes.
+        if (approxBytes > 1000000) {
+            const sizeMB = (approxBytes / (1024 * 1024)).toFixed(2);
+            throw new Error(
+                `File entry ${fileNo ? `"${fileNo}" ` : ''}size (${sizeMB} MB) exceeds Firestore's 1 MB limit. This is usually caused by site photos/videos saved directly as high-resolution embedded data. Please remove or replace heavy attached photos/videos in the site details or configure Google Drive storage in Settings.`
+            );
+        }
+    } catch (e: any) {
+        if (e.message && e.message.includes("exceeds Firestore's 1 MB limit")) {
+            throw e;
+        }
+    }
+};
+
 
 export function useFileEntries() {
   const { user } = useAuth();
@@ -163,6 +182,7 @@ export function useFileEntries() {
         if (payload.id) delete payload.id;
 
         const sanitizedPayload = sanitizeDataForFirestore({ ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        assertFirestoreDocumentSize(sanitizedPayload, entryData.fileNo);
 
         const docRef = await addDoc(collection(db, collectionPath), sanitizedPayload);
         return docRef.id;
@@ -197,6 +217,7 @@ export function useFileEntries() {
 
         const finalPayload = { ...payload, updatedAt: serverTimestamp() };
         const sanitizedPayload = sanitizeDataForFirestore(finalPayload);
+        assertFirestoreDocumentSize(sanitizedPayload, entryData.fileNo);
 
         if (approveUpdateId && (user.role === 'admin' || user.role === 'scientist' || user.role === 'engineer')) {
             const batch = writeBatch(db);

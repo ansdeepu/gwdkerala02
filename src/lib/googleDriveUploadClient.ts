@@ -85,9 +85,48 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
   return cachedScriptUrl;
 }
 
+export interface DriveStorageQuota {
+  success: boolean;
+  connected: boolean;
+  requiresSetup?: boolean;
+  account: string;
+  usedBytes?: number;
+  limitBytes?: number;
+  freeBytes?: number;
+  usedGB?: number;
+  limitGB?: number;
+  freeGB?: number;
+  percentUsed?: number;
+  displayText?: string;
+  error?: string;
+}
+
+export async function getGoogleDriveStorageQuota(customScriptUrl?: string): Promise<DriveStorageQuota> {
+  try {
+    const urlParam = customScriptUrl ? `?scriptUrl=${encodeURIComponent(customScriptUrl)}` : '';
+    const res = await fetch(`/api/drive-storage${urlParam}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+    return {
+      success: false,
+      connected: false,
+      account: "keralagwd@gmail.com",
+      error: `Server responded with status ${res.status}`
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      connected: false,
+      account: "keralagwd@gmail.com",
+      error: err?.message || "Could not retrieve storage information"
+    };
+  }
+}
+
 export async function saveGoogleDriveScriptUrl(scriptUrl: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const trimmed = scriptUrl.trim();
     if (!trimmed.startsWith("https://script.google.com/macros/s/")) {
       return {
         success: false,

@@ -7,33 +7,75 @@ export const STAFF_PHOTOS_DRIVE_FOLDER_NAME = "GWD_Staff_Photos";
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * =========================================================================
  * GROUND WATER DEPARTMENT, KERALA (keralagwd@gmail.com)
- * Google Drive Automated File Receiver for Dashboard
+ * Google Drive Automated File Receiver & Storage Manager for Dashboard
  * Supports:
  *  - Staff Photos: GWD_Staff_Photos / [Office Location]
  *  - e-Tender Detailed Estimates: GWD_e-Tender / [Sub-Office]
  *  - Site Media: GWD_Site_Media / [Office Location] / [File No - Site Name]
+ *  - Storage Quota Monitoring (used GB out of total GB)
  * =========================================================================
  * 
  * Instructions:
  * 1. Open https://script.google.com while signed in as keralagwd@gmail.com
- * 2. Click "New Project" and replace all contents with this script.
- * 3. Click "Deploy" -> "New deployment"
+ * 2. Click "New Project" (or edit existing) and replace all contents with this script.
+ * 3. Click "Deploy" -> "New deployment" (or "Manage deployments" -> edit -> new version)
  * 4. Select type: "Web app"
  * 5. Configuration:
- *    - Description: "GWD Kerala Drive Upload Receiver"
+ *    - Description: "GWD Kerala Drive Upload & Storage Receiver"
  *    - Execute as: "Me (keralagwd@gmail.com)"
- *    - Who has access: "Anyone" (allows department staff to upload without password)
+ *    - Who has access: "Anyone"
  * 6. Click "Deploy", Authorize access when prompted.
  * 7. Copy the "Web app URL" and paste it into Settings -> Google Drive!
  */
 
 function doGet(e) {
+  var quota = getStorageDetails();
   return ContentService.createTextOutput(JSON.stringify({
     status: "active",
     account: "keralagwd@gmail.com",
     service: "GWD Kerala Google Drive File Receiver",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    storage: quota
   })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getStorageDetails() {
+  var usedBytes = 0;
+  var limitBytes = 0;
+  try {
+    usedBytes = DriveApp.getStorageUsed();
+  } catch (e1) {
+    usedBytes = 0;
+  }
+  try {
+    limitBytes = DriveApp.getStorageLimit();
+  } catch (e2) {
+    limitBytes = 15 * 1024 * 1024 * 1024; // Default 15 GB
+  }
+
+  // Fallback if limitBytes is reported as 0 or undefined for standard Google accounts
+  if (!limitBytes || limitBytes <= 0) {
+    limitBytes = 15 * 1024 * 1024 * 1024;
+  }
+
+  var usedGB = (usedBytes / (1024 * 1024 * 1024));
+  var limitGB = (limitBytes / (1024 * 1024 * 1024));
+  var usedGBFixed = Number(usedGB.toFixed(2));
+  var limitGBFixed = Number(limitGB.toFixed(2));
+  var percentUsed = limitBytes > 0 ? Math.min(100, Math.round((usedBytes / limitBytes) * 100)) : 0;
+  var freeBytes = Math.max(0, limitBytes - usedBytes);
+  var freeGBFixed = Number((freeBytes / (1024 * 1024 * 1024)).toFixed(2));
+
+  return {
+    usedBytes: usedBytes,
+    limitBytes: limitBytes,
+    freeBytes: freeBytes,
+    usedGB: usedGBFixed,
+    limitGB: limitGBFixed,
+    freeGB: freeGBFixed,
+    percentUsed: percentUsed,
+    displayText: usedGBFixed + " GB used out of " + limitGBFixed + " GB"
+  };
 }
 
 function doPost(e) {
@@ -46,6 +88,17 @@ function doPost(e) {
     }
 
     var data = JSON.parse(e.postData.contents);
+
+    // Handle storage quota check action
+    if (data.action === "getStorageQuota" || data.action === "quota" || data.action === "status") {
+      var storageInfo = getStorageDetails();
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        account: "keralagwd@gmail.com",
+        storage: storageInfo
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var base64Data = data.base64Data;
     if (!base64Data) {
       return ContentService.createTextOutput(JSON.stringify({

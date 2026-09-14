@@ -201,7 +201,8 @@ export default function MediaManager({
     }
 
     if (type === 'image') {
-      const compressed = await compressImage(file, 1920, 0.82);
+      // Compress with 960px max dimension and 0.65 quality to keep size ~30-50KB to respect Firestore's 1MB limit
+      const compressed = await compressImage(file, 960, 0.65);
       const dataUrl = `data:${compressed.mimeType};base64,${compressed.base64Data}`;
       append({
         id: uuidv4(),
@@ -213,10 +214,20 @@ export default function MediaManager({
       });
       toast({
         title: "Photo Attached to Site Record",
-        description: `${file.name} saved directly to record media.`,
+        description: `${file.name} saved directly with optimized compression.`,
       });
     } else {
-      // Video
+      // Video files in base64 exceed Firestore's 1MB document limit
+      if (file.size > 750 * 1024) {
+        toast({
+          title: "Google Drive Setup Required for Videos",
+          description: `Videos cannot be saved directly into the database because of the 1MB document size limit. Please configure Google Drive in Settings or add a link to YouTube/Google Drive.`,
+          variant: "destructive",
+          duration: 8000,
+        });
+        setIsSetupDialogOpen(true);
+        return;
+      }
       const converted = await fileToBase64(file);
       const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
       append({

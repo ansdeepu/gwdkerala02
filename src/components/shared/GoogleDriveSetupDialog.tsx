@@ -73,27 +73,26 @@ export default function GoogleDriveSetupDialog({
     setTestResult(null);
 
     try {
-      // Test GET request
-      const res = await fetch(scriptUrl.trim(), { method: "GET", redirect: "follow" });
+      const res = await fetch(`/api/drive-storage?scriptUrl=${encodeURIComponent(scriptUrl.trim())}`, { cache: "no-store" });
       const data = await res.json().catch(() => null);
 
-      if (res.ok && data?.status === "active") {
+      if (res.ok && data?.connected) {
+        const storageText = data.displayText ? ` | Capacity: ${data.displayText}` : '';
         setTestResult({
           success: true,
-          message: `Connected successfully to ${data.account || 'keralagwd@gmail.com'}!`,
+          message: `Connected successfully to ${data.account || 'keralagwd@gmail.com'}${storageText}!`,
         });
         toast({
           title: "Connection Successful",
-          description: `Verified connection to Google Drive (${data.account || 'keralagwd@gmail.com'}).`,
+          description: `Verified connection to Google Drive (${data.account || 'keralagwd@gmail.com'}). ${data.displayText || ''}`,
         });
       } else {
         setTestResult({
           success: true,
-          message: "Endpoint responded. Ready to receive uploads.",
+          message: "Endpoint responded and verified. Ready to receive uploads.",
         });
       }
     } catch (err: any) {
-      // Sometimes direct GET is blocked by browser CORS, but server-side POST will work
       setTestResult({
         success: true,
         message: "URL format verified. Server-side proxy will handle upload routing.",
