@@ -159,6 +159,31 @@ export default function SelectionNoticePrintPage() {
                            tender.additionalPerformanceGuaranteeAmount !== null && 
                            tender.additionalPerformanceGuaranteeAmount > 0;
 
+    const isLabourSociety = useMemo(() => {
+        return Boolean(
+            isAwardedToLabourSociety || 
+            awardedBidder?.bidderType === 'Labour Contract Society' ||
+            awardedBidder?.name?.toLowerCase().includes('labour contract') ||
+            awardedBidder?.name?.toLowerCase().includes('co-operative') ||
+            awardedBidder?.name?.toLowerCase().includes('cooperative') ||
+            tender.labourSocietyNegotiation?.societyName
+        );
+    }, [isAwardedToLabourSociety, awardedBidder, tender.labourSocietyNegotiation]);
+
+    const isPgExempt = useMemo(() => {
+        if (isLabourSociety) return true;
+        if (awardedBidder?.performanceGuaranteeExemption === 'Yes') return true;
+        if (tender.performanceGuaranteeAmount === 0) return true;
+        return false;
+    }, [isLabourSociety, awardedBidder?.performanceGuaranteeExemption, tender.performanceGuaranteeAmount]);
+
+    const isApgExempt = useMemo(() => {
+        if (isAwardedToLabourSociety) return true;
+        if (awardedBidder?.additionalPgExemption === 'Yes') return true;
+        if (tender.additionalPerformanceGuaranteeAmount === 0) return true;
+        return false;
+    }, [isAwardedToLabourSociety, awardedBidder?.additionalPgExemption, tender.additionalPerformanceGuaranteeAmount]);
+
     const isApgRequired = useMemo(() => {
         if (hasExplicitApg) return true;
         if (!tender.estimateAmount || !actualQuotedAmount) return false;
@@ -168,11 +193,16 @@ export default function SelectionNoticePrintPage() {
     }, [hasExplicitApg, tender.estimateAmount, actualQuotedAmount, apgThreshold]);
 
     const performanceGuarantee = useMemo(() => {
-        if (!contractAmount) return tender.performanceGuaranteeAmount ?? 0;
+        if (isPgExempt) return 0;
+        if (tender.performanceGuaranteeAmount !== undefined && tender.performanceGuaranteeAmount !== null && tender.performanceGuaranteeAmount > 0) {
+            return tender.performanceGuaranteeAmount;
+        }
+        if (!contractAmount) return 0;
         return Math.ceil((contractAmount * 0.05) / 100) * 100;
-    }, [contractAmount, tender.performanceGuaranteeAmount]);
+    }, [isPgExempt, tender.performanceGuaranteeAmount, contractAmount]);
 
     const additionalPerformanceGuarantee = useMemo(() => {
+        if (isApgExempt) return 0;
         if (hasExplicitApg) {
             return tender.additionalPerformanceGuaranteeAmount!;
         }
@@ -181,7 +211,7 @@ export default function SelectionNoticePrintPage() {
         const excessPercentage = percentageDifference - apgThreshold;
         const apg = excessPercentage * tender.estimateAmount;
         return Math.ceil(apg / 100) * 100;
-    }, [hasExplicitApg, isApgRequired, tender.estimateAmount, actualQuotedAmount, apgThreshold, tender.additionalPerformanceGuaranteeAmount]);
+    }, [isApgExempt, hasExplicitApg, isApgRequired, tender.estimateAmount, actualQuotedAmount, apgThreshold, tender.additionalPerformanceGuaranteeAmount]);
 
     const stampPaperValue = useMemo(() => {
         // Prefer calculated value to ensure correctness even if stale in DB
@@ -209,15 +239,33 @@ export default function SelectionNoticePrintPage() {
             const workName = tender.nameOfWorkMalayalam || tender.nameOfWork;
             const amountLabel = tender.amountType === 'Tender Amount' ? 'ടെണ്ടർ തുകയായ' : 'ടെണ്ടറിൽ ക്വോട്ട് ചെയ്തിരിക്കുന്ന';
             
-            if (!l1Bidder && !tender.agreedAmount) {
-                return <p className="leading-relaxed text-justify indent-8">ടെണ്ടർ അംഗീകരിച്ചു. ദയവായി മറ്റ് വിവരങ്ങൾ ചേർക്കുക.</p>
+            if (!l1Bidder && !tender.agreedAmount && !isAwardedToLabourSociety) {
+                return <p className="leading-relaxed text-justify indent-8">ടെണ്ടർ അംഗീകരിച്ചു. ദയവായി മറ്റ് വിവരങ്ങൾ ചേർക്കുക.</p>;
             }
     
             const quotedAmountStr = (contractAmount ?? 0).toLocaleString('en-IN');
             const performanceGuaranteeStr = performanceGuarantee.toLocaleString('en-IN');
             const stampPaperValueStr = stampPaperValue.toLocaleString('en-IN');
+            const effectiveApgRequired = isApgRequired && !isApgExempt && additionalPerformanceGuarantee > 0;
+
+            if (isPgExempt) {
+                if (effectiveApgRequired) {
+                    const additionalPerformanceGuaranteeStr = additionalPerformanceGuarantee.toLocaleString('en-IN');
+                    return (
+                        <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                            മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. {isLabourSociety ? 'പ്രസ്തുത സൊസൈറ്റിയെ' : 'താങ്കളെ'} പെർഫോമൻസ് ഗ്യാരന്റി തുക കെട്ടിവെയ്ക്കുന്നതിൽ നിന്നും ഒഴിവാക്കിയിട്ടുള്ളതും, എന്നാൽ അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരന്റിയായി എസ്റ്റിമേറ്റ് തുകയുടെ <span style={{ fontWeight: 'bold' }}>{excessPercentageText}%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{additionalPerformanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെന്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
+                        </p>
+                    );
+                }
+
+                return (
+                    <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                        മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം ({isLabourSociety ? 'പ്രസ്തുത സൊസൈറ്റിയെ' : 'താങ്കളെ'} പെർഫോമൻസ് ഗ്യാരന്റി തുക കെട്ടിവെയ്ക്കുന്നതിൽ നിന്നും ഒഴിവാക്കിയിട്ടുള്ളതിനാൽ) <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെൻ്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
+                    </p>
+                );
+            }
     
-            if (isApgRequired) {
+            if (effectiveApgRequired) {
                 const additionalPerformanceGuaranteeStr = additionalPerformanceGuarantee.toLocaleString('en-IN');
     
                 return (

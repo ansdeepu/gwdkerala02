@@ -353,8 +353,18 @@ export const calculateSelectionNoticeValues = (params: {
     const pgRateMatch = pgDesc.match(/(\d+)%/);
     const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
 
-    const isPgExempt = awardedSocietyBidder?.performanceGuaranteeExemption === 'Yes';
-    const isApgExempt = awardedSocietyBidder?.additionalPgExemption === 'Yes';
+    const awardedBidder = awardedSocietyBidder || l1Bidder;
+    const isSociety = Boolean(
+      hasNegotiatedSociety ||
+      awardedBidder?.bidderType === 'Labour Contract Society' ||
+      awardedBidder?.name?.toLowerCase().includes('labour contract') ||
+      awardedBidder?.name?.toLowerCase().includes('co-operative') ||
+      awardedBidder?.name?.toLowerCase().includes('cooperative') ||
+      tender?.labourSocietyNegotiation?.isTenderAwardedToSociety
+    );
+
+    const isPgExempt = awardedBidder?.performanceGuaranteeExemption === 'Yes' || isSociety;
+    const isApgExempt = awardedBidder?.additionalPgExemption === 'Yes' || (isSociety && hasNegotiatedSociety);
 
     const pg = isPgExempt ? 0 : (baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0);
     const stamp = calculateStampPaperValue(baseAmount, tender.stampPaperDescription);

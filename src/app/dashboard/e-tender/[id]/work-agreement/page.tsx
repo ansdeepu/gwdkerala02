@@ -68,6 +68,26 @@ export default function WorkAgreementPrintPage() {
         return (tender.bidders || []).reduce((prev, curr) => (prev.quotedAmount ?? Infinity) < (curr.quotedAmount ?? Infinity) ? prev : curr, tender.bidders[0] || ({} as any));
     }, [tender.bidders]);
 
+    const isAwardedToLabourSociety = useMemo(() => {
+        return Boolean(
+            tender.labourSocietyNegotiation?.isTenderAwardedToSociety && 
+            tender.labourSocietyNegotiation.negotiationStatus === 'Agreed'
+        );
+    }, [tender.labourSocietyNegotiation]);
+
+    const awardedBidder = useMemo(() => {
+        if (isAwardedToLabourSociety) {
+            const found = tender.bidders?.find(b => b.id === tender.labourSocietyNegotiation?.societyBidderId || b.name === tender.labourSocietyNegotiation?.societyName);
+            if (found) return found;
+            return {
+                name: tender.labourSocietyNegotiation?.societyName || 'Labour Contract Co-operative Society',
+                address: '',
+                quotedAmount: tender.labourSocietyNegotiation?.negotiatedAmount,
+            } as any;
+        }
+        return l1Bidder;
+    }, [isAwardedToLabourSociety, tender.labourSocietyNegotiation, tender.bidders, l1Bidder]);
+
     const agreementDateFormatted = useMemo(() => {
         if (!tender.agreementDate) return '';
         return formatDateSafe(tender.agreementDate) || '';
@@ -92,11 +112,16 @@ export default function WorkAgreementPrintPage() {
 
     const fileNo = tender.fileNo || '__________';
     const eTenderNo = tender.eTenderNo || '__________';
-    const contractorName = l1Bidder?.name || '____________________';
-    const contractorAddress = (l1Bidder?.address || '____________________').replace(/\n/g, ', ');
+    const contractorName = awardedBidder?.name || '____________________';
+    const contractorAddress = (awardedBidder?.address || '____________________').replace(/\n/g, ', ');
+    const isSociety = Boolean(
+        isAwardedToLabourSociety || 
+        awardedBidder?.bidderType === 'Labour Contract Society' || 
+        contractorName.toLowerCase().includes('society')
+    );
     const contractorDetails = lang === 'en'
-        ? `Sri/Smt. ${contractorName}, residing at ${contractorAddress}`
-        : `ശ്രീ/ശ്രീമതി. ${contractorName}, മേൽവിലാസം: ${contractorAddress}`;
+        ? (isSociety ? `${contractorName}, represented by its President/Secretary, having office at ${contractorAddress}` : `Sri/Smt. ${contractorName}, residing at ${contractorAddress}`)
+        : (isSociety ? `${contractorName} (പ്രസിഡന്റ് / സെക്രട്ടറി മുഖേന), വിലാസം: ${contractorAddress}` : `ശ്രീ/ശ്രീമതി. ${contractorName}, മേൽവിലാസം: ${contractorAddress}`);
     
     let workName = lang === 'ml' ? (tender.nameOfWorkMalayalam || tender.nameOfWork) : tender.nameOfWork;
     if (!workName) workName = '____________________';
@@ -116,7 +141,7 @@ export default function WorkAgreementPrintPage() {
         : 'ഭൂജല വകുപ്പ് ജില്ലാ ഓഫീസ്';
 
     const estimateAmountFormatted = tender.estimateAmount ? `Rs. ${tender.estimateAmount.toLocaleString('en-IN')}/-` : '____________';
-    const acceptedAmountFormatted = tender.agreedAmount ? `Rs. ${tender.agreedAmount.toLocaleString('en-IN')}/-` : (l1Bidder?.quotedAmount ? `Rs. ${l1Bidder.quotedAmount.toLocaleString('en-IN')}/-` : '____________');
+    const acceptedAmountFormatted = tender.agreedAmount ? `Rs. ${tender.agreedAmount.toLocaleString('en-IN')}/-` : (awardedBidder?.quotedAmount ? `Rs. ${awardedBidder.quotedAmount.toLocaleString('en-IN')}/-` : '____________');
     const securityDepositFormatted = '____________________';
 
     const clausesEn = [

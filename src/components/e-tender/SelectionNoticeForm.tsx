@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Save, X, Info } from 'lucide-react';
 import { SelectionNoticeDetailsSchema, type E_tenderFormData, type SelectionNoticeDetailsFormData } from '@/lib/schemas/eTenderSchema';
-import { formatDateForInput, toDateOrNull, getRateDetailForDate, parseStampPaperLogic, calculateStampPaperValue, parseAdditionalPerformanceGuaranteeLogic, calculateAdditionalPG } from './utils';
+import { formatDateForInput, toDateOrNull, getRateDetailForDate, parseStampPaperLogic, calculateStampPaperValue, parseAdditionalPerformanceGuaranteeLogic, calculateAdditionalPG, calculateSelectionNoticeValues } from './utils';
 import { useDataStore, defaultRateDescriptions } from '@/hooks/use-data-store';
 import { useTenderData } from './TenderDataContext';
 import { cn } from '@/lib/utils';
@@ -69,29 +69,33 @@ export default function SelectionNoticeForm({ onSubmit, onCancel, isSubmitting, 
         const baseAmountType = tender?.amountType || 'Contract Amount';
         const baseAmount = baseAmountType === 'Tender Amount' ? tender.estimateAmount : (l1Amount ?? tender.contractAmount ?? undefined);
 
-        const pgRateMatch = performanceGuaranteeDescription.match(/(\d+)%/);
-        const pgRate = pgRateMatch ? parseInt(pgRateMatch[1], 10) / 100 : 0.05;
-
-        const pg = baseAmount ? Math.ceil((baseAmount * pgRate) / 100) * 100 : 0;
-        const stamp = calculateStampPaper(baseAmount);
-
-        const quotedContractAmount = l1Amount ?? tender.contractAmount ?? undefined;
-        const additionalPg = calculateAPG(tender?.estimateAmount ?? undefined, quotedContractAmount);
+        const snValues = calculateSelectionNoticeValues({
+            tender: {
+                ...tender,
+                amountType: baseAmountType,
+                contractAmount: baseAmount,
+                performanceGuaranteeDescription,
+                additionalPerformanceGuaranteeDescription,
+                stampPaperDescription,
+            },
+            bidders: tender?.bidders,
+            l1Amount,
+        });
 
         return {
             selectionNoticeDate: formatDateForInput(tender?.selectionNoticeDate),
             performanceGuaranteeAmount: tender?.performanceGuaranteeAmount !== undefined && tender?.performanceGuaranteeAmount !== null 
                 ? tender.performanceGuaranteeAmount 
-                : pg,
+                : snValues.performanceGuaranteeAmount,
             additionalPerformanceGuaranteeAmount: tender?.additionalPerformanceGuaranteeAmount !== undefined && tender?.additionalPerformanceGuaranteeAmount !== null 
                 ? tender.additionalPerformanceGuaranteeAmount 
-                : additionalPg,
+                : snValues.additionalPerformanceGuaranteeAmount,
             stampPaperAmount: tender?.stampPaperAmount !== undefined && tender?.stampPaperAmount !== null 
                 ? tender.stampPaperAmount 
-                : stamp,
+                : snValues.stampPaperAmount,
             amountType: baseAmountType,
         };
-    }, [tender, l1Amount, performanceGuaranteeDescription, calculateStampPaper, calculateAPG]);
+    }, [tender, l1Amount, performanceGuaranteeDescription, additionalPerformanceGuaranteeDescription, stampPaperDescription]);
 
     const form = useForm<SelectionNoticeDetailsFormData>({
         resolver: zodResolver(SelectionNoticeDetailsSchema),

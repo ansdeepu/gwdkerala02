@@ -142,7 +142,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
 
                                 <div className="rounded-lg border border-border/80 bg-muted/30 p-4 space-y-4">
                                     <div className="border-b border-border/60 pb-2">
-                                        <h4 className="text-sm font-semibold text-foreground">Exceptions</h4>
+                                        <h4 className="text-sm font-semibold text-foreground">Exemptions & Concessions</h4>
                                     </div>
 
                                     <FormField
@@ -180,7 +180,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                             control={form.control}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Tender Fee (Rs.)</FormLabel>
+                                                    <FormLabel>Tender Fee Exemption</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -188,8 +188,8 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Yes">Yes</SelectItem>
-                                                            <SelectItem value="No">No</SelectItem>
+                                                            <SelectItem value="Yes">Exempted</SelectItem>
+                                                            <SelectItem value="No">Not Exempted</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -202,7 +202,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                             control={form.control}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>EMD (Rs.)</FormLabel>
+                                                    <FormLabel>EMD Exemption</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -210,8 +210,8 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Yes">Yes</SelectItem>
-                                                            <SelectItem value="No">No</SelectItem>
+                                                            <SelectItem value="Yes">Exempted</SelectItem>
+                                                            <SelectItem value="No">Not Exempted</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -226,7 +226,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                             control={form.control}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Performance Guarantee (₹)</FormLabel>
+                                                    <FormLabel>Performance Guarantee Exemption</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -234,8 +234,8 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Yes">Yes</SelectItem>
-                                                            <SelectItem value="No">No</SelectItem>
+                                                            <SelectItem value="Yes">Exempted</SelectItem>
+                                                            <SelectItem value="No">Not Exempted</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -248,7 +248,7 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                             control={form.control}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Additional PG (₹)</FormLabel>
+                                                    <FormLabel>Additional PG Exemption</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Yes'}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -256,8 +256,8 @@ export default function NewBidderForm({ onSubmit, onCancel, isSubmitting, initia
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Yes">Yes</SelectItem>
-                                                            <SelectItem value="No">No</SelectItem>
+                                                            <SelectItem value="Yes">Exempted</SelectItem>
+                                                            <SelectItem value="No">Not Exempted</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
