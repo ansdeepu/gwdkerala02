@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.gwdkerala.twa",
+      "sha256_cert_fingerprints": [
+        "18:E1:0D:A3:00:9B:30:B6:7F:0D:BE:90:27:61:FC:A3:57:76:FF:EB:B4:E9:96:29:EB:E9:D9:A2:B2:75:73:8C"
+      ]
+    }
+  }
+]

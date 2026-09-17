@@ -34,6 +34,7 @@ import { Loader2, Trash2, Building, FileUp, Download, ShieldAlert, MapPin, Save,
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
+import AndroidAppDownloadCard from '@/components/settings/AndroidAppDownloadCard';
 import { getGoogleDriveScriptUrl, getGoogleDriveStorageQuota, type DriveStorageQuota } from '@/lib/googleDriveUploadClient';
 
 const db = getFirestore(app);
@@ -633,6 +634,8 @@ export default function SettingsPage() {
                     <button onClick={() => handleCountClick('constituency')} disabled={allConstituencies.length === 0} className="p-4 border rounded-lg bg-purple-50/10 hover:bg-purple-50/20 text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><h4 className="text-sm font-medium text-muted-foreground">Constituencies (LAC)</h4><p className="text-4xl font-bold text-purple-600">{allConstituencies.length}</p></button>
                 </CardContent>
             </Card>
+
+            <AndroidAppDownloadCard />
 
             <Card className="lg:col-span-2 shadow-sm border-primary/20">
                 <CardHeader className="pb-4">
