@@ -283,11 +283,11 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                                     }}
                                                 />
                                             </div>
-                                            <FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('latitude')} /></FormControl>
+                                            <FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('latitude')} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('longitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('longitude')} /></FormControl><FormMessage /></FormItem>} />
                                 </CardContent>
                             </Card>
 

@@ -40,6 +40,7 @@ import { useDataStore } from "@/hooks/use-data-store";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { BankSelect } from "@/components/shared/BankSelect";
+import { GpsLocationButton } from "@/components/shared/GpsLocationButton";
 
 export type ReportDocType =
   | 'completion_report'
@@ -3918,9 +3919,19 @@ export default function PrintableReportModal({
                               <td className="py-2 px-2 font-bold text-black align-top">4. ലാറ്റിറ്റ്യൂഡ് / ലാംഗിറ്റ്യൂഡ്</td>
                               <td className="py-2 px-2 text-black align-top">
                                 {renderEditableCell('cr_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-1 items-center">
                                     <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
                                     <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                                    <GpsLocationButton
+                                      size="sm"
+                                      variant="outline"
+                                      showLabel={false}
+                                      className="h-6 w-6 p-0 shrink-0"
+                                      onCoordinatesObtained={(lat, lng) => {
+                                        setLatitude(String(lat));
+                                        setLongitude(String(lng));
+                                      }}
+                                    />
                                   </div>
                                 )}
                               </td>
@@ -4348,9 +4359,19 @@ export default function PrintableReportModal({
                               <td className="py-2 px-2 font-bold text-black align-top">4. Latitude / Longitude</td>
                               <td className="py-2 px-2 text-black align-top">
                                 {renderEditableCell('cr_en_latLong', `: ${latitude && longitude ? `${latitude}, ${longitude}` : (latitude || longitude || '')}`, 
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-1 items-center">
                                     <Input className="h-6 text-xs" placeholder="Lat" value={latitude} onChange={e => setLatitude(e.target.value)} />
                                     <Input className="h-6 text-xs" placeholder="Long" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                                    <GpsLocationButton
+                                      size="sm"
+                                      variant="outline"
+                                      showLabel={false}
+                                      className="h-6 w-6 p-0 shrink-0"
+                                      onCoordinatesObtained={(lat, lng) => {
+                                        setLatitude(String(lat));
+                                        setLongitude(String(lng));
+                                      }}
+                                    />
                                   </div>
                                 )}
                               </td>
