@@ -1,7 +1,7 @@
 // src/app/dashboard/plan-fund-works/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import FileDatabaseTable from "@/components/database/FileDatabaseTable";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import PaginationControls from '@/components/shared/PaginationControls';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Search, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle, Download, TrendingUp, TrendingDown, Wallet, FileSpreadsheet } from 'lucide-react';
 import { matchesAllDataSearch } from '@/lib/searchUtils';
 import { DebouncedSearchInput } from '@/components/shared/DebouncedSearchInput';
 
@@ -157,6 +157,37 @@ export default function PlanFundWorksPage() {
     return searchFilteredEntries.reduce((acc, entry) => acc + (entry.siteDetails?.length || 0), 0);
   }, [searchFilteredEntries]);
 
+  // Helper for computing financial balance
+  const computeFinancials = useCallback((entry: DataEntryFormData) => {
+    const rem = (entry.remittanceDetails || []).reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0);
+    const pay = (entry.paymentDetails || []).reduce((sum, p) => sum + (Number(p.totalPaymentPerEntry) || 0), 0);
+    
+    const reapDebit = (entry.reappropriationDetails || []).reduce((sum, r) => {
+      const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
+      return sum + val;
+    }, 0);
+    
+    let reapCredit = 0;
+    const normalizedFileNo = entry.fileNo?.toLowerCase().trim();
+    if (normalizedFileNo && allFileEntries) {
+      allFileEntries.forEach(other => {
+        if (other.fileNo?.toLowerCase().trim() === normalizedFileNo) return;
+        other.reappropriationDetails?.forEach(r => {
+          if (r.refFileNo?.toLowerCase().trim() === normalizedFileNo) {
+            const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
+            reapCredit += val;
+          }
+        });
+      });
+    }
+
+    const totalCredit = rem + reapCredit;
+    const totalDebit = pay + reapDebit;
+    const balance = totalCredit - totalDebit;
+
+    return { totalCredit, totalDebit, balance };
+  }, [allFileEntries]);
+
   const { groups, counts } = useMemo(() => {
       const pre = searchFilteredEntries.filter(e => e.fileStatus === 'File Under Process');
       const tender = searchFilteredEntries.filter(e => e.fileStatus === 'Tender Process');
@@ -182,6 +213,7 @@ export default function PlanFundWorksPage() {
 
       const closedPending = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && !isZero(getBalance(e)) && !isFileCancelled(e));
       const completelyClosed = searchFilteredEntries.filter(e => e.fileStatus === 'File Closed' && (isZero(getBalance(e)) || isFileCancelled(e)));
+      const deficitEntries = searchFilteredEntries.filter(e => computeFinancials(e).balance < 0);
 
       return {
           groups: {
@@ -190,7 +222,8 @@ export default function PlanFundWorksPage() {
               "execution": exec,
               "completed": comp,
               "closed-pending": closedPending,
-              "completely-closed": completelyClosed
+              "completely-closed": completelyClosed,
+              "deficit": deficitEntries
           },
           counts: {
               pre: pre.length,
@@ -198,14 +231,37 @@ export default function PlanFundWorksPage() {
               exec: exec.length,
               comp: comp.length,
               closedPending: closedPending.length,
-              completelyClosed: completelyClosed.length
+              completelyClosed: completelyClosed.length,
+              deficit: deficitEntries.length
           }
       };
-  }, [searchFilteredEntries]);
+  }, [searchFilteredEntries, computeFinancials]);
+
+  // Overall metrics for current filtered view
+  const metrics = useMemo(() => {
+    let totalRem = 0;
+    let totalExp = 0;
+    let deficitCount = 0;
+
+    searchFilteredEntries.forEach(entry => {
+      const { totalCredit, totalDebit, balance } = computeFinancials(entry);
+      totalRem += totalCredit;
+      totalExp += totalDebit;
+      if (balance < 0) deficitCount += 1;
+    });
+
+    return {
+      totalFiles: searchFilteredEntries.length,
+      totalRem,
+      totalExp,
+      netBalance: totalRem - totalExp,
+      deficitCount
+    };
+  }, [searchFilteredEntries, computeFinancials]);
 
   const activeGroupEntries = useMemo(() => {
-      if (searchTerm) return searchFilteredEntries;
-      return (groups as any)[activeTab] || [];
+      if (searchTerm && activeTab === "all") return searchFilteredEntries;
+      return (groups as any)[activeTab] || searchFilteredEntries;
   }, [groups, activeTab, searchTerm, searchFilteredEntries]);
 
   const totalPages = Math.ceil(activeGroupEntries.length / ITEMS_PER_PAGE);
@@ -227,7 +283,7 @@ export default function PlanFundWorksPage() {
     setCurrentPage(page);
     const params = new URLSearchParams(searchParams?.toString());
     params.set('page', String(page));
-    router.push(`?${params.toString()}`, { scroll: false });
+    router.push(`?${params.toString()}`);
   };
 
   const handleAddNewClick = () => {
@@ -240,12 +296,88 @@ export default function PlanFundWorksPage() {
     if (codeFilter) queryParams.set('code', codeFilter);
     router.push(`/dashboard/data-entry?${queryParams.toString()}`);
   };
+
+  // Export filtered entries to CSV
+  const handleExportCSV = () => {
+    const targetData = activeGroupEntries.length > 0 ? activeGroupEntries : searchFilteredEntries;
+    if (targetData.length === 0) return;
+    
+    const headers = ["Sl No", "File No", "Head of Account / Code", "Scheme / Project", "Sites", "Purposes", "Allotment / Sanction Total", "Expenditure Total", "Net Balance", "File Status"];
+    
+    const rows = targetData.map((entry, idx) => {
+      const { totalCredit, totalDebit, balance } = computeFinancials(entry);
+      const sites = (entry.siteDetails || []).map(s => s.nameOfSite || '').join('; ');
+      const purposes = (entry.siteDetails || []).map(s => s.purpose || '').join('; ');
+
+      return [
+        idx + 1,
+        `"${entry.fileNo || ''}"`,
+        `"${entry.planFundCode || ''}"`,
+        `"${(entry.applicantName || '').replace(/"/g, '""')}"`,
+        `"${sites.replace(/"/g, '""')}"`,
+        `"${purposes.replace(/"/g, '""')}"`,
+        totalCredit,
+        totalDebit,
+        balance,
+        `"${entry.fileStatus || ''}"`
+      ];
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `GWD_Plan_Fund_Works_${codeFilter || 'All'}_${activeTab}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   const startEntryNum = (currentPage - 1) * ITEMS_PER_PAGE + 1;
   const endEntryNum = Math.min(currentPage * ITEMS_PER_PAGE, activeGroupEntries.length);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Metrics Banner */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 bg-card border border-border/70 rounded-lg shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Total Works</span>
+            <FileSpreadsheet className="h-4 w-4 text-primary" />
+          </div>
+          <div className="mt-1 text-xl font-bold font-mono text-foreground">
+            {metrics.totalFiles.toLocaleString('en-IN')}
+          </div>
+        </div>
+        <div className="p-3 bg-card border border-border/70 rounded-lg shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Total Allotment</span>
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div className="mt-1 text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            ₹{metrics.totalRem.toLocaleString('en-IN')}
+          </div>
+        </div>
+        <div className="p-3 bg-card border border-border/70 rounded-lg shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Total Expenditure</span>
+            <TrendingDown className="h-4 w-4 text-red-500" />
+          </div>
+          <div className="mt-1 text-lg font-bold font-mono text-red-600 dark:text-red-400">
+            ₹{metrics.totalExp.toLocaleString('en-IN')}
+          </div>
+        </div>
+        <div className="p-3 bg-card border border-border/70 rounded-lg shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Net Balance</span>
+            <Wallet className="h-4 w-4 text-blue-600" />
+          </div>
+          <div className={`mt-1 text-lg font-bold font-mono ${metrics.netBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600'}`}>
+            ₹{metrics.netBalance.toLocaleString('en-IN')}
+          </div>
+        </div>
+      </div>
+
        <Card>
         <CardContent className="p-4 space-y-4">
            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -259,13 +391,23 @@ export default function PlanFundWorksPage() {
                   onSearchChange={setSearchTerm}
                 />
               </div>
-               <div className="flex items-center gap-4 w-full sm:w-auto">
-                <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground mr-2">
+               <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground mr-1">
                     <span>Files: <span className="text-primary font-bold">{searchFilteredEntries.length}</span></span>
                     <span>Sites: <span className="text-primary font-bold">{totalSitesCount}</span></span>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleExportCSV} 
+                  disabled={activeGroupEntries.length === 0 && searchFilteredEntries.length === 0}
+                  className="h-9 gap-1.5 shadow-2xs"
+                >
+                  <Download className="h-4 w-4 text-primary" />
+                  <span className="hidden sm:inline">Export</span> CSV
+                </Button>
                 {canCreate && (
-                    <Button onClick={handleAddNewClick} className="w-full sm:w-auto shrink-0"><PlusCircle className="mr-2 h-4 w-4" /> New File</Button>
+                    <Button onClick={handleAddNewClick} className="w-full sm:w-auto shrink-0 h-9"><PlusCircle className="mr-2 h-4 w-4" /> New File</Button>
                 )}
                </div>
             </div>
@@ -289,6 +431,9 @@ export default function PlanFundWorksPage() {
                     </TabsTrigger>
                     <TabsTrigger value="completely-closed" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap">
                         Closed (Zero) <Badge variant="secondary" className="ml-1">{counts.completelyClosed || 0}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="deficit" className="flex-shrink-0 py-2 px-2 text-xs md:text-sm whitespace-nowrap text-red-600 dark:text-red-400">
+                        Deficit Alert <Badge variant="destructive" className="ml-1 text-[10px]">{counts.deficit || 0}</Badge>
                     </TabsTrigger>
                 </TabsList>
             </Tabs>

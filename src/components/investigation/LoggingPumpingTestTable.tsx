@@ -58,7 +58,7 @@ interface LoggingPumpingTestTableProps {
   currentPage?: number;
 }
 
-type SortKey = keyof DataEntryFormData | 'firstRemittanceDate';
+type SortKey = keyof DataEntryFormData | 'firstRemittanceDate' | 'financialBalance';
 
 export default function LoggingPumpingTestTable({ fileEntries, isLoading, searchActive, totalEntries, activeTab, currentPage = 1 }: LoggingPumpingTestTableProps) {
   const router = useRouter();
@@ -76,6 +76,37 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
 
   const canDelete = user?.role === 'admin';
   const canCopy = user?.role === 'admin';
+
+  // Helper for net balance
+  const getEntryFinancials = useCallback((entry: DataEntryFormData) => {
+    const rem = (entry.remittanceDetails || []).reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0);
+    const pay = (entry.paymentDetails || []).reduce((sum, p) => sum + (Number(p.totalPaymentPerEntry) || 0), 0);
+    
+    const reapDebit = (entry.reappropriationDetails || []).reduce((sum, r) => {
+      const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
+      return sum + val;
+    }, 0);
+    
+    let reapCredit = 0;
+    const normalizedFileNo = entry.fileNo?.toLowerCase().trim();
+    if (normalizedFileNo && allFileEntries) {
+      allFileEntries.forEach(other => {
+        if (other.fileNo?.toLowerCase().trim() === normalizedFileNo) return;
+        other.reappropriationDetails?.forEach(r => {
+          if (r.refFileNo?.toLowerCase().trim() === normalizedFileNo) {
+            const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
+            reapCredit += val;
+          }
+        });
+      });
+    }
+
+    const totalCredit = rem + reapCredit;
+    const totalDebit = pay + reapDebit;
+    const balance = totalCredit - totalDebit;
+
+    return { totalCredit, totalDebit, balance };
+  }, [allFileEntries]);
 
   const getDisplayDate = useCallback((entry: DataEntryFormData): Date | null => {
     let latestDate: Date | null = null;
@@ -123,6 +154,11 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
           const dateB = getDisplayDate(b);
           aValue = dateA?.getTime() || 0;
           bValue = dateB?.getTime() || 0;
+        } else if (sortConfig.key === 'financialBalance') {
+          const finA = getEntryFinancials(a);
+          const finB = getEntryFinancials(b);
+          aValue = finA.balance;
+          bValue = finB.balance;
         }
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -130,7 +166,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
       });
     }
     return sortableItems;
-  }, [fileEntries, sortConfig, getDisplayDate]);
+  }, [fileEntries, sortConfig, getDisplayDate, getEntryFinancials]);
 
   useEffect(() => {
     if (!isLoading && lastId) {
@@ -223,6 +259,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                     </Button>
                   )}
                 </TableHead>
+                <TableHead className="w-[130px] min-w-[130px] text-right"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('financialBalance')}>Financial Health {getSortIcon('financialBalance')}</Button></TableHead>
                 <TableHead className="text-center w-[130px] min-w-[130px] px-2 py-3 sticky right-0 bg-secondary z-30 shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,6 +302,37 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                       entry.fileStatus
                     )}
                   </TableCell>
+                  {(() => {
+                    const fin = getEntryFinancials(entry);
+                    return (
+                      <TableCell className="w-[130px] min-w-[130px] px-2 py-2 text-sm text-right">
+                        {fin.totalCredit === 0 && fin.totalDebit === 0 ? (
+                          <span className="text-xs text-muted-foreground font-mono">₹0</span>
+                        ) : fin.balance > 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                              +₹{fin.balance.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Surplus</span>
+                          </div>
+                        ) : fin.balance === 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-xs font-semibold font-mono text-blue-600 dark:text-blue-400">
+                              ₹0.00
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Balanced</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            <span className="text-xs font-bold font-mono text-red-600 dark:text-red-400">
+                              -₹{Math.abs(fin.balance).toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] text-red-500 font-semibold uppercase tracking-tight">Deficit</span>
+                          </div>
+                        )}
+                      </TableCell>
+                    );
+                  })()}
                   <TableCell className="text-right w-[130px] min-w-[130px] px-2 py-2 sticky right-0 bg-card group-hover:bg-muted/90 transition-colors shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)] z-10">
                     <div className="flex items-center justify-end space-x-1 shrink-0">
                         <Tooltip>

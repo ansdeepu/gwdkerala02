@@ -258,7 +258,9 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                 }
                 setLoadingStates(prev => ({...prev, [loaderKey]: false}));
             }, (error) => {
-                console.error(`Error fetching global collection ${collectionName}:`, error);
+                if (error.code !== 'unavailable') {
+                    console.error(`Error fetching global collection ${collectionName}:`, error);
+                }
                 setLoadingStates(prev => ({...prev, [loaderKey]: false}));
             });
         });
@@ -389,8 +391,15 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                 }
                 setLoadingStates(prev => ({...prev, [loaderKey]: false}));
             }, (error) => {
-                 if (error.code === 'permission-denied') errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `offices/.../${collectionName}`, operation: 'list' }));
-                 else { console.error(`Error fetching ${collectionName}:`, error); toast({ title: `Error Loading ${collectionName}`, description: error.message, variant: "destructive" }); }
+                 if (error.code === 'permission-denied') {
+                     errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `offices/.../${collectionName}`, operation: 'list' }));
+                 } else if (error.code === 'unavailable') {
+                     // Transient network/offline connection state - Firestore automatically queues and retries
+                     console.warn(`Firestore currently offline/reconnecting for ${collectionName}.`);
+                 } else { 
+                     console.error(`Error fetching ${collectionName}:`, error); 
+                     toast({ title: `Error Loading ${collectionName}`, description: error.message, variant: "destructive" }); 
+                 }
                  setLoadingStates(prev => ({...prev, [loaderKey]: false}));
             });
         });
