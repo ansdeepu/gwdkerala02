@@ -1120,7 +1120,7 @@ export default function TenderDetails() {
 
                 <Dialog open={activeModal === 'basic'} onOpenChange={(isOpen) => !isOpen && setActiveModal(null)}>
                     <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl h-[90vh] flex flex-col p-0">
-                        {activeModal === 'basic' && <BasicDetailsForm onSubmit={handleSave} onCancel={() => setActiveModal(null)} isSubmitting={isSubmitting} />}
+                        {activeModal === 'basic' && <BasicDetailsForm initialData={getValues()} onSubmit={(data) => handleSave(data, tender.id !== 'new')} onCancel={() => setActiveModal(null)} isSubmitting={isSubmitting} />}
                     </DialogContent>
                 </Dialog>
                 <Dialog open={activeModal === 'opening'} onOpenChange={(isOpen) => !isOpen && setActiveModal(null)}>

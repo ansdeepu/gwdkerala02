@@ -56,6 +56,17 @@ const DICT_EN_TO_ML: Record<string, string> = {
   'applicant': 'അപേക്ഷകൻ',
   'convener': 'കൺവീനർ',
 
+  // Government Schemes & Acronyms
+  'mla': 'MLA',
+  'sdf': 'SDF',
+  'mla-sdf': 'MLA - SDF',
+  'mla - sdf': 'MLA - SDF',
+  'mlasdf': 'MLA - SDF',
+  'mplad': 'MPLAD',
+  'lsgd': 'LSGD',
+  'pwd': 'PWD',
+  'gwd': 'GWD',
+
   // Work & Department Terms
   'ground water department': 'ഭൂജല വകുപ്പ്',
   'groundwater department': 'ഭൂജല വകുപ്പ്',

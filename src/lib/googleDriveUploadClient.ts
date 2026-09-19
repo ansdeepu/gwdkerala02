@@ -469,6 +469,49 @@ export async function uploadTenderEstimateToGoogleDrive(
   const cleanOriginalName = String(file.name).replace(/[/\\?%*:|"<>]/g, '_').trim();
   const fileName = `Detailed_Estimate_${cleanTenderNo}_${cleanOriginalName}`;
 
+  // Helper function for local server fallback upload
+  const uploadToServerStorage = async (): Promise<DriveUploadResult> => {
+    try {
+      onProgress?.(60, "Storing Detailed Estimate PDF securely on server...");
+      const serverRes = await fetch("/api/tender/upload-estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          base64Data,
+          fileName: cleanOriginalName,
+          officeLocation,
+          tenderNo: cleanTenderNo,
+        }),
+      });
+      const serverData = await serverRes.json();
+      if (serverData.success) {
+        onProgress?.(100, "Detailed Estimate PDF uploaded successfully!");
+        return {
+          success: true,
+          url: serverData.url || serverData.viewUrl,
+          viewUrl: serverData.viewUrl || serverData.url,
+          fileName: serverData.fileName || fileName,
+          fileId: serverData.fileId || '',
+          isLocalStorage: true,
+        };
+      }
+      return {
+        success: false,
+        error: serverData.error || "Failed to upload Detailed Estimate to server storage."
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || "Failed to upload to server storage."
+      };
+    }
+  };
+
+  // If no script URL is configured at all, go straight to server storage fallback
+  if (!scriptUrl) {
+    return await uploadToServerStorage();
+  }
+
   try {
     const data: DriveUploadResult = await postJsonWithProgress(
       "/api/drive-upload",
@@ -490,14 +533,15 @@ export async function uploadTenderEstimateToGoogleDrive(
 
     if (data.success) {
       onProgress?.(100, "Detailed Estimate PDF uploaded successfully!");
+      return data;
     }
-    return data;
+
+    // If Google Drive requires setup or returned an error, fallback to server storage
+    console.warn("Google Drive upload failed or requires setup, falling back to server storage:", data.error);
+    return await uploadToServerStorage();
   } catch (netErr: any) {
-    console.error("Network error during tender estimate upload:", netErr);
-    return {
-      success: false,
-      error: netErr?.message || "Failed to communicate with Google Drive upload service."
-    };
+    console.warn("Network error during Google Drive upload, falling back to server storage:", netErr);
+    return await uploadToServerStorage();
   }
 }
 

@@ -31,6 +31,7 @@ interface BasicDetailsFormProps {
   onSubmit: (data: Partial<E_tenderFormData>) => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  initialData?: Partial<E_tenderFormData>;
 }
 
 const DateTimePicker12h = ({ 
@@ -128,7 +129,7 @@ const DateTimePicker12h = ({
     );
 };
 
-export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: BasicDetailsFormProps) {
+export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, initialData }: BasicDetailsFormProps) {
     const { allRateDescriptionDetails, allFileEntries } = useDataStore();
     const { tender } = useTenderData();
     const { user } = useAuth();
@@ -147,17 +148,44 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
 
     const effectiveOffice = tender.officeLocation || user?.officeLocation || 'General';
 
+    const cleanWorkMalayalam = (val?: string | null) => {
+        if (!val) return '';
+        return val
+            .replace(/\bMla\s*-\s*Sdf\b/gi, 'MLA - SDF')
+            .replace(/\bMla-Sdf\b/gi, 'MLA - SDF')
+            .replace(/\bmla\s*-\s*sdf\b/gi, 'MLA - SDF')
+            .replace(/\bMla\b/g, 'MLA')
+            .replace(/\bSdf\b/g, 'SDF');
+    };
+
+    const cleanWorkEnglish = (val?: string | null) => {
+        if (!val) return '';
+        return formatCase(val)
+            ?.replace(/\bMla\s*-\s*Sdf\b/gi, 'MLA - SDF')
+            .replace(/\bMla-Sdf\b/gi, 'MLA - SDF')
+            .replace(/\bmla\s*-\s*sdf\b/gi, 'MLA - SDF')
+            .replace(/\bMla\b/g, 'MLA')
+            .replace(/\bSdf\b/g, 'SDF') ?? val;
+    };
+
+    const mergedData = { ...tender, ...(initialData || {}) };
+
     const form = useForm<BasicDetailsFormData>({
         resolver: zodResolver(BasicDetailsSchema),
         defaultValues: {
-            ...tender,
-            tenderDate: formatDateForInput(tender.tenderDate),
-            selectedSiteIds: tender.selectedSiteIds || [],
-            linkedSites: tender.linkedSites || [],
-            detailedEstimateUrl: tender.detailedEstimateUrl ?? '',
-            detailedEstimateDriveFileId: tender.detailedEstimateDriveFileId ?? null,
-            detailedEstimateFileName: tender.detailedEstimateFileName ?? null,
-            detailedEstimateUploadedAt: tender.detailedEstimateUploadedAt ?? null,
+            ...mergedData,
+            nameOfWork: cleanWorkEnglish(mergedData.nameOfWork),
+            nameOfWorkMalayalam: cleanWorkMalayalam(mergedData.nameOfWorkMalayalam),
+            estimateAmount: (mergedData.estimateAmount !== undefined && mergedData.estimateAmount !== null && !isNaN(Number(mergedData.estimateAmount)))
+                ? Number(mergedData.estimateAmount)
+                : null,
+            tenderDate: formatDateForInput(mergedData.tenderDate),
+            selectedSiteIds: mergedData.selectedSiteIds || [],
+            linkedSites: mergedData.linkedSites || [],
+            detailedEstimateUrl: mergedData.detailedEstimateUrl ?? '',
+            detailedEstimateDriveFileId: mergedData.detailedEstimateDriveFileId ?? null,
+            detailedEstimateFileName: mergedData.detailedEstimateFileName ?? null,
+            detailedEstimateUploadedAt: mergedData.detailedEstimateUploadedAt ?? null,
             // dateTimeOfReceipt and dateTimeOfOpening are kept as Date/String objects in the form state
             // but the DateTimePicker12h handles the conversion for the UI.
         }
@@ -437,7 +465,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
     }, [matchingFiles]);
 
     const calculateFees = useCallback(() => {
-        const amount = (typeof estimateAmount !== 'number' || isNaN(estimateAmount)) ? 0 : estimateAmount;
+        const amount = (typeof estimateAmount !== 'number' || isNaN(estimateAmount) || estimateAmount === null) ? 0 : estimateAmount;
 
         if (amount === 0) {
             setValue('tenderFormFee', 0, { shouldValidate: true, shouldDirty: true });
@@ -500,6 +528,17 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
             }
         }
 
+        // Safety fallback if EMD structured rate is 0 or empty for Work type with PAC > 0
+        if ((!emd || emd === 0) && (tenderType || 'Work') === 'Work' && amount > 0) {
+            if (amount <= 20000000) emd = Math.min(amount * 0.025, 50000);
+            else if (amount <= 50000000) emd = 100000;
+            else if (amount <= 100000000) emd = 200000;
+            else emd = 500000;
+        } else if ((!emd || emd === 0) && tenderType === 'Purchase' && amount > 0) {
+            if (amount <= 20000000) emd = amount * 0.01;
+            else emd = 0;
+        }
+
         if (typeof emd === 'number') emd = roundToNext100(emd);
         else if (emd === "No EMD") emd = 0;
         else emd = parseFloat(String(emd).replace(/[^0-9.]/g, '')) || 0;
@@ -537,8 +576,8 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
             fileNo2: cleanFileNo(data.fileNo2),
             fileNo3: cleanFileNo(data.fileNo3),
             fileNo4: cleanFileNo(data.fileNo4),
-            nameOfWork: formatCase(data.nameOfWork) ?? data.nameOfWork,
-            nameOfWorkMalayalam: formatCase(data.nameOfWorkMalayalam) ?? data.nameOfWorkMalayalam,
+            nameOfWork: cleanWorkEnglish(data.nameOfWork),
+            nameOfWorkMalayalam: cleanWorkMalayalam(data.nameOfWorkMalayalam),
         };
         onSubmit(formData);
     };
@@ -752,10 +791,10 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                           onChange={e => {
                                             const val = e.target.value.trim();
                                             if (val === '') {
-                                              field.onChange(undefined);
+                                              field.onChange(null);
                                             } else {
                                               const num = parseInt(val, 10);
-                                              field.onChange(isNaN(num) ? undefined : num);
+                                              field.onChange(isNaN(num) ? null : num);
                                             }
                                           }}
                                         />
@@ -781,10 +820,10 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                                           onChange={e => {
                                             const val = e.target.value.trim();
                                             if (val === '') {
-                                              field.onChange(undefined);
+                                              field.onChange(null);
                                             } else {
                                               const num = parseFloat(val);
-                                              field.onChange(isNaN(num) ? undefined : num);
+                                              field.onChange(isNaN(num) ? null : num);
                                             }
                                           }} 
                                         />
@@ -986,7 +1025,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting }: B
                     <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting || isUploadingEstimate}>
                         <X className="mr-2 h-4 w-4" /> Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting || isUploadingEstimate || (tender.id !== 'new' && !isDirty)}>
+                    <Button type="submit" disabled={isSubmitting || isUploadingEstimate}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Details
                     </Button>
                 </DialogFooter>

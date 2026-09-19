@@ -25,10 +25,34 @@ export const formatCase = (str: string | null | undefined): string | null | unde
   // List of small words to keep in lowercase unless they are the first word.
   const lowerCaseWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in', 'with']);
 
+  // Abbreviations and acronyms that must strictly remain UPPERCASE
+  const uppercaseAcronyms = new Set([
+    'MLA', 'SDF', 'MPLAD', 'LSGD', 'PWD', 'GWD', 'DTH', 'ARS', 'DRW',
+    'ARWSS', 'PMKSY', 'SC', 'ST', 'MGNREGS', 'GST', 'PAC', 'EMD', 'KWA',
+    'KL', 'KM', 'MM', 'HP', 'KW', 'LED', 'PVC', 'GI', 'MS', 'SS', 'RC', 'NIT'
+  ]);
+
+  let formatted = str;
+
   if (isAllUpperCase) {
-    return str
+    formatted = str
       .split(' ')
       .map((word, index) => {
+        const cleanWord = word.replace(/[^a-zA-Z]/g, '').toUpperCase();
+        if (uppercaseAcronyms.has(cleanWord)) {
+          return word.toUpperCase();
+        }
+
+        // Check hyphenated parts (e.g. MLA-SDF)
+        if (word.includes('-')) {
+          return word.split('-').map(part => {
+            const cleanPart = part.replace(/[^a-zA-Z]/g, '').toUpperCase();
+            if (uppercaseAcronyms.has(cleanPart)) return part.toUpperCase();
+            const lower = part.toLowerCase();
+            return part.charAt(0).toUpperCase() + lower.slice(1);
+          }).join('-');
+        }
+
         const lowerWord = word.toLowerCase();
         if (word.length > 0) {
           if (index > 0 && lowerCaseWords.has(lowerWord)) {
@@ -40,8 +64,15 @@ export const formatCase = (str: string | null | undefined): string | null | unde
       })
       .join(' ');
   }
-  
-  return str;
+
+  // Ensure standard acronyms are preserved regardless of input casing
+  return formatted
+    .replace(/\bMla\s*-\s*Sdf\b/gi, 'MLA - SDF')
+    .replace(/\bMla-Sdf\b/gi, 'MLA - SDF')
+    .replace(/\bMla\b/gi, 'MLA')
+    .replace(/\bSdf\b/gi, 'SDF')
+    .replace(/\bMplad\b/gi, 'MPLAD')
+    .replace(/\bLsgd\b/gi, 'LSGD');
 };
 
 export const KERALA_DISTRICTS = [

@@ -323,7 +323,7 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
   const bodyFontSize = options?.bodyFontSize || options?.fontSize || '11pt';
   const headingFontSize = options?.headingFontSize || '15pt';
   const subheadingFontSize = options?.subheadingFontSize || '13pt';
-  const lineHeight = options?.lineHeight || '1.4';
+  const lineHeight = options?.lineHeight || '1.5';
   const engFont = options?.englishFont || 'Times New Roman';
   const malFont = options?.malayalamFont || 'Mandaram';
   const fontStack = `'${engFont}', '${malFont}', 'Mandaram', 'Manjari', 'Noto Sans Malayalam', sans-serif`;
@@ -344,29 +344,196 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
     }
   });
 
-  // Create a deep clone to manipulate (e.g. remove print/copy buttons or non-print areas)
+  // Create a deep clone to manipulate (remove non-print UI, transform to e-Office compatible layout)
   const clone = element.cloneNode(true) as HTMLElement;
   
-  // Find and remove elements that shouldn't be printed/copied (buttons, actions, elements with no-copy/no-print class)
-  const noPrintElements = clone.querySelectorAll('.no-print, .print\\:hidden, button, [class*="DialogFooter"]');
+  // 1. Remove non-print / interactive elements
+  const noPrintElements = clone.querySelectorAll('.no-print, .print\\:hidden, button, [class*="DialogFooter"], svg, .lucide');
   noPrintElements.forEach((el) => el.remove());
 
-  // Clean top-level container: remove card borders, outer shadows, background colors from root container
+  // 2. Replace all interactive inputs/textareas/selects in clone with clean text elements
+  clone.querySelectorAll('input').forEach((inp: HTMLInputElement) => {
+    const val = inp.value || inp.getAttribute('value') || '';
+    const span = document.createElement('span');
+    span.textContent = val;
+    span.style.fontFamily = fontStack;
+    span.style.fontSize = bodyFontSize;
+    inp.replaceWith(span);
+  });
+
+  clone.querySelectorAll('textarea').forEach((txt: HTMLTextAreaElement) => {
+    const val = txt.value || txt.textContent || '';
+    const span = document.createElement('span');
+    span.style.whiteSpace = 'pre-line';
+    span.style.display = 'inline';
+    span.style.fontFamily = fontStack;
+    span.style.fontSize = bodyFontSize;
+    span.textContent = val;
+    txt.replaceWith(span);
+  });
+
+  clone.querySelectorAll('select').forEach((sel: HTMLSelectElement) => {
+    const selectedText = sel.options[sel.selectedIndex]?.text || sel.value || '';
+    const span = document.createElement('span');
+    span.textContent = selectedText;
+    span.style.fontFamily = fontStack;
+    span.style.fontSize = bodyFontSize;
+    sel.replaceWith(span);
+  });
+
+  // 3. Transform Signature Blocks into native borderless HTML tables so they never wrap or float to the side in e-Office
+  const sigBlocks = clone.querySelectorAll('.signature-block');
+  sigBlocks.forEach((sb) => {
+    const htmlSb = sb as HTMLElement;
+    const directChildren = Array.from(htmlSb.children) as HTMLElement[];
+    // If it's already a table inside, keep it and ensure 100% width and clean styles
+    const existingTable = htmlSb.querySelector('table');
+    if (existingTable) {
+      existingTable.setAttribute('width', '100%');
+      existingTable.setAttribute('border', '0');
+      existingTable.setAttribute('cellpadding', '0');
+      existingTable.setAttribute('cellspacing', '0');
+      existingTable.style.width = '100%';
+      existingTable.style.borderCollapse = 'collapse';
+      existingTable.style.border = 'none';
+      existingTable.style.marginTop = '35px';
+      existingTable.style.marginBottom = '15px';
+      existingTable.style.clear = 'both';
+      return;
+    }
+
+    if (directChildren.length > 0) {
+      const sigTable = document.createElement('table');
+      sigTable.setAttribute('width', '100%');
+      sigTable.setAttribute('border', '0');
+      sigTable.setAttribute('cellpadding', '0');
+      sigTable.setAttribute('cellspacing', '0');
+      sigTable.style.width = '100%';
+      sigTable.style.borderCollapse = 'collapse';
+      sigTable.style.border = 'none';
+      sigTable.style.marginTop = '35px';
+      sigTable.style.marginBottom = '15px';
+      sigTable.style.clear = 'both';
+      sigTable.style.pageBreakInside = 'avoid';
+
+      const tr = document.createElement('tr');
+      tr.style.border = 'none';
+      const cellWidth = `${Math.floor(100 / directChildren.length)}%`;
+
+      directChildren.forEach((child) => {
+        const td = document.createElement('td');
+        td.setAttribute('width', cellWidth);
+        td.setAttribute('align', 'center');
+        td.style.width = cellWidth;
+        td.style.textAlign = 'center';
+        td.style.verticalAlign = 'bottom';
+        td.style.border = 'none';
+        td.style.padding = '0 6px';
+        td.style.fontFamily = fontStack;
+        td.style.fontSize = bodyFontSize;
+        td.innerHTML = child.innerHTML;
+        tr.appendChild(td);
+      });
+
+      sigTable.appendChild(tr);
+      htmlSb.replaceWith(sigTable);
+    }
+  });
+
+  // 4. Transform header rows with 2 side-by-side columns into native borderless tables (prevent flex collapse)
+  const flexBetweenContainers = clone.querySelectorAll('.flex.justify-between, div[style*="float: left"]');
+  flexBetweenContainers.forEach((el) => {
+    const parentContainer = el.classList.contains('flex') ? (el as HTMLElement) : (el.parentElement as HTMLElement);
+    if (!parentContainer || parentContainer.tagName.toLowerCase() === 'table' || parentContainer.closest('table')) return;
+
+    // Check if this container has 2 distinct child sections (e.g. left ref/fileNo and right office address/date)
+    const directDivs = Array.from(parentContainer.children).filter((c) => (c as HTMLElement).tagName.toLowerCase() === 'div') as HTMLElement[];
+    if (directDivs.length === 2) {
+      const tbl = document.createElement('table');
+      tbl.setAttribute('width', '100%');
+      tbl.setAttribute('border', '0');
+      tbl.setAttribute('cellpadding', '0');
+      tbl.setAttribute('cellspacing', '0');
+      tbl.style.width = '100%';
+      tbl.style.borderCollapse = 'collapse';
+      tbl.style.border = 'none';
+      tbl.style.margin = '4px 0 12px 0';
+      tbl.style.clear = 'both';
+
+      const tr = document.createElement('tr');
+      tr.style.border = 'none';
+
+      const tdLeft = document.createElement('td');
+      tdLeft.setAttribute('width', '50%');
+      tdLeft.setAttribute('align', 'left');
+      tdLeft.style.width = '50%';
+      tdLeft.style.verticalAlign = 'top';
+      tdLeft.style.textAlign = 'left';
+      tdLeft.style.border = 'none';
+      tdLeft.style.padding = '2px 0';
+      tdLeft.style.fontFamily = fontStack;
+      tdLeft.style.fontSize = bodyFontSize;
+      tdLeft.innerHTML = directDivs[0].innerHTML;
+
+      const tdRight = document.createElement('td');
+      tdRight.setAttribute('width', '50%');
+      tdRight.setAttribute('align', 'right');
+      tdRight.style.width = '50%';
+      tdRight.style.verticalAlign = 'top';
+      tdRight.style.textAlign = 'right';
+      tdRight.style.border = 'none';
+      tdRight.style.padding = '2px 0';
+      tdRight.style.fontFamily = fontStack;
+      tdRight.style.fontSize = bodyFontSize;
+      tdRight.innerHTML = directDivs[1].innerHTML;
+
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      tbl.appendChild(tr);
+
+      parentContainer.replaceWith(tbl);
+    }
+  });
+
+  // 5. Clean top-level container: remove card borders, outer shadows, background colors
   clone.style.border = 'none';
   clone.style.boxShadow = 'none';
   clone.style.background = 'transparent';
   clone.style.padding = '0';
   clone.style.margin = '0 auto';
+  clone.style.width = '100%';
+  clone.style.maxWidth = '100%';
 
-  // Inline style transformer for e-Office / CKEditor / MS Word pasting
+  // 6. Comprehensive inline style transformer for all elements
   const allElements = clone.querySelectorAll('*');
   allElements.forEach((el) => {
     const htmlEl = el as HTMLElement;
     const tagName = htmlEl.tagName.toLowerCase();
 
+    // Default typography
+    htmlEl.style.fontFamily = fontStack;
+    htmlEl.style.color = '#000000';
+
     // Remove outer document card wrapper borders / shadows if applied on nested child containers
     if (htmlEl.classList.contains('shadow-lg') || htmlEl.classList.contains('shadow-md') || htmlEl.classList.contains('shadow-xl') || htmlEl.classList.contains('shadow')) {
       htmlEl.style.boxShadow = 'none';
+    }
+
+    // Convert flex-col / space-y containers to strict block flow (prevents 6-column squish in CKEditor)
+    if (htmlEl.classList.contains('flex-col') || htmlEl.classList.contains('space-y-4') || htmlEl.classList.contains('space-y-3') || htmlEl.classList.contains('space-y-2')) {
+      htmlEl.style.display = 'block';
+      htmlEl.style.width = '100%';
+      htmlEl.style.clear = 'both';
+      htmlEl.style.boxSizing = 'border-box';
+    }
+
+    // Ensure paragraphs and block text divs take full width and stack vertically
+    if (tagName === 'p') {
+      htmlEl.style.display = 'block';
+      htmlEl.style.width = '100%';
+      htmlEl.style.margin = '0 0 8px 0';
+      htmlEl.style.fontSize = bodyFontSize;
+      htmlEl.style.lineHeight = lineHeight;
     }
 
     // Preserve text alignment inline & as HTML attribute for e-Office editor
@@ -464,9 +631,14 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
     // Tables inline styling
     if (tagName === 'table') {
       htmlEl.style.width = '100%';
-      htmlEl.style.maxWidth = '100%';
+      htmlEl.style.minWidth = '100%';
       htmlEl.style.borderCollapse = 'collapse';
+      htmlEl.style.clear = 'both';
+      htmlEl.style.marginTop = htmlEl.style.marginTop || '8px';
+      htmlEl.style.marginBottom = htmlEl.style.marginBottom || '14px';
       htmlEl.setAttribute('width', '100%');
+      htmlEl.setAttribute('cellpadding', '6');
+      htmlEl.setAttribute('cellspacing', '0');
 
       const isBorderless = htmlEl.classList.contains('border-none') || htmlEl.classList.contains('border-0') || htmlEl.style.border === 'none' || htmlEl.getAttribute('border') === '0';
       if (isBorderless) {
@@ -483,7 +655,9 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
       const parentTable = htmlEl.closest('table');
       const isBorderlessTable = parentTable ? (parentTable.classList.contains('border-none') || parentTable.classList.contains('border-0') || parentTable.style.border === 'none' || parentTable.getAttribute('border') === '0') : false;
 
-      htmlEl.style.verticalAlign = 'top';
+      htmlEl.style.verticalAlign = htmlEl.style.verticalAlign || 'top';
+      htmlEl.style.fontSize = bodyFontSize;
+      htmlEl.style.lineHeight = lineHeight;
       if (htmlEl.style.width) {
         htmlEl.setAttribute('width', htmlEl.style.width);
       }
@@ -492,7 +666,7 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
           htmlEl.style.border = '1px solid #000000';
         }
         if (!htmlEl.style.padding) {
-          htmlEl.style.padding = '5px 8px';
+          htmlEl.style.padding = '6px 8px';
         }
       } else {
         htmlEl.style.border = 'none';
@@ -511,28 +685,28 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
   // Standard CSS styles to wrap the HTML with so alignment, tables, borders, and margins are preserved when pasted
   const styles = `
     <style>
-      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-      th, td { padding: 5px 8px; text-align: left; vertical-align: top; font-size: ${bodyFontSize}; }
+      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: #ffffff; margin: 0; padding: 0; }
+      table { width: 100% !important; border-collapse: collapse !important; margin: 10px 0 16px 0; clear: both !important; }
+      th, td { padding: 6px 8px; vertical-align: top; font-size: ${bodyFontSize}; font-family: ${fontStack}; }
       th { background-color: #f2f2f2; font-weight: bold; font-size: ${subheadingFontSize}; }
-      h1, h2, .print-main-heading { font-size: ${headingFontSize}; font-weight: bold; }
-      h3, h4, .print-sub-heading { font-size: ${subheadingFontSize}; font-weight: bold; }
-      p, div { margin: 0 0 8px 0; font-size: ${bodyFontSize}; }
-      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: transparent; }
-      * { font-family: ${fontStack}; }
-      .text-right { text-align: right; }
-      .text-center { text-align: center; }
-      .text-justify { text-align: justify; }
-      .font-bold { font-weight: bold; }
-      .italic { font-style: italic; }
-      .underline { text-decoration: underline; }
-      .flex { display: flex; }
-      .justify-between { justify-content: space-between; }
-      .w-full { width: 100%; }
+      h1, h2, .print-main-heading { font-size: ${headingFontSize}; font-weight: bold; margin: 4px 0; }
+      h3, h4, .print-sub-heading { font-size: ${subheadingFontSize}; font-weight: bold; margin: 4px 0; }
+      p { margin: 0 0 8px 0; font-size: ${bodyFontSize}; line-height: ${lineHeight}; display: block; width: 100%; clear: both; }
+      div { font-family: ${fontStack}; }
+      .text-right { text-align: right !important; }
+      .text-center { text-align: center !important; }
+      .text-justify { text-align: justify !important; }
+      .text-left { text-align: left !important; }
+      .font-bold { font-weight: bold !important; }
+      .italic { font-style: italic !important; }
+      .underline { text-decoration: underline !important; }
+      .flex-col { display: block !important; width: 100% !important; clear: both !important; }
+      .w-full { width: 100% !important; }
     </style>
   `;
 
-  // Wrap inside standard HTML template for clipboard pasting
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><div style="background: transparent; color: black; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight};">${contentHtml}</div></body></html>`;
+  // Wrap inside standard HTML template with MS Office / e-Office fragment comments for clipboard pasting
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><!--StartFragment--><div style="width: 100%; max-width: 750px; margin: 0 auto; padding: 0; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: #ffffff;">${contentHtml}</div><!--EndFragment--></body></html>`;
 
   try {
     const htmlBlob = new Blob([fullHtml], { type: 'text/html' });

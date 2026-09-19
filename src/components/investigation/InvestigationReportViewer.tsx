@@ -1030,38 +1030,47 @@ export default function InvestigationReportViewer({
               </div>
 
               {/* Signatures Section */}
-              <div className="pt-10 flex justify-between items-end text-center print:pt-8 text-black">
-                <div className="w-60 space-y-1">
-                  <div className="h-10"></div>
-                  <div className="font-bold border-t border-black pt-1">Junior Hydrogeologist</div>
-                  {isEditMode ? (
-                    <Input
-                      value={invReportState.juniorHydrogeologistName}
-                      onChange={(e) => setInvReportState({ ...invReportState, juniorHydrogeologistName: e.target.value })}
-                      placeholder="Investigator Name"
-                      className="h-6 text-xs text-center"
-                    />
-                  ) : (
-                    invReportState.juniorHydrogeologistName && (
-                      <div className="text-xs text-neutral-800">({invReportState.juniorHydrogeologistName})</div>
-                    )
-                  )}
-                </div>
-
-                <div className="w-60 space-y-1">
-                  <div className="h-10"></div>
-                  <div className="font-bold border-t border-black pt-1">Hydrogeologist</div>
-                  {isEditMode ? (
-                    <Input
-                      value={invReportState.hydrogeologistName}
-                      onChange={(e) => setInvReportState({ ...invReportState, hydrogeologistName: e.target.value })}
-                      placeholder="Officer Name"
-                      className="h-6 text-xs text-center"
-                    />
-                  ) : (
-                    <div className="text-xs text-neutral-800">District Office, GWD, {invReportState.districtName}</div>
-                  )}
-                </div>
+              <div className="pt-10 print:pt-8 text-black signature-block" style={{ width: '100%', marginTop: '35px', clear: 'both' }}>
+                <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr style={{ border: 'none' }}>
+                      <td style={{ width: '50%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 10px' }}>
+                        <div className="w-60 mx-auto space-y-1">
+                          <div className="h-10"></div>
+                          <div className="font-bold border-t border-black pt-1">Junior Hydrogeologist</div>
+                          {isEditMode ? (
+                            <Input
+                              value={invReportState.juniorHydrogeologistName}
+                              onChange={(e) => setInvReportState({ ...invReportState, juniorHydrogeologistName: e.target.value })}
+                              placeholder="Investigator Name"
+                              className="h-6 text-xs text-center"
+                            />
+                          ) : (
+                            invReportState.juniorHydrogeologistName && (
+                              <div className="text-xs text-neutral-800">({invReportState.juniorHydrogeologistName})</div>
+                            )
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ width: '50%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 10px' }}>
+                        <div className="w-60 mx-auto space-y-1">
+                          <div className="h-10"></div>
+                          <div className="font-bold border-t border-black pt-1">Hydrogeologist</div>
+                          {isEditMode ? (
+                            <Input
+                              value={invReportState.hydrogeologistName}
+                              onChange={(e) => setInvReportState({ ...invReportState, hydrogeologistName: e.target.value })}
+                              placeholder="Officer Name"
+                              className="h-6 text-xs text-center"
+                            />
+                          ) : (
+                            <div className="text-xs text-neutral-800">District Office, GWD, {invReportState.districtName}</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

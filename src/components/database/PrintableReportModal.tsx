@@ -4123,22 +4123,28 @@ export default function PrintableReportModal({
                     </div>
 
                     <div className="pt-10 pb-2 mt-auto text-center font-bold text-xs sm:text-[12.5px] signature-block" style={{ width: '100%', marginTop: '30px', clear: 'both' }}>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        സൈറ്റ് - ഇൻ - ചാർജ്
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        അസി. എഞ്ചിനീയർ
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        അസി. എക്സി. എഞ്ചിനീയർ
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        ജില്ലാ ഓഫീസർ
-                      </div>
+                      <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginTop: '20px' }}>
+                        <tbody>
+                          <tr style={{ border: 'none' }}>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              സൈറ്റ് - ഇൻ - ചാർജ്
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              അസി. എഞ്ചിനീയർ
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              അസി. എക്സി. എഞ്ചിനീയർ
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              ജില്ലാ ഓഫീസർ
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 ) : (
@@ -4553,22 +4559,28 @@ export default function PrintableReportModal({
                     </div>
 
                     <div className="pt-10 pb-2 mt-auto text-center font-bold text-xs sm:text-[12.5px] signature-block" style={{ width: '100%', marginTop: '30px', clear: 'both' }}>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        Site-in-Charge
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        Assistant Engineer
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        Assistant Exec. Engineer
-                      </div>
-                      <div style={{ display: 'inline-block', width: '24%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                        <div style={{ height: '35px' }}></div>
-                        District Officer
-                      </div>
+                      <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginTop: '20px' }}>
+                        <tbody>
+                          <tr style={{ border: 'none' }}>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              Site-in-Charge
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              Assistant Engineer
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              Assistant Exec. Engineer
+                            </td>
+                            <td style={{ width: '25%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 4px' }}>
+                              <div style={{ height: '35px' }}></div>
+                              District Officer
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}
@@ -5023,18 +5035,24 @@ export default function PrintableReportModal({
 
                         {/* Signature Block after table */}
                         <div className="pt-16 pb-2 text-center font-bold text-xs sm:text-sm signature-block" style={{ width: '100%', marginTop: '40px', clear: 'both' }}>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            അസിസ്റ്റന്റ് എഞ്ചിനീയർ
-                          </div>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ
-                          </div>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            ജില്ലാ ഓഫീസർ
-                          </div>
+                          <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginTop: '20px' }}>
+                            <tbody>
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  അസിസ്റ്റന്റ് എഞ്ചിനീയർ
+                                </td>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  അസിസ്റ്റന്റ് എക്സിക്യൂട്ടീവ് എഞ്ചിനീയർ
+                                </td>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  ജില്ലാ ഓഫീസർ
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
@@ -5483,18 +5501,24 @@ export default function PrintableReportModal({
 
                         {/* Signature Block after table */}
                         <div className="pt-16 pb-2 text-center font-bold text-xs sm:text-sm signature-block" style={{ width: '100%', marginTop: '40px', clear: 'both' }}>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            Assistant Engineer
-                          </div>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            Assistant Executive Engineer
-                          </div>
-                          <div style={{ display: 'inline-block', width: '33%', verticalAlign: 'bottom', textAlign: 'center' }}>
-                            <div style={{ height: '35px' }}></div>
-                            District Officer
-                          </div>
+                          <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginTop: '20px' }}>
+                            <tbody>
+                              <tr style={{ border: 'none' }}>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  Assistant Engineer
+                                </td>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  Assistant Executive Engineer
+                                </td>
+                                <td style={{ width: '33.33%', textAlign: 'center', verticalAlign: 'bottom', border: 'none', padding: '0 6px' }}>
+                                  <div style={{ height: '35px' }}></div>
+                                  District Officer
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
@@ -6446,69 +6470,74 @@ export default function PrintableReportModal({
                       margin: ${getPageMarginsCss(printSettings)} !important;
                     }
                   `}</style>
-                  <div className="flex justify-between items-start text-[10pt] pt-1 pb-3">
-                    <div>
-                      {renderEditableCell('uc_ml_refNo', 
-                        <span>ഫയൽ നമ്പർ: <span>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</span></span>, 
-                        <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
-                      )}
-                    </div>
-
-                    <div className="text-right text-[10pt] space-y-0.5">
-                      {officeAddress?.addressMalayalam ? (
-                        <div className="whitespace-pre-line text-right">
-                          {(() => {
-                            let addr = officeAddress.addressMalayalam;
-                            // Clean split lines for Department and Office Name
-                            addr = addr.replace(/ഭൂജലവകുപ്പ്\s*[\r\n]+\s*ജില്ലា\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
-                            addr = addr.replace(/ഭൂജലവകുപ്പ്\s*\n\s*ജില്ലា\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
-                            
-                            // Check if office is Kollam to intelligently format the exact required address line
-                            if (districtMl === 'കൊല്ലം' || districtMl?.includes('കൊല്ലം') || officeAddress?.officeLocation?.toLowerCase() === 'kollam') {
-                              if (!addr.includes('ഹൈസ്കൂൾ') && !addr.includes('High School')) {
-                                if (addr.includes('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്')) {
-                                  addr = addr.replace('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്', "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
-                                } else {
-                                  addr = addr + "\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.";
-                                }
-                              } else {
-                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
-                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
-                                addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*[\r\n]+\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
-                                addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*\n\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
-                                // If they are on separate lines, join them with a newline
-                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
-                                addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
-                              }
-                              
-                              if (!addr.includes('691009')) {
-                                addr = addr + '\nകൊല്ലം - 691009';
-                              }
-                            }
-                            return addr;
-                          })()}
-                        </div>
-                      ) : (
-                        <>
-                          <p>ജില്ലാ ഓഫീസറുടെ കാര്യാലയം</p>
-                          <p>ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്</p>
-                          <p>ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.</p>
-                          <p>കൊല്ലം - 691009</p>
-                        </>
-                      )}
-                      {renderEditableCell('uc_ml_contact', 
-                        <div className="text-right">
-                          <p>ഫോൺ: {ucPhone}</p>
-                          <p>ഇ-മെയിൽ: {ucEmail}</p>
-                        </div>,
-                        <div className="flex flex-col gap-1 items-end">
-                          <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
-                          <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
-                        </div>
-                      )}
-                      {renderEditableCell('uc_ml_date', <p className="pt-0.5">തീയതി: <span>{orderDate}</span></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
-                    </div>
-                  </div>
+                  <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', marginBottom: '12px' }}>
+                    <tbody>
+                      <tr style={{ border: 'none' }}>
+                        <td style={{ width: '45%', border: 'none', textAlign: 'left', verticalAlign: 'top' }}>
+                          {renderEditableCell('uc_ml_refNo', 
+                            <span>ഫയൽ നമ്പർ: <span>{fileNo.includes('/') && !fileNo.toUpperCase().startsWith('GWD') ? `${officeAddress?.officeCode || 'GWDKLM'}/${fileNo}` : fileNo}</span></span>, 
+                            <Input className="h-6 text-xs w-48" value={fileNo} onChange={e => setFileNo(e.target.value)} />
+                          )}
+                        </td>
+                        <td style={{ width: '55%', border: 'none', textAlign: 'right', verticalAlign: 'top' }}>
+                          <div className="space-y-0.5 text-right">
+                            {officeAddress?.addressMalayalam ? (
+                              <div className="whitespace-pre-line text-right">
+                                {(() => {
+                                  let addr = officeAddress.addressMalayalam;
+                                  // Clean split lines for Department and Office Name
+                                  addr = addr.replace(/ഭൂജലവകുപ്പ്\s*[\r\n]+\s*ജില്ലാ\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
+                                  addr = addr.replace(/ഭൂജലവകുപ്പ്\s*\n\s*ജില്ലാ\s*ഓഫീസ്/g, 'ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്');
+                                  
+                                  // Check if office is Kollam to intelligently format the exact required address line
+                                  if (districtMl === 'കൊല്ലം' || districtMl?.includes('കൊല്ലം') || officeAddress?.officeLocation?.toLowerCase() === 'kollam') {
+                                    if (!addr.includes('ഹൈസ്കൂൾ') && !addr.includes('High School')) {
+                                      if (addr.includes('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്')) {
+                                        addr = addr.replace('ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്', "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                      } else {
+                                        addr = addr + "\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.";
+                                      }
+                                    } else {
+                                      addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                      addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                      addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*[\r\n]+\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                      addr = addr.replace(/ഹൈസ്കൂൾ\s*ജംഗ്ഷൻ\s*\n\s*തേവള്ളി\s*പി\.\s*ഓ\./g, "ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.");
+                                      // If they are on separate lines, join them with a newline
+                                      addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*[\r\n]+\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
+                                      addr = addr.replace(/ഭൂജലവകുപ്പ്\s*ജില്ലാ\s*ഓഫീസ്\s*\n\s*/g, "ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\n");
+                                    }
+                                    
+                                    if (!addr.includes('691009')) {
+                                      addr = addr + '\nകൊല്ലം - 691009';
+                                    }
+                                  }
+                                  return addr;
+                                })()}
+                              </div>
+                            ) : (
+                              <>
+                                <p>ജില്ലാ ഓഫീസറുടെ കാര്യാലയം</p>
+                                <p>ഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്</p>
+                                <p>ഹൈസ്കൂൾ ജംഗ്ഷൻ തേവള്ളി പി. ഓ.</p>
+                                <p>കൊല്ലം - 691009</p>
+                              </>
+                            )}
+                            {renderEditableCell('uc_ml_contact', 
+                              <div className="text-right">
+                                <p>ഫോൺ: {ucPhone}</p>
+                                <p>ഇ-മെയിൽ: {ucEmail}</p>
+                              </div>,
+                              <div className="flex flex-col gap-1 items-end">
+                                <Input className="h-6 text-xs w-36 text-right" value={ucPhone} onChange={e => setUcPhone(e.target.value)} />
+                                <Input className="h-6 text-xs w-48 text-right" value={ucEmail} onChange={e => setUcEmail(e.target.value)} />
+                              </div>
+                            )}
+                            {renderEditableCell('uc_ml_date', <p className="pt-0.5">തീയതി: <span>{orderDate}</span></p>, <Input className="h-6 text-xs w-36 text-right" value={orderDate} onChange={e => setOrderDate(e.target.value)} />)}
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                   <div className="text-[10pt] space-y-3 py-1">
                     <div>
