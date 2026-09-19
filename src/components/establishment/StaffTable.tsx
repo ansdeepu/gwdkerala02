@@ -120,7 +120,7 @@ export default function StaffTable({
                 <TableHead className="px-2 py-2 text-left text-xs">Period of Service (To)</TableHead>
                 <TableHead className="px-2 py-2 text-left">Roles</TableHead>
                 <TableHead className="px-2 py-2 text-left">Phone No.</TableHead>
-                <TableHead className="text-center w-[130px] px-2 py-2">Actions</TableHead>
+                <TableHead className="text-center w-[60px] px-2 py-2">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -194,10 +194,10 @@ export default function StaffTable({
                     </TableCell>
                     <TableCell className="text-xs px-2 py-2 text-left">{staff.phoneNo || "N/A"}</TableCell>
                     <TableCell className="text-center px-2 py-2">
-                      <div className="flex items-center justify-center space-x-0.5">
+                      <div className="flex flex-col items-center justify-center gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => onEdit && onEdit(staff)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(staff)}>
                                <Eye className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -206,7 +206,7 @@ export default function StaffTable({
                         {!isViewer && onDelete && !isPendingTransfer && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => handleDeleteClick(staff.id, staff.name)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/90" onClick={() => handleDeleteClick(staff.id, staff.name)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>

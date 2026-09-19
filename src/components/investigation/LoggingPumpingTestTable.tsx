@@ -223,7 +223,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                     </Button>
                   )}
                 </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -265,11 +265,11 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                       entry.fileStatus
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-1">
+                  <TableCell className="text-center p-2">
+                    <div className="flex flex-col items-center justify-center gap-1">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleViewClick(entry)}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(entry)}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -278,7 +278,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {canCopy && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
                               </TooltipTrigger>
                               <TooltipContent><p>Move or Copy File</p></TooltipContent>
                             </Tooltip>
@@ -286,7 +286,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {canDelete && 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteItem(entry)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteItem(entry)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>

@@ -288,15 +288,15 @@ const RegistrationTable = ({
                 <TableCell>{app.owner.name}</TableCell>
                  {!isPendingTable && <TableCell>{(app.rigs || []).filter(r => r.status === 'Active').length} / {(app.rigs || []).length}</TableCell>}
                 <TableCell><Badge variant={app.status === 'Active' ? 'default' : 'secondary'}>{app.status}</Badge></TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center">
+                <TableCell className="text-center p-2">
+                  <div className="flex flex-col items-center justify-center gap-1">
                     <Tooltip>
-                      <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => onView(app.id!)}><Eye className="h-4 w-4" /></Button></TooltipTrigger>
+                      <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onView(app.id!)}><Eye className="h-4 w-4" /></Button></TooltipTrigger>
                       <TooltipContent><p>View / Edit Details</p></TooltipContent>
                     </Tooltip>
                     {canDelete && (
                       <Tooltip>
-                        <TooltipTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => onDelete(app.id!)}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger>
+                        <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/90" onClick={() => onDelete(app.id!)}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger>
                         <TooltipContent><p>Delete Application</p></TooltipContent>
                       </Tooltip>
                     )}

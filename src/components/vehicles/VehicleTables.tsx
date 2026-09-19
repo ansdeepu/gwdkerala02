@@ -254,7 +254,7 @@ export function DepartmentVehicleTable({ data, onEdit, onDelete, canEdit, onView
                         <TableHead className="p-2 text-sm">Insurance</TableHead>
                         <TableHead className="p-2 text-sm">Pollution</TableHead>
                         <TableHead className="p-2 text-sm">Fuel Test</TableHead>
-                        {canEdit && <TableHead className="text-right p-2 text-sm">Actions</TableHead>}
+                        {canEdit && <TableHead className="text-center p-2 text-sm w-[60px]">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,17 +279,17 @@ export function DepartmentVehicleTable({ data, onEdit, onDelete, canEdit, onView
                             <TableCell className="p-2 text-sm">{formatDateSafe(v.pollutionExpiry)}</TableCell>
                             <TableCell className="p-2 text-sm">{formatDateSafe(v.fuelTestExpiry)}</TableCell>
                             {canEdit && (
-                                <TableCell className="text-right p-1">
-                                    <div className="flex justify-end gap-1">
+                                <TableCell className="text-center p-2">
+                                    <div className="flex flex-col items-center justify-center gap-1">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => onEdit(v)}><Pencil className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(v)}><Pencil className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Edit</p></TooltipContent>
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete(v)}><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setItemToDelete(v)}><Trash2 className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Delete</p></TooltipContent>
                                         </Tooltip>
@@ -331,7 +331,7 @@ export function HiredVehicleTable({ data, onEdit, onDelete, canEdit, onView }: H
                         <TableHead className="p-2 text-sm">Insurance</TableHead>
                         <TableHead className="p-2 text-sm">Pollution</TableHead>
                         <TableHead className="p-2 text-sm">Permit</TableHead>
-                        {canEdit && <TableHead className="text-right p-2 text-sm">Actions</TableHead>}
+                        {canEdit && <TableHead className="text-center p-2 text-sm w-[60px]">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -356,17 +356,17 @@ export function HiredVehicleTable({ data, onEdit, onDelete, canEdit, onView }: H
                             <TableCell className="p-2 text-sm">{formatDateSafe(v.pollutionExpiry)}</TableCell>
                             <TableCell className="p-2 text-sm">{formatDateSafe(v.permitExpiry)}</TableCell>
                              {canEdit && (
-                                <TableCell className="text-right p-1">
-                                    <div className="flex justify-end gap-1">
+                                <TableCell className="text-center p-2">
+                                    <div className="flex flex-col items-center justify-center gap-1">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => onEdit(v)}><Pencil className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(v)}><Pencil className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Edit</p></TooltipContent>
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete(v)}><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setItemToDelete(v)}><Trash2 className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Delete</p></TooltipContent>
                                         </Tooltip>
@@ -405,7 +405,7 @@ export function RigCompressorTable({ data, onEdit, onDelete, canEdit, onView }: 
                         <TableHead className="p-2 text-sm whitespace-normal">Compressor Vehicle Reg. No</TableHead>
                         <TableHead className="p-2 text-sm whitespace-normal">Supporting Vehicle Reg. No</TableHead>
                         <TableHead className="p-2 text-sm whitespace-normal">Compressor Details</TableHead>
-                        {canEdit && <TableHead className="text-right p-2 text-sm whitespace-normal">Actions</TableHead>}
+                        {canEdit && <TableHead className="text-center p-2 text-sm whitespace-normal w-[60px]">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -422,17 +422,17 @@ export function RigCompressorTable({ data, onEdit, onDelete, canEdit, onView }: 
                             <TableCell className="p-2 text-sm">{u.supportingVehicleRegNo || '-'}</TableCell>
                             <TableCell className="p-2 text-sm">{u.compressorDetails || '-'}</TableCell>
                             {canEdit && (
-                                <TableCell className="text-right p-1">
-                                    <div className="flex justify-end gap-1">
+                                <TableCell className="text-center p-2">
+                                    <div className="flex flex-col items-center justify-center gap-1">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => onEdit(u)}><Pencil className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(u)}><Pencil className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Edit</p></TooltipContent>
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete(u)}><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setItemToDelete(u)}><Trash2 className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Delete</p></TooltipContent>
                                         </Tooltip>
@@ -468,7 +468,7 @@ export function EngagedRigTable({ data, onEdit, onDelete, canEdit, onView }: Rig
                         <TableHead className="p-2 text-sm w-[80px]">Sl. No</TableHead>
                         <TableHead className="p-2 text-sm">Office</TableHead>
                         <TableHead className="p-2 text-sm">Type of Rig</TableHead>
-                        {canEdit && <TableHead className="text-right p-2 text-sm">Actions</TableHead>}
+                        {canEdit && <TableHead className="text-center p-2 text-sm w-[60px]">Actions</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -482,17 +482,17 @@ export function EngagedRigTable({ data, onEdit, onDelete, canEdit, onView }: Rig
                                 </button>
                             </TableCell>
                             {canEdit && (
-                                <TableCell className="text-right p-1">
-                                    <div className="flex justify-end gap-1">
+                                <TableCell className="text-center p-2">
+                                    <div className="flex flex-col items-center justify-center gap-1">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => onEdit(u)}><Pencil className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(u)}><Pencil className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>View / Edit</p></TooltipContent>
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete(u)}><Trash2 className="h-4 w-4"/></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setItemToDelete(u)}><Trash2 className="h-4 w-4"/></Button>
                                             </TooltipTrigger>
                                             <TooltipContent><p>Delete</p></TooltipContent>
                                         </Tooltip>

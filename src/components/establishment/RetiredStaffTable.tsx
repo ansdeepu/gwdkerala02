@@ -109,7 +109,7 @@ export default function RetiredStaffTable({
               <TableHead className="px-2 py-2 text-left">PEN</TableHead>
               <TableHead className="px-2 py-2 text-left text-xs">Period of Service (From)</TableHead>
               <TableHead className="px-2 py-2 text-left text-xs">Period of Service (To)</TableHead>
-              <TableHead className="text-center w-[100px] px-2 py-2">Actions</TableHead>
+              <TableHead className="text-center w-[60px] px-2 py-2">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -162,10 +162,10 @@ export default function RetiredStaffTable({
                     {serviceEnd || 'N/A'}
                 </TableCell>
                 <TableCell className="text-center px-2 py-2">
-                   <div className="flex items-center justify-center space-x-0.5">
+                   <div className="flex flex-col items-center justify-center gap-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => onEdit && onEdit(staff)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit && onEdit(staff)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
@@ -177,7 +177,7 @@ export default function RetiredStaffTable({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
                                     <FileArchive className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>

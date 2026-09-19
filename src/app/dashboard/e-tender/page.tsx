@@ -1662,7 +1662,7 @@ export default function ETenderListPage() {
                                                         </>
                                                     )}
                                                     <TableCell className={cn("text-center align-top py-2", activeTab === 'selection' ? "px-1 w-[4%]" : (activeTab === 'workOrder' || activeTab === 'supplyOrder') ? "px-2 w-[4%]" : "px-3")}>
-                                                        <div className="flex items-center justify-center space-x-1">
+                                                        <div className="flex flex-col items-center justify-center gap-1">
                                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewAndEdit(tender.id)} title={canEdit ? "View / Edit" : "View Details"}><Eye className="h-3.5 w-3.5" /></Button>
                                                             {canEdit && (
                                                                 <>

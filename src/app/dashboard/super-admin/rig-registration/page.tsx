@@ -87,9 +87,9 @@ const RegistrationTable = ({
                           <TableCell>{app.owner.name}</TableCell>
                           <TableCell>{(app.rigs || []).filter(r => r.status === 'Active').length} / {(app.rigs || []).length}</TableCell>
                           <TableCell><Badge variant={app.status === 'Active' ? 'default' : 'secondary'}>{app.status}</Badge></TableCell>
-                          <TableCell className="text-center">
-                              <div className="flex items-center justify-center">
-                                  <Button variant="ghost" size="icon" onClick={() => onView(app.id!)}><Eye className="h-4 w-4" /></Button>
+                          <TableCell className="text-center p-2">
+                              <div className="flex flex-col items-center justify-center gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onView(app.id!)}><Eye className="h-4 w-4" /></Button>
                               </div>
                           </TableCell>
                       </TableRow>

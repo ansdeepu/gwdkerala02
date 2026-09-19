@@ -285,7 +285,7 @@ export default function VacancyTable({ canManage, user }: VacancyTableProps) {
                             <TableHead className="text-center">Current Strength</TableHead>
                             <TableHead className="text-center">Vacancy</TableHead>
                             <TableHead className="text-center">Status</TableHead>
-                            {canManage && <TableHead className="text-right">Actions</TableHead>}
+                            {canManage && <TableHead className="text-center w-[60px]">Actions</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -309,10 +309,12 @@ export default function VacancyTable({ canManage, user }: VacancyTableProps) {
                                     </Badge>
                                 </TableCell>
                                 {canManage && (
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(row.designation, row.sanctioned)}>
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
+                                    <TableCell className="text-center p-2">
+                                        <div className="flex flex-col items-center justify-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(row.designation, row.sanctioned)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 )}
                             </TableRow>

@@ -290,7 +290,7 @@ export default function FileDatabaseTable({
               ) : (
                 <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileStatus')}>File Status {getSortIcon('fileStatus')}</Button></TableHead>
               )}
-              <TableHead className="text-center w-[15%] px-2 py-3 text-sm">Actions</TableHead>
+              <TableHead className="text-center w-[80px] px-2 py-3 text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
             <TableBody>
@@ -346,19 +346,19 @@ export default function FileDatabaseTable({
                   ) : (
                     <TableCell className="font-semibold w-[10%] px-2 py-2 text-sm">{entry.fileStatus}</TableCell>
                   )}
-                  <TableCell className="text-right w-[15%] px-2 py-2">
-                      <div className="flex items-center justify-end space-x-1">
+                  <TableCell className="text-center p-2">
+                      <div className="flex flex-col items-center justify-center gap-1">
                         <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleViewClick(entry)}><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(entry)}><Eye className="h-4 w-4" /></Button>
                         </TooltipTrigger><TooltipContent><p>View Details</p></TooltipContent></Tooltip></TooltipProvider>
                         {canCopy && (
                             <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
                             </TooltipTrigger><TooltipContent><p>Move or Copy File</p></TooltipContent></Tooltip></TooltipProvider>
                         )}
                         {canDelete && (
                             <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => setDeleteItem(entry)} disabled={isDeleting}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/90" onClick={() => setDeleteItem(entry)} disabled={isDeleting}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger><TooltipContent><p>Delete File</p></TooltipContent></Tooltip></TooltipProvider>

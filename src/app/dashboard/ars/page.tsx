@@ -703,7 +703,7 @@ export default function ArsPage() {
                                 <TableHead className="w-[15%] text-sm px-2"><Button variant="ghost" className="p-0 hover:bg-transparent text-sm w-full justify-start font-bold" onClick={() => requestSort('localSelfGovt')}>LSG {getSortIcon('localSelfGovt')}</Button></TableHead>
                                 <TableHead className="w-[13%] text-sm px-2"><Button variant="ghost" className="p-0 hover:bg-transparent text-sm w-full justify-start font-bold" onClick={() => requestSort('arsStatus')}>Status {getSortIcon('arsStatus')}</Button></TableHead>
                                 <TableHead className="w-[10%] text-sm px-2"><Button variant="ghost" className="p-0 hover:bg-transparent text-sm w-full justify-start font-bold" onClick={() => requestSort('dateOfCompletion')}>Date {getSortIcon('dateOfCompletion')}</Button></TableHead>
-                                <TableHead className="text-center w-[5%] text-sm px-2">Act</TableHead>
+                                <TableHead className="text-center w-[60px] text-sm px-2">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -735,7 +735,7 @@ export default function ArsPage() {
                                             <TableCell className="px-2">{site.arsStatus ?? 'N/A'}</TableCell>
                                             <TableCell className="px-2">{formatDateSafe(site.dateOfCompletion)}</TableCell>
                                             <TableCell className="px-2 text-center">
-                                                <div className="flex items-center justify-center">
+                                                <div className="flex flex-col items-center justify-center gap-1">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(site.id!)}>
