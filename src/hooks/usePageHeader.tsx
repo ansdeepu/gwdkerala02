@@ -16,8 +16,10 @@ export function PageHeaderProvider({ children }: { children: ReactNode }) {
   const [description, setDescription] = useState("");
 
   const setHeader = useCallback((newTitle: string, newDescription: string) => {
-    setTitle(prev => prev !== newTitle ? newTitle : prev);
-    setDescription(prev => prev !== newDescription ? newDescription : prev);
+    queueMicrotask(() => {
+      setTitle(prev => prev !== newTitle ? newTitle : prev);
+      setDescription(prev => prev !== newDescription ? newDescription : prev);
+    });
   }, []);
 
   return (

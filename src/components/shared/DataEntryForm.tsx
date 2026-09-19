@@ -1045,6 +1045,7 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
 };
 
 export default function DataEntryFormComponent({ fileNoToEdit, initialData, supervisorList, userRole, workTypeContext, returnPath, pageToReturnTo, isFormDisabled = false, formOptions = [] }: DataEntryFormProps) {
+  const isDeferredFunding = workTypeContext === 'planFund' || workTypeContext === 'collector';
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1621,12 +1622,12 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
       setValue("totalPaymentAllEntries", totalPayment, { shouldDirty: false });
     }
 
-    const overallBal = totalRemittance + totalReappCredit - totalPayment - totalReappDebit;
+    const overallBal = isDeferredFunding ? 0 : (totalRemittance + totalReappCredit - totalPayment - totalReappDebit);
     if (getValues("overallBalance") !== overallBal) {
       setValue("overallBalance", overallBal, { shouldDirty: false });
     }
     
-  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, getValues]);
+  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, getValues, isDeferredFunding]);
 
   // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist or when status reconciliation triggers
   useEffect(() => {
@@ -1927,7 +1928,6 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
       (status) => !["Pending", "VES Pending", "Completed", "Under Process"].includes(status)
     );
 
-  const isDeferredFunding = workTypeContext === 'planFund' || workTypeContext === 'collector';
   const remittanceTitle = isDeferredFunding ? "2. Administrative Sanction" : "2. Remittance Details";
   const totalRemittanceWatched = watch('totalRemittance');
   const totalReappropriationCreditWatched = watch('totalReappropriationCredit');
@@ -2048,7 +2048,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                   </TableCell>
                   <TableCell className="text-xs max-w-[200px] break-words">{item.remittanceRemarks || '-'}</TableCell>
                   {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('remittance', { index, ...item }, false)}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'remittance', index})} disabled={isSupervisor || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
-              </TableRow>)) : <TableRow><TableCell colSpan={6} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={isEditor && !isFormDisabled ? 5 : 4} className="text-right font-bold">Total Remittance</TableCell><TableCell className="font-bold text-right">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell></TableRow></TableFooterComponent></Table></CardContent></Card>
+              </TableRow>)) : <TableRow><TableCell colSpan={6} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={isEditor && !isFormDisabled ? 5 : 4} className="text-right font-bold">{isDeferredFunding ? "Total Administrative Sanction" : "Total Remittance"}</TableCell><TableCell className="font-bold text-right">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell></TableRow></TableFooterComponent></Table></CardContent></Card>
             
             {showReappropriation && (
                 <Accordion type="single" collapsible className="w-full" value={reappAccordionValue} onValueChange={setReappAccordionValue}><AccordionItem value="reappropriation-details" className="border-b-0"><Card><div className="flex items-center justify-between border-b"><div className="flex-1"><AccordionTrigger className="w-full p-6 hover:no-underline [&[data-state=open]]:border-b-0"><CardTitle className="text-xl">3. Re-appropriation Details</CardTitle></AccordionTrigger></div><div className="flex items-center gap-2 pr-6 z-10 shrink-0"><Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setIsReappInfoOpen(true); }}><Info className="h-4 w-4 mr-2" />Info</Button>{isEditor && !isFormDisabled && (<Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('reappropriation', createDefaultReappropriationDetail()); }} disabled={isSupervisor || isViewer}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>)}</div></div><AccordionContent><CardContent className="pt-6"><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type of Page</TableHead><TableHead>File No</TableHead><TableHead>File Details</TableHead><TableHead className="text-right">AS Received (₹)</TableHead><TableHead className="text-right">AS Given (₹)</TableHead><TableHead className="text-right">Expenditure (₹)</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedCombinedReappropriations.length > 0 ? sortedCombinedReappropriations.map((item, index) => {
@@ -2345,15 +2345,17 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
                             <h3 className="font-semibold text-lg text-primary">Financial Summary</h3>
                             <dl className="space-y-2">
-                                <div className="flex justify-between items-baseline"><dt>Total Remittance</dt><dd className="font-mono">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                <div className="flex justify-between items-baseline"><dt>{isDeferredFunding ? "Administrative Sanction (AS) Amount" : "Total Remittance"}</dt><dd className="font-mono">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                                 {showReappropriation && (
                                     <div className="flex justify-between items-baseline text-green-600 font-semibold"><dt>Total Re-appropriation credit</dt><dd className="font-mono font-bold">₹{(totalReappropriationCreditWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</dd></div>
                                 )}
-                                <div className="flex justify-between items-baseline"><dt>Total Payment</dt><dd className="font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                <div className="flex justify-between items-baseline"><dt>{isDeferredFunding ? "Total Expenditure" : "Total Payment"}</dt><dd className="font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                                 {showReappropriation && (
                                     <div className="flex justify-between items-baseline text-red-600 font-semibold"><dt>Total Re-appropriation debit</dt><dd className="font-mono font-bold">₹{(totalReappropriationWatched || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
                                 )}
-                                <Separator /><div className="flex justify-between items-baseline font-bold"><dt>Overall Balance</dt><dd className="font-mono text-xl">₹{(watch('overallBalance') || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div>
+                                {!isDeferredFunding && (
+                                    <><Separator /><div className="flex justify-between items-baseline font-bold"><dt>Overall Balance</dt><dd className="font-mono text-xl">₹{(watch('overallBalance') || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</dd></div></>
+                                )}
                             </dl>
                         </div>
                         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
