@@ -97,7 +97,7 @@ const COMPLETED_WORK_STATUSES: string[] = ["Work Completed", "Bill Prepared", "P
 export default function SuperAdminDashboardPage() {
   const { setHeader } = usePageHeader();
   useEffect(() => {
-    setHeader('Super Admin Dashboard', 'High-level overview of all departmental activities and key metrics.');
+    setHeader('Super Admin Dashboard', 'Executive overview & key metrics');
   }, [setHeader]);
 
   const { 

@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ScrollArea } from "../ui/scroll-area";
 import MediaManager from '@/components/shared/MediaManager';
 import { Separator } from '@/components/ui/separator';
+import { GpsCoordinateCapture } from '@/components/shared/GpsCoordinateCapture';
 
 const formatDateForInput = (date: any): string => {
     if (!date) return '';
@@ -270,8 +271,11 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                             <FormMessage/>
                                         </FormItem>
                                     )} />
-                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('latitude')} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldDisabled('longitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <GpsCoordinateCapture
+                                        control={control}
+                                        setValue={setValue}
+                                        isReadOnly={isFieldDisabled('latitude')}
+                                    />
                                 </CardContent>
                             </Card>
 

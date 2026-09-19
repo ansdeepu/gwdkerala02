@@ -105,7 +105,7 @@ export default function DashboardPage() {
   const [constituencyDates, setConstituencyDates] = useState<{ start?: Date, end?: Date }>({});
 
   useEffect(() => {
-    setHeader('Dashboard', 'A high-level executive overview of all departmental activities and key metrics.');
+    setHeader('Dashboard', 'Executive overview & key metrics');
     if (currentUser?.uid) {
         updateUserLastActive(currentUser.uid, currentUser.officeLocation);
     }

@@ -56,14 +56,21 @@ function HeaderContent({ user, onSearchClick }: { user: UserProfile | null; onSe
         
         <div className="flex flex-col min-w-0">
           <h1 className="text-xl font-bold tracking-tight truncate leading-tight">{title}</h1>
-          {description && <p className="text-[10px] text-muted-foreground truncate hidden lg:block">{description}</p>}
+          {description && (
+            <p 
+              className="text-xs text-muted-foreground truncate hidden lg:block"
+              title={description}
+            >
+              {description}
+            </p>
+          )}
         </div>
       </div>
 
       <button
         type="button"
         onClick={onSearchClick}
-        className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/70 text-xs text-muted-foreground hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-foreground transition-all cursor-pointer shadow-xs max-w-xs md:max-w-sm lg:w-72 shrink-0"
+        className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/70 text-xs text-muted-foreground hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:text-foreground transition-all cursor-pointer shadow-xs max-w-xs md:max-w-sm lg:w-60 xl:w-72 shrink-0"
       >
         <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         <span className="truncate flex-1 text-left">Search File No, Applicant, Rig, Challan...</span>

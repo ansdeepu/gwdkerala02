@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import MediaManager from '@/components/shared/MediaManager';
 import { useFieldArray } from 'react-hook-form';
 import { Separator } from '@/components/ui/separator';
+import { GpsCoordinateCapture } from '@/components/shared/GpsCoordinateCapture';
 
 
 
@@ -295,8 +296,11 @@ export default function ArsEntryPage() {
                         <FormField name="localSelfGovt" control={control} render={({ field }) => ( <FormItem><FormLabel>Local Self Govt.</FormLabel><Select key={field.value} onValueChange={field.onChange} value={field.value ?? undefined} disabled={isReadOnly}><FormControl><SelectTrigger><SelectValue placeholder="Select LSG"/></SelectTrigger></FormControl><SelectContent className="max-h-80">{sortedLsgMaps.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem> )}/>
                         <FormField name="constituency" control={control} render={({ field }) => ( <FormItem><FormLabel>Constituency (LAC)</FormLabel><Select key={field.value} onValueChange={field.onChange} value={field.value ?? undefined} disabled={isConstituencyDisabled}><FormControl><SelectTrigger><SelectValue placeholder={constituencyPlaceholder}/></SelectTrigger></FormControl><SelectContent className="max-h-80">{constituencyOptionsForLsg.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem> )}/>
                         <FormField name="arsBlock" control={control} render={({ field }) => ( <FormItem><FormLabel>Block</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="latitude" control={control} render={({ field }) => ( <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isReadOnly} /></FormControl><FormMessage/></FormItem> )}/>
-                        <FormField name="longitude" control={control} render={({ field }) => ( <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isReadOnly} /></FormControl><FormMessage/></FormItem> )}/>
+                        <GpsCoordinateCapture
+                            control={control}
+                            setValue={setValue}
+                            isReadOnly={isReadOnly}
+                        />
                     </CardContent>
                 </Card>
 
