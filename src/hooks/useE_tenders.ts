@@ -174,7 +174,7 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
 
                         if (isTargetedSite || isCurrentlyLinkedToThisTender || isStaleTenderStatus) {
                             if (!["Work Completed", "Work Failed", "Work Cancelled", "Refund Pending", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
-                                const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, []) || "Under Process";
+                                const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, [], entryData.workTypeContext || entryData.typeOfApplication) || "Under Process";
                                 if (newSite.workStatus !== computedStatus) {
                                     newSite.workStatus = computedStatus;
                                     changed = true;
@@ -190,7 +190,7 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                         changed = true;
 
                         if (!["Work Completed", "Work Failed", "Work Cancelled", "Refund Pending", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
-                            const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, []) || "Under Process";
+                            const computedStatus = getResolvedWorkStatus(newSite, entryFileNo, idx, [], entryData.workTypeContext || entryData.typeOfApplication) || "Under Process";
                             if (newSite.workStatus !== computedStatus) {
                                 newSite.workStatus = computedStatus;
                                 changed = true;

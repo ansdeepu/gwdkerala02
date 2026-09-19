@@ -666,6 +666,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         }
 
         // 4. Financial & TS Readiness
+        // TS Pending - Only when explicitly toggled ON as Awaiting TS (and TS Amount is zero or not yet sanctioned)
+        const ts = Number(watchedTsAmount) || 0;
+        if (watchedIsAwaitingTS && (!ts || ts === 0)) {
+            setValue('workStatus', 'TS Pending');
+            return;
+        }
+
         // Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
         const est = Number(watchedEstimateAmount) || 0;
         const siteRem = (watchedRemittedAmount !== undefined && watchedRemittedAmount !== null && watchedRemittedAmount !== '') 
@@ -673,15 +680,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             : null;
         const rem = (siteRem !== null && !isNaN(siteRem)) ? siteRem : (totalRemittedAmount || 0);
 
-        if (workTypeContext !== 'planFund' && est > 0 && est > rem) {
+        const isDeferredFunding = workTypeContext === 'planFund' || workTypeContext === 'collector';
+        if (!isDeferredFunding && est > 0 && est > rem) {
             setValue('workStatus', 'Additional Fund Awaited');
-            return;
-        }
-
-        // TS Pending - Only when explicitly toggled ON as Awaiting TS (and TS Amount is zero or not yet sanctioned)
-        const ts = Number(watchedTsAmount) || 0;
-        if (watchedIsAwaitingTS && (!ts || ts === 0)) {
-            setValue('workStatus', 'TS Pending');
             return;
         }
 

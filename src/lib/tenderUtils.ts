@@ -55,7 +55,8 @@ export const getResolvedWorkStatus = (
     site: any,
     fileNo: string | undefined,
     idx: number,
-    tenders: E_tender[]
+    tenders: E_tender[],
+    workTypeContext?: string
 ): string | null => {
     if (!site) return null;
 
@@ -119,17 +120,19 @@ export const getResolvedWorkStatus = (
         return "Department Rig Allotted";
     }
 
-    // 5. Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
-    const est = Number(site.estimateAmount) || 0;
-    const rem = Number(site.remittedAmount) || 0;
-    if (est > 0 && est > rem) {
-        return "Additional Fund Awaited";
-    }
-
-    // 6. TS Pending - Only when site is explicitly marked as awaiting TS
+    // 5. TS Pending - Only when site is explicitly marked as awaiting TS
     const tsAmt = Number(site.tsAmount) || 0;
     if (site.isAwaitingTS && (!tsAmt || tsAmt === 0)) {
         return "TS Pending";
+    }
+
+    // 6. Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
+    const context = workTypeContext || site.workTypeContext;
+    const isDeferredFunding = context === 'planFund' || context === 'collector';
+    const est = Number(site.estimateAmount) || 0;
+    const rem = Number(site.remittedAmount) || 0;
+    if (!isDeferredFunding && est > 0 && est > rem) {
+        return "Additional Fund Awaited";
     }
 
     // 7. Baseline State - Under Process

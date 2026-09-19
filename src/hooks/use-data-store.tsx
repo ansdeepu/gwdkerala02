@@ -443,7 +443,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders);
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, entry.workTypeContext || entry.typeOfApplication);
                 if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
                     entryModified = true;
                     return { ...currentSite, workStatus: resolvedStatus };
@@ -556,7 +556,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders);
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, entry.workTypeContext || entry.typeOfApplication);
                 if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
                     needsDbUpdate = true;
                     return { ...currentSite, workStatus: resolvedStatus };

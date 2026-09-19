@@ -1331,7 +1331,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         }
       }
 
-      const resolved = getResolvedWorkStatus(currentSite, currentFileNo, idx, allE_tenders);
+      const resolved = getResolvedWorkStatus(currentSite, currentFileNo, idx, allE_tenders, workTypeContext);
       if (resolved && resolved !== currentSite.workStatus) {
         currentSite.workStatus = resolved as any;
         changed = true;

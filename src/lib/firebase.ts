@@ -1,7 +1,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 // These environment variables need to be set in your .env file.
@@ -24,9 +24,17 @@ if (!getApps().length) {
     app = getApp();
 }
 
-// Initialize Firestore
+// Initialize Firestore with offline persistence cache
 let db: Firestore;
-db = getFirestore(app);
+try {
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        })
+    });
+} catch (e) {
+    db = getFirestore(app);
+}
 
 
 // Initialize Auth with explicit local persistence
@@ -40,3 +48,4 @@ if (typeof window !== 'undefined') {
 const storage: FirebaseStorage = getStorage(app);
 
 export { app, auth, db, storage /*, analytics */ };
+

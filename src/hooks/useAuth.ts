@@ -201,10 +201,40 @@ export function useAuth() {
             }
         }
       } catch (error: any) {
-        console.error('[Auth] Error fetching user profile:', error);
+        console.warn('[Auth] Error fetching user profile, using offline fallback:', error);
         if (isMounted) {
-            // Keep current auth state but mark as not loading
-            setAuthState(prev => ({ ...prev, isLoading: false, isAuthenticating: false }));
+            let fallbackProfile: UserProfile | null = null;
+            try {
+                const cached = localStorage.getItem(`cached_user_profile_${firebaseUser.uid}`);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    fallbackProfile = {
+                        ...parsed,
+                        createdAt: parsed.createdAt ? new Date(parsed.createdAt) : new Date(),
+                        lastActiveAt: parsed.lastActiveAt ? new Date(parsed.lastActiveAt) : undefined,
+                    };
+                }
+            } catch (e) {}
+
+            if (!fallbackProfile) {
+                const isAdmin = firebaseUser.email?.toLowerCase() === (SUPER_ADMIN_EMAIL || '').toLowerCase();
+                fallbackProfile = {
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    name: firebaseUser.email?.split('@')[0] || 'User',
+                    role: isAdmin ? 'superAdmin' : 'viewer',
+                    isApproved: true,
+                    createdAt: new Date(),
+                };
+            }
+
+            setAuthState({ 
+                isAuthenticated: true, 
+                isLoading: false, 
+                isAuthenticating: false, 
+                user: fallbackProfile, 
+                firebaseUser 
+            });
         }
       }
     });
