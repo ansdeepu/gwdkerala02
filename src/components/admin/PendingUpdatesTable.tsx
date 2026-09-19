@@ -50,8 +50,8 @@ export const UpdateTable = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="w-full overflow-x-auto">
-          <Table className="min-w-[800px]">
+        <div className="w-full overflow-x-hidden">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60px]">Sl. No.</TableHead>

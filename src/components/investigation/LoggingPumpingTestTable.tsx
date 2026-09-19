@@ -58,7 +58,7 @@ interface LoggingPumpingTestTableProps {
   currentPage?: number;
 }
 
-type SortKey = keyof DataEntryFormData | 'firstRemittanceDate' | 'financialBalance';
+type SortKey = keyof DataEntryFormData | 'firstRemittanceDate';
 
 export default function LoggingPumpingTestTable({ fileEntries, isLoading, searchActive, totalEntries, activeTab, currentPage = 1 }: LoggingPumpingTestTableProps) {
   const router = useRouter();
@@ -76,37 +76,6 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
 
   const canDelete = user?.role === 'admin';
   const canCopy = user?.role === 'admin';
-
-  // Helper for net balance
-  const getEntryFinancials = useCallback((entry: DataEntryFormData) => {
-    const rem = (entry.remittanceDetails || []).reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0);
-    const pay = (entry.paymentDetails || []).reduce((sum, p) => sum + (Number(p.totalPaymentPerEntry) || 0), 0);
-    
-    const reapDebit = (entry.reappropriationDetails || []).reduce((sum, r) => {
-      const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
-      return sum + val;
-    }, 0);
-    
-    let reapCredit = 0;
-    const normalizedFileNo = entry.fileNo?.toLowerCase().trim();
-    if (normalizedFileNo && allFileEntries) {
-      allFileEntries.forEach(other => {
-        if (other.fileNo?.toLowerCase().trim() === normalizedFileNo) return;
-        other.reappropriationDetails?.forEach(r => {
-          if (r.refFileNo?.toLowerCase().trim() === normalizedFileNo) {
-            const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
-            reapCredit += val;
-          }
-        });
-      });
-    }
-
-    const totalCredit = rem + reapCredit;
-    const totalDebit = pay + reapDebit;
-    const balance = totalCredit - totalDebit;
-
-    return { totalCredit, totalDebit, balance };
-  }, [allFileEntries]);
 
   const getDisplayDate = useCallback((entry: DataEntryFormData): Date | null => {
     let latestDate: Date | null = null;
@@ -154,11 +123,6 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
           const dateB = getDisplayDate(b);
           aValue = dateA?.getTime() || 0;
           bValue = dateB?.getTime() || 0;
-        } else if (sortConfig.key === 'financialBalance') {
-          const finA = getEntryFinancials(a);
-          const finB = getEntryFinancials(b);
-          aValue = finA.balance;
-          bValue = finB.balance;
         }
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -166,7 +130,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
       });
     }
     return sortableItems;
-  }, [fileEntries, sortConfig, getDisplayDate, getEntryFinancials]);
+  }, [fileEntries, sortConfig, getDisplayDate]);
 
   useEffect(() => {
     if (!isLoading && lastId) {
@@ -241,16 +205,16 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
   return (
     <>
       <TooltipProvider>
-        <div className="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-md border border-border/60 shadow-2xs">
-          <Table className="min-w-[920px] relative border-collapse">
-            <TableHeader className="sticky top-0 bg-secondary z-20 shadow-xs">
+        <div className="max-h-[70vh] overflow-auto">
+          <Table>
+            <TableHeader className="sticky top-0 bg-secondary z-10">
               <TableRow>
-                <TableHead className="w-[50px] min-w-[50px]">#</TableHead>
-                <TableHead className="w-[110px] min-w-[110px]"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('fileNo')}>File No. {getSortIcon('fileNo')}</Button></TableHead>
-                <TableHead className="min-w-[160px]"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('applicantName')}>Applicant {getSortIcon('applicantName')}</Button></TableHead>
-                <TableHead className="min-w-[200px]">Site Name(s)</TableHead>
-                <TableHead className="w-[110px] min-w-[110px]"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('firstRemittanceDate')}>Remittance {getSortIcon('firstRemittanceDate')}</Button></TableHead>
-                <TableHead className="w-[120px] min-w-[120px]">
+                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('fileNo')}>File No. {getSortIcon('fileNo')}</Button></TableHead>
+                <TableHead><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('applicantName')}>Applicant {getSortIcon('applicantName')}</Button></TableHead>
+                <TableHead>Site Name(s)</TableHead>
+                <TableHead><Button variant="ghost" className="p-0 hover:bg-transparent font-bold text-left" onClick={() => requestSort('firstRemittanceDate')}>Remittance {getSortIcon('firstRemittanceDate')}</Button></TableHead>
+                <TableHead>
                   {user?.role === 'investigator' ? (
                     "Work Status"
                   ) : (
@@ -259,8 +223,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                     </Button>
                   )}
                 </TableHead>
-                <TableHead className="w-[130px] min-w-[130px] text-right"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('financialBalance')}>Financial Health {getSortIcon('financialBalance')}</Button></TableHead>
-                <TableHead className="text-center w-[130px] min-w-[130px] px-2 py-3 sticky right-0 bg-secondary z-30 shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)]">Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,9 +231,9 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                 const displayDate = getDisplayDate(entry);
                 const detailUrl = getDetailUrl(entry);
                 return (
-                <TableRow key={entry.id} id={`row-${entry.id}`} className="group transition-colors duration-150 hover:bg-muted/50">
-                  <TableCell className="text-center font-mono w-[50px] min-w-[50px]">{(currentPage - 1) * 50 + index + 1}</TableCell>
-                  <TableCell className="font-medium w-[110px] min-w-[110px]">
+                <TableRow key={entry.id} id={`row-${entry.id}`} className="transition-colors duration-1000">
+                  <TableCell className="text-center font-mono">{(currentPage - 1) * 50 + index + 1}</TableCell>
+                  <TableCell className="font-medium">
                     <Link
                         href={detailUrl}
                         className="font-mono text-sm text-primary font-bold hover:underline"
@@ -278,18 +241,18 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {entry.fileNo}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-xs min-w-[160px]">{entry.applicantName}</TableCell>
-                  <TableCell className="min-w-[200px]">
+                  <TableCell className="text-xs">{entry.applicantName}</TableCell>
+                  <TableCell>
                     {(entry.siteDetails || []).map((site, idx) => (
                       <span key={idx} className={cn("font-semibold text-xs", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                         {site.nameOfSite}{idx < entry.siteDetails!.length - 1 ? ', ' : ''}
                       </span>
                     ))}
                   </TableCell>
-                  <TableCell className="text-xs w-[110px] min-w-[110px]">
+                  <TableCell className="text-xs">
                     {displayDate ? format(displayDate, "dd/MM/yyyy") : "N/A"}
                   </TableCell>
-                  <TableCell className="font-semibold text-xs w-[120px] min-w-[120px]">
+                  <TableCell className="font-semibold text-xs">
                     {user?.role === 'investigator' ? (
                       <div className="flex flex-col gap-0.5">
                         {(entry.siteDetails || []).map((site, idx) => (
@@ -302,42 +265,11 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                       entry.fileStatus
                     )}
                   </TableCell>
-                  {(() => {
-                    const fin = getEntryFinancials(entry);
-                    return (
-                      <TableCell className="w-[130px] min-w-[130px] px-2 py-2 text-sm text-right">
-                        {fin.totalCredit === 0 && fin.totalDebit === 0 ? (
-                          <span className="text-xs text-muted-foreground font-mono">₹0</span>
-                        ) : fin.balance > 0 ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">
-                              +₹{fin.balance.toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Surplus</span>
-                          </div>
-                        ) : fin.balance === 0 ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-semibold font-mono text-blue-600 dark:text-blue-400">
-                              ₹0.00
-                            </span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Balanced</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold font-mono text-red-600 dark:text-red-400">
-                              -₹{Math.abs(fin.balance).toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-red-500 font-semibold uppercase tracking-tight">Deficit</span>
-                          </div>
-                        )}
-                      </TableCell>
-                    );
-                  })()}
-                  <TableCell className="text-right w-[130px] min-w-[130px] px-2 py-2 sticky right-0 bg-card group-hover:bg-muted/90 transition-colors shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)] z-10">
-                    <div className="flex items-center justify-end space-x-1 shrink-0">
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-1">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleViewClick(entry)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleViewClick(entry)}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -346,7 +278,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {canCopy && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
                               </TooltipTrigger>
                               <TooltipContent><p>Move or Copy File</p></TooltipContent>
                             </Tooltip>
@@ -354,7 +286,7 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {canDelete && 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive/90 hover:bg-destructive/10" onClick={() => setDeleteItem(entry)}>
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteItem(entry)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>

@@ -25,7 +25,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ScrollArea } from "../ui/scroll-area";
 import MediaManager from '@/components/shared/MediaManager';
-import { GpsLocationButton } from "@/components/shared/GpsLocationButton";
 import { Separator } from '@/components/ui/separator';
 
 const formatDateForInput = (date: any): string => {
@@ -196,23 +195,8 @@ export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, o
                                             <FormMessage/>
                                         </FormItem>
                                     )} />
-                                    <FormField name="latitude" control={control} render={({ field }) => (
-                                        <FormItem>
-                                            <div className="flex items-center justify-between">
-                                                <FormLabel>Latitude</FormLabel>
-                                                <GpsLocationButton
-                                                    disabled={isFieldReadOnly('latitude')}
-                                                    onCoordinatesObtained={(lat, lng) => {
-                                                        setValue('latitude', lat, { shouldValidate: true, shouldDirty: true });
-                                                        setValue('longitude', lng, { shouldValidate: true, shouldDirty: true });
-                                                    }}
-                                                />
-                                            </div>
-                                            <FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('latitude')} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('longitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="latitude" control={control} render={({ field }) => <FormItem><FormLabel>Latitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 8.5241" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('latitude')} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="longitude" control={control} render={({ field }) => <FormItem><FormLabel>Longitude</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g. 76.9366" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} readOnly={isFieldReadOnly('longitude')} /></FormControl><FormMessage /></FormItem>} />
                                 </CardContent>
                             </Card>
 

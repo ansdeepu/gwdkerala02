@@ -88,7 +88,7 @@ interface FileDatabaseTableProps {
   activeTab?: string;
 }
 
-type SortKey = keyof DataEntryFormData | 'firstRemittanceDate' | 'financialBalance';
+type SortKey = keyof DataEntryFormData | 'firstRemittanceDate';
 
 
 export default function FileDatabaseTable({ 
@@ -118,39 +118,6 @@ export default function FileDatabaseTable({
 
   const canDelete = !isReadOnly && user?.role === 'admin';
   const canCopy = !isReadOnly && user?.role === 'admin';
-
-  // Helper to compute net balance for a file
-  const getEntryFinancials = useCallback((entry: DataEntryFormData) => {
-    const rem = (entry.remittanceDetails || []).reduce((sum, r) => sum + (Number(r.amountRemitted) || 0), 0);
-    const pay = (entry.paymentDetails || []).reduce((sum, p) => sum + (Number(p.totalPaymentPerEntry) || 0), 0);
-    
-    // Reappropriation debit (given to other files)
-    const reapDebit = (entry.reappropriationDetails || []).reduce((sum, r) => {
-      const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
-      return sum + val;
-    }, 0);
-    
-    // Inward credit to this file from other files
-    let reapCredit = 0;
-    const normalizedFileNo = entry.fileNo?.toLowerCase().trim();
-    if (normalizedFileNo && allFileEntries) {
-      allFileEntries.forEach(other => {
-        if (other.fileNo?.toLowerCase().trim() === normalizedFileNo) return;
-        other.reappropriationDetails?.forEach(r => {
-          if (r.refFileNo?.toLowerCase().trim() === normalizedFileNo) {
-            const val = r.asGiven !== undefined && r.asGiven !== null ? Number(r.asGiven) : (Number(r.amount) || 0);
-            reapCredit += val;
-          }
-        });
-      });
-    }
-
-    const totalCredit = rem + reapCredit;
-    const totalDebit = pay + reapDebit;
-    const balance = totalCredit - totalDebit;
-
-    return { rem, pay, reapCredit, reapDebit, totalCredit, totalDebit, balance };
-  }, [allFileEntries]);
 
   // Helper to find the latest available date (Remittance or Inward Re-appropriation Credit)
   const getDisplayDate = useCallback((entry: DataEntryFormData): Date | null => {
@@ -204,11 +171,6 @@ export default function FileDatabaseTable({
           const dateB = getDisplayDate(b);
           aValue = dateA?.getTime() || 0;
           bValue = dateB?.getTime() || 0;
-        } else if (sortConfig.key === 'financialBalance') {
-          const finA = getEntryFinancials(a);
-          const finB = getEntryFinancials(b);
-          aValue = finA.balance;
-          bValue = finB.balance;
         }
         
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -217,7 +179,7 @@ export default function FileDatabaseTable({
       });
     }
     return sortableItems;
-  }, [fileEntries, sortConfig, getDisplayDate, getEntryFinancials]);
+  }, [fileEntries, sortConfig, getDisplayDate]);
 
   useEffect(() => {
     if (!isLoading && lastId) {
@@ -313,23 +275,22 @@ export default function FileDatabaseTable({
 
   return (
     <>
-      <div className="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-md border border-border/60 shadow-2xs">
-        <Table className="min-w-[920px] relative border-collapse">
-          <TableHeader className="sticky top-0 bg-secondary z-20 shadow-xs">
+      <div className="max-h-[70vh] overflow-y-auto overflow-x-hidden">
+        <Table>
+          <TableHeader className="sticky top-0 bg-secondary z-10">
             <TableRow>
-              <TableHead className="w-[50px] min-w-[50px] px-2 py-3 text-sm">Sl. No.</TableHead>
-              <TableHead className="w-[110px] min-w-[110px] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileNo')}>File No. {getSortIcon('fileNo')}</Button></TableHead>
-              <TableHead className="min-w-[160px] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('applicantName')}>Applicant Name {getSortIcon('applicantName')}</Button></TableHead>
-              <TableHead className="min-w-[200px] px-2 py-3 text-sm">Site Name(s)</TableHead>
-              <TableHead className="min-w-[100px] px-2 py-3 text-sm">Purpose(s)</TableHead>
-              <TableHead className="w-[110px] min-w-[110px] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('firstRemittanceDate')}>Remittance {getSortIcon('firstRemittanceDate')}</Button></TableHead>
+              <TableHead className="w-[50px] px-2 py-3 text-sm">Sl. No.</TableHead>
+              <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileNo')}>File No. {getSortIcon('fileNo')}</Button></TableHead>
+              <TableHead className="w-[15%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('applicantName')}>Applicant Name {getSortIcon('applicantName')}</Button></TableHead>
+              <TableHead className="w-[25%] px-2 py-3 text-sm">Site Name(s)</TableHead>
+              <TableHead className="w-[10%] px-2 py-3 text-sm">Purpose(s)</TableHead>
+              <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('firstRemittanceDate')}>Remittance {getSortIcon('firstRemittanceDate')}</Button></TableHead>
               {userRole === 'supervisor' || userRole === 'investigator' ? (
-                <TableHead className="w-[120px] min-w-[120px] px-2 py-3 text-sm">Work Status</TableHead>
+                <TableHead className="w-[10%] px-2 py-3 text-sm">Work Status</TableHead>
               ) : (
-                <TableHead className="w-[120px] min-w-[120px] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileStatus')}>File Status {getSortIcon('fileStatus')}</Button></TableHead>
+                <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileStatus')}>File Status {getSortIcon('fileStatus')}</Button></TableHead>
               )}
-              <TableHead className="w-[130px] min-w-[130px] px-2 py-3 text-sm text-right"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('financialBalance')}>Financial Health {getSortIcon('financialBalance')}</Button></TableHead>
-              <TableHead className="text-center w-[125px] min-w-[125px] px-2 py-3 text-sm sticky right-0 bg-secondary z-30 shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)]">Actions</TableHead>
+              <TableHead className="text-center w-[15%] px-2 py-3 text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
             <TableBody>
@@ -346,9 +307,9 @@ export default function FileDatabaseTable({
                 const detailUrl = getDetailUrl(entry);
 
                 return (
-                <TableRow key={entry.id} id={`row-${entry.id}`} className="group transition-colors duration-150 hover:bg-muted/50">
-                  <TableCell className="w-[50px] min-w-[50px] px-2 py-2 text-sm text-center font-mono">{(currentPage - 1) * 50 + index + 1}</TableCell>
-                  <TableCell className="w-[110px] min-w-[110px] px-2 py-2 text-sm">
+                <TableRow key={entry.id} id={`row-${entry.id}`} className="transition-colors duration-1000">
+                  <TableCell className="w-[50px] px-2 py-2 text-sm text-center font-mono">{(currentPage - 1) * 50 + index + 1}</TableCell>
+                  <TableCell className="w-[10%] px-2 py-2 text-sm">
                     <Link
                         href={detailUrl}
                         className="font-mono text-sm text-primary font-bold hover:underline"
@@ -356,26 +317,26 @@ export default function FileDatabaseTable({
                         {entry.fileNo}
                     </Link>
                   </TableCell>
-                  <TableCell className="min-w-[160px] px-2 py-2 text-sm">{entry.applicantName}</TableCell>
-                  <TableCell className="min-w-[200px] px-2 py-2 text-sm">
+                  <TableCell className="w-[15%] px-2 py-2 text-sm">{entry.applicantName}</TableCell>
+                  <TableCell className="w-[25%] px-2 py-2 text-sm">
                     {sitesToDisplay.length > 0 ? sitesToDisplay.map((site, idx) => (
                       <span key={idx} className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                         {site.nameOfSite}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
                       </span>
                     )) : <span className="text-muted-foreground italic">No assigned sites for this file.</span>}
                   </TableCell>
-                  <TableCell className="min-w-[100px] px-2 py-2 text-sm">
+                  <TableCell className="w-[10%] px-2 py-2 text-sm">
                     {sitesToDisplay.map((site, idx) => (
                       <span key={idx} className={cn(getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                           {site.purpose || 'N/A'}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
                       </span>
                     ))}
                   </TableCell>
-                  <TableCell className="w-[110px] min-w-[110px] px-2 py-2 text-sm">
+                  <TableCell className="w-[10%] px-2 py-2 text-sm">
                     {displayDate ? format(displayDate, "dd/MM/yyyy") : "N/A"}
                   </TableCell>
                   {userRole === 'supervisor' || userRole === 'investigator' ? (
-                    <TableCell className="w-[120px] min-w-[120px] px-2 py-2 text-sm">
+                    <TableCell className="w-[10%] px-2 py-2 text-sm">
                         {sitesToDisplay.map((site, idx) => (
                             <span key={idx} className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                                 {site.workStatus || 'N/A'}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
@@ -383,52 +344,21 @@ export default function FileDatabaseTable({
                         ))}
                     </TableCell>
                   ) : (
-                    <TableCell className="font-semibold w-[120px] min-w-[120px] px-2 py-2 text-sm">{entry.fileStatus}</TableCell>
+                    <TableCell className="font-semibold w-[10%] px-2 py-2 text-sm">{entry.fileStatus}</TableCell>
                   )}
-                  {(() => {
-                    const fin = getEntryFinancials(entry);
-                    return (
-                      <TableCell className="w-[130px] min-w-[130px] px-2 py-2 text-sm text-right">
-                        {fin.totalCredit === 0 && fin.totalDebit === 0 ? (
-                          <span className="text-xs text-muted-foreground font-mono">₹0</span>
-                        ) : fin.balance > 0 ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">
-                              +₹{fin.balance.toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Surplus</span>
-                          </div>
-                        ) : fin.balance === 0 ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-semibold font-mono text-blue-600 dark:text-blue-400">
-                              ₹0.00
-                            </span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-tight">Balanced</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold font-mono text-red-600 dark:text-red-400">
-                              -₹{Math.abs(fin.balance).toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-red-500 font-semibold uppercase tracking-tight">Deficit</span>
-                          </div>
-                        )}
-                      </TableCell>
-                    );
-                  })()}
-                  <TableCell className="text-right w-[125px] min-w-[125px] px-2 py-2 sticky right-0 bg-card group-hover:bg-muted/90 transition-colors shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.12)] z-10">
-                      <div className="flex items-center justify-end space-x-1 shrink-0">
+                  <TableCell className="text-right w-[15%] px-2 py-2">
+                      <div className="flex items-center justify-end space-x-1">
                         <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleViewClick(entry)}><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleViewClick(entry)}><Eye className="h-4 w-4" /></Button>
                         </TooltipTrigger><TooltipContent><p>View Details</p></TooltipContent></Tooltip></TooltipProvider>
                         {canCopy && (
                             <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => setItemToMove(entry)}><Move className="h-4 w-4" /></Button>
                             </TooltipTrigger><TooltipContent><p>Move or Copy File</p></TooltipContent></Tooltip></TooltipProvider>
                         )}
                         {canDelete && (
                             <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive/90 hover:bg-destructive/10" onClick={() => setDeleteItem(entry)} disabled={isDeleting}>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90" onClick={() => setDeleteItem(entry)} disabled={isDeleting}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger><TooltipContent><p>Delete File</p></TooltipContent></Tooltip></TooltipProvider>

@@ -171,14 +171,14 @@ export default function AppNavMenu() {
                     isActive={isActive}
                     tooltip={{ children: item.label, side: "right", align: "center" }}
                     className={cn(
-                        "justify-start pr-8 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:!justify-center transition-all relative overflow-hidden",
+                        "justify-start pr-8 transition-all relative overflow-hidden",
                         isActive ? "bg-primary/10 text-primary border-l-4 border-primary rounded-none shadow-inner" : "hover:bg-sidebar-accent"
                     )}
                   >
-                    <div className="flex items-center justify-between w-full group-data-[collapsible=icon]:justify-center">
-                      <div className="flex items-center gap-2 group-data-[collapsible=icon]:gap-0">
-                        <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : navItemColors[index % navItemColors.length])} />
-                        <span className={cn("font-medium truncate group-data-[collapsible=icon]:hidden", isActive ? "text-primary font-bold" : navItemColors[index % navItemColors.length])}>{item.label}</span>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <item.icon className={cn("h-4 w-4", isActive ? "text-primary" : navItemColors[index % navItemColors.length])} />
+                        <span className={cn("font-medium", isActive ? "text-primary font-bold" : navItemColors[index % navItemColors.length])}>{item.label}</span>
                       </div>
                       {item.href === '/dashboard/pending-updates' && pendingCount > 0 && (
                         <Badge className="h-5 px-2 text-xs font-semibold leading-none rounded-full bg-destructive text-destructive-foreground group-data-[collapsible=icon]:hidden">

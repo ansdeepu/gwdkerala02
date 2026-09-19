@@ -21,7 +21,6 @@ import {
   Loader2
 } from "lucide-react";
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, type PrintStyleSettings } from "@/components/shared/PrintStyleToolbar";
-import { GpsLocationButton } from "@/components/shared/GpsLocationButton";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { printDocument, copyOfficialTable } from "@/lib/print-utils";
 import { useDataStore } from "@/hooks/use-data-store";
@@ -829,7 +828,7 @@ export default function InvestigationReportViewer({
                     <td className="py-1.5 text-center font-bold border-none">:</td>
                     <td className="py-1.5 pl-2 border-none font-mono">
                       {isEditMode ? (
-                        <div className="flex items-center gap-1.5 max-w-sm">
+                        <div className="flex items-center gap-2 max-w-xs">
                           <Input
                             value={invReportState.latitude}
                             onChange={(e) => setInvReportState({ ...invReportState, latitude: e.target.value })}
@@ -842,15 +841,6 @@ export default function InvestigationReportViewer({
                             onChange={(e) => setInvReportState({ ...invReportState, longitude: e.target.value })}
                             placeholder="Long, e.g. 76.9366"
                             className="h-7 text-xs"
-                          />
-                          <GpsLocationButton
-                            size="sm"
-                            variant="outline"
-                            showLabel={false}
-                            className="h-7 w-7 p-0 shrink-0"
-                            onCoordinatesObtained={(lat, lng) => {
-                              setInvReportState(prev => ({ ...prev, latitude: String(lat), longitude: String(lng) }));
-                            }}
                           />
                         </div>
                       ) : (
