@@ -153,6 +153,7 @@ export default function TenderDetails() {
     const [isClearWorkOrderConfirmOpen, setIsClearWorkOrderConfirmOpen] = useState(false);
     const [retenderToDelete, setRetenderToDelete] = useState<{ id: string; index: number } | null>(null);
     const [isNegotiationOpen, setIsNegotiationOpen] = useState(false);
+    const [isSectionEdited, setIsSectionEdited] = useState(false);
 
     const isReadOnly = isAuthLoading || !user || user.role === 'viewer' || user.role === 'supervisor';
 
@@ -170,16 +171,19 @@ export default function TenderDetails() {
     const watchedRemarks = watch('remarks');
 
     const isFormDirty = useMemo(() => {
+        if (isSectionEdited) return true;
+        if (isDirty) return true;
         if (watchedPresentStatus !== initialTender.presentStatus) return true;
         if ((watchedRemarks || '') !== (initialTender.remarks || '')) return true;
         return JSON.stringify(tender) !== JSON.stringify(initialTender);
-    }, [watchedPresentStatus, watchedRemarks, tender, initialTender]);
+    }, [isSectionEdited, isDirty, watchedPresentStatus, watchedRemarks, tender, initialTender]);
 
 
     const handleFinalSave = async () => {
         setIsSubmitting(true);
         try {
             await handleSave(getValues(), true);
+            setIsSectionEdited(false);
             toast({ title: "Tender Saved", description: "All changes have been successfully persisted." });
         } catch (error: any) {
             toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -196,6 +200,7 @@ export default function TenderDetails() {
             });
             // Update context so child components (like reports) see the new data immediately
             updateTender(data);
+            setIsSectionEdited(true);
             setActiveModal(null);
             return;
         }
@@ -208,6 +213,7 @@ export default function TenderDetails() {
             const dataForSave = {
               ...updatedData,
               tenderDate: toDateOrNull(updatedData.tenderDate),
+              dateTimeOfPublishing: toDateOrNull(updatedData.dateTimeOfPublishing),
               dateTimeOfReceipt: toDateOrNull(updatedData.dateTimeOfReceipt),
               dateTimeOfOpening: toDateOrNull(updatedData.dateTimeOfOpening),
               dateOfOpeningBid: toDateOrNull(updatedData.dateOfOpeningBid),
@@ -240,6 +246,7 @@ export default function TenderDetails() {
             } else {
                 await saveTenderToDb(tender.id, dataForSave);
                 updateTender(dataForSave);
+                setIsSectionEdited(false);
                 reset(updatedData); // Reset to clear isDirty flag
             }
         } catch (error: any) {
@@ -308,6 +315,7 @@ export default function TenderDetails() {
             additionalPerformanceGuaranteeAmount: snValues.additionalPerformanceGuaranteeAmount,
             stampPaperAmount: snValues.stampPaperAmount,
         });
+        setIsSectionEdited(true);
         setActiveModal(null);
         setModalData(null);
     };
@@ -325,6 +333,7 @@ export default function TenderDetails() {
             additionalPerformanceGuaranteeAmount: snValues.additionalPerformanceGuaranteeAmount,
             stampPaperAmount: snValues.stampPaperAmount,
         });
+        setIsSectionEdited(true);
     };
 
     const handleCorrigendumSave = (corrigendumData: Corrigendum) => {
@@ -341,6 +350,7 @@ export default function TenderDetails() {
             updated = current;
         }
         updateTender({ corrigendums: updated });
+        setIsSectionEdited(true);
         setActiveModal(null);
         setModalData(null);
     };
@@ -350,6 +360,7 @@ export default function TenderDetails() {
         const current = getValues('corrigendums') || [];
         const updated = current.filter((_, i) => i !== index);
         updateTender({ corrigendums: updated });
+        setIsSectionEdited(true);
     };
 
     const handleRetenderSave = (retenderData: RetenderDetails) => {
@@ -366,6 +377,7 @@ export default function TenderDetails() {
             updated = current;
         }
         updateTender({ retenders: updated });
+        setIsSectionEdited(true);
         setActiveModal(null);
         setModalData(null);
     };
@@ -375,12 +387,14 @@ export default function TenderDetails() {
         const current = getValues('retenders') || [];
         const updated = current.filter((_, i) => i !== index);
         updateTender({ retenders: updated });
+        setIsSectionEdited(true);
     };
     
     const confirmDeleteRetender = () => {
         if (!retenderToDelete) return;
         handleRemoveRetender(retenderToDelete.index);
         setRetenderToDelete(null);
+        setIsSectionEdited(true);
         toast({ title: "Removed locally" });
     };
 
@@ -398,6 +412,7 @@ export default function TenderDetails() {
         Object.entries(OPENING_DETAILS_CLEAR_DATA).forEach(([key, value]) => {
             setValue(key as keyof E_tenderFormData, value, { shouldDirty: true });
         });
+        setIsSectionEdited(true);
         toast({ title: "Opening Details Cleared Locally" });
         setIsClearOpeningDetailsConfirmOpen(false);
     };
@@ -406,6 +421,7 @@ export default function TenderDetails() {
         Object.entries(SELECTION_NOTICE_CLEAR_DATA).forEach(([key, value]) => {
             setValue(key as keyof E_tenderFormData, value, { shouldDirty: true });
         });
+        setIsSectionEdited(true);
         toast({ title: "Selection Notice Details Cleared Locally" });
         setIsClearSelectionNoticeConfirmOpen(false);
     };
@@ -414,6 +430,7 @@ export default function TenderDetails() {
         Object.entries(WORK_ORDER_CLEAR_DATA).forEach(([key, value]) => {
             setValue(key as keyof E_tenderFormData, value, { shouldDirty: true });
         });
+        setIsSectionEdited(true);
         toast({ title: "Work Order Details Cleared Locally" });
         setIsClearWorkOrderConfirmOpen(false);
     };
@@ -434,7 +451,7 @@ export default function TenderDetails() {
     const watchedBasicFields = watch([
         'eTenderNo', 'tenderDate', 'fileNo', 'fileNo2', 'fileNo3', 'fileNo4', 'nameOfWork', 'nameOfWorkMalayalam',
         'location', 'estimateAmount', 'tenderFormFee', 'emd', 'periodOfCompletion',
-        'dateTimeOfReceipt', 'dateTimeOfOpening', 'tenderType'
+        'dateTimeOfPublishing', 'dateTimeOfReceipt', 'dateTimeOfOpening', 'tenderType'
     ]);
 
     const hasAnyBasicData = useMemo(() => {
@@ -767,7 +784,8 @@ export default function TenderDetails() {
                                             </div>
                                              <div className="space-y-2">
                                                 <h4 className="text-sm font-medium text-muted-foreground">Key Dates</h4>
-                                                <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                                <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                                                    <DetailRow label="Date & Time of Publishing" value={watch('dateTimeOfPublishing')} isReceiptFormat={true} />
                                                     <DetailRow label="Last Date & Time of Receipt" value={watch('dateTimeOfReceipt')} isReceiptFormat={true} />
                                                     <DetailRow label="Date & Time of Opening" value={watch('dateTimeOfOpening')} isOpeningFormat={true}/>
                                                 </div>

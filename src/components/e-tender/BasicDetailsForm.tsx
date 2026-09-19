@@ -180,6 +180,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                 ? Number(mergedData.estimateAmount)
                 : null,
             tenderDate: formatDateForInput(mergedData.tenderDate),
+            dateTimeOfPublishing: mergedData.dateTimeOfPublishing ?? null,
             selectedSiteIds: mergedData.selectedSiteIds || [],
             linkedSites: mergedData.linkedSites || [],
             detailedEstimateUrl: mergedData.detailedEstimateUrl ?? '',
@@ -568,8 +569,19 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                 purpose: s.purpose
             }));
 
+        let targetPresentStatus = tender.presentStatus;
+        if (data.dateTimeOfPublishing) {
+            const pubDate = new Date(data.dateTimeOfPublishing);
+            if (!isNaN(pubDate.getTime()) && pubDate.getTime() <= Date.now()) {
+                if (!targetPresentStatus || targetPresentStatus === 'Tender Preparation') {
+                    targetPresentStatus = 'Tender Process';
+                }
+            }
+        }
+
         const formData: Partial<E_tenderFormData> = {
             ...data,
+            presentStatus: targetPresentStatus,
             selectedSiteIds: selectedIds,
             linkedSites: linkedSites,
             fileNo: cleanFileNo(data.fileNo),
@@ -848,6 +860,19 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                                         <FormMessage />
                                     </FormItem> 
                                 )}/>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4">
+                                <FormField 
+                                    name="dateTimeOfPublishing" 
+                                    control={control} 
+                                    render={({ field }) => (
+                                        <DateTimePicker12h 
+                                            label="Date & Time of Publishing" 
+                                            value={field.value} 
+                                            onChange={field.onChange} 
+                                        />
+                                    )}
+                                />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField 

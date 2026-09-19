@@ -52,6 +52,14 @@ const processDoc = (docSnap: DocumentData): E_tender => {
     if (docSnap.id) {
         convertedData.id = docSnap.id;
     }
+
+    // Auto-transition status from 'Tender Preparation' to 'Tender Process' when system time reaches Date & Time of Publishing
+    if (convertedData.presentStatus === 'Tender Preparation' && convertedData.dateTimeOfPublishing) {
+        const pubDate = new Date(convertedData.dateTimeOfPublishing);
+        if (!isNaN(pubDate.getTime()) && pubDate.getTime() <= Date.now()) {
+            convertedData.presentStatus = 'Tender Process';
+        }
+    }
     
     return convertedData as E_tender;
 };
