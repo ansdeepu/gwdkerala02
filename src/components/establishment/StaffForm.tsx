@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatCase } from "@/lib/utils";
 import { 
   Loader2, 
@@ -40,6 +41,10 @@ import {
   RefreshCw,
   Eye,
   User as UserIcon,
+  Briefcase,
+  FileText,
+  ArrowRightLeft,
+  Building,
 } from "lucide-react";
 import { StaffMemberFormDataSchema, type StaffMemberFormData, designationOptions, staffStatusOptions, type StaffStatusType, designationMalayalamOptions, bloodGroupOptions } from "@/lib/schemas";
 import type { StaffMember, OfficeAddress } from "@/lib/schemas";
@@ -480,613 +485,721 @@ export default function StaffForm({ onSubmit, initialData, isSubmitting, onCance
     <Form {...form}>
       <form onSubmit={handleSubmit(handleFormSubmitInternal)} className="flex flex-col h-full overflow-hidden">
         <ScrollArea className="flex-1 pr-6 -mr-6">
-          <div className="space-y-6 pb-4">
-            {/* Identity Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. John Doe" {...field} value={field.value ?? ''} readOnly={isViewer} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="nameMalayalam"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name (in Malayalam)</FormLabel>
-                    <FormControl>
-                      <MalayalamInput
-                        placeholder="e.g. ജോൺ ഡോ"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        englishValue={form.watch('name') || ""}
-                        disabled={isViewer}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="designation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Designation</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select designation" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {formDesignationOptions.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="designationMalayalam"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Designation (in Malayalam)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Malayalam designation" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-80">
-                        {formDesignationMalayalamOptions.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="pen"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PEN</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. 123456" {...field} value={field.value ?? ''} readOnly={isViewer} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="bloodGroup"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Blood Group</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? null : val)} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Group" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                         <SelectItem value="_clear_">-- Clear --</SelectItem>
-                        {bloodGroupOptions.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="e.g. john.doe@kerala.gov.in" {...field} value={field.value || ""} readOnly={isViewer || userAccountExists} className={cn(userAccountExists && "bg-muted/50")} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="phoneNo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="e.g. 9876543210" {...field} value={field.value || ""} readOnly={isViewer} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Service & Essential Details */}
-            <div className="pt-4 border-t">
-              <h4 className="text-sm font-bold text-primary mb-4 flex items-center gap-2">
-                <Info className="h-4 w-4" /> Service & Professional Details
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <FormField
-                    control={form.control}
-                    name="serviceStartDate"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Period of Service (From)</FormLabel>
-                        <FormControl>
-                        <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="serviceEndDate"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Period of Service (To)</FormLabel>
-                        <FormControl>
-                        <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="dateOfBirth"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Date of Birth</FormLabel>
-                        <FormControl>
-                        <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {visibleStatusOptions.map(option => (
-                            <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                            {field.value === 'Pending Transfer' && (
-                                <SelectItem value="Pending Transfer">Pending Transfer</SelectItem>
-                            )}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-            </div>
-
-            {/* Staff Photo Section with Google Drive Media Gallery Logic */}
-            <div className="pt-4 border-t space-y-3">
-              {/* Hidden file & camera inputs */}
-              <input
-                type="file"
-                ref={cameraInputRef}
-                accept="image/*"
-                capture="user"
-                onChange={(e) => handleFileSelected(e.target.files)}
-                className="hidden"
-                disabled={isViewer || isUploading || isSubmitting}
-              />
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={(e) => handleFileSelected(e.target.files)}
-                className="hidden"
-                disabled={isViewer || isUploading || isSubmitting}
-              />
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <FormLabel className="text-sm font-semibold text-foreground">Staff Photo</FormLabel>
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    Max: 25MB
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {hasDriveConfig ? (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-medium border border-emerald-200/60 dark:border-emerald-800/40">
-                      <HardDrive className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>Drive: keralagwd</span>
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200/60 dark:border-amber-800/40">
-                      <HardDrive className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                      <span>Drive Ready</span>
-                    </div>
-                  )}
-
-                  {isSuperAdmin && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsSetupDialogOpen(true)}
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      title="Configure Google Drive App Script"
-                    >
-                      <Settings2 className="h-3.5 w-3.5 mr-1" />
-                      Config
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Upload Progress Indicator */}
-              {isUploading && uploadProgress && (
-                <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg space-y-2 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" />
-                      {uploadProgress.statusText}
-                    </span>
-                    <span className="font-semibold text-blue-700 dark:text-blue-300">
-                      {Math.round(uploadProgress.percent)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-blue-100 dark:bg-blue-900/50 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${Math.max(5, uploadProgress.percent)}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-blue-700/80 dark:text-blue-300/80 pt-0.5">
-                    <span>
-                      Archive: GWD_Staff_Photos / {form.getValues("officeLocation") || user?.officeLocation || "General"}
-                    </span>
-                    {uploadProgress.fileSizeMB && <span>Size: {uploadProgress.fileSizeMB} MB</span>}
+          <div className="space-y-6 pb-4 pt-2">
+            {/* Option C: Unified Administrative Timeline Track */}
+            <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+              
+              {/* 1. Identification & Personal Details */}
+              <div className="relative">
+                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                  <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                    <UserIcon className="w-4 h-4" />
                   </div>
                 </div>
-              )}
-
-              {/* Main Photo Control Area */}
-              <FormField
-                control={form.control}
-                name="photoUrl"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                      {/* Photo Thumbnail / Preview */}
-                      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-                        <DialogTrigger asChild>
-                          <button
-                            type="button"
-                            className={cn(
-                              "relative h-24 w-24 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-950 shrink-0 overflow-hidden group shadow-sm transition-all",
-                              imagePreview && !imageLoadError && "border-solid border-primary/30 hover:ring-2 hover:ring-primary/40 cursor-pointer"
-                            )}
-                            onClick={() => imagePreview && !imageLoadError && setIsImageModalOpen(true)}
-                            disabled={!imagePreview || imageLoadError}
-                            aria-label={imagePreview ? "View larger photo" : "Staff photo preview"}
-                          >
-                            {imagePreview && !imageLoadError ? (
-                              <>
-                                <Image
-                                  src={imagePreview}
-                                  alt="Staff photo preview"
-                                  className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-200"
-                                  width={96}
-                                  height={96}
-                                  onError={() => setImageLoadError(true)}
-                                  unoptimized={true}
-                                  referrerPolicy="no-referrer"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                  <Eye className="h-5 w-5 drop-shadow" />
-                                </div>
-                              </>
-                            ) : (
-                              <div className="h-full w-full flex flex-col items-center justify-center p-2 text-center text-muted-foreground">
-                                {imageLoadError ? (
-                                  <Unplug className="h-8 w-8 text-destructive mb-1" />
-                                ) : (
-                                  <UserIcon className="h-8 w-8 text-slate-400 dark:text-slate-600 mb-0.5" />
-                                )}
-                                <span className="text-[10px] leading-tight text-slate-500">
-                                  {imageLoadError ? "Error" : "No Photo"}
-                                </span>
-                              </div>
-                            )}
-                          </button>
-                        </DialogTrigger>
-
-                        {imagePreview && !imageLoadError && (
-                          <DialogContent className="p-2 border-0 bg-transparent shadow-none max-w-[90vw] flex justify-center">
-                            <div className="flex flex-col items-center max-h-[85vh] overflow-hidden bg-slate-950/90 p-4 rounded-xl backdrop-blur-md">
-                              <Image
-                                src={imagePreview}
-                                alt="Staff photo enlarged"
-                                width={800}
-                                height={800}
-                                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
-                                unoptimized={true}
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="mt-3 text-xs text-slate-300 font-medium flex items-center gap-3">
-                                <span>{form.getValues("name") || "Staff Photo"}</span>
-                                {form.getValues("pen") && <span>(PEN: {form.getValues("pen")})</span>}
-                              </div>
-                            </div>
-                          </DialogContent>
-                        )}
-                      </Dialog>
-
-                      {/* Photo Actions & Status Details */}
-                      <div className="flex-1 space-y-2 min-w-0">
-                        {imagePreview && !imageLoadError ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                              <span className="truncate">Photo attached to staff profile</span>
-                            </div>
-
-                            <p className="text-xs text-muted-foreground truncate">
-                              {watchedPhotoUrl?.includes('drive.google.com') || watchedPhotoUrl?.includes('googleusercontent.com') ? (
-                                <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                                  <HardDrive className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                                  Stored in Google Drive (keralagwd@gmail.com)
-                                </span>
-                              ) : watchedPhotoUrl?.startsWith('data:image') ? (
-                                <span>Locally attached & compressed</span>
-                              ) : (
-                                <span>URL: {watchedPhotoUrl}</span>
-                              )}
-                            </p>
-
-                            {!isViewer && (
-                              <div className="flex flex-wrap items-center gap-2 pt-1">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 text-xs font-medium"
-                                  onClick={() => cameraInputRef.current?.click()}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <Camera className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
-                                  Retake
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 text-xs font-medium"
-                                  onClick={() => fileInputRef.current?.click()}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <Upload className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
-                                  Upload New
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={handleRemovePhoto}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                                  Remove
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground">
-                              Capture directly via device camera, upload a photo file, or link an image URL.
-                            </p>
-
-                            {!isViewer && (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="default"
-                                  size="sm"
-                                  className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                                  onClick={() => cameraInputRef.current?.click()}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <Camera className="h-3.5 w-3.5 mr-1.5" />
-                                  Capture Photo
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 text-xs font-medium bg-background hover:bg-slate-100 dark:hover:bg-slate-800"
-                                  onClick={() => fileInputRef.current?.click()}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <Upload className="h-3.5 w-3.5 mr-1.5 text-slate-600 dark:text-slate-300" />
-                                  Upload Photo
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
-                                  onClick={() => {
-                                    setManualUrl(field.value || "");
-                                    setShowUrlInput(!showUrlInput);
-                                  }}
-                                  disabled={isUploading || isSubmitting}
-                                >
-                                  <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
-                                  {showUrlInput ? "Hide Link" : "Add Link"}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                  <CardHeader className="flex flex-row justify-between items-start pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                        <UserIcon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold tracking-tight">1. Identification & Personal Details</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">Staff personal credentials, designation, PEN, and contact channels</p>
                       </div>
                     </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. John Doe" {...field} value={field.value ?? ''} readOnly={isViewer} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="nameMalayalam"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name (in Malayalam)</FormLabel>
+                            <FormControl>
+                              <MalayalamInput
+                                placeholder="e.g. ജോൺ ഡോ"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                englishValue={form.watch('name') || ""}
+                                disabled={isViewer}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="designation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Designation</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select designation" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {formDesignationOptions.map(option => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="designationMalayalam"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Designation (in Malayalam)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Malayalam designation" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-80">
+                                {formDesignationMalayalamOptions.map(option => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    {/* Manual URL Input Box if toggled */}
-                    {showUrlInput && !isViewer && (
-                      <div className="p-3 bg-slate-100 dark:bg-slate-900 border rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-medium text-foreground">Direct Image URL</label>
+                      <FormField
+                        control={form.control}
+                        name="pen"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>PEN</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. 123456" {...field} value={field.value ?? ''} readOnly={isViewer} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={form.control}
+                        name="bloodGroup"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Blood Group</FormLabel>
+                            <Select onValueChange={(val) => field.onChange(val === '_clear_' ? null : val)} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Group" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                 <SelectItem value="_clear_">-- Clear --</SelectItem>
+                                {bloodGroupOptions.map(option => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="e.g. john.doe@kerala.gov.in" {...field} value={field.value || ""} readOnly={isViewer || userAccountExists} className={cn(userAccountExists && "bg-muted/50")} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={form.control}
+                        name="phoneNo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input type="tel" placeholder="e.g. 9876543210" {...field} value={field.value || ""} readOnly={isViewer} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 2. Service & Professional Details */}
+              <div className="relative">
+                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                  <div className="bg-indigo-50 dark:bg-indigo-950/60 p-1.5 rounded-full text-indigo-600 dark:text-indigo-400">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                </div>
+                <Card className="border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs">
+                  <CardHeader className="flex flex-row justify-between items-start pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                        <Briefcase className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold tracking-tight">2. Service & Professional Details</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">Period of service, date of birth, and employment status</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="serviceStartDate"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Period of Service (From)</FormLabel>
+                              <FormControl>
+                              <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="serviceEndDate"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Period of Service (To)</FormLabel>
+                              <FormControl>
+                              <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="dateOfBirth"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Date of Birth</FormLabel>
+                              <FormControl>
+                              <Input type="date" {...field} value={formatDateForInput(field.value)} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} readOnly={isViewer}/>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                  <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  {visibleStatusOptions.map(option => (
+                                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                                  ))}
+                                  {field.value === 'Pending Transfer' && (
+                                      <SelectItem value="Pending Transfer">Pending Transfer</SelectItem>
+                                  )}
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 3. Staff Photo & Verification */}
+              <div className="relative">
+                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                </div>
+                <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                  <CardHeader className="flex flex-row justify-between items-start pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                        <Camera className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold tracking-tight">3. Staff Photo & Verification</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">Profile photo capture, upload, and Google Drive archival</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Hidden file & camera inputs */}
+                    <input
+                      type="file"
+                      ref={cameraInputRef}
+                      accept="image/*"
+                      capture="user"
+                      onChange={(e) => handleFileSelected(e.target.files)}
+                      className="hidden"
+                      disabled={isViewer || isUploading || isSubmitting}
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={(e) => handleFileSelected(e.target.files)}
+                      className="hidden"
+                      disabled={isViewer || isUploading || isSubmitting}
+                    />
+
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <FormLabel className="text-sm font-semibold text-foreground">Staff Photo</FormLabel>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          Max: 25MB
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {hasDriveConfig ? (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-medium border border-emerald-200/60 dark:border-emerald-800/40">
+                            <HardDrive className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Drive: keralagwd</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-medium border border-amber-200/60 dark:border-amber-800/40">
+                            <HardDrive className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>Drive Ready</span>
+                          </div>
+                        )}
+
+                        {isSuperAdmin && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => setShowUrlInput(false)}
+                            onClick={() => setIsSetupDialogOpen(true)}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            title="Configure Google Drive App Script"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <Settings2 className="h-3.5 w-3.5 mr-1" />
+                            Config
                           </Button>
-                        </div>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="https://example.com/staff-photo.jpg"
-                            value={manualUrl}
-                            onChange={(e) => setManualUrl(e.target.value)}
-                            className="h-8 text-xs bg-white dark:bg-slate-950"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 text-xs px-3"
-                            onClick={handleApplyManualUrl}
-                          >
-                            Apply
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {imageLoadError && watchedPhotoUrl && watchedPhotoUrl.trim() !== "" && (
-                      <div className="flex items-center justify-between text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2 mt-1">
-                        <span className="flex items-center gap-1.5">
-                          <Unplug className="h-3.5 w-3.5 shrink-0" />
-                          Unable to load image from source. Please upload a new photo or check the link.
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs text-destructive hover:bg-destructive/20 ml-2 shrink-0"
-                          onClick={handleRemovePhoto}
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                    )}
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start pt-4 border-t">
-              <FormField
-                control={form.control}
-                name="roles"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Roles/Responsibilities</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g., Section Clerk, Field Supervisor" className="resize-y min-h-[100px]" {...field} value={field.value || ""} readOnly={isViewer}/>
-                    </FormControl>
-                    <FormDescription>(Optional)</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Any additional remarks about the staff member." className="resize-y min-h-[100px]" {...field} value={field.value || ""} readOnly={isViewer}/>
-                    </FormControl>
-                    <FormDescription>(Optional)</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {isTransferring && (
-                <div className="pt-4 border-t space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="officeLocation"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Transfer to Office</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select destination office" /></SelectTrigger></FormControl>
-                                    <SelectContent className="max-h-80">
-                                        {sortedOfficeOptions.map(office => (
-                                            <SelectItem key={office.id} value={office.officeLocation}>
-                                                {office.officeLocation}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormDescription className="text-xs">
-                                    {user?.role === 'superAdmin' 
-                                        ? "Select the destination office. Click 'Save Changes' to update the request, or use the 'Approve' button in the table to complete the move." 
-                                        : "Select the destination office. This request will be sent to the Super Admin for final approval."
-                                    }
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Upload Progress Indicator */}
+                    {isUploading && uploadProgress && (
+                      <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg space-y-2 animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" />
+                            {uploadProgress.statusText}
+                          </span>
+                          <span className="font-semibold text-blue-700 dark:text-blue-300">
+                            {Math.round(uploadProgress.percent)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-blue-100 dark:bg-blue-900/50 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${Math.max(5, uploadProgress.percent)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-blue-700/80 dark:text-blue-300/80 pt-0.5">
+                          <span>
+                            Archive: GWD_Staff_Photos / {form.getValues("officeLocation") || user?.officeLocation || "General"}
+                          </span>
+                          {uploadProgress.fileSizeMB && <span>Size: {uploadProgress.fileSizeMB} MB</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Photo Control Area */}
+                    <FormField
+                      control={form.control}
+                      name="photoUrl"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                            {/* Photo Thumbnail / Preview */}
+                            <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                              <DialogTrigger asChild>
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "relative h-24 w-24 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center bg-white dark:bg-slate-950 shrink-0 overflow-hidden group shadow-sm transition-all",
+                                    imagePreview && !imageLoadError && "border-solid border-primary/30 hover:ring-2 hover:ring-primary/40 cursor-pointer"
+                                  )}
+                                  onClick={() => imagePreview && !imageLoadError && setIsImageModalOpen(true)}
+                                  disabled={!imagePreview || imageLoadError}
+                                  aria-label={imagePreview ? "View larger photo" : "Staff photo preview"}
+                                >
+                                  {imagePreview && !imageLoadError ? (
+                                    <>
+                                      <Image
+                                        src={imagePreview}
+                                        alt="Staff photo preview"
+                                        className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-200"
+                                        width={96}
+                                        height={96}
+                                        onError={() => setImageLoadError(true)}
+                                        unoptimized={true}
+                                        referrerPolicy="no-referrer"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <Eye className="h-5 w-5 drop-shadow" />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="h-full w-full flex flex-col items-center justify-center p-2 text-center text-muted-foreground">
+                                      {imageLoadError ? (
+                                        <Unplug className="h-8 w-8 text-destructive mb-1" />
+                                      ) : (
+                                        <UserIcon className="h-8 w-8 text-slate-400 dark:text-slate-600 mb-0.5" />
+                                      )}
+                                      <span className="text-[10px] leading-tight text-slate-500">
+                                        {imageLoadError ? "Error" : "No Photo"}
+                                      </span>
+                                    </div>
+                                  )}
+                                </button>
+                              </DialogTrigger>
+
+                              {imagePreview && !imageLoadError && (
+                                <DialogContent className="p-2 border-0 bg-transparent shadow-none max-w-[90vw] flex justify-center">
+                                  <div className="flex flex-col items-center max-h-[85vh] overflow-hidden bg-slate-950/90 p-4 rounded-xl backdrop-blur-md">
+                                    <Image
+                                      src={imagePreview}
+                                      alt="Staff photo enlarged"
+                                      width={800}
+                                      height={800}
+                                      className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
+                                      unoptimized={true}
+                                      referrerPolicy="no-referrer"
+                                    />
+                                    <div className="mt-3 text-xs text-slate-300 font-medium flex items-center gap-3">
+                                      <span>{form.getValues("name") || "Staff Photo"}</span>
+                                      {form.getValues("pen") && <span>(PEN: {form.getValues("pen")})</span>}
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              )}
+                            </Dialog>
+
+                            {/* Photo Actions & Status Details */}
+                            <div className="flex-1 space-y-2 min-w-0">
+                              {imagePreview && !imageLoadError ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                    <span className="truncate">Photo attached to staff profile</span>
+                                  </div>
+
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {watchedPhotoUrl?.includes('drive.google.com') || watchedPhotoUrl?.includes('googleusercontent.com') ? (
+                                      <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                                        <HardDrive className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                        Stored in Google Drive (keralagwd@gmail.com)
+                                      </span>
+                                    ) : watchedPhotoUrl?.startsWith('data:image') ? (
+                                      <span>Locally attached & compressed</span>
+                                    ) : (
+                                      <span>URL: {watchedPhotoUrl}</span>
+                                    )}
+                                  </p>
+
+                                  {!isViewer && (
+                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs font-medium"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <Camera className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
+                                        Retake
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs font-medium"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <Upload className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
+                                        Upload New
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={handleRemovePhoto}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    Capture directly via device camera, upload a photo file, or link an image URL.
+                                  </p>
+
+                                  {!isViewer && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="default"
+                                        size="sm"
+                                        className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <Camera className="h-3.5 w-3.5 mr-1.5" />
+                                        Capture Photo
+                                      </Button>
+
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs font-medium bg-background hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <Upload className="h-3.5 w-3.5 mr-1.5 text-slate-600 dark:text-slate-300" />
+                                        Upload Photo
+                                      </Button>
+
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+                                        onClick={() => {
+                                          setManualUrl(field.value || "");
+                                          setShowUrlInput(!showUrlInput);
+                                        }}
+                                        disabled={isUploading || isSubmitting}
+                                      >
+                                        <LinkIcon className="h-3.5 w-3.5 mr-1.5" />
+                                        {showUrlInput ? "Hide Link" : "Add Link"}
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Manual URL Input Box if toggled */}
+                          {showUrlInput && !isViewer && (
+                            <div className="p-3 bg-slate-100 dark:bg-slate-900 border rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-foreground">Direct Image URL</label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setShowUrlInput(false)}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="https://example.com/staff-photo.jpg"
+                                  value={manualUrl}
+                                  onChange={(e) => setManualUrl(e.target.value)}
+                                  className="h-8 text-xs bg-white dark:bg-slate-950"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 text-xs px-3"
+                                  onClick={handleApplyManualUrl}
+                                >
+                                  Apply
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {imageLoadError && watchedPhotoUrl && watchedPhotoUrl.trim() !== "" && (
+                            <div className="flex items-center justify-between text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2 mt-1">
+                              <span className="flex items-center gap-1.5">
+                                <Unplug className="h-3.5 w-3.5 shrink-0" />
+                                Unable to load image from source. Please upload a new photo or check the link.
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-destructive hover:bg-destructive/20 ml-2 shrink-0"
+                                onClick={handleRemovePhoto}
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          )}
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 4. Roles & Remarks */}
+              <div className="relative">
+                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                  <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                    <FileText className="w-4 h-4" />
+                  </div>
                 </div>
-            )}
+                <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
+                  <CardHeader className="flex flex-row justify-between items-start pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold tracking-tight">4. Roles & Remarks</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">Assigned section roles, duties, and official administrative notes</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                      <FormField
+                        control={form.control}
+                        name="roles"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Roles/Responsibilities</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="e.g., Section Clerk, Field Supervisor" className="resize-y min-h-[100px]" {...field} value={field.value || ""} readOnly={isViewer}/>
+                            </FormControl>
+                            <FormDescription>(Optional)</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="remarks"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Remarks</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Any additional remarks about the staff member." className="resize-y min-h-[100px]" {...field} value={field.value || ""} readOnly={isViewer}/>
+                            </FormControl>
+                            <FormDescription>(Optional)</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 5. Transfer & Relocation Details */}
+              {isTransferring && (
+                <div className="relative">
+                  <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                    <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <Card className="border-l-4 border-l-amber-600 dark:border-l-amber-500 shadow-xs">
+                    <CardHeader className="flex flex-row justify-between items-start pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                          <ArrowRightLeft className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-bold tracking-tight">5. Transfer & Relocation Details</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">Destination office assignment and administrative transfer approval</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <FormField
+                          control={form.control}
+                          name="officeLocation"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Transfer to Office</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isViewer || isSubmitting}>
+                                      <FormControl><SelectTrigger><SelectValue placeholder="Select destination office" /></SelectTrigger></FormControl>
+                                      <SelectContent className="max-h-80">
+                                          {sortedOfficeOptions.map(office => (
+                                              <SelectItem key={office.id} value={office.officeLocation}>
+                                                  {office.officeLocation}
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                                  <FormDescription className="text-xs">
+                                      {user?.role === 'superAdmin' 
+                                          ? "Select the destination office. Click 'Save Changes' to update the request, or use the 'Approve' button in the table to complete the move." 
+                                          : "Select the destination office. This request will be sent to the Super Admin for final approval."
+                                      }
+                                  </FormDescription>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+            </div>
           </div>
         </ScrollArea>
         

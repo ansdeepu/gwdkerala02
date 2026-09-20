@@ -38,7 +38,7 @@ import ExcelJS from "exceljs";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAgencyApplications } from '@/hooks/useAgencyApplications';
 import { useDataStore } from '@/hooks/use-data-store';
-import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer } from 'lucide-react';
+import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer, ClipboardList, Receipt, Award, Truck, AlertOctagon, MessageSquare, Wrench } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
@@ -1652,127 +1652,154 @@ export default function AgencyRegistrationPage() {
                 )}
                 className="space-y-6"
                 >
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>1. Application Details</CardTitle>
-                            <CardDescription>Primary agency information and owner/partner details.</CardDescription>
-                        </div>
-                        {!isReadOnly && (
-                            <Button type="button" variant="outline" size="sm" onClick={() => openDialog('addPartner', { index: 'new' })}>
-                                <UserPlus className="mr-2 h-4 w-4"/> Add Partner
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <FormField name="fileNo" render={({ field }) => (
-                                    <FormItem className="md:col-span-2">
-                                        <FormLabel>File No.</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                {...field} 
-                                                value={field.value ?? ""} 
-                                                readOnly={isReadOnly} 
-                                                onChange={(e) => {
-                                                    const cleaned = e.target.value.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '');
-                                                    field.onChange(cleaned);
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <p className="text-[11px] text-muted-foreground leading-snug">
-                                            Office code (e.g., GWDKLM) is not required. Enter only number/year (e.g., 1956/2023).
-                                        </p>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField name="agencyName" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
-                                <FormField name="agencyNameMalayalam" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address in Malayalam (മലയാളത്തിൽ)</FormLabel><FormControl><MalayalamInput value={field.value ?? ""} onChange={field.onChange} englishValue={form.watch('agencyName') || ""} multiline rows={3} disabled={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
-                            </div>
-                            <Separator />
-                            <div className="space-y-2">
-                                <h4 className="font-medium">Owner Details</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 border rounded-md items-end">
-                                    <FormItem className="md:col-span-1">
-                                        <FormLabel>Name &amp; Address of Owner</FormLabel>
-                                        <FormControl>
-                                        <Textarea {...form.register("owner.name")} className="min-h-[40px]" readOnly={isReadOnly} />
-                                        </FormControl>
-                                        <FormMessage>{form.formState.errors.owner?.name?.message}</FormMessage>
-                                    </FormItem>
-                                    <FormField
-                                        name="owner.nameMalayalam"
-                                        control={form.control}
-                                        render={({ field }) => (
-                                            <FormItem className="md:col-span-1">
-                                                <FormLabel>Name &amp; Address of Owner in Malayalam (മലയാളത്തിൽ)</FormLabel>
-                                                <FormControl>
-                                                    <MalayalamInput
-                                                        value={field.value ?? ""}
-                                                        onChange={field.onChange}
-                                                        englishValue={form.watch('owner.name') || ""}
-                                                        multiline
-                                                        rows={3}
-                                                        disabled={isReadOnly}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField name="owner.mobile" render={({ field }) => <FormItem><FormLabel>Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name="owner.secondaryMobile" render={({ field }) => <FormItem><FormLabel>Secondary Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name="owner.email" render={({ field }) => <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                {/* Option C: Unified Administrative Timeline Track */}
+                <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+                  {/* 1. Application Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                        <ClipboardList className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                                  <ClipboardList className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">1. Application Details</CardTitle>
+                                    <CardDescription>Primary agency information and owner/partner details.</CardDescription>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                {partnerFields.length > 0 && <h4 className="font-medium">Partner Details</h4>}
-                                {partnerFields.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {partnerFields.map((field, index) => (
-                                            <div key={field.id} className="flex items-center justify-between p-3 border rounded-lg bg-secondary/20">
-                                                <div>
-                                                    <p className="font-semibold">{field.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{field.mobile}</p>
-                                                </div>
-                                                {!isReadOnly && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button type="button" variant="ghost" size="icon" onClick={() => openDialog('editPartner', { index, partner: field })}><Eye className="h-4 w-4"/></Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent><p>Edit Partner Details</p></TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingPartnerIndex(index)}><Trash2 className="h-4 w-4"/></Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent><p>Remove Partner</p></TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                            {!isReadOnly && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => openDialog('addPartner', { index: 'new' })}>
+                                    <UserPlus className="mr-2 h-4 w-4"/> Add Partner
+                                </Button>
+                            )}
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <FormField name="fileNo" render={({ field }) => (
+                                        <FormItem className="md:col-span-2">
+                                            <FormLabel>File No.</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    {...field} 
+                                                    value={field.value ?? ""} 
+                                                    readOnly={isReadOnly} 
+                                                    onChange={(e) => {
+                                                        const cleaned = e.target.value.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '');
+                                                        field.onChange(cleaned);
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <p className="text-[11px] text-muted-foreground leading-snug">
+                                                Office code (e.g., GWDKLM) is not required. Enter only number/year (e.g., 1956/2023).
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField name="agencyName" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address</FormLabel><FormControl><Textarea {...field} value={field.value ?? ""} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name="agencyNameMalayalam" render={({ field }) => <FormItem><FormLabel>Agency Name &amp; Address in Malayalam (മലയാളത്തിൽ)</FormLabel><FormControl><MalayalamInput value={field.value ?? ""} onChange={field.onChange} englishValue={form.watch('agencyName') || ""} multiline rows={3} disabled={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                </div>
+                                <Separator />
+                                <div className="space-y-2">
+                                    <h4 className="font-medium">Owner Details</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 border rounded-md items-end">
+                                        <FormItem className="md:col-span-1">
+                                            <FormLabel>Name &amp; Address of Owner</FormLabel>
+                                            <FormControl>
+                                            <Textarea {...form.register("owner.name")} className="min-h-[40px]" readOnly={isReadOnly} />
+                                            </FormControl>
+                                            <FormMessage>{form.formState.errors.owner?.name?.message}</FormMessage>
+                                        </FormItem>
+                                        <FormField
+                                            name="owner.nameMalayalam"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem className="md:col-span-1">
+                                                    <FormLabel>Name &amp; Address of Owner in Malayalam (മലയാളത്തിൽ)</FormLabel>
+                                                    <FormControl>
+                                                        <MalayalamInput
+                                                            value={field.value ?? ""}
+                                                            onChange={field.onChange}
+                                                            englishValue={form.watch('owner.name') || ""}
+                                                            multiline
+                                                            rows={3}
+                                                            disabled={isReadOnly}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField name="owner.mobile" render={({ field }) => <FormItem><FormLabel>Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="owner.secondaryMobile" render={({ field }) => <FormItem><FormLabel>Secondary Mobile No.</FormLabel><FormControl><Input {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
+                                        <FormField name="owner.email" render={({ field }) => <FormItem><FormLabel>Email ID</FormLabel><FormControl><Input type="email" {...field} value={field.value ?? ''} readOnly={isReadOnly} /></FormControl><FormMessage /></FormItem>} />
                                     </div>
-                                ) : <p className="text-sm text-muted-foreground text-center py-2">No partners added.</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    {partnerFields.length > 0 && <h4 className="font-medium">Partner Details</h4>}
+                                    {partnerFields.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {partnerFields.map((field, index) => (
+                                                <div key={field.id} className="flex items-center justify-between p-3 border rounded-lg bg-secondary/20">
+                                                    <div>
+                                                        <p className="font-semibold">{field.name}</p>
+                                                        <p className="text-sm text-muted-foreground">{field.mobile}</p>
+                                                    </div>
+                                                    {!isReadOnly && (
+                                                        <div className="flex items-center gap-1">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button type="button" variant="ghost" size="icon" onClick={() => openDialog('editPartner', { index, partner: field })}><Eye className="h-4 w-4"/></Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>Edit Partner Details</p></TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingPartnerIndex(index)}><Trash2 className="h-4 w-4"/></Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent><p>Remove Partner</p></TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : <p className="text-sm text-muted-foreground text-center py-2">No partners added.</p>}
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                  </div>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>2. Application Fees</CardTitle>
-                            <CardDescription>Details of fees paid for registration applications.</CardDescription>
-                        </div>
-                        {!isReadOnly && (
-                            <Button type="button" variant="outline" size="sm" onClick={() => openDialog('addFee', {})}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Fee
-                            </Button>
-                        )}
-                    </CardHeader>
+                  {/* 2. Application Fees */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                        <Receipt className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                                  <Receipt className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">2. Application Fees</CardTitle>
+                                    <CardDescription>Details of fees paid for registration applications.</CardDescription>
+                                </div>
+                            </div>
+                            {!isReadOnly && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => openDialog('addFee', {})}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Fee
+                                </Button>
+                            )}
+                        </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             {feeFields.length > 0 ? feeFields.map((field, index) => (
@@ -1817,102 +1844,100 @@ export default function AgencyRegistrationPage() {
                         </div>
                     </CardContent>
                 </Card>
+                  </div>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>3. Agency Registration</CardTitle>
-                            <CardDescription>Main registration certificate details for the agency.</CardDescription>
-                        </div>
-                        {!isReadOnly && (
-                            <Button type="button" variant="outline" size="sm" onClick={() => openDialog('editAgencyReg', { regData: form.getValues() })}>
-                                <Eye className="mr-2 h-4 w-4" /> Add/Edit
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-4">
-                        <DetailRow label="Agency Reg. No." value={form.watch('agencyRegistrationNo')} />
-                        <DetailRow label="Reg. Date" value={form.watch('agencyRegistrationDate')} />
-                        <DetailRow label="Reg. Fee" value={form.watch('agencyRegistrationFee')} />
-                        <DetailRow label="Payment Date" value={form.watch('agencyPaymentDate')} />
-                        <DetailRow label="Challan No." value={form.watch('agencyChallanNo')} />
-                        <div className="col-span-full border-t pt-4 mt-2"></div>
-                        <DetailRow label="Additional Reg. Fee" value={form.watch('agencyAdditionalRegFee')} />
-                        <DetailRow label="Additional Payment Date" value={form.watch('agencyAdditionalPaymentDate')} />
-                        <DetailRow label="Additional Chalan No." value={form.watch('agencyAdditionalChallanNo')} />
-                        </dl>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>4. Rig Registrations ({activeRigs.length} Active)</CardTitle>
-                            <CardDescription>Manage individual rig details, renewals, and status.</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                             {selectedApplicationId !== 'new' && (
-                                <>
-                                    <Button 
-                                        type="button" 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="h-8 text-xs flex items-center gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50" 
-                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank', 'noopener,noreferrer'); }}
-                                    >
-                                        <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Letter (EN)
-                                    </Button>
-                                    <Button 
-                                        type="button" 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="h-8 text-xs flex items-center gap-1.5 border-green-200 text-green-700 hover:bg-green-50" 
-                                        onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank', 'noopener,noreferrer'); }}
-                                    >
-                                        <Languages className="h-3.5 w-3.5 text-green-600" /> Print Letter (ML)
-                                    </Button>
-                                </>
-                            )}
+                  {/* 3. Agency Registration */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                        <Award className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-amber-600 dark:border-l-amber-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                  <Award className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">3. Agency Registration</CardTitle>
+                                    <CardDescription>Main registration certificate details for the agency.</CardDescription>
+                                </div>
+                            </div>
                             {!isReadOnly && (
-                                <Button type="button" variant="outline" size="sm" onClick={handleAddRig}>
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Rig
+                                <Button type="button" variant="outline" size="sm" onClick={() => openDialog('editAgencyReg', { regData: form.getValues() })}>
+                                    <Eye className="mr-2 h-4 w-4" /> Add/Edit
                                 </Button>
                             )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Accordion type="multiple" className="w-full space-y-2" defaultValue={activeRigs.map(r => `rig-${r.field.id}`)}>
-                            {activeRigs.map(({ field, originalIndex }, displayIndex) => (
-                            <RigAccordionItem
-                                key={field.id}
-                                field={field}
-                                index={originalIndex}
-                                displayIndex={displayIndex}
-                                isReadOnly={isReadOnly}
-                                onRemove={canEdit ? removeRig : undefined}
-                                openDialog={openDialog}
-                                onEditRenewal={handleEditRenewal}
-                                onDeleteRenewal={handleDeleteRenewal}
-                                form={form}
-                                applicationId={selectedApplicationId!}
-                            />
-                            ))}
-                        </Accordion>
-                        {!isReadOnly && canEdit && activeRigCount >= 3 && <p className="text-sm text-muted-foreground mt-4 text-center">A maximum of 3 active rigs are allowed.</p>}
-                        {activeRigs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No active rigs registered.</p>}
-                    </CardContent>
-                    
-                    {hasCancelledRigs && (
-                        <>
-                            <Separator className="my-6"/>
-                            <CardHeader className="pt-0">
-                                <CardTitle className="text-destructive">5. Cancelled Rigs ({cancelledRigs.length})</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Accordion type="multiple" className="w-full space-y-2">
-                                {cancelledRigs.map(({ field, originalIndex }, displayIndex) => (
-                                    <RigAccordionItem
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-4">
+                            <DetailRow label="Agency Reg. No." value={form.watch('agencyRegistrationNo')} />
+                            <DetailRow label="Reg. Date" value={form.watch('agencyRegistrationDate')} />
+                            <DetailRow label="Reg. Fee" value={form.watch('agencyRegistrationFee')} />
+                            <DetailRow label="Payment Date" value={form.watch('agencyPaymentDate')} />
+                            <DetailRow label="Challan No." value={form.watch('agencyChallanNo')} />
+                            <div className="col-span-full border-t pt-4 mt-2"></div>
+                            <DetailRow label="Additional Reg. Fee" value={form.watch('agencyAdditionalRegFee')} />
+                            <DetailRow label="Additional Payment Date" value={form.watch('agencyAdditionalPaymentDate')} />
+                            <DetailRow label="Additional Chalan No." value={form.watch('agencyAdditionalChallanNo')} />
+                            </dl>
+                        </CardContent>
+                    </Card>
+                  </div>
+                
+                  {/* 4. Rig Registrations */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                        <Truck className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                                  <Truck className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">4. Rig Registrations ({activeRigs.length} Active)</CardTitle>
+                                    <CardDescription>Manage individual rig details, renewals, and status.</CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                 {selectedApplicationId !== 'new' && (
+                                    <>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            variant="outline" 
+                                            className="h-8 text-xs flex items-center gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50" 
+                                            onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=en`, '_blank', 'noopener,noreferrer'); }}
+                                        >
+                                            <Printer className="h-3.5 w-3.5 text-blue-600" /> Print Letter (EN)
+                                        </Button>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            variant="outline" 
+                                            className="h-8 text-xs flex items-center gap-1.5 border-green-200 text-green-700 hover:bg-green-50" 
+                                            onClick={(e) => { e.preventDefault(); window.open(`/dashboard/agency-registration/print?id=${selectedApplicationId}&lang=ml`, '_blank', 'noopener,noreferrer'); }}
+                                        >
+                                            <Languages className="h-3.5 w-3.5 text-green-600" /> Print Letter (ML)
+                                        </Button>
+                                    </>
+                                )}
+                                {!isReadOnly && (
+                                    <Button type="button" variant="outline" size="sm" onClick={handleAddRig}>
+                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Rig
+                                    </Button>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Accordion type="multiple" className="w-full space-y-2" defaultValue={activeRigs.map(r => `rig-${r.field.id}`)}>
+                                {activeRigs.map(({ field, originalIndex }, displayIndex) => (
+                                <RigAccordionItem
                                     key={field.id}
                                     field={field}
                                     index={originalIndex}
@@ -1924,68 +1949,144 @@ export default function AgencyRegistrationPage() {
                                     onDeleteRenewal={handleDeleteRenewal}
                                     form={form}
                                     applicationId={selectedApplicationId!}
-                                    />
+                                />
                                 ))}
-                                </Accordion>
-                            </CardContent>
-                        </>
-                    )}
-                </Card>
+                            </Accordion>
+                            {!isReadOnly && canEdit && activeRigCount >= 3 && <p className="text-sm text-muted-foreground mt-4 text-center">A maximum of 3 active rigs are allowed.</p>}
+                            {activeRigs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No active rigs registered.</p>}
+                        </CardContent>
+                    </Card>
+                  </div>
+                    
+                  {/* 5. Cancelled Rigs (if any) */}
+                  {hasCancelledRigs && (
+                    <div className="relative">
+                      <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                        <div className="bg-rose-50 dark:bg-rose-950/60 p-1.5 rounded-full text-rose-600 dark:text-rose-400">
+                          <AlertOctagon className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <Card className="border-l-4 border-l-rose-600 dark:border-l-rose-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                                  <AlertOctagon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight text-destructive">5. Cancelled Rigs ({cancelledRigs.length})</CardTitle>
+                                    <CardDescription>Decommissioned or cancelled rig registrations.</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Accordion type="multiple" className="w-full space-y-2">
+                            {cancelledRigs.map(({ field, originalIndex }, displayIndex) => (
+                                <RigAccordionItem
+                                key={field.id}
+                                field={field}
+                                index={originalIndex}
+                                displayIndex={displayIndex}
+                                isReadOnly={isReadOnly}
+                                onRemove={canEdit ? removeRig : undefined}
+                                openDialog={openDialog}
+                                onEditRenewal={handleEditRenewal}
+                                onDeleteRenewal={handleDeleteRenewal}
+                                form={form}
+                                applicationId={selectedApplicationId!}
+                                />
+                            ))}
+                            </Accordion>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{appFormsSectionNumber}. Application Forms</CardTitle>
-                        <CardDescription>
-                            Generate, view, fill, and print official application forms for Rig Registration and Rig Renewal.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap gap-4 pb-6">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
-                            onClick={() => setActiveFormView('registration')}
-                        >
-                            <FileText className="h-4 w-4 text-blue-600" />
-                            Rig Registration Application Form
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
-                            onClick={() => setActiveFormView('renewal')}
-                        >
-                            <RefreshCw className="h-4 w-4 text-blue-600" />
-                            Rig Renewal Application Form
-                        </Button>
-                    </CardContent>
-                </Card>
+                  {/* 6. Application Forms */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-indigo-50 dark:bg-indigo-950/60 p-1.5 rounded-full text-indigo-600 dark:text-indigo-400">
+                        <Printer className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                                  <Printer className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">{appFormsSectionNumber}. Application Forms</CardTitle>
+                                    <CardDescription>
+                                        Generate, view, fill, and print official application forms for Rig Registration and Rig Renewal.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-4 pb-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
+                                onClick={() => setActiveFormView('registration')}
+                            >
+                                <FileText className="h-4 w-4 text-blue-600" />
+                                Rig Registration Application Form
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
+                                onClick={() => setActiveFormView('renewal')}
+                            >
+                                <RefreshCw className="h-4 w-4 text-blue-600" />
+                                Rig Renewal Application Form
+                            </Button>
+                        </CardContent>
+                    </Card>
+                  </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{remarksSectionNumber}. Remarks</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <FormField
-                            name="remarks"
-                            control={form.control}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <Textarea
-                                            {...field}
-                                            value={field.value ?? ""}
-                                            readOnly={isReadOnly}
-                                            placeholder="Add any final remarks for this agency registration..."
-                                            rows={4}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </CardContent>
-                </Card>
+                  {/* 7. Remarks */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full text-slate-600 dark:text-slate-400">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-slate-600 dark:border-l-slate-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  <MessageSquare className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">{remarksSectionNumber}. Remarks</CardTitle>
+                                    <CardDescription>Final administrative observations and notes</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                name="remarks"
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                readOnly={isReadOnly}
+                                                placeholder="Add any final remarks for this agency registration..."
+                                                rows={4}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                  </div>
+                </div>
 
                     {!isReadOnly && (
                     <div className="flex justify-end gap-2 pt-4">

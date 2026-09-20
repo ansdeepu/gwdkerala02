@@ -18,26 +18,18 @@ import { useDataStore } from '@/hooks/use-data-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-// Inline SVGs
-const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-);
-const PlusCircle = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-);
-const Truck = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><path d="M15 18H9"/><circle cx="17" cy="18" r="2"/></svg>
-);
-const FileDown = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m15 15-3 3-3-3"/></svg>
-);
-const AlertTriangle = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-);
-const Building = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
-);
+import { 
+  Loader2, 
+  PlusCircle, 
+  Truck, 
+  FileDown, 
+  AlertTriangle, 
+  Building, 
+  Car, 
+  Wrench, 
+  ShieldCheck, 
+  History as HistoryIcon 
+} from 'lucide-react';
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;
@@ -374,129 +366,245 @@ export default function VehiclesPage() {
                         <TabsTrigger value="history">History</TabsTrigger>
                     </TabsList>
                     <TabsContent value="present" className="mt-4 space-y-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Department Vehicles ({presentDepartmentVehicles.length})</CardTitle>
-                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setExpiryAlertType('Department')}><AlertTriangle className="h-4 w-4 mr-2"/>Expiry Alerts</Button>
-                                    {canEdit && <Button size="sm" onClick={() => handleAddOrEdit('department', null)}><PlusCircle className="h-4 w-4 mr-2"/> Add</Button>}
-                                    <Button variant="outline" size="sm" onClick={() => handleExportExcel('department')}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <DepartmentVehicleTable 
-                                    data={presentDepartmentVehicles} 
-                                    onEdit={(v: DepartmentVehicle) => handleAddOrEdit('department', v)} 
-                                    onDelete={deleteDepartmentVehicle} 
-                                    canEdit={canEdit}
-                                    onView={handleView}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                             <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Hired Vehicles ({presentHiredVehicles.length})</CardTitle>
-                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setExpiryAlertType('Hired')}><AlertTriangle className="h-4 w-4 mr-2"/>Expiry Alerts</Button>
-                                    {canEdit && <Button size="sm" onClick={() => handleAddOrEdit('hired', null)}><PlusCircle className="h-4 w-4 mr-2"/> Add</Button>}
-                                    <Button variant="outline" size="sm" onClick={() => handleExportExcel('hired')}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <HiredVehicleTable 
-                                    data={presentHiredVehicles} 
-                                    onEdit={(v: HiredVehicle) => handleAddOrEdit('hired', v)} 
-                                    onDelete={deleteHiredVehicle}
-                                    canEdit={canEdit}
-                                    onView={handleView}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Truck className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Rig & Compressor Units ({ownRigs.length})</CardTitle>
+                        <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+                            
+                            {/* 1. Department Vehicles */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                                        <Car className="w-4 h-4" />
                                     </div>
-                                    {canEdit && <Button size="sm" variant="outline" onClick={() => handleAddOrEdit('rig', null)}><PlusCircle className="h-4 w-4 mr-2"/>Add Rig</Button>}
-                                </CardHeader>
-                                <CardContent>
-                                    <RigCompressorTable 
-                                        data={ownRigs} 
-                                        onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)} 
-                                        onDelete={deleteRigCompressor} 
-                                        canEdit={canEdit}
-                                        onView={handleView}
-                                    />
-                                </CardContent>
-                            </Card>
+                                </div>
+                                <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                                                <Car className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg font-bold tracking-tight">1. Department Vehicles ({presentDepartmentVehicles.length})</CardTitle>
+                                                <p className="text-xs text-muted-foreground mt-0.5">Active departmental transport and official service fleet</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                            <Button variant="outline" size="sm" onClick={() => setExpiryAlertType('Department')}><AlertTriangle className="h-4 w-4 mr-2 text-amber-500"/>Expiry Alerts</Button>
+                                            {canEdit && <Button size="sm" onClick={() => handleAddOrEdit('department', null)}><PlusCircle className="h-4 w-4 mr-2"/> Add</Button>}
+                                            <Button variant="outline" size="sm" onClick={() => handleExportExcel('department')}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <DepartmentVehicleTable 
+                                            data={presentDepartmentVehicles} 
+                                            onEdit={(v: DepartmentVehicle) => handleAddOrEdit('department', v)} 
+                                            onDelete={deleteDepartmentVehicle} 
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                            <Card className="border-primary/20 bg-primary/5">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Building className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Other Office Rigs Engaged</CardTitle>
+                            {/* 2. Hired Vehicles */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                                        <Truck className="w-4 h-4" />
                                     </div>
-                                    {canEdit && <Button size="sm" variant="outline" onClick={() => handleAddOrEdit('rig', { isExternal: true })}><PlusCircle className="h-4 w-4 mr-2"/>Add External</Button>}
-                                </CardHeader>
-                                <CardContent>
-                                    <EngagedRigTable 
-                                        data={engagedRigs}
-                                        onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)}
-                                        onDelete={deleteRigCompressor}
-                                        canEdit={canEdit}
-                                        onView={handleView}
-                                    />
-                                </CardContent>
-                            </Card>
+                                </div>
+                                <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                                                <Truck className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg font-bold tracking-tight">2. Hired Vehicles ({presentHiredVehicles.length})</CardTitle>
+                                                <p className="text-xs text-muted-foreground mt-0.5">Contractual and rented vehicles currently on active duty</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                                            <Button variant="outline" size="sm" onClick={() => setExpiryAlertType('Hired')}><AlertTriangle className="h-4 w-4 mr-2 text-amber-500"/>Expiry Alerts</Button>
+                                            {canEdit && <Button size="sm" onClick={() => handleAddOrEdit('hired', null)}><PlusCircle className="h-4 w-4 mr-2"/> Add</Button>}
+                                            <Button variant="outline" size="sm" onClick={() => handleExportExcel('hired')}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <HiredVehicleTable 
+                                            data={presentHiredVehicles} 
+                                            onEdit={(v: HiredVehicle) => handleAddOrEdit('hired', v)} 
+                                            onDelete={deleteHiredVehicle}
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* 3. Rig & Compressor Units */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                                        <Wrench className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <Card className="border-l-4 border-l-amber-600 dark:border-l-amber-500 shadow-xs">
+                                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                                <Wrench className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg font-bold tracking-tight">3. Rig & Compressor Units ({ownRigs.length})</CardTitle>
+                                                <p className="text-xs text-muted-foreground mt-0.5">Departmental drilling rigs, compressor equipment, and support units</p>
+                                            </div>
+                                        </div>
+                                        {canEdit && (
+                                            <Button size="sm" variant="outline" onClick={() => handleAddOrEdit('rig', null)}>
+                                                <PlusCircle className="h-4 w-4 mr-2"/>Add Rig
+                                            </Button>
+                                        )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        <RigCompressorTable 
+                                            data={ownRigs} 
+                                            onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)} 
+                                            onDelete={deleteRigCompressor} 
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* 4. Other Office Rigs Engaged */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                                        <Building className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
+                                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                                                <Building className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg font-bold tracking-tight">4. Other Office Rigs Engaged ({engagedRigs.length})</CardTitle>
+                                                <p className="text-xs text-muted-foreground mt-0.5">Cross-office deployed rigs and inter-district machinery engaged for operations</p>
+                                            </div>
+                                        </div>
+                                        {canEdit && (
+                                            <Button size="sm" variant="outline" onClick={() => handleAddOrEdit('rig', { isExternal: true })}>
+                                                <PlusCircle className="h-4 w-4 mr-2"/>Add External
+                                            </Button>
+                                        )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        <EngagedRigTable 
+                                            data={engagedRigs}
+                                            onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)}
+                                            onDelete={deleteRigCompressor}
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
                         </div>
                     </TabsContent>
                     <TabsContent value="history" className="mt-4 space-y-6">
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Department Vehicles (Garaged)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <DepartmentVehicleTable 
-                                    data={historyDepartmentVehicles} 
-                                    onEdit={(v: DepartmentVehicle) => handleAddOrEdit('department', v)} 
-                                    onDelete={deleteDepartmentVehicle}
-                                    canEdit={canEdit}
-                                    onView={handleView}
-                                />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                             <CardHeader>
-                                <CardTitle>Hired Vehicles (Garaged)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <HiredVehicleTable 
-                                    data={historyHiredVehicles} 
-                                    onEdit={(v: HiredVehicle) => handleAddOrEdit('hired', v)} 
-                                    onDelete={deleteHiredVehicle}
-                                    canEdit={canEdit}
-                                    onView={handleView}
-                                />
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Rig & Compressor Units (Garaged)</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <RigCompressorTable 
-                                    data={historyRigCompressors} 
-                                    onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)} 
-                                    onDelete={deleteRigCompressor} 
-                                    canEdit={canEdit}
-                                    onView={handleView}
-                                />
-                            </CardContent>
-                        </Card>
+                        <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+                            
+                            {/* 1. Department Vehicles (Garaged) */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                                        <Car className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                                    <CardHeader className="flex items-center gap-3 pb-4">
+                                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                                            <Car className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-bold tracking-tight">1. Department Vehicles (Garaged) ({historyDepartmentVehicles.length})</CardTitle>
+                                            <p className="text-xs text-muted-foreground mt-0.5">Archived and off-road departmental fleet records</p>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <DepartmentVehicleTable 
+                                            data={historyDepartmentVehicles} 
+                                            onEdit={(v: DepartmentVehicle) => handleAddOrEdit('department', v)} 
+                                            onDelete={deleteDepartmentVehicle} 
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* 2. Hired Vehicles (Garaged) */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                                        <Truck className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                                    <CardHeader className="flex items-center gap-3 pb-4">
+                                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                                            <Truck className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-bold tracking-tight">2. Hired Vehicles (Garaged) ({historyHiredVehicles.length})</CardTitle>
+                                            <p className="text-xs text-muted-foreground mt-0.5">Expired or terminated vehicle rental agreements</p>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <HiredVehicleTable 
+                                            data={historyHiredVehicles} 
+                                            onEdit={(v: HiredVehicle) => handleAddOrEdit('hired', v)} 
+                                            onDelete={deleteHiredVehicle}
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* 3. Rig & Compressor Units (Garaged) */}
+                            <div className="relative">
+                                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                                    <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                                        <Wrench className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <Card className="border-l-4 border-l-amber-600 dark:border-l-amber-500 shadow-xs">
+                                    <CardHeader className="flex items-center gap-3 pb-4">
+                                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                            <Wrench className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-bold tracking-tight">3. Rig & Compressor Units (Garaged) ({historyRigCompressors.length})</CardTitle>
+                                            <p className="text-xs text-muted-foreground mt-0.5">Decommissioned or garaged drilling machinery</p>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <RigCompressorTable 
+                                            data={historyRigCompressors} 
+                                            onEdit={(v: RigCompressor) => handleAddOrEdit('rig', v)} 
+                                            onDelete={deleteRigCompressor} 
+                                            canEdit={canEdit}
+                                            onView={handleView}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                        </div>
                     </TabsContent>
                 </Tabs>
             )}

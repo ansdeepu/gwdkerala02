@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink, Layers } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink, Layers, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, ClipboardList } from "lucide-react";
 import PrintableReportModal, { type ReportDocType } from "../database/PrintableReportModal";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
@@ -2030,28 +2030,107 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     <FormProvider {...form}>
       <div>
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">1. Application Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}</CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Name &amp; Address of Applicant (English)" value={watch('applicantName')} /><DetailRow label="Name &amp; Address of Applicant (Malayalam)" value={watch('applicantNameMl')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /><DetailRow label="Bank Name" value={watch('bankName')} /><DetailRow label="Branch" value={watch('branch')} /><DetailRow label="Bank Account No." value={watch('bankAccountNo')} /><DetailRow label="IFSC" value={watch('ifsc')} /></div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{remittanceTitle}</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('remittance', createDefaultRemittanceDetail())} disabled={isSupervisor || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount (₹)</TableHead><TableHead>Account</TableHead><TableHead>DD / Bank Details</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{remittanceFields.length > 0 ? remittanceFields.map((item, index) => (
-              <TableRow key={item.id}>
-                  <TableCell className="whitespace-nowrap">{item.dateOfRemittance ? format(new Date(item.dateOfRemittance), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                  <TableCell className="font-semibold">{(Number(item.amountRemitted) || 0).toLocaleString('en-IN')}</TableCell>
-                  <TableCell>{item.remittedAccount}</TableCell>
-                  <TableCell>
-                    {item.ddNo || item.bankName ? (
-                      <div className="text-xs space-y-0.5">
-                        {item.ddNo && <div className="font-medium text-foreground">DD No: {item.ddNo}{item.ddDate ? ` (${format(new Date(item.ddDate), 'dd/MM/yyyy')})` : ''}</div>}
-                        {(item.bankName || item.bankBranch) && <div className="text-muted-foreground">{item.bankName || ''}{item.bankBranch ? `, ${item.bankBranch}` : ''}</div>}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs max-w-[200px] break-words">{item.remittanceRemarks || '-'}</TableCell>
-                  {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('remittance', { index, ...item }, false)}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'remittance', index})} disabled={isSupervisor || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
-              </TableRow>)) : <TableRow><TableCell colSpan={6} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={isEditor && !isFormDisabled ? 5 : 4} className="text-right font-bold">{isDeferredFunding ? "Total Administrative Sanction" : "Total Remittance"}</TableCell><TableCell className="font-bold text-right">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell></TableRow></TableFooterComponent></Table></CardContent></Card>
+          {/* Option C: Unified Administrative Timeline Track */}
+          <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+            {/* 1. Application Details */}
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                  <ClipboardList className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                <CardHeader className="flex flex-row justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                      <ClipboardList className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight">1. Application Details</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Primary agency application details and credentials</p>
+                    </div>
+                  </div>
+                  {isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('application', getValues(), false)} disabled={isSupervisor || isViewer}><Eye className="h-4 w-4 mr-2" />Edit</Button>}
+                </CardHeader>
+                <CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><DetailRow label="File No." value={watch('fileNo')} /><DetailRow label="Name &amp; Address of Applicant (English)" value={watch('applicantName')} /><DetailRow label="Name &amp; Address of Applicant (Malayalam)" value={watch('applicantNameMl')} /><DetailRow label="Phone No." value={watch('phoneNo')} /><DetailRow label="Secondary Mobile No." value={watch('secondaryMobileNo')} /><DetailRow label="Email ID" value={watch('emailId')} /><DetailRow label="Type of Application" value={watch('applicationType') ? applicationTypeDisplayMap[watch('applicationType') as ApplicationType] : ''} /><DetailRow label="Bank Name" value={watch('bankName')} /><DetailRow label="Branch" value={watch('branch')} /><DetailRow label="Bank Account No." value={watch('bankAccountNo')} /><DetailRow label="IFSC" value={watch('ifsc')} /></div></CardContent>
+              </Card>
+            </div>
+
+            {/* 2. Remittance Details */}
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                  <Receipt className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                <CardHeader className="flex flex-row justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                      <Receipt className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight">{remittanceTitle}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{isDeferredFunding ? "Sanctioned order records and funding allocation" : "Financial remittance installments and bank deposits"}</p>
+                    </div>
+                  </div>
+                  {isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('remittance', createDefaultRemittanceDetail())} disabled={isSupervisor || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}
+                </CardHeader>
+                <CardContent><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Amount (₹)</TableHead><TableHead>Account</TableHead><TableHead>DD / Bank Details</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{remittanceFields.length > 0 ? remittanceFields.map((item, index) => (
+                <TableRow key={item.id}>
+                    <TableCell className="whitespace-nowrap">{item.dateOfRemittance ? format(new Date(item.dateOfRemittance), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                    <TableCell className="font-semibold">{(Number(item.amountRemitted) || 0).toLocaleString('en-IN')}</TableCell>
+                    <TableCell>{item.remittedAccount}</TableCell>
+                    <TableCell>
+                      {item.ddNo || item.bankName ? (
+                        <div className="text-xs space-y-0.5">
+                          {item.ddNo && <div className="font-medium text-foreground">DD No: {item.ddNo}{item.ddDate ? ` (${format(new Date(item.ddDate), 'dd/MM/yyyy')})` : ''}</div>}
+                          {(item.bankName || item.bankBranch) && <div className="text-muted-foreground">{item.bankName || ''}{item.bankBranch ? `, ${item.bankBranch}` : ''}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[200px] break-words">{item.remittanceRemarks || '-'}</TableCell>
+                    {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('remittance', { index, ...item }, false)}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'remittance', index})} disabled={isSupervisor || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
+                </TableRow>)) : <TableRow><TableCell colSpan={6} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={isEditor && !isFormDisabled ? 5 : 4} className="text-right font-bold">{isDeferredFunding ? "Total Administrative Sanction" : "Total Remittance"}</TableCell><TableCell className="font-bold text-right">₹{totalRemittanceWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell></TableRow></TableFooterComponent></Table></CardContent>
+              </Card>
+            </div>
             
             {showReappropriation && (
-                <Accordion type="single" collapsible className="w-full" value={reappAccordionValue} onValueChange={setReappAccordionValue}><AccordionItem value="reappropriation-details" className="border-b-0"><Card><div className="flex items-center justify-between border-b"><div className="flex-1"><AccordionTrigger className="w-full p-6 hover:no-underline [&[data-state=open]]:border-b-0"><CardTitle className="text-xl">3. Re-appropriation Details</CardTitle></AccordionTrigger></div><div className="flex items-center gap-2 pr-6 z-10 shrink-0"><Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setIsReappInfoOpen(true); }}><Info className="h-4 w-4 mr-2" />Info</Button>{isEditor && !isFormDisabled && (<Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('reappropriation', createDefaultReappropriationDetail()); }} disabled={isSupervisor || isViewer}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>)}</div></div><AccordionContent><CardContent className="pt-6"><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type of Page</TableHead><TableHead>File No</TableHead><TableHead>File Details</TableHead><TableHead className="text-right">AS Received (₹)</TableHead><TableHead className="text-right">AS Given (₹)</TableHead><TableHead className="text-right">Expenditure (₹)</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedCombinedReappropriations.length > 0 ? sortedCombinedReappropriations.map((item, index) => {
+              <div className="relative">
+                <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                  <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                    <RefreshCw className="w-4 h-4" />
+                  </div>
+                </div>
+                <Accordion type="single" collapsible className="w-full" value={reappAccordionValue} onValueChange={setReappAccordionValue}>
+                  <AccordionItem value="reappropriation-details" className="border-b-0">
+                    <Card className="border-l-4 border-l-amber-500 dark:border-l-amber-400 shadow-xs">
+                      <div className="flex items-center justify-between border-b">
+                        <div className="flex-1">
+                          <AccordionTrigger className="w-full p-6 hover:no-underline [&[data-state=open]]:border-b-0">
+                            <div className="flex items-center gap-3 text-left">
+                              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                <RefreshCw className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-xl font-bold tracking-tight">3. Re-appropriation Details</CardTitle>
+                                <p className="text-xs text-muted-foreground mt-0.5 font-normal">Inter-file fund transfers, allocations, and expenditures</p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                        </div>
+                        <div className="flex items-center gap-2 pr-6 z-10 shrink-0">
+                          <Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setIsReappInfoOpen(true); }}><Info className="h-4 w-4 mr-2" />Info</Button>
+                          {isEditor && !isFormDisabled && (
+                            <Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDialog('reappropriation', createDefaultReappropriationDetail()); }} disabled={isSupervisor || isViewer}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>
+                          )}
+                        </div>
+                      </div>
+                      <AccordionContent>
+                        <CardContent className="pt-6">
+                          <div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type of Page</TableHead><TableHead>File No</TableHead><TableHead>File Details</TableHead><TableHead className="text-right">AS Received (₹)</TableHead><TableHead className="text-right">AS Given (₹)</TableHead><TableHead className="text-right">Expenditure (₹)</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedCombinedReappropriations.length > 0 ? sortedCombinedReappropriations.map((item, index) => {
                     if (item._source === 'auto') {
                       const asVal = item.asGiven !== undefined && item.asGiven !== null ? Number(item.asGiven) : Number(item.amount) || 0;
                       const expVal = item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : null;
@@ -2086,18 +2165,32 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                       );
                     }
                     }) : <TableRow><TableCell colSpan={9} className="text-center h-24">No details added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow className="bg-muted/50 font-bold"><TableCell colSpan={4} className="text-right font-bold">Total Re-appropriation</TableCell><TableCell className="text-right text-green-600 font-bold">{totalReappropriationCreditWatched > 0 ? `₹${totalReappropriationCreditWatched.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</TableCell><TableCell className="text-right text-red-600 font-bold">{totalReappropriationWatched > 0 ? `₹${totalReappropriationWatched.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</TableCell><TableCell className="text-right text-blue-600 font-bold">{(() => { const totalExp = sortedCombinedReappropriations.reduce((sum, item) => sum + (item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : 0), 0); return totalExp > 0 ? `₹${totalExp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'; })()}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 2 : 1}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></AccordionContent></Card></AccordionItem></Accordion>
+              </div>
             )}
 
-            <Card>
+            {/* 4. Site Details */}
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                  <MapPin className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
                 <CardHeader className="flex flex-row justify-between items-start">
-                    <div>
-                        <CardTitle className="text-xl">{siteDetailsSectionNumber}. Site Details</CardTitle>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                      <MapPin className="h-5 w-5" />
                     </div>
-                    {isEditor && !isFormDisabled && (
-                        <Button type="button" onClick={() => openDialog('site', {})} disabled={isSupervisor || isViewer}>
-                            <PlusCircle className="h-4 w-4 mr-2" />Add Site
-                        </Button>
-                    )}
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight">{siteDetailsSectionNumber}. Site Details</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Physical investigation sites, work progress, and location mapping</p>
+                    </div>
+                  </div>
+                  {isEditor && !isFormDisabled && (
+                    <Button type="button" onClick={() => openDialog('site', {})} disabled={isSupervisor || isViewer}>
+                      <PlusCircle className="h-4 w-4 mr-2" />Add Site
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-8">
                     {/* Active Sites Section */}
@@ -2202,9 +2295,30 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                         </div>
                     )}
                 </CardContent>
-            </Card>
+              </Card>
+            </div>
 
-            <Card><CardHeader className="flex flex-row justify-between items-start"><div><CardTitle className="text-xl">{paymentDetailsSectionNumber}. Payment Details</CardTitle></div>{isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('payment', createDefaultPaymentDetail())} disabled={isSupervisor || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}</CardHeader><CardContent><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Account</TableHead><TableHead className="text-right w-24 sm:w-28 leading-tight">Total Payment<br /><span className="text-xs font-normal text-muted-foreground">(₹)</span></TableHead><TableHead className="min-w-[180px]">Name of Site</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedPaymentFields.length > 0 ? sortedPaymentFields.map((item) => (
+            {/* 5. Payment Details */}
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-rose-50 dark:bg-rose-950/60 p-1.5 rounded-full text-rose-600 dark:text-rose-400">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-rose-600 dark:border-l-rose-500 shadow-xs">
+                <CardHeader className="flex flex-row justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight">{paymentDetailsSectionNumber}. Payment Details</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Voucher disbursements, vendor settlements, and site allocations</p>
+                    </div>
+                  </div>
+                  {isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('payment', createDefaultPaymentDetail())} disabled={isSupervisor || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add</Button>}
+                </CardHeader>
+                <CardContent><div className="w-full overflow-x-hidden"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Account</TableHead><TableHead className="text-right w-24 sm:w-28 leading-tight">Total Payment<br /><span className="text-xs font-normal text-muted-foreground">(₹)</span></TableHead><TableHead className="min-w-[180px]">Name of Site</TableHead><TableHead>Remarks</TableHead>{isEditor && !isFormDisabled && <TableHead>Actions</TableHead>}</TableRow></TableHeader><TableBody>{sortedPaymentFields.length > 0 ? sortedPaymentFields.map((item) => (
                 <TableRow key={item.id} className={item.remittanceId ? 'bg-muted/50' : ''}>
                     <TableCell className="whitespace-nowrap">{item.dateOfPayment ? format(new Date(item.dateOfPayment), 'dd/MM/yy') : 'N/A'}</TableCell>
                     <TableCell className="whitespace-nowrap">{item.remittanceId ? 'Revenue Head' : item.paymentAccount}</TableCell>
@@ -2272,10 +2386,28 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                             </div>
                         </TableCell>
                     )}
-                </TableRow>)) : <TableRow><TableCell colSpan={5 + (isEditor && !isFormDisabled ? 1 : 0)} className="text-center h-24">No payments added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={2} className="text-right font-bold">Total Payment</TableCell><TableCell className="font-bold text-right w-24 sm:w-28 whitespace-nowrap font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 3 : 2}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent></Card>
-            <Card>
+                </TableRow>)) : <TableRow><TableCell colSpan={5 + (isEditor && !isFormDisabled ? 1 : 0)} className="text-center h-24">No payments added.</TableCell></TableRow>}</TableBody><TableFooterComponent><TableRow><TableCell colSpan={2} className="text-right font-bold">Total Payment</TableCell><TableCell className="font-bold text-right w-24 sm:w-28 whitespace-nowrap font-mono">₹{totalPaymentWatched?.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</TableCell><TableCell colSpan={isEditor && !isFormDisabled ? 3 : 2}></TableCell></TableRow></TableFooterComponent></Table></div></CardContent>
+              </Card>
+            </div>
+
+            {/* 6. Final Details & Summary */}
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-indigo-50 dark:bg-indigo-950/60 p-1.5 rounded-full text-indigo-600 dark:text-indigo-400">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs">
                 <CardHeader>
-                    <CardTitle className="text-xl">{finalDetailsSectionNumber}. Final Details</CardTitle>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight">{finalDetailsSectionNumber}. Final Details &amp; Summary</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Financial balance, site abstract, and statutory file status</p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Abstract of Sites */}
@@ -2374,17 +2506,29 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                         </div>
                     </div>
                 </CardContent>
-            </Card>
+              </Card>
+            </div>
             
             {/* 7. Print Section */}
-            <Card className="border-primary/30 bg-primary/5">
+            <div className="relative">
+              <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                <div className="bg-teal-50 dark:bg-teal-950/60 p-1.5 rounded-full text-teal-600 dark:text-teal-400">
+                  <Printer className="w-4 h-4" />
+                </div>
+              </div>
+              <Card className="border-l-4 border-l-teal-600 dark:border-l-teal-500 shadow-xs border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-xl flex items-center justify-between flex-wrap gap-2">
-                        <span className="flex items-center gap-2 text-primary font-bold">
-                            <Printer className="h-5 w-5" />
-                            {finalDetailsSectionNumber + 1}. Print Reports & Bills
-                        </span>
-                    </CardTitle>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400">
+                      <Printer className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold tracking-tight text-foreground">
+                        {finalDetailsSectionNumber + 1}. Print Reports &amp; Official Documents
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Generate and download standard administrative reports and bills</p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <p className="text-xs text-muted-foreground">
@@ -2455,7 +2599,9 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                         )}
                     </div>
                 </CardContent>
-            </Card>
+              </Card>
+            </div>
+          </div>
 
             <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t bg-muted/20 py-3 px-6">
                 <div className="flex flex-wrap items-center gap-2.5">

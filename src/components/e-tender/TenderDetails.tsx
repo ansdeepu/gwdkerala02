@@ -737,405 +737,513 @@ export default function TenderDetails() {
     return (
         <FormProvider {...form}>
             <div className="space-y-6">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="space-y-4">
-                            <Card className="border rounded-lg bg-blue-500/5 border-blue-500/20">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Building className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Basic Details</CardTitle>
+                {/* Option C: Unified Administrative Timeline Track */}
+                <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
+                  {/* 1. Basic Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                        <Building className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                                  <Building className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">1. Basic Details</CardTitle>
+                                    <CardDescription>Tender identification, location, and estimate amount</CardDescription>
+                                </div>
+                            </div>
+                            {!isReadOnly && <Button type="button" size="sm" variant="outline" className="bg-white" onClick={() => setActiveModal('basic')}><Edit className="h-4 w-4 mr-2"/>Edit</Button>}
+                        </CardHeader>
+                        {hasAnyBasicData ? (
+                            <CardContent className="p-6 pt-0">
+                                <div className="space-y-6 pt-4">
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-muted-foreground">Tender Identification</h4>
+                                        <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
+                                            <DetailRow label="eTender No." value={watch('eTenderNo')} />
+                                            <DetailRow label="Tender Date" value={watch('tenderDate')} />
+                                            <DetailRow label="File No." value={watch('fileNo') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo')}` : null} />
+                                            <DetailRow label="File No. 2" value={watch('fileNo2') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo2')}` : null} />
+                                            <DetailRow label="File No. 3" value={watch('fileNo3') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo3')}` : null} />
+                                            <DetailRow label="File No. 4" value={watch('fileNo4') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo4')}` : null} />
+                                        </div>
                                     </div>
-                                    {!isReadOnly && <Button type="button" size="sm" variant="outline" className="bg-white" onClick={() => setActiveModal('basic')}><Edit className="h-4 w-4 mr-2"/>Edit</Button>}
-                                </CardHeader>
-                                {hasAnyBasicData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        <div className="space-y-6 pt-4">
-                                            <div className="space-y-2">
-                                                <h4 className="text-sm font-medium text-muted-foreground">Tender Identification</h4>
-                                                <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
-                                                    <DetailRow label="eTender No." value={watch('eTenderNo')} />
-                                                    <DetailRow label="Tender Date" value={watch('tenderDate')} />
-                                                    <DetailRow label="File No." value={watch('fileNo') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo')}` : null} />
-                                                    <DetailRow label="File No. 2" value={watch('fileNo2') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo2')}` : null} />
-                                                    <DetailRow label="File No. 3" value={watch('fileNo3') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo3')}` : null} />
-                                                    <DetailRow label="File No. 4" value={watch('fileNo4') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo4')}` : null} />
-                                                </div>
-                                            </div>
-                                             <div className="space-y-2">
-                                                <h4 className="text-sm font-medium text-muted-foreground">Work & Location</h4>
-                                                <div className="p-4 border rounded-md bg-slate-50 space-y-4">
-                                                    <DetailRow label="Name of Work" value={watch('nameOfWork')} />
-                                                    <DetailRow label="Name of Work (in Malayalam)" value={watch('nameOfWorkMalayalam')} />
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4 pt-2">
-                                                        <DetailRow label="Location" value={watch('location')} />
-                                                        <DetailRow label="Period of Completion (Days)" value={watch('periodOfCompletion')} />
-                                                        <DetailRow label="Type of Tender" value={watch('tenderType')} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <h4 className="text-sm font-medium text-muted-foreground">Financial Details</h4>
-                                                <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                                                    <DetailRow label="Tender Amount (Rs.)" value={watch('estimateAmount')} isCurrency noComma />
-                                                    <DetailRow label="Tender Fee (Rs.)" value={displayTenderFormFee} />
-                                                    <DetailRow label="EMD (Rs.)" value={watch('emd')} isCurrency noComma />
-                                                </div>
-                                            </div>
-                                             <div className="space-y-2">
-                                                <h4 className="text-sm font-medium text-muted-foreground">Key Dates</h4>
-                                                <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                                                    <DetailRow label="Date & Time of Publishing" value={watch('dateTimeOfPublishing')} isReceiptFormat={true} />
-                                                    <DetailRow label="Last Date & Time of Receipt" value={watch('dateTimeOfReceipt')} isReceiptFormat={true} />
-                                                    <DetailRow label="Date & Time of Opening" value={watch('dateTimeOfOpening')} isOpeningFormat={true}/>
-                                                </div>
+                                     <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-muted-foreground">Work & Location</h4>
+                                        <div className="p-4 border rounded-md bg-slate-50 space-y-4">
+                                            <DetailRow label="Name of Work" value={watch('nameOfWork')} />
+                                            <DetailRow label="Name of Work (in Malayalam)" value={watch('nameOfWorkMalayalam')} />
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4 pt-2">
+                                                <DetailRow label="Location" value={watch('location')} />
+                                                <DetailRow label="Period of Completion (Days)" value={watch('periodOfCompletion')} />
+                                                <DetailRow label="Type of Tender" value={watch('tenderType')} />
                                             </div>
                                         </div>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No basic details have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-
-                            <Card className="border rounded-lg">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <GitBranch className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Corrigendum Details ({corrigendumFields.length})</CardTitle>
                                     </div>
-                                    {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setActiveModal('addCorrigendum'); }}><PlusCircle className="h-4 w-4 mr-2"/>Add Corrigendum</Button>}
-                                </CardHeader>
-                                {hasAnyCorrigendumData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        <div className="mt-4 pt-4 border-t space-y-2">
-                                            {corrigendumFields.map((corrigendum, index) => (
-                                                <div key={corrigendum.id} className="p-4 border rounded-md bg-secondary/30 relative group">
-                                                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditCorrigendumClick(corrigendum, index)}><Edit className="h-4 w-4"/></Button>}
-                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveCorrigendum(index)}><Trash2 className="h-4 w-4"/></Button>}
-                                                    </div>
-                                                    <h4 className="text-sm font-semibold text-primary mb-2">Corrigendum No. {index + 1}</h4>
-                                                    <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-1">
-                                                        <DetailRow label="Type" value={corrigendum.corrigendumType} />
-                                                        <DetailRow label="Date" value={corrigendum.corrigendumDate} />
-                                                        <DetailRow label="Reason" value={corrigendum.reason} />
-                                                        <DetailRow label="New Last Date &amp; Time" value={corrigendum.lastDateOfReceipt} isReceiptFormat={true} />
-                                                        <DetailRow label="New Opening Date &amp; Time" value={corrigendum.dateOfOpeningTender} isOpeningFormat={true} />
-                                                    </dl>
-                                                </div>
-                                            ))}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-muted-foreground">Financial Details</h4>
+                                        <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                                            <DetailRow label="Tender Amount (Rs.)" value={watch('estimateAmount')} isCurrency noComma />
+                                            <DetailRow label="Tender Fee (Rs.)" value={displayTenderFormFee} />
+                                            <DetailRow label="EMD (Rs.)" value={watch('emd')} isCurrency noComma />
                                         </div>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No corrigendums have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-                            
-                            {hasRetenderCorrigendum && (
-                                <Card className="border rounded-lg">
-                                    <CardHeader className="flex flex-row justify-between items-center p-4">
-                                        <div className="flex items-center gap-3">
-                                            <GitBranch className="h-5 w-5 text-primary"/>
-                                            <CardTitle className="text-lg font-semibold text-primary">Retender Details ({retenderFields.length})</CardTitle>
-                                        </div>
-                                        {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('addRetender')}><PlusCircle className="h-4 w-4 mr-2"/>Add Retender</Button>}
-                                    </CardHeader>
-                                    {hasAnyRetenderData ? (
-                                        <CardContent className="p-6 pt-0">
-                                            <div className="mt-4 pt-4 border-t space-y-2">
-                                                {retenderFields.map((retender, index) => (
-                                                    <div key={retender.id} className="p-4 border rounded-md bg-secondary/30 relative group">
-                                                        <div className="absolute top-2 right-2 flex items-center gap-1">
-                                                            {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditRetenderClick(retender, index)}><Edit className="h-4 w-4"/></Button>}
-                                                            {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => setRetenderToDelete({ id: retender.id, index })}><Trash2 className="h-4 w-4"/></Button>}
-                                                        </div>
-                                                        <h4 className="text-sm font-semibold text-primary mb-2">Retender No. {index + 1}</h4>
-                                                        <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 mt-1">
-                                                            <DetailRow label="Retender Date" value={retender.retenderDate} />
-                                                            <DetailRow label="New Last Date & Time" value={retender.lastDateOfReceipt} isReceiptFormat={true} />
-                                                            <DetailRow label="New Opening Date & Time" value={retender.dateOfOpeningTender} isOpeningFormat={true}/>
-                                                        </dl>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </CardContent>
-                                    ) : (
-                                        <CardContent>
-                                            <p className="text-sm text-muted-foreground text-center py-4">No retender details have been added.</p>
-                                        </CardContent>
-                                    )}
-                                </Card>
-                            )}
-
-                            <Card className="border rounded-lg">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <FolderOpen className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Tender Opening Details</CardTitle>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setActiveModal('opening'); }}><Edit className="h-4 w-4 mr-2"/>Edit</Button>}
-                                        {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearOpeningDetailsConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
-                                    </div>
-                                </CardHeader>
-                                {hasAnyOpeningData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        <div className="space-y-4 pt-4 border-t">
-                                            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                                <DetailRow label="Date of Opening Bid" value={watch('dateOfOpeningBid')} />
-                                                <DetailRow label="Date of Tech/Fin Bid Opening" value={watch('dateOfTechnicalAndFinancialBidOpening')} />
-                                            </dl>
-                                            <div className="space-y-2">
-                                                <h4 className="font-semibold">Committee Members:</h4>
-                                                {committeeMemberDetails.length > 0 ? (
-                                                    <ol className="list-decimal list-inside text-sm space-y-1">
-                                                        {committeeMemberDetails.map((member, i) => (
-                                                        <li key={i}>
-                                                            <span className="font-semibold">{member.name}</span>
-                                                            <span className="text-muted-foreground"> ({member.designation})</span>
-                                                        </li>
-                                                        ))}
-                                                    </ol>
-                                                ) : (
-                                                    <p className="text-sm text-muted-foreground">No committee members assigned.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No tender opening details have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-
-                            <Card className="border rounded-lg">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Users className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Bidders ({bidderFields.length})</CardTitle>
-                                    </div>
-                                    {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setModalData(null); setActiveModal('addBidder'); }}><PlusCircle className="h-4 w-4 mr-2"/>Add Bidder</Button>}
-                                </CardHeader>
-                                {hasAnyBidderData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        <div className="mt-4 pt-4 border-t space-y-2">
-                                            {sortedBidderFields.map((bidder, index) => {
-                                                const originalIndex = bidderFields.findIndex(field => field.id === bidder.id);
-                                                const isL1 = bidder.status === 'Accepted' && bidder.id === l1Bidder?.id;
-                                                const masterBidder = allBidders?.find(b => b.name === bidder.name);
-                                                const bidderEmail = bidder.email || masterBidder?.email;
-                                                return (
-                                                    <div key={bidder.id} className="p-3 border rounded-md bg-secondary/30 relative">
-                                                        <div className="flex items-start justify-between mb-2">
-                                                            <div className="flex items-center gap-2 flex-wrap">
-                                                                <h5 className="font-bold text-sm">Bidder #{index + 1}: {bidder.name}</h5>
-                                                                {isL1 && <Badge className="bg-green-600 text-white">L1</Badge>}
-                                                                {(bidder.bidderType === 'Labour Society' || bidder.bidderType === 'Labour Contract Society') && (
-                                                                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-medium">Labour Contract Society</Badge>
-                                                                )}
-                                                                {labourSocietyEval.isNegotiationAgreed && bidder.id === labourSocietyEval.primarySociety?.id && (
-                                                                    <Badge className="bg-blue-600 text-white">Awarded (Negotiated)</Badge>
-                                                                )}
-                                                                {bidder.status && <Badge variant={bidder.status === 'Accepted' ? 'default' : 'destructive'} className="mt-1">{bidder.status}</Badge>}
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setModalData({ ...bidder, index: originalIndex }); setActiveModal('editBidder'); }}><Edit className="h-4 w-4"/></Button>}
-                                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveBidder(originalIndex)}><Trash2 className="h-4 w-4"/></Button>}
-                                                            </div>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground">{bidder.address}</p>
-                                                        <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
-                                                            <DetailRow label="Quoted Amount" value={bidder.quotedAmount} isCurrency noComma />
-                                                            <DetailRow label="Quoted Percentage" value={bidder.quotedPercentage ? `${bidder.quotedPercentage}% ${bidder.aboveBelow || ''}`: ''} />
-                                                            {isL1 && bidderEmail && (
-                                                                <DetailRow label="L1 Bidder Email-ID" value={bidderEmail} />
-                                                            )}
-                                                        </dl>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No bidders have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-
-                            {labourSocietyEval.hasLabourSociety && (
-                                <LabourSocietyNegotiationCard
-                                    evaluation={labourSocietyEval}
-                                    negotiationData={watch('labourSocietyNegotiation')}
-                                    isReadOnly={isReadOnly}
-                                    onOpenNegotiate={() => setIsNegotiationOpen(true)}
-                                    onResetNegotiate={handleResetLabourNegotiation}
-                                />
-                            )}
-
-                            <Card className="border rounded-lg">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <Bell className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">Selection Notice Details</CardTitle>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('selectionNotice')}><Edit className="h-4 w-4 mr-2" />{hasAnySelectionNoticeData ? 'Edit' : 'Add'}</Button>}
-                                        {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearSelectionNoticeConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
-                                    </div>
-                                </CardHeader>
-                                {hasAnySelectionNoticeData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        {labourSocietyEval.isNegotiationAgreed && (
-                                            <div className="mt-3 mb-2 p-2.5 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-2">
-                                                <span>Awarded to Labour Contract Society: <strong className="font-semibold">{labourSocietyEval.primarySociety?.name}</strong></span>
-                                                <span>Negotiated Contract Rate: <strong className="font-semibold">₹{(labourSocietyEval.negotiatedAmount ?? 0).toLocaleString('en-IN')}</strong></span>
-                                            </div>
-                                        )}
-                                        <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
-                                            <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
-                                            <DetailRow label="Basis for Calculation" value={watch('amountType')} />
-                                            <DetailRow label="Performance Guarantee" value={watch('performanceGuaranteeAmount')} isCurrency noComma />
-                                            <DetailRow label="Additional PG" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency noComma />
-                                            <DetailRow label="Stamp Paper" value={watch('stampPaperAmount')} isCurrency noComma />
-                                        </dl>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No selection notice details have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-
-                            <Card className="border rounded-lg">
-                                <CardHeader className="flex flex-row justify-between items-center p-4">
-                                    <div className="flex items-center gap-3">
-                                        <ScrollText className="h-5 w-5 text-primary"/>
-                                        <CardTitle className="text-lg font-semibold text-primary">{workOrderTitle}</CardTitle>
-                                    </div>
-                                     <div className="flex items-center gap-2">
-                                        {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('workOrder')}><Edit className="h-4 w-4 mr-2"/>{hasAnyWorkOrderData ? 'Edit' : 'Add'}</Button>}
-                                        {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearWorkOrderConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
-                                    </div>
-                                </CardHeader>
-                                {hasAnyWorkOrderData ? (
-                                    <CardContent className="p-6 pt-0">
-                                        <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
-                                            <DetailRow label="Agreement Date" value={watch('agreementDate')} />
-                                            <DetailRow label="Date - Work / Supply Order" value={watch('dateWorkOrder')} />
-                                            <DetailRow label="Measurer" value={watch('nameOfAssistantEngineer')} subValue={assistantEngineerDesignation} />
-                                            <DetailRow label="Stamp Paper Submitted" value={watch('stampPaperAmountSubmitted')} isCurrency noComma />
-                                            <DetailRow 
-                                                label="Performance Guarantee Submitted" 
-                                                value={watch('performanceGuaranteeAmountSubmitted')} 
-                                                isCurrency 
-                                                noComma
-                                                subValue={watch('performanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
-                                            />
-                                            <DetailRow 
-                                                label="Additional PG Submitted" 
-                                                value={watch('additionalPerformanceGuaranteeAmountSubmitted')} 
-                                                isCurrency 
-                                                noComma
-                                                subValue={watch('additionalPerformanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
-                                            />
-                                            <DetailRow label="Supervisor 1" value={watch('supervisor1Name')} subValue={supervisor1Designation} />
-                                            <DetailRow label="Supervisor 2" value={watch('supervisor2Name')} subValue={supervisor2Designation} />
-                                            <DetailRow label="Supervisor 3" value={watch('supervisor3Name')} subValue={supervisor3Designation} />
-                                            <div className="col-span-full">
-                                                <DetailRow label="Deposit Remarks" value={watch('securityDepositRemarks')} />
-                                            </div>
-                                        </dl>
-                                    </CardContent>
-                                ) : (
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground text-center py-4">No work order details have been added.</p>
-                                    </CardContent>
-                                )}
-                            </Card>
-                        </div>
-                        
-                         <Card className="mt-4">
-                            <CardContent className="p-4 space-y-4">
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <h3 className="text-lg font-semibold flex items-center gap-3 text-primary"><FileText className="h-5 w-5"/>Present Status</h3>
-                                    <div className="flex items-center gap-2">
-                                        {tender.presentStatus && <Badge className={cn(getStatusBadgeClass(tender.presentStatus), "h-6")}>{tender.presentStatus}</Badge>}
-                                        <div className="w-full sm:w-[250px]">
-                                            <FormField
-                                                name="presentStatus"
-                                                control={control}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <Select onValueChange={(value) => { field.onChange(value); }} value={field.value || undefined} disabled={true}>
-                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select current status" /></SelectTrigger></FormControl>
-                                                            <SelectContent>{dynamicStatusOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                                                        </Select>
-                                                        <p className="text-[11px] text-muted-foreground mt-1">Status is automated based on form details and timeline.</p>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                     <div className="space-y-2">
+                                        <h4 className="text-sm font-medium text-muted-foreground">Key Dates</h4>
+                                        <div className="p-4 border rounded-md bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                                            <DetailRow label="Date & Time of Publishing" value={watch('dateTimeOfPublishing')} isReceiptFormat={true} />
+                                            <DetailRow label="Last Date & Time of Receipt" value={watch('dateTimeOfReceipt')} isReceiptFormat={true} />
+                                            <DetailRow label="Date & Time of Opening" value={watch('dateTimeOfOpening')} isOpeningFormat={true}/>
                                         </div>
                                     </div>
                                 </div>
-                                <FormField
-                                    name="remarks"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Remarks</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    {...field}
-                                                    value={field.value ?? ""}
-                                                    onChange={(e) => {
-                                                        field.onChange(e);
-                                                    }}
-                                                    placeholder="Add any remarks about the current status..."
-                                                    readOnly={isReadOnly}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                             </CardContent>
-                        </Card>
-                        
-                        <div className="mt-6 flex items-center justify-center gap-4">
-                            <Button type="button" variant="outline" size="lg" onClick={handleClose}>
-                                <X className="mr-2 h-4 w-4" />
-                                Close
-                            </Button>
-                            {!isReadOnly && 
-                              <Button 
-                                  type="button" 
-                                  size="lg" 
-                                  onClick={handleFinalSave} 
-                                  disabled={
-                                      isSubmitting || 
-                                      (tender.id === 'new' 
-                                          ? (!watch('eTenderNo') || !watch('tenderDate')) 
-                                          : !isFormDirty)
-                                  }
-                              >
-                                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                  Save
-                              </Button>
-                            }
-                        </div>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No basic details have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+                  </div>
 
-                        <div className="mt-6 flex flex-col items-center">
-                             <PdfReportDialogs />
+                  {/* 2. Corrigendum Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                        <GitBranch className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                                  <GitBranch className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">2. Corrigendum Details ({corrigendumFields.length})</CardTitle>
+                                    <CardDescription>Corrigendum notices and schedule modifications</CardDescription>
+                                </div>
+                            </div>
+                            {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setActiveModal('addCorrigendum'); }}><PlusCircle className="h-4 w-4 mr-2"/>Add Corrigendum</Button>}
+                        </CardHeader>
+                        {hasAnyCorrigendumData ? (
+                            <CardContent className="p-6 pt-0">
+                                <div className="mt-4 pt-4 border-t space-y-2">
+                                    {corrigendumFields.map((corrigendum, index) => (
+                                        <div key={corrigendum.id} className="p-4 border rounded-md bg-secondary/30 relative group">
+                                            <div className="absolute top-2 right-2 flex items-center gap-1">
+                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditCorrigendumClick(corrigendum, index)}><Edit className="h-4 w-4"/></Button>}
+                                                {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveCorrigendum(index)}><Trash2 className="h-4 w-4"/></Button>}
+                                            </div>
+                                            <h4 className="text-sm font-semibold text-primary mb-2">Corrigendum No. {index + 1}</h4>
+                                            <dl className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 mt-1">
+                                                <DetailRow label="Type" value={corrigendum.corrigendumType} />
+                                                <DetailRow label="Date" value={corrigendum.corrigendumDate} />
+                                                <DetailRow label="Reason" value={corrigendum.reason} />
+                                                <DetailRow label="New Last Date &amp; Time" value={corrigendum.lastDateOfReceipt} isReceiptFormat={true} />
+                                                <DetailRow label="New Opening Date &amp; Time" value={corrigendum.dateOfOpeningTender} isOpeningFormat={true} />
+                                            </dl>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No corrigendums have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+                  </div>
+                  
+                  {hasRetenderCorrigendum && (
+                    <div className="relative">
+                      <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                        <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                          <GitBranch className="w-4 h-4" />
                         </div>
-                    </CardContent>
-                </Card>
+                      </div>
+                      <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
+                          <CardHeader className="flex flex-row justify-between items-center p-4">
+                              <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                                    <GitBranch className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                      <CardTitle className="text-xl font-bold tracking-tight">Retender Details ({retenderFields.length})</CardTitle>
+                                      <CardDescription>Re-invitation of tender schedule details</CardDescription>
+                                  </div>
+                              </div>
+                              {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('addRetender')}><PlusCircle className="h-4 w-4 mr-2"/>Add Retender</Button>}
+                          </CardHeader>
+                          {hasAnyRetenderData ? (
+                              <CardContent className="p-6 pt-0">
+                                  <div className="mt-4 pt-4 border-t space-y-2">
+                                      {retenderFields.map((retender, index) => (
+                                          <div key={retender.id} className="p-4 border rounded-md bg-secondary/30 relative group">
+                                              <div className="absolute top-2 right-2 flex items-center gap-1">
+                                                  {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditRetenderClick(retender, index)}><Edit className="h-4 w-4"/></Button>}
+                                                  {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => setRetenderToDelete({ id: retender.id, index })}><Trash2 className="h-4 w-4"/></Button>}
+                                              </div>
+                                              <h4 className="text-sm font-semibold text-primary mb-2">Retender No. {index + 1}</h4>
+                                              <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 mt-1">
+                                                  <DetailRow label="Retender Date" value={retender.retenderDate} />
+                                                  <DetailRow label="New Last Date & Time" value={retender.lastDateOfReceipt} isReceiptFormat={true} />
+                                                  <DetailRow label="New Opening Date & Time" value={retender.dateOfOpeningTender} isOpeningFormat={true}/>
+                                              </dl>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </CardContent>
+                          ) : (
+                              <CardContent>
+                                  <p className="text-sm text-muted-foreground text-center py-4">No retender details have been added.</p>
+                              </CardContent>
+                          )}
+                      </Card>
+                    </div>
+                  )}
+
+                  {/* 3. Tender Opening Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-amber-600 dark:border-l-amber-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                                  <FolderOpen className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">3. Tender Opening Details</CardTitle>
+                                    <CardDescription>Bid opening dates and evaluation committee</CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setActiveModal('opening'); }}><Edit className="h-4 w-4 mr-2"/>Edit</Button>}
+                                {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearOpeningDetailsConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
+                            </div>
+                        </CardHeader>
+                        {hasAnyOpeningData ? (
+                            <CardContent className="p-6 pt-0">
+                                <div className="space-y-4 pt-4 border-t">
+                                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                        <DetailRow label="Date of Opening Bid" value={watch('dateOfOpeningBid')} />
+                                        <DetailRow label="Date of Tech/Fin Bid Opening" value={watch('dateOfTechnicalAndFinancialBidOpening')} />
+                                    </dl>
+                                    <div className="space-y-2">
+                                        <h4 className="font-semibold">Committee Members:</h4>
+                                        {committeeMemberDetails.length > 0 ? (
+                                            <ol className="list-decimal list-inside text-sm space-y-1">
+                                                {committeeMemberDetails.map((member, i) => (
+                                                <li key={i}>
+                                                    <span className="font-semibold">{member.name}</span>
+                                                    <span className="text-muted-foreground"> ({member.designation})</span>
+                                                </li>
+                                                ))}
+                                            </ol>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">No committee members assigned.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No tender opening details have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+                  </div>
+
+                  {/* 4. Bidders */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-cyan-50 dark:bg-cyan-950/60 p-1.5 rounded-full text-cyan-600 dark:text-cyan-400">
+                        <Users className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-cyan-600 dark:border-l-cyan-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400">
+                                  <Users className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">4. Bidders ({bidderFields.length})</CardTitle>
+                                    <CardDescription>Submitted bidder rates, evaluation, and ranking</CardDescription>
+                                </div>
+                            </div>
+                            {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setModalData(null); setActiveModal('addBidder'); }}><PlusCircle className="h-4 w-4 mr-2"/>Add Bidder</Button>}
+                        </CardHeader>
+                        {hasAnyBidderData ? (
+                            <CardContent className="p-6 pt-0">
+                                <div className="mt-4 pt-4 border-t space-y-2">
+                                    {sortedBidderFields.map((bidder, index) => {
+                                        const originalIndex = bidderFields.findIndex(field => field.id === bidder.id);
+                                        const isL1 = bidder.status === 'Accepted' && bidder.id === l1Bidder?.id;
+                                        const masterBidder = allBidders?.find(b => b.name === bidder.name);
+                                        const bidderEmail = bidder.email || masterBidder?.email;
+                                        return (
+                                            <div key={bidder.id} className="p-3 border rounded-md bg-secondary/30 relative">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h5 className="font-bold text-sm">Bidder #{index + 1}: {bidder.name}</h5>
+                                                        {isL1 && <Badge className="bg-green-600 text-white">L1</Badge>}
+                                                        {(bidder.bidderType === 'Labour Society' || bidder.bidderType === 'Labour Contract Society') && (
+                                                            <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-medium">Labour Contract Society</Badge>
+                                                        )}
+                                                        {labourSocietyEval.isNegotiationAgreed && bidder.id === labourSocietyEval.primarySociety?.id && (
+                                                            <Badge className="bg-blue-600 text-white">Awarded (Negotiated)</Badge>
+                                                        )}
+                                                        {bidder.status && <Badge variant={bidder.status === 'Accepted' ? 'default' : 'destructive'} className="mt-1">{bidder.status}</Badge>}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setModalData({ ...bidder, index: originalIndex }); setActiveModal('editBidder'); }}><Edit className="h-4 w-4"/></Button>}
+                                                        {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveBidder(originalIndex)}><Trash2 className="h-4 w-4"/></Button>}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">{bidder.address}</p>
+                                                <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs">
+                                                    <DetailRow label="Quoted Amount" value={bidder.quotedAmount} isCurrency noComma />
+                                                    <DetailRow label="Quoted Percentage" value={bidder.quotedPercentage ? `${bidder.quotedPercentage}% ${bidder.aboveBelow || ''}`: ''} />
+                                                    {isL1 && bidderEmail && (
+                                                        <DetailRow label="L1 Bidder Email-ID" value={bidderEmail} />
+                                                    )}
+                                                </dl>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No bidders have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+
+                    {labourSocietyEval.hasLabourSociety && (
+                        <div className="mt-4">
+                          <LabourSocietyNegotiationCard
+                              evaluation={labourSocietyEval}
+                              negotiationData={watch('labourSocietyNegotiation')}
+                              isReadOnly={isReadOnly}
+                              onOpenNegotiate={() => setIsNegotiationOpen(true)}
+                              onResetNegotiate={handleResetLabourNegotiation}
+                          />
+                        </div>
+                    )}
+                  </div>
+
+                  {/* 5. Selection Notice Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-violet-50 dark:bg-violet-950/60 p-1.5 rounded-full text-violet-600 dark:text-violet-400">
+                        <Bell className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-violet-600 dark:border-l-violet-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
+                                  <Bell className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">5. Selection Notice Details</CardTitle>
+                                    <CardDescription>Performance guarantee and stamp paper terms</CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('selectionNotice')}><Edit className="h-4 w-4 mr-2" />{hasAnySelectionNoticeData ? 'Edit' : 'Add'}</Button>}
+                                {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearSelectionNoticeConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
+                            </div>
+                        </CardHeader>
+                        {hasAnySelectionNoticeData ? (
+                            <CardContent className="p-6 pt-0">
+                                {labourSocietyEval.isNegotiationAgreed && (
+                                    <div className="mt-3 mb-2 p-2.5 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900 flex flex-wrap items-center justify-between gap-2">
+                                        <span>Awarded to Labour Contract Society: <strong className="font-semibold">{labourSocietyEval.primarySociety?.name}</strong></span>
+                                        <span>Negotiated Contract Rate: <strong className="font-semibold">₹{(labourSocietyEval.negotiatedAmount ?? 0).toLocaleString('en-IN')}</strong></span>
+                                    </div>
+                                )}
+                                <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
+                                    <DetailRow label="Selection Notice Date" value={watch('selectionNoticeDate')} />
+                                    <DetailRow label="Basis for Calculation" value={watch('amountType')} />
+                                    <DetailRow label="Performance Guarantee" value={watch('performanceGuaranteeAmount')} isCurrency noComma />
+                                    <DetailRow label="Additional PG" value={watch('additionalPerformanceGuaranteeAmount')} isCurrency noComma />
+                                    <DetailRow label="Stamp Paper" value={watch('stampPaperAmount')} isCurrency noComma />
+                                </dl>
+                            </CardContent>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No selection notice details have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+                  </div>
+
+                  {/* 6. Work / Supply Order Details */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-orange-50 dark:bg-orange-950/60 p-1.5 rounded-full text-orange-600 dark:text-orange-400">
+                        <ScrollText className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-orange-600 dark:border-l-orange-500 shadow-xs">
+                        <CardHeader className="flex flex-row justify-between items-center p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
+                                  <ScrollText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">6. {workOrderTitle}</CardTitle>
+                                    <CardDescription>Agreement date, security deposits, and supervision</CardDescription>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                {!isReadOnly && <Button type="button" size="sm" variant="outline" onClick={() => setActiveModal('workOrder')}><Edit className="h-4 w-4 mr-2"/>{hasAnyWorkOrderData ? 'Edit' : 'Add'}</Button>}
+                                {!isReadOnly && <Button type="button" size="icon" variant="destructive" onClick={(e) => { e.stopPropagation(); setIsClearWorkOrderConfirmOpen(true); }}><Trash2 className="h-4 w-4"/></Button>}
+                            </div>
+                        </CardHeader>
+                        {hasAnyWorkOrderData ? (
+                            <CardContent className="p-6 pt-0">
+                                <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 pt-4 border-t">
+                                    <DetailRow label="Agreement Date" value={watch('agreementDate')} />
+                                    <DetailRow label="Date - Work / Supply Order" value={watch('dateWorkOrder')} />
+                                    <DetailRow label="Measurer" value={watch('nameOfAssistantEngineer')} subValue={assistantEngineerDesignation} />
+                                    <DetailRow label="Stamp Paper Submitted" value={watch('stampPaperAmountSubmitted')} isCurrency noComma />
+                                    <DetailRow 
+                                        label="Performance Guarantee Submitted" 
+                                        value={watch('performanceGuaranteeAmountSubmitted')} 
+                                        isCurrency 
+                                        noComma
+                                        subValue={watch('performanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
+                                    />
+                                    <DetailRow 
+                                        label="Additional PG Submitted" 
+                                        value={watch('additionalPerformanceGuaranteeAmountSubmitted')} 
+                                        isCurrency 
+                                        noComma
+                                        subValue={watch('additionalPerformanceGuaranteeReleaseStatus') === 'Released' ? 'Released to Bidder' : 'Withheld'}
+                                    />
+                                    <DetailRow label="Supervisor 1" value={watch('supervisor1Name')} subValue={supervisor1Designation} />
+                                    <DetailRow label="Supervisor 2" value={watch('supervisor2Name')} subValue={supervisor2Designation} />
+                                    <DetailRow label="Supervisor 3" value={watch('supervisor3Name')} subValue={supervisor3Designation} />
+                                    <div className="col-span-full">
+                                        <DetailRow label="Deposit Remarks" value={watch('securityDepositRemarks')} />
+                                    </div>
+                                </dl>
+                            </CardContent>
+                        ) : (
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground text-center py-4">No work order details have been added.</p>
+                            </CardContent>
+                        )}
+                    </Card>
+                  </div>
+
+                  {/* 7. Present Status & Remarks */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full text-slate-600 dark:text-slate-400">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <Card className="border-l-4 border-l-slate-600 dark:border-l-slate-500 shadow-xs">
+                        <CardHeader className="p-4 pb-2">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  <FileText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight">7. Present Status & Remarks</CardTitle>
+                                    <CardDescription>Workflow progression tracking and official notes</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-2 space-y-4">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">Status:</span>
+                                    {tender.presentStatus && <Badge className={cn(getStatusBadgeClass(tender.presentStatus), "h-6")}>{tender.presentStatus}</Badge>}
+                                </div>
+                                <div className="w-full sm:w-[250px]">
+                                    <FormField
+                                        name="presentStatus"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={(value) => { field.onChange(value); }} value={field.value || undefined} disabled={true}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select current status" /></SelectTrigger></FormControl>
+                                                    <SelectContent>{dynamicStatusOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                                <p className="text-[11px] text-muted-foreground mt-1">Status is automated based on form details and timeline.</p>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            <FormField
+                                name="remarks"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Remarks</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                onChange={(e) => {
+                                                    field.onChange(e);
+                                                }}
+                                                placeholder="Add any remarks about the current status..."
+                                                readOnly={isReadOnly}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex items-center justify-center gap-4">
+                    <Button type="button" variant="outline" size="lg" onClick={handleClose}>
+                        <X className="mr-2 h-4 w-4" />
+                        Close
+                    </Button>
+                    {!isReadOnly && 
+                      <Button 
+                          type="button" 
+                          size="lg" 
+                          onClick={handleFinalSave} 
+                          disabled={
+                              isSubmitting || 
+                              (tender.id === 'new' 
+                                  ? (!watch('eTenderNo') || !watch('tenderDate')) 
+                                  : !isFormDirty)
+                          }
+                      >
+                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                          Save
+                      </Button>
+                    }
+                </div>
+
+                <div className="mt-4 flex flex-col items-center">
+                     <PdfReportDialogs />
+                </div>
 
                 <Dialog open={activeModal === 'basic'} onOpenChange={(isOpen) => !isOpen && setActiveModal(null)}>
                     <DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl h-[90vh] flex flex-col p-0">

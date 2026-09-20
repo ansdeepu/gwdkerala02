@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Move, Printer, FileText } from "lucide-react";
+import { Eye, Trash2, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Move, FileText } from "lucide-react";
 import type { DataEntryFormData, SiteWorkStatus } from "@/lib/schemas";
 import { format, isValid, parseISO } from "date-fns";
 import Image from "next/image";
@@ -74,11 +74,6 @@ export default function InvestigationTable({ fileEntries, isLoading, searchActiv
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemToMove, setItemToMove] = useState<DataEntryFormData | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'firstRemittanceDate', direction: 'desc' });
-
-  const handlePrintClick = (entry: DataEntryFormData) => {
-    const currentUrl = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/dashboard/gw-investigation';
-    router.push(`/dashboard/gw-investigation/print?id=${encodeURIComponent(entry.id || entry.fileNo)}&returnPath=${encodeURIComponent(currentUrl)}`);
-  };
 
   const canDelete = user?.role === 'admin';
   const canCopy = user?.role === 'admin';
@@ -273,19 +268,6 @@ export default function InvestigationTable({ fileEntries, isLoading, searchActiv
                   </TableCell>
                   <TableCell className="text-center p-2">
                     <div className="flex flex-col items-center justify-center gap-1">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                  onClick={() => handlePrintClick(entry)}
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Print Reports (Investigation / Feasibility)</p></TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(entry)}>
