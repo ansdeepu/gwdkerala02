@@ -147,14 +147,14 @@ export default function WorkOrderPrintPage() {
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '8px', marginBottom: '16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '8px', marginBottom: '16px' }}>
                   <tbody>
                       <tr>
-                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
+                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5', border: 'none', padding: '8px 8px 8px 0' }}>
                               <p style={{ margin: 0, padding: 0 }}>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
                               <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
                           </td>
-                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
+                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5', border: 'none', padding: '8px 0 8px 8px' }}>
                               {(() => {
                                   const addrMalayalam = officeAddress?.addressMalayalam || "ജില്ലാ ഓഫീസറുടെ കാര്യാലയം\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ, തേവള്ളി പി. ഓ.\nകൊല്ലം - 691009";
                                   const lines = addrMalayalam.split('\n').map(l => l.trim()).filter(Boolean);
@@ -187,21 +187,21 @@ export default function WorkOrderPrintPage() {
                   <p style={{ margin: 0, padding: 0 }}>സർ,</p>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
                   <tbody>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px', fontWeight: 'bold', verticalAlign: 'top', border: '1px solid #000000' }}>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
                               വിഷയം:
                           </td>
-                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '8px', border: '1px solid #000000' }}>
+                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
                               {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് {workOrderTitle} നൽകുന്നത്– സംബന്ധിച്ച്.
                           </td>
                       </tr>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px', fontWeight: 'bold', verticalAlign: 'top', border: '1px solid #000000' }}>
+                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
                               സൂചന:
                           </td>
-                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px', border: '1px solid #000000' }}>
+                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
                               <p style={{ margin: 0, padding: 0 }}>1. ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfOpeningBid) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}</p>
                               <p style={{ margin: 0, padding: 0 }}>2. താങ്കളും ഈ ഓഫീസുമായി വച്ചിട്ടുള്ള {formatDateSafe(tender.agreementDate) || "__________"} തീയതിയിലെ കരാർ ഉടമ്പടി.</p>
                           </td>
