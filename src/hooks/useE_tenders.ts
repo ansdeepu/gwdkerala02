@@ -10,7 +10,7 @@ import { toast } from './use-toast';
 import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, getResolvedWorkStatus } from '@/lib/tenderUtils';
+import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, getResolvedWorkStatus, getAutoResolvedTenderStatus } from '@/lib/tenderUtils';
 
 const db = getFirestore(app);
 
@@ -53,13 +53,8 @@ const processDoc = (docSnap: DocumentData): E_tender => {
         convertedData.id = docSnap.id;
     }
 
-    // Auto-transition status from 'Tender Preparation' to 'Tender Process' when system time reaches Date & Time of Publishing
-    if (convertedData.presentStatus === 'Tender Preparation' && convertedData.dateTimeOfPublishing) {
-        const pubDate = new Date(convertedData.dateTimeOfPublishing);
-        if (!isNaN(pubDate.getTime()) && pubDate.getTime() <= Date.now()) {
-            convertedData.presentStatus = 'Tender Process';
-        }
-    }
+    // Auto-transition status dynamically on load/fetch
+    convertedData.presentStatus = getAutoResolvedTenderStatus(convertedData);
     
     return convertedData as E_tender;
 };
@@ -385,7 +380,15 @@ export function useE_tenders() {
         if (!user) throw new Error("User must be logged in to add a tender.");
         if (!user.officeLocation) throw new Error("User has no office location.");
         const collectionPath = `offices/${user.officeLocation.toLowerCase()}/eTenders`;
-        const payload = { ...tenderData, officeLocation: user.officeLocation, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+        
+        const resolvedStatus = getAutoResolvedTenderStatus(tenderData);
+        const payload = { 
+            ...tenderData, 
+            presentStatus: resolvedStatus,
+            officeLocation: user.officeLocation, 
+            createdAt: serverTimestamp(), 
+            updatedAt: serverTimestamp() 
+        };
         if ('id' in payload) {
             delete (payload as any).id;
         }
@@ -393,7 +396,7 @@ export function useE_tenders() {
         const docRef = await addDoc(collection(db, collectionPath), sanitizedPayload);
         
         // Auto-sync site details in matching file entries
-        await syncTenderWithSiteDetails(user.officeLocation, tenderData);
+        await syncTenderWithSiteDetails(user.officeLocation, { ...tenderData, presentStatus: resolvedStatus });
 
         return docRef.id;
     }, [user]);
@@ -403,13 +406,22 @@ export function useE_tenders() {
         if (!user.officeLocation) throw new Error("User has no office location.");
         const collectionPath = `offices/${user.officeLocation.toLowerCase()}/eTenders`;
         const docRef = doc(db, collectionPath, id);
-        const payload = { ...tenderData, updatedAt: serverTimestamp() };
+        
+        const existingTender = allE_tenders.find(t => t.id === id);
+        const mergedTender = { ...existingTender, ...tenderData };
+        const resolvedStatus = getAutoResolvedTenderStatus(mergedTender);
+        
+        const payload = { 
+            ...tenderData, 
+            presentStatus: resolvedStatus,
+            updatedAt: serverTimestamp() 
+        };
         if ('id' in payload) delete (payload as any).id;
         const sanitizedPayload = sanitizeDataForFirestore(payload);
         await updateDoc(docRef, sanitizedPayload);
 
         // Fetch the full merged tender before syncing site details to ensure complete context
-        let fullTender: Partial<E_tender> = tenderData;
+        let fullTender: Partial<E_tender> = { ...mergedTender, presentStatus: resolvedStatus };
         try {
             const updatedDocSnap = await getDoc(docRef);
             if (updatedDocSnap.exists()) {
@@ -421,7 +433,7 @@ export function useE_tenders() {
 
         // Auto-sync site details in matching file entries
         await syncTenderWithSiteDetails(user.officeLocation, fullTender);
-    }, [user]);
+    }, [user, allE_tenders]);
 
     const deleteTender = useCallback(async (id: string) => {
         if (!user || !['admin', 'engineer', 'scientist'].includes(user.role)) {

@@ -1072,10 +1072,11 @@ export default function TenderDetails() {
                                                 control={control}
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <Select onValueChange={(value) => { field.onChange(value); }} value={field.value || undefined} disabled={isReadOnly}>
+                                                        <Select onValueChange={(value) => { field.onChange(value); }} value={field.value || undefined} disabled={true}>
                                                             <FormControl><SelectTrigger><SelectValue placeholder="Select current status" /></SelectTrigger></FormControl>
                                                             <SelectContent>{dynamicStatusOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                                                         </Select>
+                                                        <p className="text-[11px] text-muted-foreground mt-1">Status is automated based on form details and timeline.</p>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}

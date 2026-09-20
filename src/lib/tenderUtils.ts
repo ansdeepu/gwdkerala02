@@ -229,3 +229,79 @@ export const isSiteTargetedByTender = (
 
     return false;
 };
+
+export const isDatePopulated = (val: any): boolean => {
+    if (!val) return false;
+    if (val instanceof Date) {
+        return !isNaN(val.getTime());
+    }
+    if (typeof val === 'object' && typeof val.toDate === 'function') {
+        const d = val.toDate();
+        return d instanceof Date && !isNaN(d.getTime());
+    }
+    const str = String(val).trim();
+    if (str === '' || str.toLowerCase() === 'null') return false;
+    const d = new Date(str);
+    return !isNaN(d.getTime());
+};
+
+export const getAutoResolvedTenderStatus = (tender: any): string => {
+    if (!tender) return 'Tender Preparation';
+
+    const corrigendums = Array.isArray(tender.corrigendums) ? tender.corrigendums : [];
+    const retenders = Array.isArray(tender.retenders) ? tender.retenders : [];
+
+    // 1. Tender Cancelled (Highest Priority)
+    const hasCancelCorrigendum = corrigendums.some((c: any) => c?.corrigendumType === 'Cancel');
+    if (hasCancelCorrigendum || tender.presentStatus === 'Tender Cancelled') {
+        return 'Tender Cancelled';
+    }
+
+    // 2. Retender
+    const hasRetenderCorrigendum = corrigendums.some((c: any) => c?.corrigendumType === 'Retender');
+    if (hasRetenderCorrigendum || retenders.length > 0 || tender.presentStatus === 'Retender') {
+        return 'Retender';
+    }
+
+    // 3. Work Order Issued or Supply Order Issued
+    const hasWorkOrderDate = isDatePopulated(tender.dateWorkOrder);
+    const hasAgreementDate = isDatePopulated(tender.agreementDate);
+    if (hasWorkOrderDate || hasAgreementDate) {
+        if (tender.tenderType === 'Purchase') {
+            return 'Supply Order Issued';
+        }
+        return 'Work Order Issued';
+    }
+
+    // 4. Selection Notice Issued
+    const hasSelectionNoticeDate = isDatePopulated(tender.selectionNoticeDate);
+    if (hasSelectionNoticeDate) {
+        return 'Selection Notice Issued';
+    }
+
+    // 5. Bid Opened
+    const hasOpeningDate = isDatePopulated(tender.dateOfOpeningBid);
+    const bidders = Array.isArray(tender.bidders) ? tender.bidders : [];
+    const hasBidders = bidders.length > 0;
+    if (hasOpeningDate || hasBidders) {
+        return 'Bid Opened';
+    }
+
+    // 6. Tender Process (Publishing date is in the past)
+    if (isDatePopulated(tender.dateTimeOfPublishing)) {
+        let pubDate: Date | null = null;
+        if (tender.dateTimeOfPublishing instanceof Date) {
+            pubDate = tender.dateTimeOfPublishing;
+        } else if (typeof tender.dateTimeOfPublishing === 'object' && typeof tender.dateTimeOfPublishing.toDate === 'function') {
+            pubDate = tender.dateTimeOfPublishing.toDate();
+        } else {
+            pubDate = new Date(String(tender.dateTimeOfPublishing));
+        }
+        if (pubDate && !isNaN(pubDate.getTime()) && pubDate.getTime() <= Date.now()) {
+            return 'Tender Process';
+        }
+    }
+
+    // Default or fallback to presentStatus or 'Tender Preparation'
+    return tender.presentStatus || 'Tender Preparation';
+};
