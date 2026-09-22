@@ -118,23 +118,51 @@ export default function MediaManager({
     e.preventDefault();
     e.stopPropagation();
     const formData = new FormData(e.currentTarget);
-    const url = (formData.get('url') as string)?.trim();
-    const description = (formData.get('description') as string)?.trim();
+    const rawUrl = (formData.get('url') as string)?.trim() || '';
+    const description = (formData.get('description') as string)?.trim() || '';
 
-    if (!url) return;
+    if (!rawUrl) return;
+
+    const driveId = extractDriveFileId(rawUrl);
+    const url = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : rawUrl;
+    const driveViewUrl = driveId ? `https://drive.google.com/file/d/${driveId}/view` : undefined;
 
     if (editingMedia) {
-      update(editingMedia.index, { ...editingMedia.data, url, description });
+      update(editingMedia.index, { 
+        ...editingMedia.data, 
+        url, 
+        description,
+        driveFileId: driveId || editingMedia.data.driveFileId,
+        driveViewUrl: driveViewUrl || editingMedia.data.driveViewUrl,
+      });
     } else {
       append({
         id: uuidv4(),
         url,
         description,
-        storageType: 'link',
+        driveFileId: driveId || undefined,
+        driveViewUrl: driveViewUrl || undefined,
+        storageType: driveId ? 'drive' : 'link',
         createdAt: new Date().toISOString(),
       });
     }
     setIsMediaModalOpen(false);
+  };
+
+  const handleAddVideoLinkFromDialog = (rawUrl: string, description?: string) => {
+    const driveId = extractDriveFileId(rawUrl);
+    const url = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : rawUrl;
+    const driveViewUrl = driveId ? `https://drive.google.com/file/d/${driveId}/view` : undefined;
+
+    append({
+      id: uuidv4(),
+      url,
+      description: description || "",
+      driveFileId: driveId || undefined,
+      driveViewUrl: driveViewUrl || undefined,
+      storageType: driveId ? 'drive' : 'link',
+      createdAt: new Date().toISOString(),
+    });
   };
 
   // Helper to extract Google Drive file ID from various Drive URL formats
@@ -220,10 +248,8 @@ export default function MediaManager({
       // Video files in base64 exceed Firestore's 1MB document limit
       if (file.size > 750 * 1024) {
         toast({
-          title: "Google Drive Setup Required for Videos",
-          description: `Videos cannot be saved directly into the database because of the 1MB document size limit. Please configure Google Drive in Settings or add a link to YouTube/Google Drive.`,
-          variant: "destructive",
-          duration: 8000,
+          title: "Video Link or Cloud Storage Option",
+          description: `Direct video file uploads exceed database limits. Attach a Google Drive or YouTube video link below, or configure Google Drive storage.`,
         });
         setIsSetupDialogOpen(true);
         return;
@@ -850,6 +876,7 @@ export default function MediaManager({
         onConfigured={() => {
           setHasDriveConfig(true);
         }}
+        onAddVideoLink={handleAddVideoLinkFromDialog}
       />
     </div>
   );
