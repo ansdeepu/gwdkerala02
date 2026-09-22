@@ -245,15 +245,7 @@ export default function MediaManager({
         description: `${file.name} saved directly with optimized compression.`,
       });
     } else {
-      // Video files in base64 exceed Firestore's 1MB document limit
-      if (file.size > 750 * 1024) {
-        toast({
-          title: "Video Link or Cloud Storage Option",
-          description: `Direct video file uploads exceed database limits. Attach a Google Drive or YouTube video link below, or configure Google Drive storage.`,
-        });
-        setIsSetupDialogOpen(true);
-        return;
-      }
+      // For video files: if under 15MB, attach as direct media data URL / link
       const converted = await fileToBase64(file);
       const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
       append({
@@ -266,7 +258,7 @@ export default function MediaManager({
       });
       toast({
         title: "Video Attached to Site Record",
-        description: `${file.name} saved directly to record media.`,
+        description: `${file.name} saved directly to site record media.`,
       });
     }
   };
@@ -444,13 +436,9 @@ export default function MediaManager({
               <span className="text-green-600 font-semibold flex items-center gap-0.5">
                 <CheckCircle2 className="h-2.5 w-2.5" /> keralagwd
               </span>
-            ) : isSuperAdmin ? (
-              <span className="text-amber-600 font-semibold flex items-center gap-0.5">
-                <Settings2 className="h-2.5 w-2.5" /> Setup
-              </span>
             ) : (
-              <span className="text-amber-600 font-semibold flex items-center gap-0.5">
-                State HQ
+              <span className="text-primary font-medium flex items-center gap-0.5">
+                GWD Cloud Archive
               </span>
             )}
           </button>
