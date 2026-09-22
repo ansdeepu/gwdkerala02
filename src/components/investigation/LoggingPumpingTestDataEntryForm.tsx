@@ -84,6 +84,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { getFirestore, doc, query, collection, where, getDocs, Timestamp, serverTimestamp, writeBatch, updateDoc, addDoc } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { useDataStore } from "@/hooks/use-data-store";
+import { 
+  checkFileNumberConflict,
+  findTargetFileEntry,
+  matchPageTypeWithModuleCategory 
+} from "@/lib/moduleClassification";
 import { ScrollArea } from "../ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -207,12 +212,13 @@ const formatDateForInput = (date: Date | string | null | undefined): string => {
     try { return format(new Date(date), 'yyyy-MM-dd'); } catch { return ""; }
 };
 
-const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeContext, isEditing }: { 
+const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeContext, isEditing, fileIdToEdit }: { 
     initialData: any, 
     onConfirm: (data: any) => void, 
     onCancel: () => void, 
     workTypeContext: string | null,
-    isEditing: boolean
+    isEditing: boolean,
+    fileIdToEdit?: string | null
 }) => {
     const { user } = useAuth();
     const { toast } = useToast();
@@ -282,29 +288,32 @@ const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, workTypeCo
 
         const finalData = { ...data, fileNo: fileNoCleaned };
 
-        if (!isEditing && user?.officeLocation && fileNoCleaned) {
+        if (user?.officeLocation && fileNoCleaned) {
             setIsChecking(true);
             try {
                 const fileNoTrimmed = fileNoCleaned.toUpperCase();
                 const q = query(collection(db, `offices/${user.officeLocation.toLowerCase()}/fileEntries`), where("fileNo", "==", fileNoTrimmed));
                 const querySnapshot = await getDocs(q);
+                const existingDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                const hasDuplicate = querySnapshot.docs.some(doc => {
-                    const siteDetails = doc.data().siteDetails as SiteDetailFormData[] | undefined;
-                    return siteDetails?.some(site => site.purpose && LOGGING_PUMPING_TEST_PURPOSE_OPTIONS.includes(site.purpose as any));
-                });
-                
-                if (hasDuplicate) {
+                const conflictCheck = checkFileNumberConflict(
+                    fileNoCleaned,
+                    'logging_pumping_test',
+                    isEditing ? fileIdToEdit : null,
+                    existingDocs
+                );
+
+                if (conflictCheck.conflict) {
                     toast({
                         title: "Duplicate File Number",
-                        description: `This file number is already used for another Logging & Pumping Test file.`,
+                        description: conflictCheck.errorMessage || `This file number is already used for another Logging & Pumping Test file.`,
                         variant: "destructive",
                     });
                     setIsChecking(false);
                     return; 
                 }
-            } catch (error) {
-                toast({ title: "Validation Error", description: "Could not verify file number.", variant: "destructive" });
+            } catch (error: any) {
+                toast({ title: "Validation Error", description: error?.message || "Could not verify file number.", variant: "destructive" });
                 setIsChecking(false);
                 return;
             }
@@ -545,9 +554,17 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
     });
 
     const handleConfirmSubmit = (data: ReappropriationDetailFormData) => {
-        const effectiveAmount = (data.expenditure !== null && data.expenditure !== undefined && !isNaN(Number(data.expenditure)) && Number(data.expenditure) > 0)
+        const asGivenVal = Number(data.asGiven) || 0;
+        const expVal = (data.expenditure !== null && data.expenditure !== undefined && !isNaN(Number(data.expenditure)) && Number(data.expenditure) > 0)
             ? Number(data.expenditure)
-            : Number(data.asGiven) || 0;
+            : null;
+
+        let effectiveAmount = asGivenVal;
+        if (expVal !== null && expVal > 0) {
+            effectiveAmount = asGivenVal > 0 ? Math.min(expVal, asGivenVal) : expVal;
+        } else if (asGivenVal > 0) {
+            effectiveAmount = asGivenVal;
+        }
 
         onConfirm({
             ...data,
@@ -561,9 +578,10 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
 
     const availableSiteOptions = useMemo(() => {
         if (!watchedPageType || !watchedFileNo) return [];
-        let foundEntry: any = null;
-        if (watchedPageType === 'ARS') {
-            foundEntry = allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
+        const foundEntry = findTargetFileEntry(watchedFileNo, watchedPageType, allFileEntries, allArsEntries);
+        if (!foundEntry) return [];
+
+        if (watchedPageType === 'ARS' || foundEntry.arsTypeOfScheme) {
             if (!foundEntry?.nameOfSite) return [];
             const name = foundEntry.nameOfSite.trim();
             const purpose = (foundEntry.purpose || foundEntry.arsTypeOfScheme || '').trim();
@@ -572,7 +590,6 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
             }
             return [name];
         } else {
-            foundEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
             if (!foundEntry?.siteDetails) return [];
             return (foundEntry.siteDetails || [])
                 .map((s: any) => {
@@ -618,19 +635,14 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
             return;
         }
 
-        let foundEntry: any = null;
-        if (watchedPageType === 'ARS') {
-            foundEntry = allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
-        } else {
-            foundEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === watchedFileNo.toLowerCase().trim());
-        }
+        const foundEntry = findTargetFileEntry(watchedFileNo, watchedPageType, allFileEntries, allArsEntries);
 
         if (foundEntry) {
             const applicant = foundEntry.applicantName ? foundEntry.applicantName.trim() : (foundEntry.nameOfSite || 'N/A');
             let formattedSite = '';
             if (watchedSiteName) {
                 formattedSite = watchedSiteName;
-            } else if (watchedPageType === 'ARS') {
+            } else if (watchedPageType === 'ARS' || foundEntry.arsTypeOfScheme) {
                 formattedSite = `${foundEntry.nameOfSite || 'N/A'}${foundEntry.arsTypeOfScheme ? ` (${foundEntry.arsTypeOfScheme})` : ''}`;
             } else {
                 const sites = foundEntry.siteDetails || [];
@@ -665,11 +677,11 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
             form.setValue('expenditure', null);
             return;
         }
-        const normalizedRef = watchedFileNo.toLowerCase().trim();
-        const targetEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef) ||
-                            allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef);
+        const targetEntry = findTargetFileEntry(watchedFileNo, watchedPageType, allFileEntries, allArsEntries);
+        const isGw = (watchedPageType || '').trim().toLowerCase().includes('investigation') || (targetEntry && getModuleCategoryFromData(targetEntry) === 'gw_investigation');
+
         if (!targetEntry) {
-            form.setValue('expenditure', null);
+            form.setValue('expenditure', isGw ? 0 : null);
             return;
         }
 
@@ -704,18 +716,20 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
 
             if (matchedSite) {
                 const exp = calculateSiteExpenditure(matchedSite, targetPayments);
-                calculatedExp = exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+                calculatedExp = exp > 0 ? exp : (isGw ? 0 : (Number(matchedSite.totalExpenditure) || 0));
+            } else {
+                calculatedExp = 0;
             }
         } else {
             const totalExp = targetSites.reduce((sum: number, s: any) => {
                 const exp = calculateSiteExpenditure(s, targetPayments);
-                return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+                return sum + (exp > 0 ? exp : (isGw ? 0 : (Number(s.totalExpenditure) || 0)));
             }, 0);
-            calculatedExp = totalExp > 0 ? totalExp : (Number((targetEntry as any).totalExpenditure) || 0);
+            calculatedExp = totalExp > 0 ? totalExp : (isGw ? 0 : (Number((targetEntry as any).totalExpenditure) || 0));
         }
 
-        form.setValue('expenditure', calculatedExp > 0 ? calculatedExp : null);
-    }, [watchedFileNo, watchedSiteName, allFileEntries, allArsEntries, form]);
+        form.setValue('expenditure', targetEntry ? calculatedExp : (isGw ? 0 : (calculatedExp > 0 ? calculatedExp : null)));
+    }, [watchedPageType, watchedFileNo, watchedSiteName, allFileEntries, allArsEntries, form]);
 
     const pageTypeOptions = [
         "Deposit Work",
@@ -792,9 +806,19 @@ const ReappropriationDialogContent = ({ initialData, onConfirm, onCancel }: { in
                     )}/>
                     <FormField name="expenditure" control={form.control} render={({ field }) => ( 
                         <FormItem>
-                            <FormLabel>Expenditure (₹) <span className="text-xs text-muted-foreground font-normal">(Auto-calculated)</span></FormLabel>
+                            <div className="flex items-center justify-between">
+                                <FormLabel>Expenditure (₹)</FormLabel>
+                                <span className="text-xs text-muted-foreground font-normal">(Auto-calculated)</span>
+                            </div>
                             <FormControl>
-                                <Input type="number" placeholder="Auto-calculated" {...field} value={field.value ?? ""} disabled readOnly className="bg-muted cursor-not-allowed" />
+                                <Input 
+                                    placeholder="0.00" 
+                                    {...field} 
+                                    value={field.value !== null && field.value !== undefined ? (typeof field.value === 'number' ? field.value.toLocaleString('en-IN') : field.value) : "0.00"} 
+                                    disabled
+                                    readOnly
+                                    className="bg-muted cursor-not-allowed font-medium text-foreground"
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem> 
@@ -1187,12 +1211,14 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     return () => subscription.unsubscribe();
   }, [form]);
 
-  const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null) => {
+  const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null, pageType?: string | null) => {
       if (!refFileNo) return fallback ?? 0;
-      const normalizedRef = refFileNo.toLowerCase().trim();
-      const targetEntry = allFileEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef) ||
-                          allArsEntries.find(e => e.fileNo?.toLowerCase().trim() === normalizedRef);
-      if (!targetEntry) return fallback ?? 0;
+      const targetEntry = findTargetFileEntry(refFileNo, pageType, allFileEntries, allArsEntries);
+      const isGw = (pageType || '').trim().toLowerCase().includes('investigation') || (targetEntry && getModuleCategoryFromData(targetEntry) === 'gw_investigation');
+      if (!targetEntry) {
+          if (isGw) return 0;
+          return fallback ?? 0;
+      }
 
       const formatSiteName = (s: any) => {
           const n = (s.nameOfSite || s.siteName || '').trim();
@@ -1202,6 +1228,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
           return n.toLowerCase();
       };
 
+      const normalizedRef = refFileNo.toLowerCase().trim();
       if (normalizedRef === currentFileNo?.toLowerCase().trim()) {
           const sites = watchedSiteDetails || [];
           const payments = watchedPaymentDetails || [];
@@ -1224,14 +1251,14 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
               if (matchedSite) {
                   const exp = calculateSiteExpenditure(matchedSite, payments);
-                  return exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+                  return exp > 0 ? exp : (isGw ? 0 : (Number(matchedSite.totalExpenditure) || 0));
               } else {
                   return 0;
               }
           }
           const totalExp = sites.reduce((sum, s) => {
               const exp = calculateSiteExpenditure(s, payments);
-              return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+              return sum + (exp > 0 ? exp : (isGw ? 0 : (Number(s.totalExpenditure) || 0)));
           }, 0);
           if (totalExp > 0) return totalExp;
       }
@@ -1258,7 +1285,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
           if (matchedSite) {
               const exp = calculateSiteExpenditure(matchedSite, targetPayments);
-              return exp > 0 ? exp : (Number(matchedSite.totalExpenditure) || 0);
+              return exp > 0 ? exp : (isGw ? 0 : (Number(matchedSite.totalExpenditure) || 0));
           } else {
               return 0;
           }
@@ -1266,10 +1293,12 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
       const totalExp = targetSites.reduce((sum: number, s: any) => {
           const exp = calculateSiteExpenditure(s, targetPayments);
-          return sum + (exp > 0 ? exp : (Number(s.totalExpenditure) || 0));
+          return sum + (exp > 0 ? exp : (isGw ? 0 : (Number(s.totalExpenditure) || 0)));
       }, 0);
 
       if (totalExp > 0) return totalExp;
+
+      if (isGw) return 0;
 
       return Number((targetEntry as any).totalExpenditure) || fallback || 0;
   }, [allFileEntries, allArsEntries, currentFileNo, watchedSiteDetails, watchedPaymentDetails]);
@@ -1325,6 +1354,10 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         if (entry.fileNo?.toLowerCase().trim() === normalizedFileNo) return;
         entry.reappropriationDetails?.forEach(reapp => {
             if (reapp.refFileNo?.toLowerCase().trim() === normalizedFileNo) {
+                // If pageType is explicitly set, make sure it matches Logging & Pumping Test
+                if (reapp.pageType && !matchPageTypeWithModuleCategory(reapp.pageType, 'logging_pumping')) {
+                    return;
+                }
                 const hasInvestigation = entry.siteDetails?.some(s => s.purpose === 'GW Investigation');
                 const hasLoggingPumping = entry.siteDetails?.some(s => s.purpose && LOGGING_PUMPING_TEST_PURPOSE_OPTIONS.includes(s.purpose as any));
                 let sourcePageType = "Deposit Work";
@@ -1348,20 +1381,38 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
   
   const sortedCombinedReappropriations = useMemo(() => {
     const manual = reappropriationFields.map((field, index) => {
-        const calculatedExp = getReferencedExpenditure(field.refFileNo, field.siteName, field.expenditure);
+        const targetEntry = findTargetFileEntry(field.refFileNo, field.pageType, allFileEntries, allArsEntries);
+        const calculatedExp = getReferencedExpenditure(field.refFileNo, field.siteName, null, field.pageType);
+        const isGw = (field.pageType || '').trim().toLowerCase().includes('investigation') || (targetEntry && getModuleCategoryFromData(targetEntry) === 'gw_investigation');
+        const effectiveExp = targetEntry ? calculatedExp : (isGw ? 0 : (field.expenditure !== undefined && field.expenditure !== null ? Number(field.expenditure) : calculatedExp));
+        const asGivenVal = Number(field.asGiven) || 0;
+        const effectiveAmount = (effectiveExp !== null && effectiveExp !== undefined && !isNaN(Number(effectiveExp)) && Number(effectiveExp) > 0)
+            ? (asGivenVal > 0 ? Math.min(Number(effectiveExp), asGivenVal) : Number(effectiveExp))
+            : (asGivenVal > 0 ? asGivenVal : (Number(field.amount) || 0));
+
         return {
             ...field,
-            expenditure: calculatedExp > 0 ? calculatedExp : field.expenditure,
+            expenditure: effectiveExp,
+            amount: effectiveAmount,
             _originalIndex: index,
             _source: 'manual' as const,
             dateObj: toDateOrNull(field.date)
         };
     });
     const auto = autoCredits.map((credit) => {
-        const calculatedExp = getReferencedExpenditure(credit.sourceFileNo, credit.siteName, credit.expenditure);
+        const targetEntry = findTargetFileEntry(credit.sourceFileNo, credit.sourcePageType || credit.pageType, allFileEntries, allArsEntries);
+        const calculatedExp = getReferencedExpenditure(credit.sourceFileNo, credit.siteName, null, credit.sourcePageType || credit.pageType);
+        const isGw = (credit.sourcePageType || credit.pageType || '').trim().toLowerCase().includes('investigation') || (targetEntry && getModuleCategoryFromData(targetEntry) === 'gw_investigation');
+        const effectiveExp = targetEntry ? calculatedExp : (isGw ? 0 : (credit.expenditure !== undefined && credit.expenditure !== null ? Number(credit.expenditure) : calculatedExp));
+        const asGivenVal = Number(credit.asGiven) || 0;
+        const effectiveAmount = (effectiveExp !== null && effectiveExp !== undefined && !isNaN(Number(effectiveExp)) && Number(effectiveExp) > 0)
+            ? (asGivenVal > 0 ? Math.min(Number(effectiveExp), asGivenVal) : Number(effectiveExp))
+            : (asGivenVal > 0 ? asGivenVal : (Number(credit.amount) || 0));
+
         return {
             ...credit,
-            expenditure: calculatedExp > 0 ? calculatedExp : credit.expenditure,
+            expenditure: effectiveExp,
+            amount: effectiveAmount,
             _source: 'auto' as const,
             dateObj: toDateOrNull(credit.date)
         };
@@ -1371,7 +1422,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
         const timeB = b.dateObj?.getTime() ?? 0;
         return timeB - timeA;
     });
-  }, [reappropriationFields, autoCredits, getReferencedExpenditure, getCurrentFileExpenditure]);
+  }, [reappropriationFields, autoCredits, getReferencedExpenditure, allFileEntries, allArsEntries]);
 
   const hasReappropriations = useMemo(() => sortedCombinedReappropriations.length > 0, [sortedCombinedReappropriations.length]);
 
@@ -1422,7 +1473,14 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     setValue("totalRemittance", totalRemittance, { shouldDirty: false });
 
     const totalReappDebit = watchedReappropriationDetails?.reduce((sum, item) => {
-        return sum + (Number(item.amount) || 0);
+        const targetEntry = findTargetFileEntry(item.refFileNo, item.pageType, allFileEntries, allArsEntries);
+        const calculatedExp = getReferencedExpenditure(item.refFileNo, item.siteName, null, item.pageType);
+        const effectiveExp = targetEntry ? calculatedExp : (item.expenditure !== undefined && item.expenditure !== null ? Number(item.expenditure) : calculatedExp);
+        const asGivenVal = Number(item.asGiven) || 0;
+        const effectiveAmount = (effectiveExp !== null && effectiveExp !== undefined && !isNaN(Number(effectiveExp)) && Number(effectiveExp) > 0)
+            ? (asGivenVal > 0 ? Math.min(Number(effectiveExp), asGivenVal) : Number(effectiveExp))
+            : (asGivenVal > 0 ? asGivenVal : (Number(item.amount) || 0));
+        return sum + effectiveAmount;
     }, 0) || 0;
     setValue("totalReappropriation", totalReappDebit, { shouldDirty: false });
 
@@ -1436,7 +1494,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
     setValue("overallBalance", totalRemittance + totalReappCredit - totalPayment - totalReappDebit, { shouldDirty: false });
     
-  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue]);
+  }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, allFileEntries, allArsEntries, getReferencedExpenditure]);
 
   // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist
   useEffect(() => {
@@ -1465,10 +1523,17 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
           if (sanitizedData.reappropriationDetails) {
             sanitizedData.reappropriationDetails = sanitizedData.reappropriationDetails.map((reapp: any) => {
-              const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, reapp.expenditure);
+              const targetEntry = findTargetFileEntry(reapp.refFileNo, reapp.pageType, allFileEntries, allArsEntries);
+              const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, null, reapp.pageType);
+              const effectiveExp = targetEntry ? calculatedExp : (reapp.expenditure !== undefined && reapp.expenditure !== null ? Number(reapp.expenditure) : calculatedExp);
+              const asGivenVal = Number(reapp.asGiven) || 0;
+              const effectiveAmount = (effectiveExp !== null && effectiveExp !== undefined && !isNaN(Number(effectiveExp)) && Number(effectiveExp) > 0)
+                ? (asGivenVal > 0 ? Math.min(Number(effectiveExp), asGivenVal) : Number(effectiveExp))
+                : (asGivenVal > 0 ? asGivenVal : (Number(reapp.amount) || 0));
               return {
                 ...reapp,
-                expenditure: calculatedExp > 0 ? calculatedExp : reapp.expenditure,
+                expenditure: effectiveExp,
+                amount: effectiveAmount,
               };
             });
           }
@@ -1556,10 +1621,17 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
 
         if (sanitizedData.reappropriationDetails) {
             sanitizedData.reappropriationDetails = sanitizedData.reappropriationDetails.map((reapp: any) => {
-                const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, reapp.expenditure);
+                const targetEntry = findTargetFileEntry(reapp.refFileNo, reapp.pageType, allFileEntries, allArsEntries);
+                const calculatedExp = getReferencedExpenditure(reapp.refFileNo, reapp.siteName, null, reapp.pageType);
+                const effectiveExp = targetEntry ? calculatedExp : (reapp.expenditure !== undefined && reapp.expenditure !== null ? Number(reapp.expenditure) : calculatedExp);
+                const asGivenVal = Number(reapp.asGiven) || 0;
+                const effectiveAmount = (effectiveExp !== null && effectiveExp !== undefined && !isNaN(Number(effectiveExp)) && Number(effectiveExp) > 0)
+                  ? (asGivenVal > 0 ? Math.min(Number(effectiveExp), asGivenVal) : Number(effectiveExp))
+                  : (asGivenVal > 0 ? asGivenVal : (Number(reapp.amount) || 0));
                 return {
                     ...reapp,
-                    expenditure: calculatedExp > 0 ? calculatedExp : reapp.expenditure
+                    expenditure: effectiveExp,
+                    amount: effectiveAmount,
                 };
             });
         }
@@ -1813,7 +1885,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                       <TableCell className="text-right font-bold text-red-600">{asVal.toLocaleString('en-IN')}</TableCell>
                       <TableCell className="text-right font-bold text-red-600">{expVal !== null && expVal > 0 ? expVal.toLocaleString('en-IN') : '-'}</TableCell>
                       <TableCell className="text-xs italic max-w-[150px] whitespace-normal break-words">{item.remarks}</TableCell>
-                      {isEditor && !isFormDisabled && <TableCell><div className="flex gap-1"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('reappropriation', { index: item._originalIndex, ...item })} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'reappropriation', index: item._originalIndex})} disabled={isSupervisor || isInvestigator || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
+                      {isEditor && !isFormDisabled && <TableCell className="whitespace-nowrap text-center"><div className="flex flex-col items-center justify-center gap-1 min-w-[36px]"><Button type="button" variant="ghost" size="icon" onClick={() => openDialog('reappropriation', { index: item._originalIndex, ...item })} disabled={isSupervisor || isInvestigator || isViewer}><Eye className="h-4 w-4"/></Button><Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItemToDelete({type: 'reappropriation', index: item._originalIndex})} disabled={isSupervisor || isInvestigator || isViewer}><Trash2 className="h-4 w-4"/></Button></div></TableCell>}
                     </TableRow>
                   );
                 }
@@ -2097,7 +2169,7 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                 </div>
             </CardFooter>
         </form>
-        <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} workTypeContext={workTypeContext} isEditing={isEditing} /></DialogContent></Dialog>
+        <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} workTypeContext={workTypeContext} isEditing={isEditing} fileIdToEdit={fileIdToEdit} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'remittance'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><RemittanceDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} category={getValues('category')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reappropriation'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><ReappropriationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'site'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-6xl h-[90vh] flex flex-col p-0"><LoggingPumpingTestSiteDialog initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isReadOnly={!!dialogState.isView || !!isFormDisabled} isSupervisor={isSupervisor} isInvestigator={isInvestigator} allLsgConstituencyMaps={allLsgConstituencyMaps} allStaffMembers={allStaffMembers} workTypeContext={workTypeContext} userDesignation={userDesignation} /></DialogContent></Dialog>

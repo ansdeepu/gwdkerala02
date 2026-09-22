@@ -108,7 +108,17 @@ export function useArsEntries() {
   const addArsEntry = useCallback(async (entryData: ArsEntryFormData): Promise<string> => {
     if (!user || !['admin', 'engineer', 'scientist'].includes(user.role)) throw new Error("Permission denied.");
     if (!user.officeLocation) throw new Error("User has no office location.");
+    const collectionPath = `offices/${user.officeLocation.toLowerCase()}/arsEntries`;
     
+    const fileNoTrimmed = entryData.fileNo ? entryData.fileNo.trim().toUpperCase() : '';
+    if (fileNoTrimmed) {
+        const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            throw new Error(`File No. "${entryData.fileNo}" is already present in ARS.`);
+        }
+    }
+
     const payload = {
         ...entryData,
         officeLocation: user.officeLocation,
@@ -117,7 +127,6 @@ export function useArsEntries() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
-    const collectionPath = `offices/${user.officeLocation.toLowerCase()}/arsEntries`;
     
     const sanitizedPayload = sanitizeDataForFirestore(payload);
     const docRef = await addDoc(collection(db, collectionPath), sanitizedPayload);
@@ -129,6 +138,15 @@ export function useArsEntries() {
     if (!user.officeLocation) throw new Error("User has no office location.");
     const collectionPath = `offices/${user.officeLocation.toLowerCase()}/arsEntries`;
     const docRef = doc(db, collectionPath, id);
+
+    if (entryData.fileNo) {
+        const fileNoTrimmed = entryData.fileNo.trim().toUpperCase();
+        const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty && snapshot.docs.some(doc => doc.id !== id)) {
+            throw new Error(`File No. "${entryData.fileNo}" is already present in ARS.`);
+        }
+    }
 
     const payload = {
         ...entryData,

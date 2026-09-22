@@ -28,6 +28,10 @@ import {
     LOGGING_PUMPING_TEST_PURPOSE_OPTIONS,
     INVESTIGATION_GOVT_TYPES,
 } from '@/lib/schemas';
+import { 
+    getModuleCategoryFromData, 
+    checkFileNumberConflict 
+} from '@/lib/moduleClassification';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { usePendingUpdates } from './usePendingUpdates';
@@ -178,6 +182,18 @@ export function useFileEntries() {
         if (!user.officeLocation) throw new Error("User must have an office location.");
         const collectionPath = `offices/${user.officeLocation.toLowerCase()}/fileEntries`;
         
+        const fileNoTrimmed = entryData.fileNo ? entryData.fileNo.trim().toUpperCase() : '';
+        if (fileNoTrimmed) {
+            const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
+            const querySnapshot = await getDocs(q);
+            const existingDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const targetCategory = getModuleCategoryFromData(entryData);
+            const conflictCheck = checkFileNumberConflict(entryData.fileNo, targetCategory, null, existingDocs);
+            if (conflictCheck.conflict) {
+                throw new Error(conflictCheck.errorMessage);
+            }
+        }
+
         const payload = { ...entryData, officeLocation: user.officeLocation };
         if (payload.id) delete payload.id;
 
@@ -201,15 +217,14 @@ export function useFileEntries() {
         if (!originalDocSnap.exists()) {
             throw new Error("The file you are trying to edit does not exist.");
         }
-        const originalFileNo = originalDocSnap.data().fileNo?.trim().toUpperCase();
 
-        if (originalFileNo !== fileNoTrimmed) {
-            const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== fileId)) {
-                throw new Error(`A file with the number "${entryData.fileNo}" already exists.`);
-            }
+        const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
+        const querySnapshot = await getDocs(q);
+        const existingDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const targetCategory = getModuleCategoryFromData(entryData);
+        const conflictCheck = checkFileNumberConflict(entryData.fileNo, targetCategory, fileId, existingDocs);
+        if (conflictCheck.conflict) {
+            throw new Error(conflictCheck.errorMessage);
         }
         
         const payload = { ...entryData, fileNo: fileNoTrimmed };

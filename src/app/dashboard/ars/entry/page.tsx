@@ -23,6 +23,7 @@ import {
     type Designation,
     type Bidder,
 } from '@/lib/schemas';
+import { cleanFileNo } from '@/lib/moduleClassification';
 import { z } from 'zod';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -238,6 +239,20 @@ export default function ArsEntryPage() {
         try {
             if (data.fileNo) {
                 data.fileNo = data.fileNo.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '').trim();
+                const cleanedTarget = cleanFileNo(data.fileNo);
+                const conflict = (allArsEntries || []).find(e => 
+                    e.id !== (id && id !== 'new' ? id : null) &&
+                    cleanFileNo(e.fileNo) === cleanedTarget
+                );
+                if (conflict) {
+                    toast({
+                        title: "Duplicate File Number",
+                        description: `File No. "${data.fileNo}" is already present in ARS.`,
+                        variant: "destructive",
+                    });
+                    setIsSubmitting(false);
+                    return;
+                }
             }
             if (id && id !== 'new') {
                 if (user?.role === 'supervisor') {
