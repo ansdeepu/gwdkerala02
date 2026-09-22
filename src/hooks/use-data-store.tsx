@@ -400,7 +400,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
 
     // --- Dynamic Work Status Resolution for Cancelled / Retendered / Active e-Tenders ---
     const allFileEntries = useMemo(() => {
-        if (!rawFileEntries.length || !allE_tenders.length) return rawFileEntries;
+        if (!rawFileEntries.length) return rawFileEntries;
 
         return rawFileEntries.map(entry => {
             if (!entry.siteDetails || entry.siteDetails.length === 0) return entry;
@@ -423,8 +423,9 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
-                if (!currentSite.startDate || String(currentSite.startDate).trim() === '') {
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank, provided site is NOT completed
+                const isCompletedSite = (currentSite.dateOfCompletion && String(currentSite.dateOfCompletion).trim() !== '') || isFinalSiteStatus(currentSite.workStatus);
+                if (!isCompletedSite && (!currentSite.startDate || String(currentSite.startDate).trim() === '')) {
                     const matchingTenders = (allE_tenders || []).filter(tender => isSiteTargetedByTender(currentSite, entry.fileNo, idx, tender));
                     if (matchingTenders.length > 0) {
                         matchingTenders.sort((a, b) => {
@@ -467,7 +468,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     }, [rawFileEntries, allE_tenders]);
 
     const allArsEntries = useMemo(() => {
-        if (!rawArsEntries.length || !allE_tenders.length) return rawArsEntries;
+        if (!rawArsEntries.length) return rawArsEntries;
 
         return rawArsEntries.map(ars => {
             const matchingTenders = allE_tenders.filter(tender => isSiteTargetedByTender(ars, ars.fileNo, 0, tender));
@@ -509,7 +510,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
     const syncedSignaturesRef = useRef<Map<string, string>>(new Map());
     useEffect(() => {
         if (!user) return;
-        if (!rawFileEntries.length || !allE_tenders.length) return;
+        if (!rawFileEntries.length) return;
 
         const officeToQuery = user.role === 'superAdmin' ? selectedOffice : user.officeLocation;
         if (!officeToQuery) return;
@@ -536,8 +537,9 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
-                if (!currentSite.startDate || String(currentSite.startDate).trim() === '') {
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank, provided site is NOT completed
+                const isCompletedDbSite = (currentSite.dateOfCompletion && String(currentSite.dateOfCompletion).trim() !== '') || isFinalSiteStatus(currentSite.workStatus);
+                if (!isCompletedDbSite && (!currentSite.startDate || String(currentSite.startDate).trim() === '')) {
                     const matchingTenders = (allE_tenders || []).filter(tender => isSiteTargetedByTender(currentSite, entry.fileNo, idx, tender));
                     if (matchingTenders.length > 0) {
                         matchingTenders.sort((a, b) => {

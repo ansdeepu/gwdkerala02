@@ -10,7 +10,7 @@ import { toast } from './use-toast';
 import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, getResolvedWorkStatus, getAutoResolvedTenderStatus } from '@/lib/tenderUtils';
+import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, getAutoResolvedTenderStatus } from '@/lib/tenderUtils';
 
 const db = getFirestore(app);
 
@@ -208,8 +208,9 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                             const tenderStatus = tenderData.presentStatus;
                             let nextWorkStatus = newSite.workStatus;
 
+                            const isSiteCompleted = (newSite.dateOfCompletion && String(newSite.dateOfCompletion).trim() !== '') || isFinalSiteStatus(newSite.workStatus);
                             if (tenderStatus === "Work Order Issued" || tenderStatus === "Supply Order Issued") {
-                                if (!["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued"].includes(newSite.workStatus)) {
+                                if (!isSiteCompleted) {
                                     // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
                                     if (!newSite.startDate || String(newSite.startDate).trim() === '') {
                                         const calculatedStart = calculateWorkCommencementDate(tenderData.dateWorkOrder);

@@ -102,7 +102,7 @@ export const getResolvedWorkStatus = (
         const ts = latestTender.presentStatus;
 
         if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
-            if ((site.startDate && String(site.startDate).trim() !== '') || latestTender.dateWorkOrder) {
+            if (site.startDate && String(site.startDate).trim() !== '') {
                 return "Work in Progress";
             }
             return "Work Order Issued";

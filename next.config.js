@@ -81,8 +81,6 @@ const nextConfig = {
     ],
   },
   experimental: {
-    workerThreads: false,
-    cpus: 1,
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -102,8 +100,8 @@ const nextConfig = {
     ],
   },
   webpack: (config, { dev }) => {
-    config.devtool = false;
     if (!dev) {
+      config.devtool = false;
       config.parallelism = 1;
     }
     return config;

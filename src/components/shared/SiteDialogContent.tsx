@@ -34,7 +34,7 @@ import {
 } from '@/lib/schemas';
 import type { E_tender } from '@/hooks/useE_tenders';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { isSiteTargetedByTender, matchFileNo } from '@/lib/tenderUtils';
+import { isSiteTargetedByTender, matchFileNo, isFinalSiteStatus } from '@/lib/tenderUtils';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
@@ -167,11 +167,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         if (initialData?.startDate && String(initialData.startDate).trim() !== '') {
             return formatDateForInput(initialData.startDate);
         }
-        if (initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
+        const isSiteCompleted = (initialData?.dateOfCompletion && String(initialData.dateOfCompletion).trim() !== '') || isFinalSiteStatus(initialData?.workStatus);
+        if (!isSiteCompleted && initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
             return calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder) || "";
         }
         return "";
-    }, [initialData?.startDate, initialMatchedTender]);
+    }, [initialData?.startDate, initialData?.dateOfCompletion, initialData?.workStatus, initialMatchedTender]);
 
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
@@ -536,8 +537,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                     setValue('supervisorUid', null);
                 }
 
-                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
-                if (!getValues('startDate') && (selectedTender.presentStatus === 'Work Order Issued' || selectedTender.presentStatus === 'Supply Order Issued') && selectedTender.dateWorkOrder) {
+                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank, provided site is NOT completed
+                const isFormSiteCompleted = (getValues('dateOfCompletion') && String(getValues('dateOfCompletion')).trim() !== '') || isFinalSiteStatus(getValues('workStatus'));
+                if (!isFormSiteCompleted && !getValues('startDate') && (selectedTender.presentStatus === 'Work Order Issued' || selectedTender.presentStatus === 'Supply Order Issued') && selectedTender.dateWorkOrder) {
                     const autoStart = calculateWorkCommencementDate(selectedTender.dateWorkOrder);
                     if (autoStart) {
                         setValue('startDate', autoStart, { shouldDirty: true });
@@ -630,7 +632,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             const ts = activeTender.presentStatus;
             // Work Order Issued - is already linked with e-tender module
             if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
-                if (!watchedStartDate && activeTender.dateWorkOrder) {
+                const isSiteCompleted = (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') || isFinalSiteStatus(getValues('workStatus'));
+                if (!isSiteCompleted && !watchedStartDate && activeTender.dateWorkOrder) {
                     const autoStart = calculateWorkCommencementDate(activeTender.dateWorkOrder);
                     if (autoStart) {
                         setValue('startDate', autoStart);
@@ -638,7 +641,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                         return;
                     }
                 }
-                setValue('workStatus', 'Work Order Issued');
+                if (!isSiteCompleted) {
+                    setValue('workStatus', 'Work Order Issued');
+                }
                 return;
             }
             // Selection Notice Issued - is already linked with e-tender module
