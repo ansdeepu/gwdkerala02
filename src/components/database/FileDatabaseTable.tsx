@@ -50,6 +50,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { MoveCopyFileDialog } from "../shared/MoveCopyDialogs";
+import { getSiteNameStatusColorClass, renderWorkStatusPillBadge } from "@/lib/workStatusUtils";
 
 const ITEMS_PER_PAGE = 50;
 
@@ -68,12 +69,7 @@ const safeParseDate = (dateValue: any): Date | null => {
 };
 
 const getStatusColorClass = (status: SiteWorkStatus | undefined): string => {
-    if (!status) return 'text-muted-foreground';
-    if (status === 'Work Cancelled') return 'text-gray-500 line-through';
-    const completedOrFailed: string[] = ["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued", "Work Failed", "Completed", "Work Cancelled"];
-    if (completedOrFailed.includes(status as SiteWorkStatus)) return 'text-red-600';
-    if (status === 'Refund Pending') return 'text-yellow-600';
-    return 'text-green-600';
+    return getSiteNameStatusColorClass(status);
 };
 
 interface FileDatabaseTableProps {
@@ -315,19 +311,20 @@ export default function FileDatabaseTable({
                   <TableCell className="w-[15%] px-2 py-2 text-sm">{entry.applicantName}</TableCell>
                   <TableCell className="w-[35%] px-2 py-2 text-sm">
                     {sitesToDisplay.length > 0 ? (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1.5 py-0.5">
                         {sitesToDisplay.map((site, idx) => (
-                          <div key={idx} className="leading-snug">
+                          <div key={idx} className="flex flex-wrap items-center gap-1.5 leading-snug">
                             <span className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                               {site.nameOfSite || 'Unnamed Site'}
                             </span>
-                            {site.purpose ? <span> - <span className="text-indigo-600 dark:text-indigo-400 font-medium">{site.purpose}</span></span> : null}
+                            {site.purpose ? (
+                              <span className="text-muted-foreground">
+                                - <span className="text-indigo-600 dark:text-indigo-400 font-medium">{site.purpose}</span>
+                              </span>
+                            ) : null}
                             {site.workStatus ? (
-                              <span>
-                                {" - "}
-                                <span className={cn("font-medium", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                                  {site.workStatus}
-                                </span>
+                              <span className="inline-flex items-center">
+                                {renderWorkStatusPillBadge(site.workStatus)}
                               </span>
                             ) : null}
                           </div>

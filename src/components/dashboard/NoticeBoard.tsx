@@ -10,8 +10,6 @@ import { cn } from "@/lib/utils";
 import type { StaffMember, Designation } from '@/lib/schemas';
 import { isValid, format, startOfMonth, endOfMonth } from 'date-fns';
 import { Megaphone, Cake, Gift, PartyPopper, ChevronRight, FileDown, Loader2, CalendarDays } from 'lucide-react';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import download from 'downloadjs';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -127,6 +125,8 @@ export default function NoticeBoard({ staffMembers }: NoticeBoardProps) {
 
     setIsGeneratingPdf(true);
     try {
+      const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+      const download = (await import('downloadjs')).default;
       const pdfDoc = await PDFDocument.create();
       const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);

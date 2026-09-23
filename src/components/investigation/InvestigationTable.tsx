@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataStore } from "@/hooks/use-data-store";
 import { cn } from "@/lib/utils";
 import { MoveCopyFileDialog, MoveCopySiteDialog } from "../shared/MoveCopyDialogs";
+import { getSiteNameStatusColorClass, renderWorkStatusPillBadge } from "@/lib/workStatusUtils";
 
 const safeParseDate = (dateValue: any): Date | null => {
   if (!dateValue) return null;
@@ -42,12 +43,7 @@ const safeParseDate = (dateValue: any): Date | null => {
 };
 
 const getStatusColorClass = (status: SiteWorkStatus | undefined): string => {
-    if (!status) return 'text-muted-foreground';
-    if (status === 'Work Cancelled') return 'text-gray-500 line-through';
-    if (status === 'Work Completed' || status === 'Completed') return 'text-green-600';
-    if (status === 'VES Pending') return 'text-orange-600';
-    if (status === 'Pending') return 'text-yellow-600';
-    return 'text-muted-foreground';
+    return getSiteNameStatusColorClass(status);
 };
 
 interface InvestigationTableProps {
@@ -255,11 +251,11 @@ export default function InvestigationTable({ fileEntries, isLoading, searchActiv
                   </TableCell>
                   <TableCell className="font-semibold text-xs">
                     {user?.role === 'investigator' ? (
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-1 items-start">
                         {(entry.siteDetails || []).map((site, idx) => (
-                          <span key={idx} className={cn("text-[10px] font-bold uppercase", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                            {site.workStatus || 'N/A'}
-                          </span>
+                          <div key={idx}>
+                            {renderWorkStatusPillBadge(site.workStatus)}
+                          </div>
                         ))}
                       </div>
                     ) : (

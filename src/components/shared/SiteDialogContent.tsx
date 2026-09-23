@@ -43,6 +43,7 @@ import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import MediaManager from '@/components/shared/MediaManager';
 import { GpsCoordinateCapture } from '@/components/shared/GpsCoordinateCapture';
+import { getSiteNameStatusColorClass } from '@/lib/workStatusUtils';
 
 const toDateOrNull = (value: any): Date | null => {
     if (!value) return null;
@@ -782,7 +783,16 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     return (
         <div className="flex flex-col h-full overflow-hidden">
             <DialogHeader className="p-6 pb-4 shrink-0 border-b">
-                <DialogTitle>{initialData?.nameOfSite ? `Edit Site Details: ${initialData.nameOfSite}` : 'Add New Site'}</DialogTitle>
+                <DialogTitle>
+                    {initialData?.nameOfSite ? (
+                        <span>
+                            Edit Site Details:{" "}
+                            <span className={cn(getSiteNameStatusColorClass(form.watch('workStatus') || initialData.workStatus))}>
+                                {initialData.nameOfSite}
+                            </span>
+                        </span>
+                    ) : 'Add New Site'}
+                </DialogTitle>
             </DialogHeader>
             <div className="flex-1 min-h-0">
                 <ScrollArea className="h-full px-6 py-4">

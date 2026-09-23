@@ -81,9 +81,10 @@ const nextConfig = {
     ],
   },
   experimental: {
-    webpackBuildWorker: false,
-    preloadEntriesOnStart: false,
-    workerThreads: process.env.NODE_ENV !== 'production',
+    allowedDevOrigins: [
+      '*.asia-east1.run.app',
+      '*.run.app',
+    ],
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -105,8 +106,6 @@ const nextConfig = {
   webpack: (config, { dev }) => {
     if (!dev) {
       config.devtool = false;
-      config.parallelism = 1;
-      config.cache = false;
     }
     return config;
   },

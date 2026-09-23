@@ -26,7 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Layers, CheckCircle2, ClipboardList, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, Printer } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, ClipboardList, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, Printer } from "lucide-react";
+import { getSiteNameStatusColorClass, renderWorkStatusPillBadge } from "@/lib/workStatusUtils";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
@@ -103,35 +104,11 @@ import { MoveCopySiteDialog } from '../shared/MoveCopyDialogs';
 const db = getFirestore(app);
 
 const getStatusColorClass = (status: SiteWorkStatus | undefined | null): string => {
-    if (!status) return 'text-muted-foreground';
-    if (status === 'Work Cancelled') return 'text-gray-500 line-through';
-    const completedOrFailed: string[] = ["Work Completed", "Bill Prepared", "Payment Completed", "Utilization Certificate Issued", "Work Failed", "Completed", "Work Cancelled"];
-    if (completedOrFailed.includes(status as SiteWorkStatus)) return 'text-red-600';
-    if ((status as any) === 'To be Refunded') return 'text-yellow-600';
-    return 'text-green-600';
+    return getSiteNameStatusColorClass(status);
 };
 
 const renderSiteStatusBadge = (status?: string | null) => {
-  if (!status) return null;
-  const sLower = String(status).toLowerCase();
-
-  let colorClasses = "bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-300 dark:border-sky-800";
-
-  if (sLower.includes('completed') || sLower.includes('feasible') || sLower.includes('issued') || sLower.includes('prepared') || sLower.includes('success')) {
-    colorClasses = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
-  } else if (sLower.includes('fail') || sLower.includes('cancel') || sLower.includes('non-feasible') || sLower.includes('not feasible') || sLower.includes('dropped')) {
-    colorClasses = "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-800";
-  } else if (sLower.includes('pending') || sLower.includes('ves pending') || sLower.includes('hold')) {
-    colorClasses = "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800";
-  } else if (sLower.includes('started') || sLower.includes('tender') || sLower.includes('order')) {
-    colorClasses = "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-800";
-  }
-
-  return (
-    <Badge variant="outline" className={cn("text-xs font-semibold px-2.5 py-0.5 whitespace-nowrap shrink-0 ml-2 border shadow-xs transition-colors", colorClasses)}>
-      {status}
-    </Badge>
-  );
+  return renderWorkStatusPillBadge(status, "ml-2");
 };
 
 
@@ -1941,7 +1918,58 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                     </div>
                   </div>
                   {isEditor && !isFormDisabled && <Button type="button" onClick={() => openDialog('site', {})} disabled={isSupervisor || isInvestigator || isViewer}><PlusCircle className="h-4 w-4 mr-2" />Add Site</Button>}
-                </CardHeader><CardContent><Accordion type="single" collapsible className="w-full space-y-2" value={activeAccordionItem} onValueChange={setActiveAccordionItem}>{siteFields.length > 0 ? siteFields.map((site, index) => (<AccordionItem key={site.id} value={`site-${index}`} className="border bg-background rounded-lg shadow-sm"><div className="flex items-center justify-between pr-4"><div className="flex-1"><AccordionTrigger className="text-base font-semibold px-4 group hover:no-underline focus-visible:outline-none"><div className="flex flex-wrap items-center gap-2 text-left"><span className="text-foreground font-semibold">Site #{index + 1}: {site.nameOfSite || "Unnamed Site"} ({site.purpose || 'N/A'})</span>{renderSiteStatusBadge(site.workStatus)}</div></AccordionTrigger></div><div className="flex items-center space-x-1 ml-2 shrink-0 z-10 relative"><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('site', { index, ...site }, !!dialogState.isView || !!isFormDisabled || isViewer); }}><Eye className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>View / Edit Site</p></TooltipContent></Tooltip></TooltipProvider>{!isFormDisabled && !isViewer && !isInvestigator && (<><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('moveCopySite', { index, name: site.nameOfSite }); }}><Move className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Move or Copy Site</p></TooltipContent></Tooltip></TooltipProvider><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('reorderSite', getValues('siteDetails')); }}><ArrowUpDown className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Reorder Sites</p></TooltipContent></Tooltip></TooltipProvider><TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItemToDelete({type: 'site', index}); }}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Delete Site</p></TooltipContent></Tooltip></TooltipProvider></>)}</div></div><AccordionContent className="p-6 pt-0"><div className="border-t pt-6 space-y-4"><dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4"><DetailRow label="Purpose" value={site.purpose} /><DetailRow label="Status" value={site.workStatus} /><DetailRow label="Contractor" value={site.contractorName} /><DetailRow label="Supervisor" value={site.supervisorName} /></dl></div></AccordionContent></AccordionItem>)) : <div className="text-center py-8 text-muted-foreground">No sites added.</div>}</Accordion></CardContent></Card>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="single" collapsible className="w-full space-y-2" value={activeAccordionItem} onValueChange={setActiveAccordionItem}>
+                    {siteFields.length > 0 ? (
+                      siteFields.map((site, index) => (
+                        <AccordionItem key={site.id} value={`site-${index}`} className="border bg-background rounded-lg shadow-sm">
+                          <div className="flex items-center justify-between pr-4">
+                            <div className="flex-1">
+                              <AccordionTrigger className="text-base font-semibold px-4 group hover:no-underline focus-visible:outline-none">
+                                <div className="flex flex-wrap items-center gap-2 text-left">
+                                  <span className="font-semibold text-foreground">
+                                    Site #{index + 1}:{" "}
+                                    <span className={cn("font-semibold", getSiteNameStatusColorClass(site.workStatus))}>
+                                      {site.nameOfSite || "Unnamed Site"}
+                                    </span>
+                                    {site.purpose ? (
+                                      <span className="text-muted-foreground font-normal"> ({site.purpose})</span>
+                                    ) : null}
+                                  </span>
+                                  {renderSiteStatusBadge(site.workStatus)}
+                                </div>
+                              </AccordionTrigger>
+                            </div>
+                            <div className="flex items-center space-x-1 ml-2 shrink-0 z-10 relative">
+                              <TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('site', { index, ...site }, !!dialogState.isView || !!isFormDisabled || isViewer); }}><Eye className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>View / Edit Site</p></TooltipContent></Tooltip></TooltipProvider>
+                              {!isFormDisabled && !isViewer && !isInvestigator && (
+                                <>
+                                  <TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('moveCopySite', { index, name: site.nameOfSite }); }}><Move className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Move or Copy Site</p></TooltipContent></Tooltip></TooltipProvider>
+                                  <TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDialog('reorderSite', getValues('siteDetails')); }}><ArrowUpDown className="h-4 w-4"/></Button></TooltipTrigger><TooltipContent><p>Reorder Sites</p></TooltipContent></Tooltip></TooltipProvider>
+                                  <TooltipProvider><Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItemToDelete({type: 'site', index}); }}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Delete Site</p></TooltipContent></Tooltip></TooltipProvider>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <AccordionContent className="p-6 pt-0">
+                            <div className="border-t pt-6 space-y-4">
+                              <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4">
+                                <DetailRow label="Purpose" value={site.purpose} />
+                                <DetailRow label="Status" value={site.workStatus} />
+                                <DetailRow label="Contractor" value={site.contractorName} />
+                                <DetailRow label="Supervisor" value={site.supervisorName} />
+                              </dl>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">No sites added.</div>
+                    )}
+                  </Accordion>
+                </CardContent>
+              </Card>
             </div>
 
             {/* 5. Payment Details */}
@@ -2049,74 +2077,11 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                     </div>
                     <div>
                       <CardTitle className="text-xl font-bold tracking-tight text-foreground">{finalDetailsSectionNumber}. Final Details</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-0.5">Abstract of sites, financial balance, and completion status</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Financial balance and completion status</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Abstract of Sites */}
-                    <div className="p-4 border rounded-lg space-y-3 bg-secondary/20">
-                        <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-base text-primary flex items-center gap-2">
-                                <Layers className="h-4 w-4" />
-                                Abstract of Sites
-                            </h3>
-                            <span className="text-xs text-muted-foreground font-medium">
-                                Total Sites: {(watchedSiteDetails || siteFields || []).length}
-                            </span>
-                        </div>
-
-                        {(watchedSiteDetails && watchedSiteDetails.length > 0) ? (
-                            <div className="overflow-x-auto rounded-md border bg-background">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                            <TableHead className="w-12 text-center text-xs font-semibold py-2">#</TableHead>
-                                            <TableHead className="text-xs font-semibold py-2">Site Name</TableHead>
-                                            <TableHead className="text-xs font-semibold py-2">Purpose</TableHead>
-                                            <TableHead className="text-xs font-semibold py-2 text-right sm:text-left">Work Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {watchedSiteDetails.map((site: any, idx: number) => {
-                                            const status = site.workStatus || site.status || 'Pending';
-                                            const sLower = String(status).toLowerCase();
-                                            let badgeClass = "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-300 dark:border-sky-800";
-                                            if (sLower.includes('completed') || sLower.includes('feasible') || sLower.includes('issued') || sLower.includes('prepared') || sLower.includes('success')) {
-                                                badgeClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
-                                            } else if (sLower.includes('fail') || sLower.includes('cancel') || sLower.includes('non-feasible') || sLower.includes('not feasible') || sLower.includes('dropped')) {
-                                                badgeClass = "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300 dark:border-rose-800";
-                                            } else if (sLower.includes('pending') || sLower.includes('refund') || sLower.includes('hold')) {
-                                                badgeClass = "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-800";
-                                            }
-
-                                            return (
-                                                <TableRow key={site.id || idx} className="text-xs hover:bg-muted/30">
-                                                    <TableCell className="text-center font-mono py-2 font-medium text-muted-foreground">{idx + 1}</TableCell>
-                                                    <TableCell className="font-medium py-2 text-foreground">
-                                                        {site.nameOfSite || site.siteName || <span className="italic text-muted-foreground">Unnamed Site</span>}
-                                                    </TableCell>
-                                                    <TableCell className="py-2 text-muted-foreground">
-                                                        {site.purpose || site.arsTypeOfScheme || 'N/A'}
-                                                    </TableCell>
-                                                    <TableCell className="py-2 text-right sm:text-left">
-                                                        <Badge variant="outline" className={cn("font-medium text-[11px] whitespace-nowrap", badgeClass)}>
-                                                            {status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : (
-                            <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md bg-background/50">
-                                No sites added to this file yet.
-                            </div>
-                        )}
-                    </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
                             <h3 className="font-semibold text-lg text-primary">Financial Summary</h3>

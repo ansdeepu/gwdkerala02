@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import ExcelJS from 'exceljs';
 import { format, isWithinInterval, startOfDay, endOfDay, isValid, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import type { DataEntryFormData } from '@/lib/schemas';
@@ -113,6 +112,7 @@ export default function DashboardDialogs({ dialogState, setDialogState, allFileE
       return;
     }
 
+    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30));
 

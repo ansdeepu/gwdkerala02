@@ -304,15 +304,22 @@ export default function LoggingPumpingTestPage() {
             />
           </div>
         </CardContent>
-        {totalPages > 1 && (
-          <CardFooter className="p-4 flex items-center justify-center border-t">
+        <CardFooter className="p-3 flex flex-wrap justify-between items-center gap-4 border-t">
+          <div className="flex flex-wrap items-center gap-4 text-[10px] text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wider">Site Color Legend:</span>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-green-600"></div><span>Active / In Progress</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-yellow-600"></div><span>Refund Pending</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-600"></div><span>Completed / Failed</span></div>
+            <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-gray-500"></div><span className="line-through">Cancelled</span></div>
+          </div>
+          {totalPages > 1 && (
             <PaginationControls
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
             />
-          </CardFooter>
-        )}
+          )}
+        </CardFooter>
       </Card>
     </div>
   );
