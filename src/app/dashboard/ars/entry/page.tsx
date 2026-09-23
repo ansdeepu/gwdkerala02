@@ -484,9 +484,31 @@ export default function ArsEntryPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <MediaManager title="Work Images" type="image" fields={imageFields} append={appendImage} remove={removeImage} update={updateImage} isReadOnly={isReadOnly} />
+                                <MediaManager 
+                                    title="Work Images" 
+                                    type="image" 
+                                    fields={imageFields} 
+                                    append={appendImage} 
+                                    remove={removeImage} 
+                                    update={updateImage} 
+                                    isReadOnly={isReadOnly}
+                                    officeLocation={watch('district') || (user as any)?.officeLocation || 'kollam'}
+                                    fileNo={watch('fileNo') || 'General'}
+                                    siteName={watch('nameOfSite') || ''}
+                                />
                                 <Separator />
-                                <MediaManager title="Work Videos" type="video" fields={videoFields} append={appendVideo} remove={removeVideo} update={updateVideo} isReadOnly={isReadOnly} />
+                                <MediaManager 
+                                    title="Work Videos" 
+                                    type="video" 
+                                    fields={videoFields} 
+                                    append={appendVideo} 
+                                    remove={removeVideo} 
+                                    update={updateVideo} 
+                                    isReadOnly={isReadOnly}
+                                    officeLocation={watch('district') || (user as any)?.officeLocation || 'kollam'}
+                                    fileNo={watch('fileNo') || 'General'}
+                                    siteName={watch('nameOfSite') || ''}
+                                />
                             </CardContent>
                         </Card>
                     </div>

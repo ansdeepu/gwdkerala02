@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink, Layers, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, ClipboardList } from "lucide-react";
 import PrintableReportModal, { type ReportDocType } from "../database/PrintableReportModal";
@@ -85,7 +86,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";
 import { v4 as uuidv4 } from 'uuid';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from "@/components/ui/badge";
 import SiteDialogContent from "./SiteDialogContent";
 import { MoveCopySiteDialog } from './MoveCopyDialogs';
 
@@ -137,6 +137,29 @@ const getStatusColorClass = (status: SiteWorkStatus | undefined | null): string 
     if (completedOrFailed.includes(status as SiteWorkStatus)) return 'text-red-600';
     if (status === 'Refund Pending') return 'text-yellow-600';
     return 'text-green-600';
+};
+
+export const renderSiteStatusBadge = (status?: string | null) => {
+  if (!status) return null;
+  const sLower = String(status).toLowerCase();
+
+  let colorClasses = "bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-300 dark:border-sky-800";
+
+  if (sLower.includes('completed') || sLower.includes('feasible') || sLower.includes('issued') || sLower.includes('prepared') || sLower.includes('success')) {
+    colorClasses = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
+  } else if (sLower.includes('fail') || sLower.includes('cancel') || sLower.includes('non-feasible') || sLower.includes('not feasible') || sLower.includes('dropped')) {
+    colorClasses = "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-800";
+  } else if (sLower.includes('pending') || sLower.includes('ves pending') || sLower.includes('hold')) {
+    colorClasses = "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800";
+  } else if (sLower.includes('started') || sLower.includes('tender') || sLower.includes('order')) {
+    colorClasses = "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-800";
+  }
+
+  return (
+    <Badge variant="outline" className={cn("text-xs font-semibold px-2.5 py-0.5 whitespace-nowrap shrink-0 ml-2 border shadow-xs transition-colors", colorClasses)}>
+      {status}
+    </Badge>
+  );
 };
 
 const toDateOrNull = (value: any): Date | null => {
@@ -1961,6 +1984,12 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             }
         } else if (type === 'site') {
             if (originalData.index !== undefined) updateSite(originalData.index, data); else appendSite(data);
+            setIsManualDirty(true);
+            closeDialog();
+            setTimeout(() => {
+                handleSubmit(onSubmit)();
+            }, 300);
+            return;
         } else if (type === 'reorderSite') {
             const reorderedSites = data as SiteDetailFormData[];
             replaceSites(reorderedSites);
@@ -2302,8 +2331,11 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                     <div className="flex items-center justify-between pr-4">
                                         <div className="flex-1">
                                             <AccordionTrigger className="text-base font-semibold px-4 group hover:no-underline focus-visible:outline-none">
-                                                <div className={cn("text-left", getStatusColorClass(site.field.workStatus))}>
-                                                    Site #{index + 1}: {site.field.nameOfSite || "Unnamed Site"} ({site.field.purpose || 'N/A'})
+                                                <div className="flex flex-wrap items-center gap-2 text-left">
+                                                    <span className="text-foreground font-semibold">
+                                                        Site #{index + 1}: {site.field.nameOfSite || "Unnamed Site"} ({site.field.purpose || 'N/A'})
+                                                    </span>
+                                                    {renderSiteStatusBadge(site.field.workStatus)}
                                                 </div>
                                             </AccordionTrigger>
                                         </div>
@@ -2353,8 +2385,11 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                         <div className="flex items-center justify-between pr-4">
                                             <div className="flex-1">
                                                 <AccordionTrigger className="text-base font-semibold px-4 group opacity-80 hover:no-underline focus-visible:outline-none">
-                                                    <div className={cn("text-left", getStatusColorClass(site.field.workStatus))}>
-                                                        Site #{index + 1}: {site.field.nameOfSite || "Unnamed Site"} ({site.field.purpose || 'N/A'})
+                                                    <div className="flex flex-wrap items-center gap-2 text-left">
+                                                        <span className="text-foreground font-semibold">
+                                                            Site #{index + 1}: {site.field.nameOfSite || "Unnamed Site"} ({site.field.purpose || 'N/A'})
+                                                        </span>
+                                                        {renderSiteStatusBadge(site.field.workStatus)}
                                                     </div>
                                                 </AccordionTrigger>
                                             </div>
@@ -2760,7 +2795,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} formOptions={formOptions} isEditing={isEditing} workTypeContext={workTypeContext} fileIdToEdit={fileIdToEdit} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'remittance'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><RemittanceDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isDeferredFunding={isDeferredFunding} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reappropriation'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><ReappropriationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>
-        <Dialog open={dialogState.type === 'site'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-6xl h-[90vh] flex flex-col p-0"><SiteDialogContent initialData={{ ...dialogState.data, fileNo: dialogState.data?.fileNo || watch('fileNo') || currentFileNo }} onConfirm={handleDialogConfirm} onCancel={closeDialog} isReadOnly={!!dialogState.isView || !!isFormDisabled} isSupervisor={isSupervisor} supervisorList={supervisorList} allLsgConstituencyMaps={allLsgConstituencyMaps} allE_tenders={allE_tenders} allStaffMembers={allStaffMembers} allBidders={allBidders} allRigCompressors={allRigCompressors} workTypeContext={workTypeContext} applicationType={watch('applicationType')} paymentDetails={watchedPaymentDetails || getValues('paymentDetails')} remittanceDetails={watchedRemittanceDetails || getValues('remittanceDetails')} /></DialogContent></Dialog>
+        <Dialog open={dialogState.type === 'site'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-6xl h-[90vh] flex flex-col p-0"><SiteDialogContent initialData={{ ...dialogState.data, fileNo: dialogState.data?.fileNo || watch('fileNo') || currentFileNo, officeLocation: (dialogState.data as any)?.officeLocation || watch('officeLocation') || getValues('officeLocation') || watch('district') || getValues('district') || (user as any)?.officeLocation || 'kollam', district: (dialogState.data as any)?.district || watch('district') || getValues('district') || watch('officeLocation') || (user as any)?.officeLocation || 'kollam' }} onConfirm={handleDialogConfirm} onCancel={closeDialog} isReadOnly={!!dialogState.isView || !!isFormDisabled} isSupervisor={isSupervisor} supervisorList={supervisorList} allLsgConstituencyMaps={allLsgConstituencyMaps} allE_tenders={allE_tenders} allStaffMembers={allStaffMembers} allBidders={allBidders} allRigCompressors={allRigCompressors} workTypeContext={workTypeContext} applicationType={watch('applicationType')} paymentDetails={watchedPaymentDetails || getValues('paymentDetails')} remittanceDetails={watchedRemittanceDetails || getValues('remittanceDetails')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'payment'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl h-[90vh] max-h-[90vh] flex flex-col p-0 overflow-hidden"><PaymentDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isDeferredFunding={isDeferredFunding} siteDetails={watchedSiteDetails || getValues('siteDetails')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reorderSite'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-2xl flex flex-col p-0"><ReorderSitesDialog initialData={dialogState.data || []} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'moveCopySite'} onOpenChange={closeDialog}>

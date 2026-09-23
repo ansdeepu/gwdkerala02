@@ -99,6 +99,68 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    var rootFolderName = "GWD_Site_Media";
+    var isStaffPhoto = (
+      data.rootFolder === "GWD_Staff_Photos" || 
+      data.type === "staff_photo" || 
+      data.type === "staff" || 
+      (data.fileName && data.fileName.indexOf("Staff_") === 0)
+    );
+    var isTenderEstimate = (
+      data.rootFolder === "GWD_e-Tender" || 
+      data.type === "tender_estimate" || 
+      (data.fileName && data.fileName.indexOf("Detailed_Estimate_") === 0)
+    );
+
+    if (isStaffPhoto) {
+      rootFolderName = "GWD_Staff_Photos";
+    } else if (isTenderEstimate) {
+      rootFolderName = "GWD_e-Tender";
+    } else if (data.rootFolder) {
+      rootFolderName = cleanName(data.rootFolder);
+    }
+
+    var officeLocation = cleanName(data.officeLocation || "General");
+
+    // Handle explicit folder creation or retrieval (Option 1 & Option 3)
+    if (data.action === "createFolder" || data.action === "getFolder") {
+      var rFolder = getOrCreateFolder(DriveApp, rootFolderName);
+      var oFolder = getOrCreateFolder(rFolder, officeLocation);
+      var tgtFolder = oFolder;
+      var fldPath = rootFolderName + "/" + officeLocation;
+
+      var fNo = cleanName(data.fileNo || "");
+      var sName = cleanName(data.siteName || "");
+      var subF = cleanName(data.subFolder || "");
+
+      var sFolderName = subF || fNo || "General";
+      if (sName && sName.length > 0 && !subF) {
+        sFolderName = (fNo ? fNo + " - " : "") + sName;
+      }
+
+      if (sFolderName && sFolderName !== "staff - staff" && sFolderName !== "General - General") {
+        tgtFolder = getOrCreateFolder(oFolder, sFolderName);
+        fldPath += "/" + sFolderName;
+      }
+
+      try {
+        tgtFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (eShare) {}
+
+      var fldId = tgtFolder.getId();
+      var fldUrl = "https://drive.google.com/drive/folders/" + fldId;
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        action: "createFolder",
+        folderId: fldId,
+        folderUrl: fldUrl,
+        folderName: tgtFolder.getName(),
+        folderPath: fldPath,
+        officeLocation: officeLocation
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var base64Data = data.base64Data;
     if (!base64Data) {
       return ContentService.createTextOutput(JSON.stringify({
@@ -114,45 +176,16 @@ function doPost(e) {
 
     var fileName = data.fileName || ("file_" + new Date().getTime());
     var mimeType = data.mimeType || "application/octet-stream";
-    var officeLocation = cleanName(data.officeLocation || "General");
-    var mediaType = data.type || "document";
 
-    // 1. Identify destination Root Folder
-    // A) Staff Photos: GWD_Staff_Photos
-    // B) Tender Estimates: GWD_e-Tender
-    // C) Site Media: GWD_Site_Media
-    var isStaffPhoto = (
-      data.rootFolder === "GWD_Staff_Photos" || 
-      data.type === "staff_photo" || 
-      data.type === "staff" || 
-      fileName.indexOf("Staff_") === 0
-    );
-    var isTenderEstimate = (
-      data.rootFolder === "GWD_e-Tender" || 
-      data.type === "tender_estimate" || 
-      fileName.indexOf("Detailed_Estimate_") === 0
-    );
-
-    var rootFolderName = "GWD_Site_Media";
-    if (isStaffPhoto) {
-      rootFolderName = "GWD_Staff_Photos";
-    } else if (isTenderEstimate) {
-      rootFolderName = "GWD_e-Tender";
-    } else if (data.rootFolder) {
-      rootFolderName = cleanName(data.rootFolder);
-    }
-
-    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
-    var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootFolderName);
+    var rootFolder = getOrCreateFolder(DriveApp, rootFolderName);
 
     // 2. Sub-office / Office Location folder (e.g., Thiruvananthapuram, Kollam, Kottayam, Directorate TVM)
-    var officeFolders = rootFolder.getFoldersByName(officeLocation);
-    var officeFolder = officeFolders.hasNext() ? officeFolders.next() : rootFolder.createFolder(officeLocation);
+    // Matches case-insensitively so existing 'kollam' or 'Kollam' is reused seamlessly
+    var officeFolder = getOrCreateFolder(rootFolder, officeLocation);
 
     // 3. Target folder determination:
     // For Staff Photos & Tender Estimates:
     // Files sit directly under: My Drive > [Root Folder] > [Office Location]
-    // Example: GWD_Staff_Photos / Kollam / Staff_PEN_Name_photo.jpg
     var targetFolder = officeFolder;
     var folderPath = rootFolderName + "/" + officeLocation;
 
@@ -170,8 +203,7 @@ function doPost(e) {
 
       // Ignore dummy "staff - staff" or blank folders
       if (siteFolderName && siteFolderName !== "staff - staff" && siteFolderName !== "General - General") {
-        var siteFolders = officeFolder.getFoldersByName(siteFolderName);
-        targetFolder = siteFolders.hasNext() ? siteFolders.next() : officeFolder.createFolder(siteFolderName);
+        targetFolder = getOrCreateFolder(officeFolder, siteFolderName);
         folderPath += "/" + siteFolderName;
       }
     }
@@ -194,6 +226,8 @@ function doPost(e) {
     var downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
     var thumbnailUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800";
     var directImageUrl = "https://lh3.googleusercontent.com/d/" + fileId;
+    var folderId = targetFolder.getId();
+    var folderUrl = "https://drive.google.com/drive/folders/" + folderId;
 
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
@@ -205,7 +239,10 @@ function doPost(e) {
       thumbnailUrl: thumbnailUrl,
       directImageUrl: directImageUrl,
       url: viewUrl,
-      folderPath: folderPath
+      folderId: folderId,
+      folderUrl: folderUrl,
+      folderPath: folderPath,
+      officeLocation: officeLocation
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -214,6 +251,19 @@ function doPost(e) {
       error: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function getOrCreateFolder(parentFolder, name) {
+  var targetName = cleanName(name);
+  if (!targetName) return parentFolder;
+  var folders = parentFolder.getFolders();
+  while (folders.hasNext()) {
+    var f = folders.next();
+    if (f.getName().toLowerCase() === targetName.toLowerCase()) {
+      return f;
+    }
+  }
+  return parentFolder.createFolder(targetName);
 }
 
 function cleanName(name) {

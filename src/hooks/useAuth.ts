@@ -103,30 +103,71 @@ export function useAuth() {
 
   useEffect(() => {
     let isMounted = true; 
+
+    // Safety timeout: Ensure auth isLoading never hangs longer than 3.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        setAuthState(prev => {
+          if (prev.isLoading) {
+            console.warn('[Auth] Safety timer reached; unblocking auth loading state.');
+            return { ...prev, isLoading: false };
+          }
+          return prev;
+        });
+      }
+    }, 3500);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isMounted) return;
 
       if (!firebaseUser) {
+        clearTimeout(safetyTimer);
         setAuthState({ isAuthenticated: false, isLoading: false, isAuthenticating: false, user: null, firebaseUser: null });
         return;
       }
+
+      // Optimistic cache check: Immediately unblock UI if cached profile exists
+      try {
+        const cached = localStorage.getItem(`cached_user_profile_${firebaseUser.uid}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const cachedProfile: UserProfile = {
+            ...parsed,
+            createdAt: parsed.createdAt ? new Date(parsed.createdAt) : new Date(),
+            lastActiveAt: parsed.lastActiveAt ? new Date(parsed.lastActiveAt) : undefined,
+          };
+          if (cachedProfile.isApproved) {
+            setAuthState({
+              isAuthenticated: true,
+              isLoading: false,
+              isAuthenticating: false,
+              user: cachedProfile,
+              firebaseUser
+            });
+          }
+        }
+      } catch (e) {}
 
       try {
         const userDocRef = doc(db, "users", firebaseUser.uid);
         let userDocSnap = null;
         let retries = 0;
-        const maxRetries = 3;
+        const maxRetries = 2;
 
         while (retries < maxRetries) {
             try {
-                userDocSnap = await getDoc(userDocRef);
+                // Wrap getDoc with a 3-second timeout
+                const fetchPromise = getDoc(userDocRef);
+                const timeoutPromise = new Promise<never>((_, reject) => 
+                  setTimeout(() => reject(new Error('Auth getDoc timeout')), 3000)
+                );
+                userDocSnap = await Promise.race([fetchPromise, timeoutPromise]);
                 break;
             } catch (err: any) {
-                // If it's a permission error or transient network issue, retry
-                if (err.code === 'permission-denied' || err.code === 'unavailable') {
-                    console.warn(`[Auth] Retry ${retries + 1} for user profile fetch due to ${err.code}`);
+                if (err.code === 'permission-denied' || err.code === 'unavailable' || err.message === 'Auth getDoc timeout') {
+                    console.warn(`[Auth] Retry ${retries + 1} for user profile fetch due to ${err.message || err.code}`);
                     retries++;
-                    await new Promise(resolve => setTimeout(resolve, 500 * retries));
+                    await new Promise(resolve => setTimeout(resolve, 300 * retries));
                 } else {
                     throw err;
                 }
@@ -171,20 +212,21 @@ export function useAuth() {
         if (!isMounted) return;
 
         if (userProfile && userProfile.isApproved) {
+            try {
+                localStorage.setItem(`cached_user_profile_${firebaseUser.uid}`, JSON.stringify(userProfile));
+            } catch (e) {}
+            clearTimeout(safetyTimer);
             updateUserLastActive(userProfile.uid, userProfile.officeLocation);
             setAuthState({ isAuthenticated: true, isLoading: false, isAuthenticating: false, user: userProfile, firebaseUser });
         } else {
              // Only sign out if we explicitly found a profile that is NOT approved.
-             // Avoid signing out if the profile is just null (could be transient or first-load sync issue)
-             // to prevent cross-tab sign-out loops.
              if (auth.currentUser && userProfile && !userProfile.isApproved) {
                 console.warn('[Auth] User is not approved. Signing out.');
                 try { await signOut(auth); } catch (signOutError) {}
+                clearTimeout(safetyTimer);
                 setAuthState({ isAuthenticated: false, isLoading: false, isAuthenticating: false, user: userProfile, firebaseUser: null });
             } else {
-                // If userProfile is null, it might be a temporary Firestore fetch issue or first-time sync
-                // We keep current auth state (loading: true or prev user) instead of eagerly redirecting
-                // unless we are sure there is no userDoc.
+                clearTimeout(safetyTimer);
                 if (!userDocSnap.exists() && !isAdminByEmail) {
                      setAuthState({ isAuthenticated: false, isLoading: false, isAuthenticating: false, user: null, firebaseUser: null });
                 } else {
@@ -203,6 +245,7 @@ export function useAuth() {
       } catch (error: any) {
         console.warn('[Auth] Error fetching user profile, using offline fallback:', error);
         if (isMounted) {
+            clearTimeout(safetyTimer);
             let fallbackProfile: UserProfile | null = null;
             try {
                 const cached = localStorage.getItem(`cached_user_profile_${firebaseUser.uid}`);
@@ -239,7 +282,7 @@ export function useAuth() {
       }
     });
 
-    return () => { isMounted = false; unsubscribe(); };
+    return () => { isMounted = false; clearTimeout(safetyTimer); unsubscribe(); };
   }, [toast]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: any }> => {

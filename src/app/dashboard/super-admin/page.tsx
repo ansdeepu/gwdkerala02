@@ -226,7 +226,7 @@ export default function SuperAdminDashboardPage() {
     setDialogState({ isOpen: true, data, title, columns, type });
   }, []);
   
-  const isPageLoading = isLoading || authLoading;
+  const isPageLoading = authLoading || !currentUser;
   
   if (isPageLoading) {
     return (

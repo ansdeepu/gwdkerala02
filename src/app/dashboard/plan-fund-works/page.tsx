@@ -50,13 +50,13 @@ export default function PlanFundWorksPage() {
   const searchParams = useSearchParams();
   const { setIsNavigating } = usePageNavigation();
 
-  const codeFilter = searchParams.get('code');
+  const codeFilter = searchParams?.get('code');
   const isSuperAdmin = user?.role === 'superAdmin';
   
   const searchTerm = searchTerms['plan-fund'] || "";
   const setSearchTerm = (term: string) => setModuleSearchTerm('plan-fund', term);
 
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "pre-execution");
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || "pre-execution");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 

@@ -26,12 +26,20 @@ import {
   Play,
   Settings2,
   CheckCircle2,
+  FolderOpen,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
-import { uploadMediaToGoogleDrive, getGoogleDriveScriptUrl, compressImage, fileToBase64 } from '@/lib/googleDriveUploadClient';
+import { 
+  uploadMediaToGoogleDrive, 
+  getGoogleDriveScriptUrl, 
+  compressImage, 
+  fileToBase64,
+  normalizeOfficeLocation,
+  cleanDriveName
+} from '@/lib/googleDriveUploadClient';
 import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
 
 interface MediaManagerProps {
@@ -82,10 +90,15 @@ export default function MediaManager({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Determine effective office location, file number, and site name
-  const effectiveOffice = propOfficeLocation || (user as any)?.officeLocation || 'General';
+  // Determine effective office location, file number, and site name with strict routing (Option 3)
+  const effectiveOffice = normalizeOfficeLocation(propOfficeLocation, (user as any)?.officeLocation || 'kollam');
   const effectiveFileNo = propFileNo || 'General';
   const effectiveSiteName = propSiteName || '';
+  const expectedFolderName = effectiveSiteName 
+    ? `${cleanDriveName(effectiveFileNo)} - ${cleanDriveName(effectiveSiteName)}`
+    : cleanDriveName(effectiveFileNo);
+
+  const [driveFolderUrl, setDriveFolderUrl] = useState<string | null>(null);
 
   const isSuperAdmin = 
     user?.role === 'superAdmin' || 
@@ -314,14 +327,18 @@ export default function MediaManager({
           totalFiles: filesArray.length,
         });
 
-        // If drive is configured, attempt Drive upload
-        if (hasDriveConfig) {
+        // Always fetch fresh drive config before attempting upload
+        const scriptUrl = await getGoogleDriveScriptUrl();
+        const canUploadToDrive = Boolean(scriptUrl || hasDriveConfig);
+
+        if (canUploadToDrive) {
           const result = await uploadMediaToGoogleDrive({
             file,
             officeLocation: effectiveOffice,
             fileNo: effectiveFileNo,
             siteName: effectiveSiteName,
             type,
+            customScriptUrl: scriptUrl || undefined,
             onProgress: (percent, statusText) => {
               setUploadProgress({
                 percent,
@@ -335,6 +352,9 @@ export default function MediaManager({
           });
 
           if (result.success && (result.url || result.viewUrl || result.directImageUrl)) {
+            if (result.folderUrl) {
+              setDriveFolderUrl(result.folderUrl);
+            }
             // Successfully uploaded to Google Drive!
             append({
               id: uuidv4(),
@@ -350,13 +370,37 @@ export default function MediaManager({
 
             toast({
               title: `${type === 'image' ? 'Photo' : 'Video'} Uploaded to Google Drive`,
-              description: `Saved in keralagwd@gmail.com Drive under ${effectiveOffice} folder.`,
+              description: `Saved in keralagwd@gmail.com Drive under ${effectiveOffice} / ${expectedFolderName}.`,
+              action: result.folderUrl ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => window.open(result.folderUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  Open Folder
+                </Button>
+              ) : undefined,
             });
             continue;
+          } else {
+            console.warn("Google Drive upload failed, falling back to direct record storage:", result.error);
+            toast({
+              title: "Google Drive Notice",
+              description: result.error 
+                ? `${result.error}. Photo saved directly to site record.`
+                : "Could not reach Google Drive. Photo saved directly to site record.",
+              variant: "destructive",
+            });
           }
+        } else {
+          toast({
+            title: "Google Drive Not Configured",
+            description: "Google Apps Script Web App URL is not configured. Photo saved directly to site record. Click 'GWD Cloud Archive' to set up Drive.",
+          });
         }
 
-        // Seamless fallback: Save media directly to site record
+        // Fallback: Save media directly to site record
         await saveMediaDirectly(file);
       }
     } catch (err: any) {
@@ -444,47 +488,71 @@ export default function MediaManager({
           </button>
         </div>
 
-        {!isReadOnly && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Direct Camera Capture */}
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={() => cameraInputRef.current?.click()}
-              disabled={isUploading}
-              className="h-8 text-xs gap-1.5"
-            >
-              <Camera className="h-3.5 w-3.5" />
-              {type === 'image' ? 'Capture Photo' : 'Record Video'}
-            </Button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {!isReadOnly && (
+            <>
+              {/* Direct Camera Capture */}
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isUploading}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Camera className="h-3.5 w-3.5" />
+                {type === 'image' ? 'Capture Photo' : 'Record Video'}
+              </Button>
 
-            {/* File Explorer Upload */}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="h-8 text-xs gap-1.5"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Upload {type === 'image' ? 'Photos' : 'Video'}
-            </Button>
+              {/* File Explorer Upload */}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Upload {type === 'image' ? 'Photos' : 'Video'}
+              </Button>
 
-            {/* URL Link Fallback */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddClick}
-              disabled={isUploading}
-              className="h-8 text-xs gap-1.5"
-            >
-              <LinkIcon className="h-3.5 w-3.5" />
-              Add Link
-            </Button>
-          </div>
+              {/* URL Link Fallback */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddClick}
+                disabled={isUploading}
+                className="h-8 text-xs gap-1.5"
+              >
+                <LinkIcon className="h-3.5 w-3.5" />
+                Add Link
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Drive Folder Destination Path & Status Banner */}
+      <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          <span className="font-medium text-foreground/80">Drive Destination:</span>
+          <span className="font-mono text-primary font-semibold truncate">
+            GWD_Site_Media / {effectiveOffice} / {expectedFolderName}
+          </span>
+        </div>
+        {driveFolderUrl && (
+          <a
+            href={driveFolderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0 font-medium ml-auto cursor-pointer"
+          >
+            <span>Open in Drive</span>
+            <ExternalLink className="h-3 w-3" />
+          </a>
         )}
       </div>
 

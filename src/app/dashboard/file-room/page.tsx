@@ -58,13 +58,20 @@ function FileManagerContent() {
   const searchTerm = searchTerms['file-room'] || "";
   const setSearchTerm = (term: string) => setModuleSearchTerm('file-room', term);
 
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "pre-execution");
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || "pre-execution");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
   useEffect(() => {
     setHeader('Deposit Works', 'List of all public and government deposit works.');
   }, [setHeader]);
+
+  useEffect(() => {
+    const tab = searchParams?.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const page = searchParams?.get('page');

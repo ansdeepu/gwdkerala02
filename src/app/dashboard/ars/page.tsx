@@ -129,7 +129,7 @@ export default function ArsPage() {
   
   const lastId = searchParams?.get('lastId');
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "pre-execution");
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || "pre-execution");
 
   useEffect(() => {
     const page = searchParams?.get('page');

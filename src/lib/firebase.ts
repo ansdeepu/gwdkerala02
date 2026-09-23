@@ -24,23 +24,15 @@ if (!getApps().length) {
     app = getApp();
 }
 
-// Initialize Firestore with offline persistence cache and long-polling for robust sandbox environment connectivity
+// Initialize Firestore with robust persistence cache and auto-detecting transport
 let db: Firestore;
 try {
     db = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager()
-        }),
-        experimentalForceLongPolling: true
+        localCache: persistentLocalCache({}),
+        experimentalAutoDetectLongPolling: true
     });
 } catch (e) {
-    try {
-        db = initializeFirestore(app, {
-            experimentalForceLongPolling: true
-        });
-    } catch (err) {
-        db = getFirestore(app);
-    }
+    db = getFirestore(app);
 }
 
 

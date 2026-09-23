@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { 
-      base64Data, 
+      action,
+      base64Data: providedBase64, 
       fileName, 
       mimeType, 
       officeLocation, 
@@ -48,7 +49,17 @@ export async function POST(req: NextRequest) {
       subFolder
     } = body;
 
-    if (!base64Data) {
+    const isFolderAction = action === "createFolder" || action === "getFolder";
+
+    // For folder creation, if base64Data is missing, create a small placeholder info blob
+    // so older deployed Google Apps Scripts won't fail with 'Missing base64 file data'
+    let effectiveBase64 = providedBase64;
+    if (!effectiveBase64 && isFolderAction) {
+      const placeholderText = `Ground Water Department, Kerala\nSite Folder Initialized\nFile No: ${fileNo || 'General'}\nSite: ${siteName || 'General'}\nOffice: ${officeLocation || 'General'}\nTimestamp: ${new Date().toISOString()}`;
+      effectiveBase64 = Buffer.from(placeholderText).toString('base64');
+    }
+
+    if (!effectiveBase64 && !isFolderAction) {
       return NextResponse.json({ success: false, error: "Missing base64Data" }, { status: 400 });
     }
 
@@ -71,9 +82,10 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        base64Data,
-        fileName,
-        mimeType,
+        action,
+        base64Data: effectiveBase64,
+        fileName: fileName || (isFolderAction ? "_folder_info.txt" : `file_${Date.now()}`),
+        mimeType: mimeType || (isFolderAction ? "text/plain" : "application/octet-stream"),
         officeLocation,
         fileNo,
         siteName,

@@ -133,10 +133,10 @@ export default function AppNavMenu() {
         if (cleanHref === '/dashboard/plan-fund-works') {
             const itemQuery = new URLSearchParams(item.href.split('?')[1] || '');
             const itemCode = itemQuery.get('code');
-            const currentCode = searchParams.get('code');
+            const currentCode = searchParams?.get('code');
             isActive = pathname === cleanHref && itemCode === currentCode;
         } else if (pathname.startsWith('/dashboard/data-entry')) {
-            const workType = searchParams.get('workType');
+            const workType = searchParams?.get('workType');
             const workTypeMapping: Record<string, string> = {
                 'gwInvestigation': '/dashboard/gw-investigation',
                 'loggingPumpingTest': '/dashboard/logging-pumping-test',
@@ -164,16 +164,20 @@ export default function AppNavMenu() {
         return (
           <SidebarMenuItem key={item.href}>
               <div className="flex items-center w-full group">
-                <Link href={item.href} passHref onClick={(e) => handleNavigation(e, item.href)} className="flex-grow">
-                  <SidebarMenuButton
-                    asChild
-                    size="compact"
-                    isActive={isActive}
-                    tooltip={{ children: item.label, side: "right", align: "center" }}
-                    className={cn(
-                        "justify-start pr-8 transition-all relative overflow-hidden",
-                        isActive ? "bg-primary/10 text-primary border-l-4 border-primary rounded-none shadow-inner" : "hover:bg-sidebar-accent"
-                    )}
+                <SidebarMenuButton
+                  asChild
+                  size="compact"
+                  isActive={isActive}
+                  tooltip={{ children: item.label, side: "right", align: "center" }}
+                  className={cn(
+                      "justify-start pr-8 transition-all relative overflow-hidden flex-grow",
+                      isActive ? "bg-primary/10 text-primary border-l-4 border-primary rounded-none shadow-inner" : "hover:bg-sidebar-accent"
+                  )}
+                >
+                  <Link 
+                    href={item.href} 
+                    prefetch={false}
+                    onClick={(e) => handleNavigation(e, item.href)}
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
@@ -186,8 +190,8 @@ export default function AppNavMenu() {
                         </Badge>
                       )}
                     </div>
-                  </SidebarMenuButton>
-                </Link>
+                  </Link>
+                </SidebarMenuButton>
                  <TooltipProvider>
                   <Tooltip>
                       <TooltipTrigger asChild>

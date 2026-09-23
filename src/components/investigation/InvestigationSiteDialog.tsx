@@ -10,7 +10,7 @@ import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/di
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, checkIsSiteDataChanged } from "@/lib/utils";
 import { Save, X, Expand } from "lucide-react";
 import {
   SiteDetailSchema,
@@ -85,6 +85,12 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
     const watchedTypeOfWell = watch("typeOfWell");
     const watchedFeasibility = watch("feasibility");
     const watchedWorkStatus = watch("workStatus");
+
+    const watchedAllValues = watch();
+    const isFormDirty = useMemo(() => {
+        if (form.formState.isDirty) return true;
+        return checkIsSiteDataChanged(initialData, watchedAllValues);
+    }, [form.formState.isDirty, watchedAllValues, initialData]);
 
     const hydroDesignations: Designation[] = useMemo(() => ["Hydrogeologist", "Junior Hydrogeologist", "Geological Assistant"], []);
     const geoDesignations: Designation[] = useMemo(() => ["Geophysicist", "Junior Geophysicist", "Geophysical Assistant"], []);
@@ -503,9 +509,31 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                             <Card>
                                 <CardHeader><CardTitle className="text-lg text-primary">Media Gallery</CardTitle></CardHeader>
                                 <CardContent className="space-y-6">
-                                    <MediaManager title="Work Images" type="image" fields={imageFields} append={appendImage} remove={removeImage} update={updateImage} isReadOnly={isReadOnly} />
+                                    <MediaManager 
+                                        title="Work Images" 
+                                        type="image" 
+                                        fields={imageFields} 
+                                        append={appendImage} 
+                                        remove={removeImage} 
+                                        update={updateImage} 
+                                        isReadOnly={isReadOnly} 
+                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
+                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
+                                        siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                    />
                                     <Separator />
-                                    <MediaManager title="Work Videos" type="video" fields={videoFields} append={appendVideo} remove={removeVideo} update={updateVideo} isReadOnly={isReadOnly} />
+                                    <MediaManager 
+                                        title="Work Videos" 
+                                        type="video" 
+                                        fields={videoFields} 
+                                        append={appendVideo} 
+                                        remove={removeVideo} 
+                                        update={updateVideo} 
+                                        isReadOnly={isReadOnly} 
+                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
+                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
+                                        siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                    />
                                 </CardContent>
                             </Card>
                         </div>
@@ -513,7 +541,16 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                 </div>
                 <div className="flex justify-end p-6 pt-4 shrink-0 border-t gap-2">
                     <Button variant="outline" type="button" onClick={onCancel}>{isReadOnly ? 'Close' : 'Cancel'}</Button>
-                    {!isReadOnly && <Button type="submit" form="investigation-site-dialog-form">Save Changes</Button>}
+                    {!isReadOnly && (
+                    <Button 
+                        type="submit" 
+                        form="investigation-site-dialog-form" 
+                        disabled={!isFormDirty}
+                        className={!isFormDirty ? "opacity-50 cursor-not-allowed" : "shadow-xs font-semibold"}
+                    >
+                        Save Changes
+                    </Button>
+                )}
                 </div>
             </form>
         </FormProvider>

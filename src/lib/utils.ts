@@ -136,3 +136,64 @@ export function getDistrictMalayalam(location?: string | null): string {
   }
   return location;
 }
+
+export function checkIsSiteDataChanged(initialData: any, currentValues: any): boolean {
+  if (!initialData) return true;
+  
+  // Check if initialData was empty (adding a new site)
+  const isNewSite = !initialData.id && !initialData.nameOfSite && !initialData.name;
+  
+  if (isNewSite) {
+    return Boolean(
+      (currentValues?.nameOfSite && currentValues.nameOfSite.trim() !== '') ||
+      (currentValues?.name && currentValues.name.trim() !== '') ||
+      (currentValues?.location && currentValues.location.trim() !== '') ||
+      (currentValues?.purpose && currentValues.purpose.trim() !== '') ||
+      (currentValues?.typeOfWell && currentValues.typeOfWell.trim() !== '') ||
+      (currentValues?.workStatus && currentValues.workStatus !== 'Under Process') ||
+      (currentValues?.workImages && currentValues.workImages.length > 0) ||
+      (currentValues?.workVideos && currentValues.workVideos.length > 0)
+    );
+  }
+
+  if (!currentValues) return false;
+
+  const ignoreKeys = new Set(['index', 'fileNo', 'officeLocation', 'district', 'office', 'currentFileNo']);
+  const allKeys = new Set([
+    ...Object.keys(initialData || {}),
+    ...Object.keys(currentValues || {})
+  ]);
+
+  for (const key of allKeys) {
+    if (ignoreKeys.has(key)) continue;
+
+    let initVal = initialData[key];
+    let currVal = currentValues[key];
+
+    // Normalize null / undefined / empty string
+    if (initVal === null || initVal === undefined) initVal = '';
+    if (currVal === null || currVal === undefined) currVal = '';
+
+    // Arrays
+    if (Array.isArray(currVal) || Array.isArray(initVal)) {
+      const arrInit = Array.isArray(initVal) ? initVal : [];
+      const arrCurr = Array.isArray(currVal) ? currVal : [];
+      if (arrInit.length !== arrCurr.length) return true;
+      if (JSON.stringify(arrInit) !== JSON.stringify(arrCurr)) return true;
+      continue;
+    }
+
+    // Objects
+    if (typeof currVal === 'object' || typeof initVal === 'object') {
+      if (JSON.stringify(initVal) !== JSON.stringify(currVal)) return true;
+      continue;
+    }
+
+    // Primitive values
+    if (String(initVal).trim() !== String(currVal).trim()) {
+      return true;
+    }
+  }
+
+  return false;
+}

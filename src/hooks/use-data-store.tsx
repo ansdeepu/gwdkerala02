@@ -153,6 +153,26 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
         users: true, files: true, ars: true, staff: true, agencies: true, lsg: true, rates: true, gwdRates: true, bidders: true, eTenders: true,
         departmentVehicles: true, hiredVehicles: true, rigCompressors: true, officeAddress: true, sanctionedStrength: true,
     });
+
+    // Safety timer: Ensure that background network delays or slow subcollections never hold the application loading state hostage
+    useEffect(() => {
+        const safetyTimer = setTimeout(() => {
+            setLoadingStates(prev => {
+                const stillLoading = Object.values(prev).some(Boolean);
+                if (stillLoading) {
+                    console.info("[DataStore] Safety timer reached (2.5s); resolving remaining collection loading states.");
+                    const cleared: typeof prev = { ...prev };
+                    for (const k of Object.keys(cleared) as (keyof typeof prev)[]) {
+                        cleared[k] = false;
+                    }
+                    return cleared;
+                }
+                return prev;
+            });
+        }, 2500);
+
+        return () => clearTimeout(safetyTimer);
+    }, [user, selectedOffice]);
     
     const setModuleSearchTerm = useCallback((module: string, term: string) => {
         setSearchTerms(prev => ({ ...prev, [module]: term }));
@@ -298,6 +318,8 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
               if (globalOffice) setOfficeAddress({ ...globalOffice, officeLocation: formatDistrictLocation(globalOffice.officeLocation || officeLocation), officeName: '', id: globalOffice.id });
               else setOfficeAddress(null);
           }
+      }, (err) => {
+          console.warn("[DataStore] Sub-office address listener error:", err);
       });
   
       return () => unsubscribe();
@@ -609,7 +631,8 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
         });
     }, [rawFileEntries, allE_tenders, user, selectedOffice]);
 
-    const isLoading = Object.values(loadingStates).some(Boolean);
+    // The store loading only flags true on the initial mount if core files and staff have not loaded yet
+    const isLoading = (loadingStates.files || loadingStates.staff) && rawFileEntries.length === 0;
 
     const addDepartmentVehicle = useCallback(async (data: DepartmentVehicle) => {
         if (!user) throw new Error("User must be logged in.");

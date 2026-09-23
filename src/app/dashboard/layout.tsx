@@ -2,8 +2,6 @@
 // src/app/dashboard/layout.tsx
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 import React, { useEffect, useCallback, useState, useMemo, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -259,7 +257,7 @@ function BreadcrumbNav() {
 
   return (
     <nav className="flex items-center space-x-1 text-xs text-muted-foreground mb-4 px-1" aria-label="Breadcrumb">
-      <Link href={homeHref} className="hover:text-primary transition-colors flex items-center">
+      <Link href={homeHref} prefetch={false} className="hover:text-primary transition-colors flex items-center">
         <Home className="h-3 w-3 mr-1" />
         <span>Dashboard</span>
       </Link>
@@ -269,7 +267,7 @@ function BreadcrumbNav() {
           {crumb.isLast ? (
             <span className="font-medium text-primary truncate max-w-[300px]">{crumb.label}</span>
           ) : (
-            <Link href={crumb.href} className="hover:text-primary transition-colors truncate max-w-[200px]">
+            <Link href={crumb.href} prefetch={false} className="hover:text-primary transition-colors truncate max-w-[200px]">
               {crumb.label}
             </Link>
           )}

@@ -112,14 +112,14 @@ export default function DashboardPage() {
   }, [setHeader, currentUser]);
 
   const dashboardData = useMemo(() => {
-    if (filteredEntriesLoading || isReportLoading || staffLoading || authLoading || storeLoading || !currentUser) return null;
+    if (!currentUser) return null;
 
     return {
         allFileEntriesForSupervisor: filteredFileEntries || [],
         allFileEntries: allFileEntries || [],
         staffMembers: staffMembers || []
     };
-  }, [filteredEntriesLoading, isReportLoading, staffLoading, authLoading, storeLoading, currentUser, filteredFileEntries, allFileEntries, staffMembers]);
+  }, [currentUser, filteredFileEntries, allFileEntries, staffMembers]);
 
   // Helper to parse dates safely
   const safeParseDate = (dateValue: any): Date | null => {
@@ -621,7 +621,7 @@ export default function DashboardPage() {
     setDialogState({ isOpen: true, data, title, columns, type });
   }, []);
 
-  const isPageLoading = authLoading || storeLoading || isReportLoading || agenciesLoading || filteredEntriesLoading || !dashboardData;
+  const isPageLoading = authLoading || !currentUser;
 
   if (isPageLoading) {
     return (

@@ -333,11 +333,147 @@ function postJsonWithProgress(
 }
 
 /**
+ * Strict Office Location Normalization (Option 3):
+ * Maps all district variations, casing, and Malayalam scripts into standard lowercase office directory names
+ * (matching existing Drive folders like 'kollam').
+ */
+export function normalizeOfficeLocation(office?: string | null, fallback?: string | null): string {
+  const raw = (office || fallback || "").trim();
+  if (!raw || raw.toLowerCase() === "general") {
+    return (fallback && fallback.toLowerCase() !== "general") ? normalizeOfficeLocation(fallback) : "kollam";
+  }
+
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("kollam") || lower.includes("കൊല്ലം") || lower.includes("klm")) return "kollam";
+  if (lower.includes("thiruvananthapuram") || lower.includes("തിരുവനന്തപുരം") || lower.includes("tvm")) return "thiruvananthapuram";
+  if (lower.includes("pathanamthitta") || lower.includes("പത്തനംതിട്ട") || lower.includes("pta")) return "pathanamthitta";
+  if (lower.includes("alappuzha") || lower.includes("ആലപ്പുഴ") || lower.includes("alp")) return "alappuzha";
+  if (lower.includes("kottayam") || lower.includes("കോട്ടയം") || lower.includes("ktm")) return "kottayam";
+  if (lower.includes("idukki") || lower.includes("ഇടുക്കി") || lower.includes("idk")) return "idukki";
+  if (lower.includes("ernakulam") || lower.includes("എറണാകുളം") || lower.includes("ekm")) return "ernakulam";
+  if (lower.includes("thrissur") || lower.includes("തൃശ്ശൂർ") || lower.includes("tsr")) return "thrissur";
+  if (lower.includes("palakkad") || lower.includes("പാലക്കാട്") || lower.includes("pkd")) return "palakkad";
+  if (lower.includes("malappuram") || lower.includes("മലപ്പുറം") || lower.includes("mpm")) return "malappuram";
+  if (lower.includes("kozhikode") || lower.includes("കോഴിക്കോട്") || lower.includes("kkd")) return "kozhikode";
+  if (lower.includes("wayanad") || lower.includes("വയനാട്") || lower.includes("wyd")) return "wayanad";
+  if (lower.includes("kannur") || lower.includes("കണ്ണൂർ") || lower.includes("knr")) return "kannur";
+  if (lower.includes("kasaragod") || lower.includes("കാസർഗോഡ്") || lower.includes("ksd")) return "kasaragod";
+  if (lower.includes("directorate") || lower.includes("ഡയറക്ടറേറ്റ്")) return "Directorate TVM";
+
+  return cleanDriveName(raw);
+}
+
+export function cleanDriveName(name?: string | null): string {
+  if (!name) return "";
+  return String(name).replace(/[/\\?%*:|"<>]/g, "_").trim();
+}
+
+export interface CreateFolderOptions {
+  officeLocation?: string;
+  fileNo?: string;
+  siteName?: string;
+  subFolder?: string;
+  rootFolder?: string;
+  customScriptUrl?: string;
+}
+
+export interface CreateFolderResult {
+  success: boolean;
+  folderId?: string;
+  folderUrl?: string;
+  folderName?: string;
+  folderPath?: string;
+  officeLocation?: string;
+  driveSearchUrl?: string;
+  error?: string;
+}
+
+/**
+ * Creates or retrieves a designated site folder directly in Google Drive under keralagwd@gmail.com (Option 1).
+ * Follows structure: GWD_Site_Media / [officeLocation] / [fileNo - siteName]
+ */
+export async function createOrGetDriveFolder(options: CreateFolderOptions): Promise<CreateFolderResult> {
+  const { officeLocation, fileNo = "General", siteName = "", customScriptUrl, rootFolder = "GWD_Site_Media" } = options;
+
+  const resolvedOffice = normalizeOfficeLocation(officeLocation);
+  const cleanFile = cleanDriveName(fileNo);
+  const cleanSite = cleanDriveName(siteName);
+  const folderName = cleanSite ? `${cleanFile} - ${cleanSite}` : cleanFile;
+
+  const scriptUrl = customScriptUrl || (await getGoogleDriveScriptUrl()) || undefined;
+
+  // Placeholder info content for backward compatibility with older deployed scripts
+  const placeholderText = `Ground Water Department, Kerala\nSite Folder: ${folderName}\nOffice: ${resolvedOffice}\nFile No: ${fileNo}\nSite: ${siteName}\nInitialized on: ${new Date().toLocaleString('en-IN')}`;
+  let base64Data = "";
+  try {
+    if (typeof window !== "undefined") {
+      base64Data = btoa(unescape(encodeURIComponent(placeholderText)));
+    } else {
+      base64Data = Buffer.from(placeholderText).toString("base64");
+    }
+  } catch (e) {
+    base64Data = "R1dEIFNpdGUgRm9sZGVyIEluaXRpYWxpemVk";
+  }
+
+  try {
+    const res = await fetch("/api/drive-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createFolder",
+        officeLocation: resolvedOffice,
+        fileNo,
+        siteName,
+        rootFolder,
+        base64Data,
+        fileName: "_folder_info.txt",
+        mimeType: "text/plain",
+        customScriptUrl: scriptUrl,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return {
+        success: false,
+        folderName,
+        officeLocation: resolvedOffice,
+        error: data.error || `Server error (${res.status})`,
+        driveSearchUrl: `https://drive.google.com/drive/u/0/search?q=${encodeURIComponent('"' + folderName + '"')}`
+      };
+    }
+
+    const folderUrl = data.folderUrl || (data.folderId ? `https://drive.google.com/drive/folders/${data.folderId}` : undefined);
+    const driveSearchUrl = folderUrl || `https://drive.google.com/drive/u/0/search?q=${encodeURIComponent('"' + folderName + '"')}`;
+
+    return {
+      success: true,
+      folderId: data.folderId,
+      folderUrl: folderUrl || driveSearchUrl,
+      folderName: data.folderName || folderName,
+      folderPath: data.folderPath || `${rootFolder}/${resolvedOffice}/${folderName}`,
+      officeLocation: resolvedOffice,
+      driveSearchUrl,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      folderName,
+      officeLocation: resolvedOffice,
+      error: err?.message || "Failed to create Google Drive folder.",
+      driveSearchUrl: `https://drive.google.com/drive/u/0/search?q=${encodeURIComponent('"' + folderName + '"')}`
+    };
+  }
+}
+
+/**
  * Uploads a file (photo or video) to Google Drive under keralagwd@gmail.com.
  * Automatically saves into: GWD_Site_Media / [officeLocation] / [fileNo - siteName]
  */
 export async function uploadMediaToGoogleDrive(options: DriveUploadOptions): Promise<DriveUploadResult> {
-  const { file, officeLocation = "General", fileNo = "General", siteName = "", type, customScriptUrl, onProgress } = options;
+  const { file, officeLocation = "kollam", fileNo = "General", siteName = "", type, customScriptUrl, onProgress } = options;
+  const resolvedOffice = normalizeOfficeLocation(officeLocation);
 
   // 1. Strict 25MB file size check for both photos and videos
   const MAX_FILE_SIZE_MB = 25;
@@ -386,7 +522,7 @@ export async function uploadMediaToGoogleDrive(options: DriveUploadOptions): Pro
         base64Data,
         fileName: file.name,
         mimeType,
-        officeLocation,
+        officeLocation: resolvedOffice,
         fileNo,
         siteName,
         type,

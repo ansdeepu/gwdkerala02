@@ -282,14 +282,9 @@ export default function FileDatabaseTable({
               <TableHead className="w-[50px] px-2 py-3 text-sm">Sl. No.</TableHead>
               <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileNo')}>File No. {getSortIcon('fileNo')}</Button></TableHead>
               <TableHead className="w-[15%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('applicantName')}>Applicant Name {getSortIcon('applicantName')}</Button></TableHead>
-              <TableHead className="w-[25%] px-2 py-3 text-sm">Site Name(s)</TableHead>
-              <TableHead className="w-[10%] px-2 py-3 text-sm">Purpose(s)</TableHead>
+              <TableHead className="w-[35%] px-2 py-3 text-sm">Site Name(s)</TableHead>
               <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('firstRemittanceDate')}>Remittance {getSortIcon('firstRemittanceDate')}</Button></TableHead>
-              {userRole === 'supervisor' || userRole === 'investigator' ? (
-                <TableHead className="w-[10%] px-2 py-3 text-sm">Work Status</TableHead>
-              ) : (
-                <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileStatus')}>File Status {getSortIcon('fileStatus')}</Button></TableHead>
-              )}
+              <TableHead className="w-[10%] px-2 py-3 text-sm"><Button variant="ghost" className="p-0 hover:bg-transparent font-bold" onClick={() => requestSort('fileStatus')}>File Status {getSortIcon('fileStatus')}</Button></TableHead>
               <TableHead className="text-center w-[80px] px-2 py-3 text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -318,34 +313,32 @@ export default function FileDatabaseTable({
                     </Link>
                   </TableCell>
                   <TableCell className="w-[15%] px-2 py-2 text-sm">{entry.applicantName}</TableCell>
-                  <TableCell className="w-[25%] px-2 py-2 text-sm">
-                    {sitesToDisplay.length > 0 ? sitesToDisplay.map((site, idx) => (
-                      <span key={idx} className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                        {site.nameOfSite}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
-                      </span>
-                    )) : <span className="text-muted-foreground italic">No assigned sites for this file.</span>}
-                  </TableCell>
-                  <TableCell className="w-[10%] px-2 py-2 text-sm">
-                    {sitesToDisplay.map((site, idx) => (
-                      <span key={idx} className={cn(getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                          {site.purpose || 'N/A'}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
-                      </span>
-                    ))}
+                  <TableCell className="w-[35%] px-2 py-2 text-sm">
+                    {sitesToDisplay.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {sitesToDisplay.map((site, idx) => (
+                          <div key={idx} className="leading-snug">
+                            <span className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
+                              {site.nameOfSite || 'Unnamed Site'}
+                            </span>
+                            {site.purpose ? <span> - <span className="text-indigo-600 dark:text-indigo-400 font-medium">{site.purpose}</span></span> : null}
+                            {site.workStatus ? (
+                              <span>
+                                {" - "}
+                                <span className={cn("font-medium", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
+                                  {site.workStatus}
+                                </span>
+                              </span>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <span className="text-muted-foreground italic">No assigned sites for this file.</span>}
                   </TableCell>
                   <TableCell className="w-[10%] px-2 py-2 text-sm">
                     {displayDate ? format(displayDate, "dd/MM/yyyy") : "N/A"}
                   </TableCell>
-                  {userRole === 'supervisor' || userRole === 'investigator' ? (
-                    <TableCell className="w-[10%] px-2 py-2 text-sm">
-                        {sitesToDisplay.map((site, idx) => (
-                            <span key={idx} className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                                {site.workStatus || 'N/A'}{idx < sitesToDisplay.length - 1 ? ', ' : ''}
-                            </span>
-                        ))}
-                    </TableCell>
-                  ) : (
-                    <TableCell className="font-semibold w-[10%] px-2 py-2 text-sm">{entry.fileStatus}</TableCell>
-                  )}
+                  <TableCell className="font-semibold w-[10%] px-2 py-2 text-sm">{entry.fileStatus || 'N/A'}</TableCell>
                   <TableCell className="text-center p-2">
                       <div className="flex flex-col items-center justify-center gap-1">
                         <TooltipProvider><Tooltip><TooltipTrigger asChild>

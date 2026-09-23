@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, checkIsSiteDataChanged } from "@/lib/utils";
 import { Save, X, Info, Loader2, UserPlus, Users } from "lucide-react";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
@@ -218,6 +218,12 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedIsAwaitingTS = watch('isAwaitingTS');
     const watchedTotalDepth = watch('totalDepth');
     const watchedDateOfDrilling = watch('dateOfDrilling');
+
+    const watchedAllValues = watch();
+    const isFormDirty = useMemo(() => {
+        if (form.formState.isDirty) return true;
+        return checkIsSiteDataChanged(initialData, watchedAllValues);
+    }, [form.formState.isDirty, watchedAllValues, initialData]);
 
     const totalRemittedAmount = useMemo(() => {
         if (remittanceDetails && Array.isArray(remittanceDetails)) {
@@ -1523,8 +1529,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeImage}
                                                         update={updateImage}
                                                         isReadOnly={isFieldReadOnly(true)}
-                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
-                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || form.watch('district') || 'kollam'}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || form.watch('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                     <Separator />
@@ -1536,8 +1542,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeVideo}
                                                         update={updateVideo}
                                                         isReadOnly={isFieldReadOnly(true)}
-                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district}
-                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || form.watch('district') || 'kollam'}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || form.watch('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                 </CardContent>
@@ -1548,7 +1554,16 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             </div>
             <div className="flex justify-end p-6 pt-4 shrink-0 border-t gap-2">
                 <Button variant="outline" type="button" onClick={onCancel}>{isReadOnly ? 'Close' : 'Cancel'}</Button>
-                {!isReadOnly && <Button type="submit" form="site-dialog-form">Save Changes</Button>}
+                {!isReadOnly && (
+                    <Button 
+                        type="submit" 
+                        form="site-dialog-form" 
+                        disabled={!isFormDirty}
+                        className={!isFormDirty ? "opacity-50 cursor-not-allowed" : "shadow-xs font-semibold"}
+                    >
+                        Save Changes
+                    </Button>
+                )}
             </div>
         </div>
     );

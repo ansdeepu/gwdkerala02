@@ -52,7 +52,7 @@ function CollectorsDepositWorksContent() {
   const searchTerm = searchTerms['collectors'] || "";
   const setSearchTerm = (term: string) => setModuleSearchTerm('collectors', term);
 
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "pre-execution");
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || "pre-execution");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 

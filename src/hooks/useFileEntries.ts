@@ -172,9 +172,7 @@ export function useFileEntries() {
       setIsLoading(false);
     };
 
-    if (!dataStoreLoading) {
-      processEntries();
-    }
+    processEntries();
   }, [user, allFileEntries, dataStoreLoading, pendingUpdatesMap]);
 
     const addFileEntry = useCallback(async (entryData: DataEntryFormData): Promise<string> => {
