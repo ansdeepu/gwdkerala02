@@ -228,9 +228,9 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                 const displayDate = getDisplayDate(entry);
                 const detailUrl = getDetailUrl(entry);
                 return (
-                <TableRow key={entry.id} id={`row-${entry.id}`} className="transition-colors duration-1000">
-                  <TableCell className="text-center font-mono">{(currentPage - 1) * 50 + index + 1}</TableCell>
-                  <TableCell className="font-medium">
+                <TableRow key={entry.id} id={`row-${entry.id}`} className="align-top border-b-2 border-border/80 odd:bg-background even:bg-muted/25 hover:bg-muted/50 transition-colors duration-200">
+                  <TableCell className="text-center font-mono py-3 align-top">{(currentPage - 1) * 50 + index + 1}</TableCell>
+                  <TableCell className="font-medium py-3 align-top">
                     <Link
                         href={detailUrl}
                         className="font-mono text-sm text-primary font-bold hover:underline"
@@ -238,18 +238,37 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                         {entry.fileNo}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-xs">{entry.applicantName}</TableCell>
-                  <TableCell>
-                    {(entry.siteDetails || []).map((site, idx) => (
-                      <span key={idx} className={cn("font-semibold text-xs", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
-                        {site.nameOfSite}{idx < entry.siteDetails!.length - 1 ? ', ' : ''}
-                      </span>
-                    ))}
+                  <TableCell className="text-xs py-3 align-top">{entry.applicantName}</TableCell>
+                  <TableCell className="py-3 align-top">
+                    {(entry.siteDetails || []).length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {(entry.siteDetails || []).map((site, idx) => (
+                          <div key={idx} className="flex flex-wrap items-center gap-1.5 leading-snug">
+                            {(entry.siteDetails || []).length > 1 && (
+                              <span className="font-mono text-xs font-bold text-muted-foreground shrink-0">{idx + 1}.</span>
+                            )}
+                            <span className={cn("font-semibold text-xs", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
+                              {site.nameOfSite || 'Unnamed Site'}
+                            </span>
+                            {site.purpose ? (
+                              <span className="text-muted-foreground text-xs">
+                                - <span className="text-indigo-600 dark:text-indigo-400 font-medium">{site.purpose}</span>
+                              </span>
+                            ) : null}
+                            {site.workStatus ? (
+                              <span className="inline-flex items-center">
+                                {renderWorkStatusPillBadge(site.workStatus)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <span className="text-muted-foreground italic text-xs">No sites recorded.</span>}
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="text-xs py-3 align-top">
                     {displayDate ? format(displayDate, "dd/MM/yyyy") : "N/A"}
                   </TableCell>
-                  <TableCell className="font-semibold text-xs">
+                  <TableCell className="font-semibold text-xs py-3 align-top">
                     {user?.role === 'investigator' ? (
                       <div className="flex flex-col gap-1 items-start">
                         {(entry.siteDetails || []).map((site, idx) => (
@@ -262,8 +281,8 @@ export default function LoggingPumpingTestTable({ fileEntries, isLoading, search
                       entry.fileStatus
                     )}
                   </TableCell>
-                  <TableCell className="text-center p-2">
-                    <div className="flex flex-col items-center justify-center gap-1">
+                  <TableCell className="text-center p-2 align-top">
+                    <div className="flex flex-col items-center justify-start gap-1">
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(entry)}>

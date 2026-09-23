@@ -298,9 +298,9 @@ export default function FileDatabaseTable({
                 const detailUrl = getDetailUrl(entry);
 
                 return (
-                <TableRow key={entry.id} id={`row-${entry.id}`} className="transition-colors duration-1000">
-                  <TableCell className="w-[50px] px-2 py-2 text-sm text-center font-mono">{(currentPage - 1) * 50 + index + 1}</TableCell>
-                  <TableCell className="w-[10%] px-2 py-2 text-sm">
+                <TableRow key={entry.id} id={`row-${entry.id}`} className="align-top border-b-2 border-border/80 odd:bg-background even:bg-muted/25 hover:bg-muted/50 transition-colors duration-200">
+                  <TableCell className="w-[50px] px-2 py-3 text-sm text-center font-mono align-top">{(currentPage - 1) * 50 + index + 1}</TableCell>
+                  <TableCell className="w-[10%] px-2 py-3 text-sm align-top">
                     <Link
                         href={detailUrl}
                         className="font-mono text-sm text-primary font-bold hover:underline"
@@ -308,12 +308,15 @@ export default function FileDatabaseTable({
                         {entry.fileNo}
                     </Link>
                   </TableCell>
-                  <TableCell className="w-[15%] px-2 py-2 text-sm">{entry.applicantName}</TableCell>
-                  <TableCell className="w-[35%] px-2 py-2 text-sm">
+                  <TableCell className="w-[15%] px-2 py-3 text-sm align-top">{entry.applicantName}</TableCell>
+                  <TableCell className="w-[35%] px-2 py-3 text-sm align-top">
                     {sitesToDisplay.length > 0 ? (
-                      <div className="flex flex-col gap-1.5 py-0.5">
+                      <div className="flex flex-col gap-2 py-0.5">
                         {sitesToDisplay.map((site, idx) => (
                           <div key={idx} className="flex flex-wrap items-center gap-1.5 leading-snug">
+                            {sitesToDisplay.length > 1 && (
+                              <span className="font-mono text-xs font-bold text-muted-foreground shrink-0">{idx + 1}.</span>
+                            )}
                             <span className={cn("font-semibold", getStatusColorClass(site.workStatus as SiteWorkStatus))}>
                               {site.nameOfSite || 'Unnamed Site'}
                             </span>
@@ -332,12 +335,12 @@ export default function FileDatabaseTable({
                       </div>
                     ) : <span className="text-muted-foreground italic">No assigned sites for this file.</span>}
                   </TableCell>
-                  <TableCell className="w-[10%] px-2 py-2 text-sm">
+                  <TableCell className="w-[10%] px-2 py-3 text-sm align-top">
                     {displayDate ? format(displayDate, "dd/MM/yyyy") : "N/A"}
                   </TableCell>
-                  <TableCell className="font-semibold w-[10%] px-2 py-2 text-sm">{entry.fileStatus || 'N/A'}</TableCell>
-                  <TableCell className="text-center p-2">
-                      <div className="flex flex-col items-center justify-center gap-1">
+                  <TableCell className="font-semibold w-[10%] px-2 py-3 text-sm align-top">{entry.fileStatus || 'N/A'}</TableCell>
+                  <TableCell className="text-center p-2 align-top">
+                      <div className="flex flex-col items-center justify-start gap-1">
                         <TooltipProvider><Tooltip><TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewClick(entry)}><Eye className="h-4 w-4" /></Button>
                         </TooltipTrigger><TooltipContent><p>View Details</p></TooltipContent></Tooltip></TooltipProvider>
