@@ -78,13 +78,39 @@ const toDateOrNull = (value: any): Date | null => {
   
        if (typeof obj === 'object' && !(obj instanceof Date)) {
           const newObj: { [key: string]: any } = {};
-          const dateInputKeys = ['dateOfRemittance', 'dateOfPayment', 'dateOfCompletion', 'dateOfInvestigation', 'vesDate', 'arsSanctionedDate', 'serviceStartDate', 'serviceEndDate', 'dateOfBirth', 'date'];
+          const dateInputKeys = [
+              'dateOfRemittance',
+              'dateOfPayment',
+              'dateOfCompletion',
+              'startDate',
+              'dateOfInvestigation',
+              'vesDate',
+              'arsSanctionedDate',
+              'serviceStartDate',
+              'serviceEndDate',
+              'dateOfBirth',
+              'date',
+              'agreementDate',
+              'dateWorkOrder',
+              'selectionNoticeDate'
+          ];
   
           for (const key in obj) {
               if (Object.prototype.hasOwnProperty.call(obj, key)) {
                   const value = obj[key];
-                  if (dateInputKeys.includes(key) && value instanceof Date) {
-                      newObj[key] = format(value, 'yyyy-MM-dd');
+                  if (dateInputKeys.includes(key) && value) {
+                      if (value instanceof Date && isValid(value)) {
+                          newObj[key] = format(value, 'yyyy-MM-dd');
+                      } else if (typeof value === 'string') {
+                          if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                              newObj[key] = value;
+                          } else {
+                              const parsed = new Date(value);
+                              newObj[key] = isValid(parsed) ? format(parsed, 'yyyy-MM-dd') : value;
+                          }
+                      } else {
+                          newObj[key] = formatForInput(value);
+                      }
                   } else {
                       newObj[key] = formatForInput(value);
                   }

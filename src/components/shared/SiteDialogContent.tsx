@@ -34,7 +34,7 @@ import {
 } from '@/lib/schemas';
 import type { E_tender } from '@/hooks/useE_tenders';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { isSiteTargetedByTender, matchFileNo, isFinalSiteStatus } from '@/lib/tenderUtils';
+import { isSiteTargetedByTender, matchFileNo, isFinalSiteStatus, isStartDateReached } from '@/lib/tenderUtils';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isValid, parseISO } from "date-fns";
@@ -170,10 +170,25 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         }
         const isSiteCompleted = (initialData?.dateOfCompletion && String(initialData.dateOfCompletion).trim() !== '') || isFinalSiteStatus(initialData?.workStatus);
         if (!isSiteCompleted && initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
-            return calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder) || "";
+            const autoStart = calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder);
+            if (autoStart && isStartDateReached(autoStart)) {
+                return autoStart;
+            }
         }
         return "";
     }, [initialData?.startDate, initialData?.dateOfCompletion, initialData?.workStatus, initialMatchedTender]);
+
+    const expectedStartFormatted = useMemo(() => {
+        if (initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
+            const auto = calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder);
+            if (auto) {
+                const parts = auto.split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return auto;
+            }
+        }
+        return null;
+    }, [initialMatchedTender]);
 
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
@@ -218,7 +233,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedTsAmount = watch('tsAmount');
     const watchedIsAwaitingTS = watch('isAwaitingTS');
     const watchedTotalDepth = watch('totalDepth');
-    const watchedDateOfDrilling = watch('dateOfDrilling');
+    const watchedDateOfDrilling = (watch as any)('dateOfDrilling');
 
     const watchedAllValues = watch();
     const isFormDirty = useMemo(() => {
@@ -640,16 +655,23 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             // Work Order Issued - is already linked with e-tender module
             if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
                 const isSiteCompleted = (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') || isFinalSiteStatus(getValues('workStatus'));
-                if (!isSiteCompleted && !watchedStartDate && activeTender.dateWorkOrder) {
-                    const autoStart = calculateWorkCommencementDate(activeTender.dateWorkOrder);
-                    if (autoStart) {
-                        setValue('startDate', autoStart);
-                        setValue('workStatus', 'Work in Progress');
-                        return;
-                    }
-                }
                 if (!isSiteCompleted) {
-                    setValue('workStatus', 'Work Order Issued');
+                    let effectiveStart = watchedStartDate;
+                    if (!effectiveStart && activeTender.dateWorkOrder) {
+                        const autoStart = calculateWorkCommencementDate(activeTender.dateWorkOrder);
+                        if (autoStart && isStartDateReached(autoStart)) {
+                            effectiveStart = autoStart;
+                            setValue('startDate', autoStart);
+                        }
+                    }
+                    const startDateReached = isStartDateReached(effectiveStart);
+                    const hasActualDrilling = (Number(getValues('totalDepth')) > 0) || (getValues('dateOfDrilling') && String(getValues('dateOfDrilling')).trim() !== '');
+                    
+                    if (startDateReached || hasActualDrilling) {
+                        setValue('workStatus', 'Work in Progress');
+                    } else {
+                        setValue('workStatus', 'Work Order Issued');
+                    }
                 }
                 return;
             }
@@ -687,7 +709,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
         // Additional Fund Awaited - Estimate Amount (₹) is greater than Remitted Amount (₹)
         const est = Number(watchedEstimateAmount) || 0;
-        const siteRem = (watchedRemittedAmount !== undefined && watchedRemittedAmount !== null && watchedRemittedAmount !== '') 
+        const siteRem = (watchedRemittedAmount !== undefined && watchedRemittedAmount !== null && (watchedRemittedAmount as any) !== '') 
             ? Number(watchedRemittedAmount) 
             : null;
         const rem = (siteRem !== null && !isNaN(siteRem)) ? siteRem : (totalRemittedAmount || 0);
@@ -1484,7 +1506,13 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                             <FormItem>
                                                                 <FormLabel>Start Date</FormLabel>
                                                                 <FormControl><Input type="date" {...field} value={field.value || ''} readOnly={isFieldReadOnly(true)} /></FormControl>
-                                                                <p className="text-[11px] text-muted-foreground mt-0.5">Defaults to 4th day after Work Order Date (skipping Sundays & Public Holidays)</p>
+                                                                {!field.value && expectedStartFormatted ? (
+                                                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1 flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
+                                                                        💡 Scheduled Start: <span className="font-bold">{expectedStartFormatted}</span> (Work Order + 4 days). Auto-fills on this date unless entered manually.
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-[11px] text-muted-foreground mt-0.5">Auto-fills when System Date reaches Work Order Date + 4 days, or enter manually.</p>
+                                                                )}
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -1539,8 +1567,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeImage}
                                                         update={updateImage}
                                                         isReadOnly={isFieldReadOnly(true)}
-                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || form.watch('district') || 'kollam'}
-                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || form.watch('fileNo') || 'General'}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                     <Separator />
@@ -1552,8 +1580,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         remove={removeVideo}
                                                         update={updateVideo}
                                                         isReadOnly={isFieldReadOnly(true)}
-                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || form.watch('district') || 'kollam'}
-                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || form.watch('fileNo') || 'General'}
+                                                        officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
+                                                        fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
                                                     />
                                                 </CardContent>

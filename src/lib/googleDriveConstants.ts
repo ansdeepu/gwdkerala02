@@ -122,6 +122,56 @@ function doPost(e) {
 
     var officeLocation = cleanName(data.officeLocation || "General");
 
+    // Handle listing media files inside a site folder
+    if (data.action === "listFolderMedia" || data.action === "listMedia" || data.action === "listFiles") {
+      var rFolder = getOrCreateFolder(DriveApp, rootFolderName);
+      var oFolder = getOrCreateFolder(rFolder, officeLocation);
+      var tgtFolder = oFolder;
+
+      var fNo = cleanName(data.fileNo || "");
+      var sName = cleanName(data.siteName || "");
+      var subF = cleanName(data.subFolder || "");
+
+      var sFolderName = subF || fNo || "General";
+      if (sName && sName.length > 0 && !subF) {
+        sFolderName = (fNo ? fNo + " - " : "") + sName;
+      }
+
+      if (sFolderName && sFolderName !== "staff - staff" && sFolderName !== "General - General") {
+        tgtFolder = getOrCreateFolder(oFolder, sFolderName);
+      }
+
+      var filesIter = tgtFolder.getFiles();
+      var mediaItems = [];
+      while (filesIter.hasNext()) {
+        var f = filesIter.next();
+        var fName = f.getName();
+        if (fName === "_folder_info.txt") continue;
+        var fId = f.getId();
+        var fMime = f.getMimeType();
+        var isImg = fMime.indexOf("image/") === 0;
+        var isVid = fMime.indexOf("video/") === 0;
+        mediaItems.push({
+          id: fId,
+          title: fName,
+          type: isImg ? "image" : (isVid ? "video" : "other"),
+          url: "https://lh3.googleusercontent.com/d/" + fId,
+          viewUrl: "https://drive.google.com/file/d/" + fId + "/view?usp=drivesdk",
+          thumbnailUrl: "https://drive.google.com/thumbnail?id=" + fId + "&sz=w800",
+          directImageUrl: "https://lh3.googleusercontent.com/d/" + fId,
+          embedUrl: "https://drive.google.com/file/d/" + fId + "/preview"
+        });
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        action: "listFolderMedia",
+        files: mediaItems,
+        folderId: tgtFolder.getId(),
+        folderUrl: "https://drive.google.com/drive/folders/" + tgtFolder.getId()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Handle explicit folder creation or retrieval (Option 1 & Option 3)
     if (data.action === "createFolder" || data.action === "getFolder") {
       var rFolder = getOrCreateFolder(DriveApp, rootFolderName);

@@ -668,7 +668,7 @@ export default function InvestigationReportViewer({
                               variant={invReportState.typeOfWell?.toLowerCase() === type.toLowerCase() ? "default" : "outline"}
                               size="sm"
                               className="h-7 text-xs"
-                              onClick={() => setInvReportState({ ...invReportState, typeOfWell: type })}
+                              onClick={() => setInvReportState({ ...invReportState, typeOfWell: type as any })}
                             >
                               {type}
                             </Button>

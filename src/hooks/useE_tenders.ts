@@ -10,7 +10,7 @@ import { toast } from './use-toast';
 import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, getAutoResolvedTenderStatus } from '@/lib/tenderUtils';
+import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, getAutoResolvedTenderStatus, isStartDateReached } from '@/lib/tenderUtils';
 
 const db = getFirestore(app);
 
@@ -214,13 +214,16 @@ async function syncTenderWithSiteDetails(officeLocation: string, tenderData: Par
                                     // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank
                                     if (!newSite.startDate || String(newSite.startDate).trim() === '') {
                                         const calculatedStart = calculateWorkCommencementDate(tenderData.dateWorkOrder);
-                                        if (calculatedStart) {
+                                        if (calculatedStart && isStartDateReached(calculatedStart)) {
                                             newSite.startDate = calculatedStart;
                                             changed = true;
                                         }
                                     }
 
-                                    if (newSite.startDate && String(newSite.startDate).trim() !== '') {
+                                    const startDateReached = isStartDateReached(newSite.startDate);
+                                    const hasActualDrilling = (Number(newSite.totalDepth) > 0) || (newSite.dateOfDrilling && String(newSite.dateOfDrilling).trim() !== '');
+
+                                    if (startDateReached || hasActualDrilling) {
                                         nextWorkStatus = "Work in Progress";
                                     } else {
                                         nextWorkStatus = "Work Order Issued";
@@ -397,7 +400,7 @@ export function useE_tenders() {
         const docRef = await addDoc(collection(db, collectionPath), sanitizedPayload);
         
         // Auto-sync site details in matching file entries
-        await syncTenderWithSiteDetails(user.officeLocation, { ...tenderData, presentStatus: resolvedStatus });
+        await syncTenderWithSiteDetails(user.officeLocation, { ...tenderData, presentStatus: resolvedStatus as any });
 
         return docRef.id;
     }, [user]);
@@ -414,7 +417,7 @@ export function useE_tenders() {
         
         const payload = { 
             ...tenderData, 
-            presentStatus: resolvedStatus,
+            presentStatus: resolvedStatus as any,
             updatedAt: serverTimestamp() 
         };
         if ('id' in payload) delete (payload as any).id;
@@ -422,7 +425,7 @@ export function useE_tenders() {
         await updateDoc(docRef, sanitizedPayload);
 
         // Fetch the full merged tender before syncing site details to ensure complete context
-        let fullTender: Partial<E_tender> = { ...mergedTender, presentStatus: resolvedStatus };
+        let fullTender: Partial<E_tender> = { ...mergedTender, presentStatus: resolvedStatus as any };
         try {
             const updatedDocSnap = await getDoc(docRef);
             if (updatedDocSnap.exists()) {

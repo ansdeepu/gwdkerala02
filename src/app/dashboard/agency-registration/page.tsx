@@ -1438,6 +1438,9 @@ export default function AgencyRegistrationPage() {
   const handleConfirmAgencyReg = (regData: any) => {
     form.setValue('agencyRegistrationNo', regData.agencyRegistrationNo);
     form.setValue('agencyRegistrationDate', regData.agencyRegistrationDate);
+    form.setValue('agencyApplicationFee', regData.agencyApplicationFee);
+    form.setValue('agencyApplicationPaymentDate', regData.agencyApplicationPaymentDate);
+    form.setValue('agencyApplicationChallanNo', regData.agencyApplicationChallanNo);
     form.setValue('agencyRegistrationFee', regData.agencyRegistrationFee);
     form.setValue('agencyPaymentDate', regData.agencyPaymentDate);
     form.setValue('agencyChallanNo', regData.agencyChallanNo);
@@ -1874,6 +1877,11 @@ export default function AgencyRegistrationPage() {
                             <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-4">
                             <DetailRow label="Agency Reg. No." value={form.watch('agencyRegistrationNo')} />
                             <DetailRow label="Reg. Date" value={form.watch('agencyRegistrationDate')} />
+                            <div className="col-span-full border-t pt-4 mt-2"></div>
+                            <DetailRow label="Application Fee" value={form.watch('agencyApplicationFee')} />
+                            <DetailRow label="App. Payment Date" value={form.watch('agencyApplicationPaymentDate')} />
+                            <DetailRow label="App. Challan No." value={form.watch('agencyApplicationChallanNo')} />
+                            <div className="col-span-full border-t pt-4 mt-2"></div>
                             <DetailRow label="Reg. Fee" value={form.watch('agencyRegistrationFee')} />
                             <DetailRow label="Payment Date" value={form.watch('agencyPaymentDate')} />
                             <DetailRow label="Challan No." value={form.watch('agencyChallanNo')} />
@@ -2396,6 +2404,9 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
     const [data, setData] = useState({
         agencyRegistrationNo: initialData?.agencyRegistrationNo ?? '',
         agencyRegistrationDate: formatDateForInput(toDateOrNull(initialData?.agencyRegistrationDate)),
+        agencyApplicationFee: initialData?.agencyApplicationFee,
+        agencyApplicationPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyApplicationPaymentDate)),
+        agencyApplicationChallanNo: initialData?.agencyApplicationChallanNo ?? '',
         agencyRegistrationFee: initialData?.agencyRegistrationFee,
         agencyPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyPaymentDate)),
         agencyChallanNo: initialData?.agencyChallanNo ?? '',
@@ -2422,6 +2433,25 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
                                 <Input id="agencyRegistrationDate" type="date" value={data.agencyRegistrationDate} onChange={(e) => setData(d => ({ ...d, agencyRegistrationDate: e.target.value }))} />
                             </div>
                         </div>
+
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h4 className="font-medium text-primary">Application Fee Details</h4>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
+                                <div className="space-y-2">
+                                <Label htmlFor="agencyApplicationFee">Application Fee</Label>
+                                <Input id="agencyApplicationFee" type="number" value={data.agencyApplicationFee ?? ''} onChange={(e) => setData(d => ({ ...d, agencyApplicationFee: e.target.value === '' ? undefined : +e.target.value }))} />
+                                </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="agencyApplicationPaymentDate">Payment Date</Label>
+                                <Input id="agencyApplicationPaymentDate" type="date" value={data.agencyApplicationPaymentDate} onChange={(e) => setData(d => ({ ...d, agencyApplicationPaymentDate: e.target.value }))} />
+                                </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="agencyApplicationChallanNo">Challan No.</Label>
+                                <Input id="agencyApplicationChallanNo" value={data.agencyApplicationChallanNo} onChange={(e) => setData(d => ({ ...d, agencyApplicationChallanNo: e.target.value }))} />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="space-y-4 rounded-lg border p-4">
                             <h4 className="font-medium text-primary">Registration Fee Details</h4>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
@@ -2447,7 +2477,7 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
                                     <Input id="agencyAdditionalRegFee" type="number" value={data.agencyAdditionalRegFee ?? ''} onChange={(e) => setData(d => ({ ...d, agencyAdditionalRegFee: e.target.value === '' ? undefined : +e.target.value }))} />
                                     </div>
                                     <div className="space-y-2">
-                                    <Label htmlFor="agencyPaymentDate">Payment Date</Label>
+                                    <Label htmlFor="agencyAdditionalPaymentDate">Payment Date</Label>
                                     <Input id="agencyAdditionalPaymentDate" type="date" value={data.agencyAdditionalPaymentDate} onChange={(e) => setData(d => ({ ...d, agencyAdditionalPaymentDate: e.target.value }))} />
                                     </div>
                                     <div className="space-y-2">

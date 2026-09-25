@@ -37,6 +37,23 @@ export const isTenderCancelledOrRetender = (status?: string | null): boolean => 
            s.includes('retender');
 };
 
+export const hasValidCompletionDate = (dateVal: any): boolean => {
+    if (!dateVal) return false;
+    if (typeof dateVal === 'string') {
+        const trimmed = dateVal.trim();
+        if (!trimmed || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'N/A') return false;
+        return true;
+    }
+    if (dateVal instanceof Date) {
+        return !isNaN(dateVal.getTime());
+    }
+    if (typeof dateVal === 'object' && dateVal !== null) {
+        if (typeof (dateVal as any).toDate === 'function') return true;
+        if (typeof (dateVal as any).seconds === 'number') return true;
+    }
+    return true;
+};
+
 export const isFinalSiteStatus = (status?: string | null): boolean => {
     if (!status) return false;
     return [
@@ -51,6 +68,20 @@ export const isFinalSiteStatus = (status?: string | null): boolean => {
     ].includes(status);
 };
 
+export const isSiteCompletedOrFinal = (site: any): boolean => {
+    if (!site) return false;
+    if (hasValidCompletionDate(site.dateOfCompletion)) return true;
+    if (isFinalSiteStatus(site.workStatus)) return true;
+    return false;
+};
+
+export const isStartDateReached = (startDate?: string | null): boolean => {
+    if (!startDate || String(startDate).trim() === '') return false;
+    const cleanStart = String(startDate).trim().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    return todayStr >= cleanStart;
+};
+
 export const getResolvedWorkStatus = (
     site: any,
     fileNo: string | undefined,
@@ -61,7 +92,7 @@ export const getResolvedWorkStatus = (
     if (!site) return null;
 
     // 1. Terminal / Final Outcomes (Highest Priority)
-    if (site.dateOfCompletion && String(site.dateOfCompletion).trim() !== '') {
+    if (hasValidCompletionDate(site.dateOfCompletion)) {
         return "Work Completed";
     }
     const activeCondition = site.drillingConditions || site.developingConditions || site.schemeConditions;
@@ -79,13 +110,10 @@ export const getResolvedWorkStatus = (
     }
 
     // 2. Physical Execution Stage
-    const hasStarted = site.startDate && String(site.startDate).trim() !== '';
+    const startDateReached = isStartDateReached(site.startDate);
     const hasActualDrilling = (Number(site.totalDepth) > 0) || (site.dateOfDrilling && String(site.dateOfDrilling).trim() !== '');
-    if (hasStarted || hasActualDrilling) {
+    if (startDateReached || hasActualDrilling) {
         return "Work in Progress";
-    }
-    if (site.workStatus === "Work in Progress" || site.workStatus === "Work Initiated") {
-        return null;
     }
 
     // 3. e-Tender / Rig Allotment Stage
@@ -102,7 +130,7 @@ export const getResolvedWorkStatus = (
         const ts = latestTender.presentStatus;
 
         if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
-            if (site.startDate && String(site.startDate).trim() !== '') {
+            if (startDateReached || hasActualDrilling) {
                 return "Work in Progress";
             }
             return "Work Order Issued";

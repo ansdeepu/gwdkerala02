@@ -22,8 +22,10 @@ export interface DriveUploadResult {
   directImageUrl?: string;
   url?: string;
   folderPath?: string;
+  folderUrl?: string;
   error?: string;
   requiresSetup?: boolean;
+  isLocalStorage?: boolean;
 }
 
 // In-memory cache for the script URL to avoid redundant reads

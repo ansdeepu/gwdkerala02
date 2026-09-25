@@ -133,7 +133,9 @@ export function getPageMarginsCss(settings: PrintStyleSettings): string {
 
 interface PrintStyleToolbarProps {
   settings: PrintStyleSettings;
-  onSettingsChange: (newSettings: PrintStyleSettings) => void;
+  onSettingsChange?: (newSettings: PrintStyleSettings) => void;
+  onUpdate?: React.Dispatch<React.SetStateAction<PrintStyleSettings>> | ((newSettings: PrintStyleSettings) => void);
+  onReset?: () => void;
   hasMalayalam?: boolean;
   hasEnglish?: boolean;
   className?: string;
@@ -145,6 +147,8 @@ interface PrintStyleToolbarProps {
 export function PrintStyleToolbar({
   settings,
   onSettingsChange,
+  onUpdate,
+  onReset,
   hasMalayalam = true,
   hasEnglish = true,
   className,
@@ -152,15 +156,21 @@ export function PrintStyleToolbar({
   triggerSize = "sm",
   buttonText = "Page & Font Settings",
 }: PrintStyleToolbarProps) {
+  const triggerChange = (newSettings: PrintStyleSettings) => {
+    if (onSettingsChange) onSettingsChange(newSettings);
+    if (onUpdate) onUpdate(newSettings as any);
+  };
+
   const updateField = (key: keyof PrintStyleSettings, value: string) => {
-    onSettingsChange({
+    triggerChange({
       ...settings,
       [key]: value,
     });
   };
 
   const handleReset = () => {
-    onSettingsChange(DEFAULT_PRINT_STYLES);
+    if (onReset) onReset();
+    else triggerChange(DEFAULT_PRINT_STYLES);
   };
 
   return (
@@ -306,7 +316,7 @@ export function PrintStyleToolbar({
                 <Select
                   value={settings.bodyFontSize || settings.fontSize || "11pt"}
                   onValueChange={(val) => {
-                    onSettingsChange({
+                    triggerChange({
                       ...settings,
                       bodyFontSize: val,
                       fontSize: val,

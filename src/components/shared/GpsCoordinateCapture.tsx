@@ -210,7 +210,7 @@ export function GpsCoordinateCapture<TFieldValues extends FieldValues = FieldVal
 
       {/* Coordinate status & preview footer */}
       <CoordinateFooter
-        control={control}
+        control={control as any}
         latFieldName={latFieldName}
         lngFieldName={lngFieldName}
         lastLockedAccuracy={lastLockedAccuracy}

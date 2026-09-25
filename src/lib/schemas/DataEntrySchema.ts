@@ -744,6 +744,9 @@ export const AgencyApplicationSchema = z.object({
   // Agency Registration
   agencyRegistrationNo: z.string().optional().nullable(),
   agencyRegistrationDate: optionalDateSchema,
+  agencyApplicationFee: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
+  agencyApplicationPaymentDate: optionalDateSchema,
+  agencyApplicationChallanNo: z.string().optional().nullable(),
   agencyRegistrationFee: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyPaymentDate: optionalDateSchema,
   agencyChallanNo: z.string().optional().nullable(),

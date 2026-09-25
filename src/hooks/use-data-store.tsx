@@ -17,7 +17,7 @@ import type { E_tender } from './useE_tenders';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { formatDistrictLocation } from '@/lib/utils';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
-import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus } from '@/lib/tenderUtils';
+import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, isStartDateReached } from '@/lib/tenderUtils';
 
 const db = getFirestore(app);
 
@@ -458,7 +458,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                         const latest = matchingTenders[0];
                         if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
                             const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
-                            if (autoStart) {
+                            if (autoStart && isStartDateReached(autoStart)) {
                                 currentSite.startDate = autoStart;
                                 entryModified = true;
                             }
@@ -466,7 +466,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, entry.workTypeContext || entry.typeOfApplication);
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, (entry as any).workTypeContext || (entry as any).typeOfApplication);
                 if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
                     entryModified = true;
                     return { ...currentSite, workStatus: resolvedStatus };
@@ -572,7 +572,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                         const latest = matchingTenders[0];
                         if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
                             const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
-                            if (autoStart) {
+                            if (autoStart && isStartDateReached(autoStart)) {
                                 currentSite.startDate = autoStart;
                                 needsDbUpdate = true;
                             }
@@ -580,7 +580,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, entry.workTypeContext || entry.typeOfApplication);
+                const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, (entry as any).workTypeContext || (entry as any).typeOfApplication);
                 if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
                     needsDbUpdate = true;
                     return { ...currentSite, workStatus: resolvedStatus };

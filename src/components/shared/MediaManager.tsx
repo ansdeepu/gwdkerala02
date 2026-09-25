@@ -228,6 +228,71 @@ export default function MediaManager({
     return url;
   };
 
+  const [isSyncingDrive, setIsSyncingDrive] = useState(false);
+
+  const handleSyncDriveMedia = async () => {
+    if (isSyncingDrive) return;
+    setIsSyncingDrive(true);
+    setUploadStatusText("Scanning Google Drive folder for uploaded files...");
+    try {
+      const res = await fetch("/api/drive-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "listFolderMedia",
+          officeLocation: effectiveOffice,
+          fileNo: propFileNo,
+          siteName: propSiteName
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.files)) {
+        const matchingFiles = data.files.filter((f: any) => {
+          if (type === 'image') return f.type === 'image' || f.type === 'other' || !f.type;
+          return f.type === 'video';
+        });
+
+        let addedCount = 0;
+        const existingUrls = new Set(fields.map(f => f.url || f.driveViewUrl));
+        const existingDriveIds = new Set(fields.map(f => f.driveFileId).filter(Boolean));
+
+        for (const file of matchingFiles) {
+          const fileDriveId = file.id;
+          const fileUrl = file.url || file.directImageUrl || file.viewUrl;
+          if (!existingDriveIds.has(fileDriveId) && !existingUrls.has(fileUrl)) {
+            append({
+              id: uuidv4(),
+              url: fileUrl,
+              description: file.title || `${type === 'image' ? 'Site Image' : 'Site Video'}`,
+              driveFileId: fileDriveId,
+              driveViewUrl: file.viewUrl,
+              storageType: 'drive',
+              createdAt: new Date().toISOString(),
+            });
+            addedCount++;
+          }
+        }
+
+        if (addedCount > 0) {
+          toast({ title: "Media Auto-Synced", description: `Automatically recovered and linked ${addedCount} ${type}(s) from Google Drive.` });
+        } else if (matchingFiles.length > 0) {
+          toast({ title: "Media Up to Date", description: `All ${matchingFiles.length} file(s) found in Google Drive are already linked.` });
+        } else {
+          toast({ title: "No Media Found", description: `No ${type}s found in the site's Drive folder yet.` });
+        }
+      } else {
+        toast({ title: "Drive Search Completed", description: "No uploaded files found or Drive search requires configuration.", variant: "default" });
+      }
+    } catch (err) {
+      console.warn("Error auto-syncing drive media:", err);
+      toast({ title: "Sync Error", description: "Could not scan Google Drive folder automatically.", variant: "destructive" });
+    } finally {
+      setIsSyncingDrive(false);
+      setUploadStatusText("");
+    }
+  };
+
   // Helper for saving photo/video directly as base64 data URL
   const saveMediaDirectly = async (file: File) => {
     const MAX_LIMIT = 25 * 1024 * 1024;
@@ -529,6 +594,8 @@ export default function MediaManager({
                 <LinkIcon className="h-3.5 w-3.5" />
                 Add Link
               </Button>
+
+
             </>
           )}
         </div>

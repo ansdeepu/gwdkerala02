@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const isFolderAction = action === "createFolder" || action === "getFolder";
+    const isListAction = action === "listFolderMedia" || action === "listMedia" || action === "listFiles";
 
     // For folder creation, if base64Data is missing, create a small placeholder info blob
     // so older deployed Google Apps Scripts won't fail with 'Missing base64 file data'
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
       effectiveBase64 = Buffer.from(placeholderText).toString('base64');
     }
 
-    if (!effectiveBase64 && !isFolderAction) {
+    if (!effectiveBase64 && !isFolderAction && !isListAction) {
       return NextResponse.json({ success: false, error: "Missing base64Data" }, { status: 400 });
     }
 
