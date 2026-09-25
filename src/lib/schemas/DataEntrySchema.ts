@@ -543,6 +543,7 @@ export const SiteDetailSchema = z.object({
   noOfBeneficiary: z.string().optional().nullable(),
   dateOfCompletion: nativeDateSchema.optional().nullable(),
   startDate: nativeDateSchema.optional().nullable(),
+  dateOfDrilling: nativeDateSchema.optional().nullable(),
   typeOfRig: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional()),
   drillingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   developingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),

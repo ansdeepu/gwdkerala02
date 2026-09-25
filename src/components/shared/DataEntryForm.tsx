@@ -1260,10 +1260,23 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const watchedPaymentDetails = watch("paymentDetails");
   const watchedSiteDetails = useWatch({ control, name: "siteDetails" });
 
+  const currentLoadedDocIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    reset(initialData);
-    setIsManualDirty(false);
-  }, [initialData, reset]);
+    const nextDocId = (initialData as any)?.id || (initialData as any)?.fileNo || null;
+    if (currentLoadedDocIdRef.current !== nextDocId) {
+      currentLoadedDocIdRef.current = nextDocId;
+      reset(initialData);
+      setIsManualDirty(false);
+      return;
+    }
+
+    // If same file, DO NOT reset the form if user has manual changes or has an active modal open!
+    // This prevents background auto-updates of Start Date / Work Status from blowing away drilling details, Media Gallery, etc.
+    if (isManualDirty || dialogState.type !== null) {
+      return;
+    }
+  }, [initialData, reset, isManualDirty, dialogState.type]);
 
   // Track any manual changes directly emitted by user typing/inputs
   useEffect(() => {
@@ -1713,8 +1726,8 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     if (!fileIdToEdit) return;
     // If user has unsaved manual changes and no automatic reconciliation occurred, wait for manual save
     if (isManualDirty && !isAutoReconciledRef.current) return;
-    // Do not auto-save if permissions forbid updates
-    if (isViewer || isFormDisabled || isSupervisor) return;
+    // Do not auto-save if permissions forbid updates or if user is actively in a dialog modal
+    if (isViewer || isFormDisabled || isSupervisor || dialogState.type !== null) return;
     if (isSubmitting || isAutoSaving) return;
 
     const currentValues = getValues();
@@ -1960,7 +1973,17 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 replaceSites(updatedSites);
             }
         } else if (type === 'site') {
-            if (originalData.index !== undefined) updateSite(originalData.index, data); else appendSite(data);
+            const mergedSiteData = {
+                ...(originalData || {}),
+                ...data,
+                workImages: data.workImages && data.workImages.length > 0 
+                    ? data.workImages 
+                    : (originalData?.workImages || []),
+                workVideos: data.workVideos && data.workVideos.length > 0 
+                    ? data.workVideos 
+                    : (originalData?.workVideos || []),
+            };
+            if (originalData.index !== undefined) updateSite(originalData.index, mergedSiteData); else appendSite(mergedSiteData);
             setIsManualDirty(true);
             closeDialog();
             setTimeout(() => {

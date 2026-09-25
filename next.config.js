@@ -81,10 +81,6 @@ const nextConfig = {
     ],
   },
   experimental: {
-    allowedDevOrigins: [
-      '*.asia-east1.run.app',
-      '*.run.app',
-    ],
     optimizePackageImports: [
       'lucide-react',
       'recharts',

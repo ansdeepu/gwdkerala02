@@ -792,6 +792,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         const finalExp = computedExpenditure !== undefined ? computedExpenditure : (data.totalExpenditure ?? initialData?.totalExpenditure ?? undefined);
 
         const updatedData = {
+            ...(initialData || {}),
             ...data,
             casing6kgPipe: data.casing6kgPipe ?? "",
             casing8kgPipe: data.casing8kgPipe ?? "",

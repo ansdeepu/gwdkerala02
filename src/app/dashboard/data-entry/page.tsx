@@ -83,6 +83,7 @@ const toDateOrNull = (value: any): Date | null => {
               'dateOfPayment',
               'dateOfCompletion',
               'startDate',
+              'dateOfDrilling',
               'dateOfInvestigation',
               'vesDate',
               'arsSanctionedDate',
@@ -228,10 +229,17 @@ export default function DataEntryPage() {
     return queryString ? `${base}?${queryString}` : base;
 }, [approveUpdateId, pageToReturnTo, activeTab, fileIdToEdit, workTypeContext, pageData]);
 
+  const loadedFileIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     const loadData = async () => {
         if (!user) {
             if (!authIsLoading) setErrorState("You must be logged in.");
+            return;
+        }
+
+        // If currently editing this file and data is already populated, do not blow away user's in-progress site edits on background store syncs
+        if (fileIdToEdit && loadedFileIdRef.current === fileIdToEdit && pageData?.initialData) {
             return;
         }
 
@@ -298,6 +306,7 @@ export default function DataEntryPage() {
             if ((dataForForm as any).lastSavedAt) processedData.lastSavedAt = (dataForForm as any).lastSavedAt;
             if ((dataForForm as any).lastSavedType) processedData.lastSavedType = (dataForForm as any).lastSavedType;
             setFileNoForHeader(dataForForm.fileNo);
+            loadedFileIdRef.current = fileIdToEdit || null;
             setPageData({ initialData: processedData });
 
         } catch (error) {

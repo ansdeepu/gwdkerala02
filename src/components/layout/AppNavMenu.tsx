@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePageNavigation } from '@/hooks/usePageNavigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { LayoutDashboard, Users, FileText, BarChart3, Briefcase, Truck, ClipboardList, Waves, Landmark, HelpCircle, Settings, FolderOpen, Building, DollarSign, Hammer, Hourglass, ArrowUpRight, TestTube2, Droplets } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, BarChart3, Briefcase, Truck, ClipboardList, Waves, Landmark, HelpCircle, Settings, FolderOpen, Building, DollarSign, Hammer, Hourglass, ArrowUpRight, TestTube2, Droplets, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/hooks/use-data-store';
 
