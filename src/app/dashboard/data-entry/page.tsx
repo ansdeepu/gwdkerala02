@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldAlert, Loader2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth, type UserProfile } from "@/hooks/useAuth";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import type { DataEntryFormData, ApplicationType, StaffMember } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 import { usePendingUpdates } from "@/hooks/usePendingUpdates";
