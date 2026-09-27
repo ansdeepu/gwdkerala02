@@ -49,9 +49,10 @@ interface LoggingPumpingTestSiteDialogProps {
     allStaffMembers: StaffMember[];
     workTypeContext: string | null;
     userDesignation: Designation | null;
+    docPath?: string | null;
 }
 
-export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, userDesignation }: LoggingPumpingTestSiteDialogProps) {
+export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, userDesignation, docPath }: LoggingPumpingTestSiteDialogProps) {
     const form = useForm<SiteDetailFormData>({
         resolver: zodResolver(SiteDetailSchema),
         defaultValues: {
@@ -301,6 +302,7 @@ export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, o
                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
                                         siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                        docPath={docPath}
                                     />
                                     <Separator />
                                     <MediaManager 
@@ -314,6 +316,7 @@ export default function LoggingPumpingTestSiteDialog({ initialData, onConfirm, o
                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
                                         siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                        docPath={docPath}
                                     />
                                 </CardContent>
                             </Card>

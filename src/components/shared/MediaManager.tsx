@@ -53,6 +53,7 @@ interface MediaManagerProps {
   officeLocation?: string;
   fileNo?: string;
   siteName?: string;
+  docPath?: string | null;
 }
 
 export default function MediaManager({
@@ -66,6 +67,7 @@ export default function MediaManager({
   officeLocation: propOfficeLocation,
   fileNo: propFileNo,
   siteName: propSiteName,
+  docPath,
 }: MediaManagerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -141,15 +143,19 @@ export default function MediaManager({
     const driveViewUrl = driveId ? `https://drive.google.com/file/d/${driveId}/view` : undefined;
 
     if (editingMedia) {
-      update(editingMedia.index, { 
+      const updatedItem = { 
         ...editingMedia.data, 
         url, 
         description,
         driveFileId: driveId || editingMedia.data.driveFileId,
         driveViewUrl: driveViewUrl || editingMedia.data.driveViewUrl,
-      });
+      };
+      update(editingMedia.index, updatedItem);
+      const updatedFields = [...fields];
+      updatedFields[editingMedia.index] = updatedItem;
+      saveMediaToFirestore(updatedFields);
     } else {
-      append({
+      const newMediaItem = {
         id: uuidv4(),
         url,
         description,
@@ -157,7 +163,9 @@ export default function MediaManager({
         driveViewUrl: driveViewUrl || undefined,
         storageType: driveId ? 'drive' : 'link',
         createdAt: new Date().toISOString(),
-      });
+      };
+      append(newMediaItem);
+      saveMediaToFirestore([...fields, newMediaItem]);
     }
     setIsMediaModalOpen(false);
   };
@@ -167,7 +175,7 @@ export default function MediaManager({
     const url = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : rawUrl;
     const driveViewUrl = driveId ? `https://drive.google.com/file/d/${driveId}/view` : undefined;
 
-    append({
+    const newMediaItem = {
       id: uuidv4(),
       url,
       description: description || "",
@@ -175,7 +183,9 @@ export default function MediaManager({
       driveViewUrl: driveViewUrl || undefined,
       storageType: driveId ? 'drive' : 'link',
       createdAt: new Date().toISOString(),
-    });
+    };
+    append(newMediaItem);
+    saveMediaToFirestore([...fields, newMediaItem]);
   };
 
   // Helper to extract Google Drive file ID from various Drive URL formats
@@ -256,12 +266,13 @@ export default function MediaManager({
         let addedCount = 0;
         const existingUrls = new Set(fields.map(f => f.url || f.driveViewUrl));
         const existingDriveIds = new Set(fields.map(f => f.driveFileId).filter(Boolean));
+        const updatedFields = [...fields];
 
         for (const file of matchingFiles) {
           const fileDriveId = file.id;
           const fileUrl = file.url || file.directImageUrl || file.viewUrl;
           if (!existingDriveIds.has(fileDriveId) && !existingUrls.has(fileUrl)) {
-            append({
+            const newMediaItem = {
               id: uuidv4(),
               url: fileUrl,
               description: file.title || `${type === 'image' ? 'Site Image' : 'Site Video'}`,
@@ -269,12 +280,15 @@ export default function MediaManager({
               driveViewUrl: file.viewUrl,
               storageType: 'drive',
               createdAt: new Date().toISOString(),
-            });
+            };
+            append(newMediaItem);
+            updatedFields.push(newMediaItem);
             addedCount++;
           }
         }
 
         if (addedCount > 0) {
+          saveMediaToFirestore(updatedFields);
           toast({ title: "Media Auto-Synced", description: `Automatically recovered and linked ${addedCount} ${type}(s) from Google Drive.` });
         } else if (matchingFiles.length > 0) {
           toast({ title: "Media Up to Date", description: `All ${matchingFiles.length} file(s) found in Google Drive are already linked.` });
@@ -290,6 +304,51 @@ export default function MediaManager({
     } finally {
       setIsSyncingDrive(false);
       setUploadStatusText("");
+    }
+  };
+
+  const saveMediaToFirestore = async (newFields: any[]) => {
+    if (!docPath || !propSiteName) return;
+
+    try {
+      const { getFirestore, doc, getDoc, updateDoc } = await import('firebase/firestore');
+      const { app } = await import('@/lib/firebase');
+      const db = getFirestore(app);
+
+      const docRef = doc(db, docPath);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const fileData = docSnap.data();
+        let siteDetails = fileData?.siteDetails || [];
+
+        if (Array.isArray(siteDetails)) {
+          let updated = false;
+          siteDetails = siteDetails.map((site: any) => {
+            const currentSiteName = (site.nameOfSite || site.name || '').trim().toLowerCase();
+            const targetSiteName = propSiteName.trim().toLowerCase();
+            if (currentSiteName === targetSiteName) {
+              updated = true;
+              return {
+                ...site,
+                [type === 'image' ? 'workImages' : 'workVideos']: newFields,
+              };
+            }
+            return site;
+          });
+
+          if (updated) {
+            await updateDoc(docRef, { siteDetails });
+            console.log(`[MediaManager] Real-time saved ${type} list directly to Firestore at path: ${docPath}`);
+          }
+        } else {
+          const fieldName = type === 'image' ? 'workImages' : 'workVideos';
+          await updateDoc(docRef, { [fieldName]: newFields });
+          console.log(`[MediaManager] Real-time saved ${type} list directly to Firestore field ${fieldName} at path: ${docPath}`);
+        }
+      }
+    } catch (error) {
+      console.error("[MediaManager] Failed to auto-save media directly to Firestore:", error);
     }
   };
 
@@ -310,14 +369,16 @@ export default function MediaManager({
       // Compress with 960px max dimension and 0.65 quality to keep size ~30-50KB to respect Firestore's 1MB limit
       const compressed = await compressImage(file, 960, 0.65);
       const dataUrl = `data:${compressed.mimeType};base64,${compressed.base64Data}`;
-      append({
+      const newMediaItem = {
         id: uuidv4(),
         url: dataUrl,
         fileName: file.name,
         description: "",
         storageType: 'direct',
         createdAt: new Date().toISOString(),
-      });
+      };
+      append(newMediaItem);
+      saveMediaToFirestore([...fields, newMediaItem]);
       toast({
         title: "Photo Attached to Site Record",
         description: `${file.name} saved directly with optimized compression.`,
@@ -326,14 +387,16 @@ export default function MediaManager({
       // For video files: if under 15MB, attach as direct media data URL / link
       const converted = await fileToBase64(file);
       const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
-      append({
+      const newMediaItem = {
         id: uuidv4(),
         url: dataUrl,
         fileName: file.name,
         description: "",
         storageType: 'direct',
         createdAt: new Date().toISOString(),
-      });
+      };
+      append(newMediaItem);
+      saveMediaToFirestore([...fields, newMediaItem]);
       toast({
         title: "Video Attached to Site Record",
         description: `${file.name} saved directly to site record media.`,
@@ -421,7 +484,7 @@ export default function MediaManager({
               setDriveFolderUrl(result.folderUrl);
             }
             // Successfully uploaded to Google Drive!
-            append({
+            const newMediaItem = {
               id: uuidv4(),
               url: result.url || result.directImageUrl || result.viewUrl,
               driveFileId: result.fileId,
@@ -431,7 +494,9 @@ export default function MediaManager({
               description: "",
               storageType: 'drive',
               createdAt: new Date().toISOString(),
-            });
+            };
+            append(newMediaItem);
+            saveMediaToFirestore([...fields, newMediaItem]);
 
             toast({
               title: `${type === 'image' ? 'Photo' : 'Video'} Uploaded to Google Drive`,
@@ -768,7 +833,11 @@ export default function MediaManager({
                       variant="destructive"
                       size="icon"
                       className="h-7 w-7 shadow-sm"
-                      onClick={() => remove(index)}
+                      onClick={() => {
+                        const updatedFields = fields.filter((_, i) => i !== index);
+                        remove(index);
+                        saveMediaToFirestore(updatedFields);
+                      }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

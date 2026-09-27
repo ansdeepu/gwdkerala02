@@ -80,7 +80,7 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Work Completed"
 ] as const;
 
-export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails, remittanceDetails }: {
+export default function SiteDialogContent({ initialData, onConfirm, onCancel, isReadOnly, isSupervisor, supervisorList, allLsgConstituencyMaps, allE_tenders, allStaffMembers, allBidders, allRigCompressors, workTypeContext, applicationType, paymentDetails, remittanceDetails, docPath }: {
     initialData: Partial<SiteDetailFormData>;
     onConfirm: (data: SiteDetailFormData) => void;
     onCancel: () => void;
@@ -96,6 +96,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     applicationType?: string | null;
     paymentDetails?: any[];
     remittanceDetails?: any[];
+    docPath?: string | null;
 }) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
     const initialCasing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : (initialData?.casingPipeUsed || "");
@@ -1571,6 +1572,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
                                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
+                                                        docPath={docPath}
                                                     />
                                                     <Separator />
                                                     <MediaManager
@@ -1584,6 +1586,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
                                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
+                                                        docPath={docPath}
                                                     />
                                                 </CardContent>
                                             </Card>

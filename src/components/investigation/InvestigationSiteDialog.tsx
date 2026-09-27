@@ -49,9 +49,10 @@ interface InvestigationSiteDialogProps {
     allStaffMembers: StaffMember[];
     workTypeContext: string | null;
     userDesignation: Designation | null;
+    docPath?: string | null;
 }
 
-export default function InvestigationSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, workTypeContext, userDesignation }: InvestigationSiteDialogProps) {
+export default function InvestigationSiteDialog({ initialData, onConfirm, onCancel, isReadOnly, isInvestigator, isSupervisor, allLsgConstituencyMaps, allStaffMembers, workTypeContext, userDesignation, docPath }: InvestigationSiteDialogProps) {
     const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
     const initialCasingValue = initialData?.surveyRecommendedCasingPipe || initialData?.casingPipeUsed || "";
     const initialRecommendedObValue = (initialData?.surveyRecommendedOB !== undefined && initialData?.surveyRecommendedOB !== null)
@@ -520,6 +521,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
                                         siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                        docPath={docPath}
                                     />
                                     <Separator />
                                     <MediaManager 
@@ -533,6 +535,7 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (initialData as any)?.office || 'kollam'}
                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || 'General'}
                                         siteName={watch('nameOfSite') || initialData?.nameOfSite}
+                                        docPath={docPath}
                                     />
                                 </CardContent>
                             </Card>
