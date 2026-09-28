@@ -1498,6 +1498,13 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
   }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, allFileEntries, allArsEntries, getReferencedExpenditure]);
 
   // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist
+  const watchedFileStatus = watch('fileStatus');
+  const watchedTotalRemittance = watch('totalRemittance');
+  const watchedTotalReappropriation = watch('totalReappropriation');
+  const watchedTotalReappropriationCredit = watch('totalReappropriationCredit');
+  const watchedTotalPaymentAllEntries = watch('totalPaymentAllEntries');
+  const watchedOverallBalance = watch('overallBalance');
+
   useEffect(() => {
     if (!fileIdToEdit) return;
     if (isManualDirty) return;
@@ -1574,12 +1581,14 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
     watchedRemittanceDetails,
     watchedReappropriationDetails,
     watchedPaymentDetails,
-    watch('fileStatus'),
-    watch('totalRemittance'),
-    watch('totalReappropriation'),
-    watch('totalReappropriationCredit'),
-    watch('totalPaymentAllEntries'),
-    watch('overallBalance'),
+    watchedFileStatus,
+    watchedTotalRemittance,
+    watchedTotalReappropriation,
+    watchedTotalReappropriationCredit,
+    watchedTotalPaymentAllEntries,
+    watchedOverallBalance,
+    allArsEntries,
+    allFileEntries,
     getValues,
     updateFileEntry,
     approveUpdateId,

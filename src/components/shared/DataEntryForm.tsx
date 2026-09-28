@@ -1404,7 +1404,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
       setValue("siteDetails", reconciled, { shouldDirty: false });
       isAutoReconciledRef.current = true;
     }
-  }, [allE_tenders, currentFileNo, watchedSiteDetails, setValue]);
+  }, [allE_tenders, currentFileNo, watchedSiteDetails, setValue, workTypeContext]);
 
   const getReferencedExpenditure = useCallback((refFileNo: string, targetSiteName?: string | null, fallback?: number | null, pageType?: string | null) => {
       if (!refFileNo) return fallback ?? 0;
@@ -1617,7 +1617,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         const timeB = b.dateObj?.getTime() ?? 0;
         return timeB - timeA;
     });
-  }, [reappropriationFields, autoCredits, getReferencedExpenditure, getCurrentFileExpenditure, allFileEntries, allArsEntries]);
+  }, [reappropriationFields, autoCredits, getReferencedExpenditure, allFileEntries, allArsEntries]);
 
   const hasReappropriations = useMemo(() => sortedCombinedReappropriations.length > 0, [sortedCombinedReappropriations.length]);
 
@@ -1721,6 +1721,13 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   }, [watchedRemittanceDetails, watchedReappropriationDetails, watchedPaymentDetails, autoCredits, setValue, getValues, isDeferredFunding, allFileEntries, allArsEntries, getReferencedExpenditure]);
 
   // AUTO-SAVE EFFECT: Automatically saves calculated updates when no uncommitted manual changes exist or when status reconciliation triggers
+  const watchedFileStatus = watch('fileStatus');
+  const watchedTotalRemittance = watch('totalRemittance');
+  const watchedTotalReappropriation = watch('totalReappropriation');
+  const watchedTotalReappropriationCredit = watch('totalReappropriationCredit');
+  const watchedTotalPaymentAllEntries = watch('totalPaymentAllEntries');
+  const watchedOverallBalance = watch('overallBalance');
+
   useEffect(() => {
     // Only auto-save existing files already present in the database
     if (!fileIdToEdit) return;
@@ -1798,16 +1805,19 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     isViewer,
     isFormDisabled,
     isSupervisor,
+    dialogState.type,
     watchedSiteDetails,
     watchedRemittanceDetails,
     watchedReappropriationDetails,
     watchedPaymentDetails,
-    watch('fileStatus'),
-    watch('totalRemittance'),
-    watch('totalReappropriation'),
-    watch('totalReappropriationCredit'),
-    watch('totalPaymentAllEntries'),
-    watch('overallBalance'),
+    watchedFileStatus,
+    watchedTotalRemittance,
+    watchedTotalReappropriation,
+    watchedTotalReappropriationCredit,
+    watchedTotalPaymentAllEntries,
+    watchedOverallBalance,
+    allArsEntries,
+    allFileEntries,
     getValues,
     updateFileEntry,
     approveUpdateId,

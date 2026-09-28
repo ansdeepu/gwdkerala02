@@ -29,13 +29,18 @@ export default function LoginPage() {
   const [modalType, setModalType] = useState<"privacy" | "terms" | null>(null);
 
   useEffect(() => {
+    // Prefetch target routes so RSC payload is ready
+    try {
+      router.prefetch('/dashboard');
+      router.prefetch('/dashboard/super-admin');
+    } catch (e) {}
+  }, [router]);
+
+  useEffect(() => {
     // If the authentication state is resolved and the user is authenticated, redirect.
     if (!isLoading && isAuthenticated && user) {
-      if (user.email === SUPER_ADMIN_EMAIL) {
-        router.replace('/dashboard/super-admin');
-      } else {
-        router.replace('/dashboard');
-      }
+      const target = user.email === SUPER_ADMIN_EMAIL ? '/dashboard/super-admin' : '/dashboard';
+      router.replace(target);
     }
   }, [isAuthenticated, isLoading, router, user]);
 

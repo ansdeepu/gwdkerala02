@@ -263,7 +263,7 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                 result = await uploadTenderEstimateToGoogleDrive({
                     file,
                     officeLocation: effectiveOffice,
-                    tenderNo: eTenderNo || tender.eTenderNo,
+                    tenderNo: eTenderNo || tender?.eTenderNo || 'TENDER',
                     onProgress: (percent, statusText) => {
                         setEstimateUploadProgress({
                             percent,

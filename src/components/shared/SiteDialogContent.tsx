@@ -235,6 +235,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedIsAwaitingTS = watch('isAwaitingTS');
     const watchedTotalDepth = watch('totalDepth');
     const watchedDateOfDrilling = (watch as any)('dateOfDrilling');
+    const watchedNameOfSite = watch('nameOfSite');
 
     const watchedAllValues = watch();
     const isFormDirty = useMemo(() => {
@@ -624,7 +625,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         const siteIdx = (initialData as any)?.index ?? 0;
         const currentSiteSnapshot = {
             ...initialData,
-            nameOfSite: watch('nameOfSite'),
+            nameOfSite: watchedNameOfSite,
             purpose: watchedPurpose,
             tenderNo: watchedTenderNo
         };
@@ -655,7 +656,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             const ts = activeTender.presentStatus;
             // Work Order Issued - is already linked with e-tender module
             if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
-                const isSiteCompleted = (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') || isFinalSiteStatus(getValues('workStatus'));
+                const isSiteCompleted = (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') || isFinalSiteStatus(watchedWorkStatus);
                 if (!isSiteCompleted) {
                     let effectiveStart = watchedStartDate;
                     if (!effectiveStart && activeTender.dateWorkOrder) {
@@ -666,7 +667,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                         }
                     }
                     const startDateReached = isStartDateReached(effectiveStart);
-                    const hasActualDrilling = (Number(getValues('totalDepth')) > 0) || (getValues('dateOfDrilling') && String(getValues('dateOfDrilling')).trim() !== '');
+                    const hasActualDrilling = (Number(watchedTotalDepth) > 0) || (watchedDateOfDrilling && String(watchedDateOfDrilling).trim() !== '');
                     
                     if (startDateReached || hasActualDrilling) {
                         setValue('workStatus', 'Work in Progress');
@@ -738,6 +739,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         watchedTsAmount,
         watchedIsAwaitingTS,
         watchedTenderNo,
+        watchedNameOfSite,
+        watchedPurpose,
+        watchedWorkStatus,
         totalRemittedAmount,
         allE_tenders,
         initialData,

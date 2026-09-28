@@ -99,6 +99,10 @@ export const RigRegistrationSchema = z.object({
     typeOfRig: z.enum(agencyRigTypeOptions).optional().nullable(),
     typeOfRigMalayalam: optionalStringSchema,
     registrationDate: z.any().optional().nullable(),
+    applicationFee: optionalNumberSchema,
+    applicationPaymentDate: z.any().optional().nullable(),
+    applicationChallanNo: optionalStringSchema,
+    applicationChallanAmount: optionalNumberSchema,
     registrationFee: optionalNumberSchema,
     paymentDate: z.any().optional().nullable(),
     challanNo: optionalStringSchema,
@@ -364,6 +368,7 @@ export const E_tenderSchema = z.object({
     additionalPerformanceGuaranteeAmount: optionalNumberSchema,
     stampPaperAmount: optionalNumberSchema,
     amountType: z.enum(['Tender Amount', 'Contract Amount']).optional().nullable(),
+    contractAmount: optionalNumberSchema,
     agreedAmount: optionalNumberSchema,
     
     // Labour Contract Society Negotiation & Award

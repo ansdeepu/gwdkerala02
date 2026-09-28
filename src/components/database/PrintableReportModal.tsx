@@ -790,7 +790,7 @@ export default function PrintableReportModal({
     }
 
     // District Officer Name from Settings page and Designation from Establishment page
-    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => s.roles?.includes('District Officer') || (s.designation as any) === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     const doStaff = allStaffMembers?.find(s => 
       (doName && s.name?.toLowerCase() === doName.toLowerCase()) || 
       s.roles?.includes('District Officer')
@@ -845,7 +845,7 @@ export default function PrintableReportModal({
     let localNetPayable = 0;
 
     // Calculate localized net payable
-    const appTypeStr = (entry?.applicationType || currentSite?.applicationType || '').toLowerCase();
+    const appTypeStr = (entry?.applicationType || (currentSite as any)?.applicationType || '').toLowerCase();
     const isPrivateIrrigation = appTypeStr.includes('irrigation') || appTypeStr.includes('private_irrigation') || appTypeStr.includes('private irrigation');
     const isSiteTWC = currentSite?.purpose === 'TWC' || (entry as any)?.purpose === 'TWC';
     const pilotDVal = parseNum(currentSite?.pilotDrillingDepth);
@@ -1057,7 +1057,7 @@ export default function PrintableReportModal({
     }
 
     setProceedingsSubject(
-      `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${entry.applicantAddress ? `, ${entry.applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
+      `GWD, ${district} - Construction of borewell at ${entry.applicantName || ''}${(entry as any).applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} - Refund of balance amount and remittance of drilling charges to revenue head - Sanctioned - Orders issued - reg.`
     );
     setProceedingsSubjectMl(
       `ഭൂജല വകുപ്പ്, ${districtMl} - ${entry.applicantName || ''}${(entry as any).applicantAddress ? `, ${(entry as any).applicantAddress}` : ''} എന്നയാളുടെ സ്ഥലത്ത് കുഴൽകിണർ നിർമ്മാണം - ബാക്കി തുക തിരികെ നൽകുന്നതിനും നിർമ്മാണ ചിലവ് റവന്യൂ ശീർഷകത്തിലേക്ക് അടയ്ക്കുന്നതിനും അനുമതി നൽകി ഉത്തരവാകുന്നു.`
@@ -1067,7 +1067,7 @@ export default function PrintableReportModal({
     setProceedingsRef2(`2. Final Bill of this office, dated ${todayFormatted}.`);
     setProceedingsRef2Ml(`2. ഈ ആപ്പീസിലെ തീയതി ${todayFormatted} - ലെ ഫൈനൽ ബിൽ.`);
 
-    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => (s.roles as any)?.includes('District Officer') || s.designation === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
+    const doName = officeAddress?.districtOfficer || allStaffMembers?.find(s => (s.roles as any)?.includes('District Officer') || (s.designation as any) === 'District Officer' || s.designation === 'Executive Engineer')?.name || '';
     setUcFrom('ജില്ലാ ഓഫീസർ');
 
     const defaultUcToMl = (() => {
@@ -6979,7 +6979,7 @@ export default function PrintableReportModal({
                     {(() => {
                       const lsgEn = localSelfGovt || 'Panchayat';
                       const activeSites = ucSelectedSites.length > 0 ? ucSelectedSites : sites.map((s, idx) => ({ 
-                        siteName: s.siteName || `Site #${idx + 1}`, 
+                        siteName: (s as any).siteName || s.nameOfSite || `Site #${idx + 1}`, 
                         depth: parseNum(s.totalDepth) || 0, 
                         yield: parseNum(s.yieldDischarge) || 0, 
                         totalExpenditure: 0 

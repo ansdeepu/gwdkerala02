@@ -48,21 +48,38 @@ export const optionalNumber = (errorMessage: string = "Must be a valid number.")
 }, z.number({ coerce: true, invalid_type_error: errorMessage }).min(0, "Cannot be negative.").optional());
 
 export const optionalDateSchema = z.preprocess((val) => {
-  if (val instanceof Date) return val;
+  if (val instanceof Date) return isValid(val) ? val : null;
   if (typeof val === 'string' && val.trim() !== '') {
-    const d = new Date(val);
+    const trimmed = val.trim();
+    // Match yyyy-MM-dd or yyyy/MM/dd
+    const ymdMatch = trimmed.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+    if (ymdMatch) {
+      const y = parseInt(ymdMatch[1], 10);
+      const m = parseInt(ymdMatch[2], 10) - 1;
+      const d = parseInt(ymdMatch[3], 10);
+      const localDate = new Date(y, m, d);
+      if (isValid(localDate)) return localDate;
+    }
+    // Match dd-MM-yyyy, dd/MM/yyyy, or dd.MM.yyyy
+    const dmyMatch = trimmed.match(/^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
+    if (dmyMatch) {
+      const d = parseInt(dmyMatch[1], 10);
+      const m = parseInt(dmyMatch[2], 10) - 1;
+      const y = parseInt(dmyMatch[3], 10);
+      const localDate = new Date(y, m, d);
+      if (isValid(localDate)) return localDate;
+    }
+    const d = new Date(trimmed);
     if (isValid(d)) return d;
   }
   return null;
 }, z.date().nullable().optional());
 
-const nativeDateSchema = z.preprocess(
-  (val) => (val === "" ? null : val),
-  z.string()
-    .optional()
-    .nullable()
-    .refine((val) => !val || !isNaN(Date.parse(val)), { message: "Invalid date" })
-);
+const nativeDateSchema = z.preprocess((val) => {
+  if (!val || val === '') return null;
+  if (typeof val === 'string') return val.trim();
+  return val;
+}, z.string().optional().nullable());
 
 export const designationOptions = [
     "Director",
@@ -743,17 +760,21 @@ export const AgencyApplicationSchema = z.object({
   applicationFees: z.array(ApplicationFeeSchema).optional().nullable(),
 
   // Agency Registration
+  allotmentNo: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.coerce.number().optional().nullable()),
   agencyRegistrationNo: z.string().optional().nullable(),
   agencyRegistrationDate: optionalDateSchema,
   agencyApplicationFee: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyApplicationPaymentDate: optionalDateSchema,
   agencyApplicationChallanNo: z.string().optional().nullable(),
+  agencyApplicationChallanAmount: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyRegistrationFee: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyPaymentDate: optionalDateSchema,
   agencyChallanNo: z.string().optional().nullable(),
+  agencyChallanAmount: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyAdditionalRegFee: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   agencyAdditionalPaymentDate: optionalDateSchema,
   agencyAdditionalChallanNo: z.string().optional().nullable(),
+  agencyAdditionalChallanAmount: z.preprocess((val) => (val === "" ? undefined : val), z.coerce.number().optional()),
   
   rigs: z.array(RigRegistrationSchema),
   status: z.enum(['Active', 'Pending Verification']),

@@ -88,9 +88,7 @@ export default function GWInvestigationPrintPage() {
       }
 
       if (isMounted) {
-        if (!entry) {
-          setError(`Could not find investigation record with ID/File No: "${id || "N/A"}".`);
-        }
+        setError(`Could not find investigation record with ID/File No: "${id || "N/A"}".`);
         setIsLoading(false);
       }
     };

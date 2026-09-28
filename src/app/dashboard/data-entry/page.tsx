@@ -230,6 +230,8 @@ export default function DataEntryPage() {
 }, [approveUpdateId, pageToReturnTo, activeTab, fileIdToEdit, workTypeContext, pageData]);
 
   const loadedFileIdRef = useRef<string | null>(null);
+  const pageDataRef = useRef(pageData);
+  pageDataRef.current = pageData;
 
   useEffect(() => {
     const loadData = async () => {
@@ -239,7 +241,7 @@ export default function DataEntryPage() {
         }
 
         // If currently editing this file and data is already populated, do not blow away user's in-progress site edits on background store syncs
-        if (fileIdToEdit && loadedFileIdRef.current === fileIdToEdit && pageData?.initialData) {
+        if (fileIdToEdit && loadedFileIdRef.current === fileIdToEdit && pageDataRef.current?.initialData) {
             return;
         }
 

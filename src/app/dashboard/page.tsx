@@ -3,32 +3,70 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useFileEntries } from "@/hooks/useFileEntries";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useAgencyApplications } from '@/hooks/useAgencyApplications';
 import { useAuth, updateUserLastActive } from '@/hooks/useAuth';
 import { useAllFileEntriesForReports } from '@/hooks/useAllFileEntriesForReports';
 import { usePageHeader } from '@/hooks/usePageHeader';
-import FileStatusOverview from '@/components/dashboard/FileStatusOverview';
 import NoticeBoard from '@/components/dashboard/NoticeBoard';
 import ImportantUpdates from '@/components/dashboard/ImportantUpdates';
 import ETenderNoticeBoard from '@/components/dashboard/ETenderNoticeBoard'; 
-import WorkStatusByService from '@/components/dashboard/WorkStatusByService';
-import ArsStatusOverview from '@/components/dashboard/ArsStatusOverview';
-import RigRegistrationOverview from '@/components/dashboard/RigRegistrationOverview';
-import WorkProgress from '@/components/dashboard/WorkProgress';
-import SupervisorWork from '@/components/dashboard/SupervisorWork';
-import DepartmentalRigWorks from '@/components/dashboard/DepartmentalRigWorks';
-import DashboardDialogs from '@/components/dashboard/DashboardDialogs';
-import FinanceOverview from '@/components/dashboard/FinanceOverview';
-import RigFinancialSummary from '@/components/dashboard/RigFinancialSummary';
-import ConstituencyWiseOverview from '@/components/dashboard/ConstituencyWiseOverview';
-import PresentWorkDetails from '@/components/dashboard/PresentWorkDetails';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, startOfMonth, endOfMonth, isWithinInterval, isValid, addYears, parseISO } from 'date-fns';
+
+import { computeRigFinancialSummaryData } from '@/components/dashboard/RigFinancialSummary';
+const PresentWorkDetails = dynamic(() => import('@/components/dashboard/PresentWorkDetails'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const FileStatusOverview = dynamic(() => import('@/components/dashboard/FileStatusOverview'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const WorkStatusByService = dynamic(() => import('@/components/dashboard/WorkStatusByService'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const ConstituencyWiseOverview = dynamic(() => import('@/components/dashboard/ConstituencyWiseOverview'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const FinanceOverview = dynamic(() => import('@/components/dashboard/FinanceOverview'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const ArsStatusOverview = dynamic(() => import('@/components/dashboard/ArsStatusOverview'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const RigRegistrationOverview = dynamic(() => import('@/components/dashboard/RigRegistrationOverview'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const RigFinancialSummary = dynamic(() => import('@/components/dashboard/RigFinancialSummary'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const WorkProgress = dynamic(() => import('@/components/dashboard/WorkProgress'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const SupervisorWork = dynamic(() => import('@/components/dashboard/SupervisorWork'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const DepartmentalRigWorks = dynamic(() => import('@/components/dashboard/DepartmentalRigWorks'), {
+  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
+  ssr: false,
+});
+const DashboardDialogs = dynamic(() => import('@/components/dashboard/DashboardDialogs'), {
+  ssr: false,
+});
 import { 
   PRIVATE_APPLICATION_TYPES, 
   LOGGING_PUMPING_TEST_PURPOSE_OPTIONS, 
@@ -345,30 +383,12 @@ export default function DashboardPage() {
     });
 
     // 7. Rig Financial Summary (Total Collections matching RigFinancialSummary.tsx)
-    let appFeesTotal = 0;
-    let agencyRegFeesTotal = 0;
-    let rigRegFeesTotal = 0;
-    let renewalFeesTotal = 0;
-
-    agencies.forEach(app => {
-      app.applicationFees?.forEach(fee => {
-        appFeesTotal += Number(fee.applicationFeeAmount) || 0;
-      });
-    });
-
-    completedAgencies.forEach(app => {
-      agencyRegFeesTotal += (Number(app.agencyRegistrationFee) || 0) + (Number(app.agencyAdditionalRegFee) || 0);
-
-      app.rigs?.forEach(rig => {
-        rigRegFeesTotal += (Number(rig.registrationFee) || 0) + (Number(rig.additionalRegistrationFee) || 0);
-
-        rig.renewals?.forEach(renewal => {
-          renewalFeesTotal += (Number(renewal.renewalFee) || 0) + (Number((renewal as any).fee) || 0);
-        });
-      });
-    });
-
-    const grandTotalAgencyRevenue = appFeesTotal + agencyRegFeesTotal + rigRegFeesTotal + renewalFeesTotal;
+    const finSummary = computeRigFinancialSummaryData(agencies);
+    const appFeesTotal = (finSummary.totals.agencyRegAppFee || 0) + (finSummary.totals.rigRegAppFee || 0);
+    const agencyRegFeesTotal = finSummary.totals.agencyRegFee || 0;
+    const rigRegFeesTotal = finSummary.totals.rigRegFee || 0;
+    const renewalFeesTotal = finSummary.totals.renewalFee || 0;
+    const grandTotalAgencyRevenue = finSummary.grandTotalOfFees;
 
     // 8. Work Progress (Monthly & Ongoing breakdown matching WorkProgress.tsx)
     const currentMonthStart = startOfMonth(today);

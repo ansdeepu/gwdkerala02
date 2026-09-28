@@ -149,8 +149,21 @@ export function RigRegistrationApplicationFormView({
 
       // Office use
       office_date_recd: formatToDDMMYYYY(getVal("office_date_recd", "")),
-      office_fee_details: getVal("office_fee_details", ""),
-      office_paid_amount: getVal("office_paid_amount", ""),
+      office_fee_details: getVal("office_fee_details", (() => {
+        const firstRig = activeRigs[0];
+        if (firstRig?.applicationFee || firstRig?.applicationChallanNo) {
+          const parts: string[] = [];
+          if (firstRig.applicationChallanNo) parts.push(`Challan: ${firstRig.applicationChallanNo}`);
+          if (firstRig.applicationPaymentDate) parts.push(`Date: ${formatToDDMMYYYY(firstRig.applicationPaymentDate)}`);
+          return parts.join(', ');
+        }
+        return "";
+      })()),
+      office_paid_amount: getVal("office_paid_amount", (() => {
+        const firstRig = activeRigs[0];
+        if (firstRig?.applicationFee) return String(firstRig.applicationFee);
+        return "";
+      })()),
       office_rig_inspected_date: formatToDDMMYYYY(getVal("office_rig_inspected_date", "")),
       office_recommendation: getVal("office_recommendation", ""),
       office_inspector_signature: getVal("office_inspector_signature", ""),

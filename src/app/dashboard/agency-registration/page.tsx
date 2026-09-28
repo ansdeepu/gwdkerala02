@@ -54,6 +54,10 @@ const db = getFirestore(app);
 const createDefaultRig = (): RigRegistrationType => ({
     id: uuidv4(),
     status: 'Active',
+    applicationFee: undefined,
+    applicationPaymentDate: null,
+    applicationChallanNo: '',
+    applicationChallanAmount: undefined,
     renewals: [],
     history: [],
     cancellationDate: null,
@@ -70,10 +74,50 @@ const toDateOrNull = (value: any): Date | null => {
         if (isValid(d)) return d;
     }
     if (typeof value === 'string') {
-        let d = parseISO(value); // Handles yyyy-MM-dd and ISO strings from new Date()
-        if (isValid(d)) return d;
-        d = parse(value, 'dd/MM/yyyy', new Date()); // Handles dd/MM/yyyy from user input
-        if (isValid(d)) return d;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        // Match yyyy-MM-dd or yyyy/MM/dd
+        const ymdMatch = trimmed.match(/^(\d{1,4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+        if (ymdMatch) {
+            let y = parseInt(ymdMatch[1], 10);
+            const m = parseInt(ymdMatch[2], 10) - 1;
+            const d = parseInt(ymdMatch[3], 10);
+            // Ignore incomplete 1-3 digit years typed in standard date inputs
+            if (y < 1000) {
+                return null;
+            }
+            const localDate = new Date();
+            localDate.setFullYear(y, m, d);
+            localDate.setHours(0, 0, 0, 0);
+            if (isValid(localDate)) return localDate;
+        }
+
+        // Match dd-MM-yyyy, dd/MM/yyyy, or dd.MM.yyyy
+        const dmyMatch = trimmed.match(/^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{2,4})/);
+        if (dmyMatch) {
+            const d = parseInt(dmyMatch[1], 10);
+            const m = parseInt(dmyMatch[2], 10) - 1;
+            let y = parseInt(dmyMatch[3], 10);
+            if (y < 100) {
+                y = y < 50 ? 2000 + y : 1900 + y;
+            }
+            const localDate = new Date();
+            localDate.setFullYear(y, m, d);
+            localDate.setHours(0, 0, 0, 0);
+            if (isValid(localDate)) return localDate;
+        }
+
+        let dObj = parseISO(trimmed);
+        if (isValid(dObj) && dObj.getFullYear() >= 1000) return dObj;
+
+        // Try parsing with slash replacement
+        const normalized = trimmed.replace(/[\.\-]/g, '/');
+        dObj = parse(normalized, 'dd/MM/yyyy', new Date());
+        if (isValid(dObj) && dObj.getFullYear() >= 1000) return dObj;
+
+        dObj = parse(normalized, 'yyyy/MM/dd', new Date());
+        if (isValid(dObj) && dObj.getFullYear() >= 1000) return dObj;
     }
     return null;
 };
@@ -82,7 +126,7 @@ const toDateOrNull = (value: any): Date | null => {
 const formatDateForInput = (d: Date | null | string | undefined) => {
     if (!d) return '';
     const date = typeof d === 'string' ? toDateOrNull(d) : d;
-    if (!date || !isValid(date)) return '';
+    if (!date || !isValid(date) || date.getFullYear() < 1000) return '';
     try {
         return format(date, 'yyyy-MM-dd');
     } catch {
@@ -366,6 +410,7 @@ const RigAccordionItem = ({
   onEditRenewal,
   form,
   applicationId,
+  isPendingRig = false,
 }: {
   field: RigRegistrationType;
   index: number; // The original index for react-hook-form
@@ -377,6 +422,7 @@ const RigAccordionItem = ({
   onEditRenewal: (rigIndex: number, renewal: RigRenewalFormData) => void;
   form: UseFormReturn<AgencyApplication>;
   applicationId: string;
+  isPendingRig?: boolean;
 }) => {
   const rigTypeValue = field.typeOfRig || 'Unspecified Type';
   const registrationDate = field.registrationDate ? toDateOrNull(field.registrationDate) : null;
@@ -401,20 +447,42 @@ const RigAccordionItem = ({
   const cancellationDateValue = useWatch({ control: form.control, name: `rigs.${index}.cancellationDate`});
   const cancellationDate = toDateOrNull(cancellationDateValue);
   const formattedCancellationDate = cancellationDate ? format(cancellationDate, 'dd/MM/yyyy') : 'N/A';
-    
+  
+  // Color classification:
+  // - Cancelled: Red / line-through
+  // - Pending: Blue
+  // - Expired: Amber / Orange
+  // - Active: Green
+  const isCancelled = field.status === 'Cancelled';
+  const isPending = !isCancelled && isPendingRig;
+  const isFullyActive = !isCancelled && !isPending && !isExpired;
+  const isExpiredActive = !isCancelled && !isPending && isExpired;
+
   return (
-    <AccordionItem value={`rig-${field.id}`} className="border bg-background rounded-lg shadow-sm">
+    <AccordionItem value={`rig-${field.id}`} className={cn(
+      "border bg-background rounded-lg shadow-sm transition-all",
+      isFullyActive && "border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-300",
+      isExpiredActive && "border-amber-200 dark:border-amber-900/50 hover:border-amber-300",
+      isPending && "border-blue-200 dark:border-blue-900/50 hover:border-blue-300",
+      isCancelled && "border-rose-200 dark:border-rose-900/50"
+    )}>
       <div className="flex items-center justify-between pr-4 border-b">
         <AccordionPrimitive.Header className="flex flex-1">
           <AccordionPrimitive.Trigger
             className={cn(
-              "flex flex-1 items-center justify-between p-4 text-base font-semibold text-primary transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
-              field.status === 'Cancelled' && "text-destructive line-through",
-              field.status === 'Active' && isExpired && "text-amber-600"
+              "flex flex-1 items-center justify-between p-4 text-base font-semibold transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
+              isFullyActive && "text-emerald-700 dark:text-emerald-400",
+              isExpiredActive && "text-amber-600 dark:text-amber-500",
+              isPending && "text-blue-600 dark:text-blue-400",
+              isCancelled && "text-destructive line-through"
             )}
           >
-            <div className="flex items-center gap-2">
-              Rig #{displayIndex + 1} - {rigTypeValue} ({field.status === 'Active' && isExpired ? <span className="text-destructive">Expired</span> : field.status})
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>Rig #{displayIndex + 1} - {rigTypeValue}</span>
+              {isCancelled && <span className="text-destructive text-sm font-normal">(Cancelled)</span>}
+              {isPending && <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">(Pending)</span>}
+              {isExpiredActive && <span className="text-amber-600 dark:text-amber-500 text-sm font-medium">(Expired)</span>}
+              {isFullyActive && <span className="text-emerald-700 dark:text-emerald-400 text-sm font-medium">(Active)</span>}
             </div>
             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
           </AccordionPrimitive.Trigger>
@@ -448,7 +516,7 @@ const RigAccordionItem = ({
                 </TooltipContent>
               </Tooltip>
 
-              {field.status === 'Active' && (
+              {field.status === 'Active' && !isPending && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => openDialog('renew', { rigIndex: index })}>
@@ -503,6 +571,26 @@ const RigAccordionItem = ({
       </div>
       <AccordionContent className="p-6 pt-0">
         <div className="border-t pt-6 space-y-4">
+          {isPending && (
+            <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-md text-xs text-blue-800 dark:text-blue-300 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-600 shrink-0" />
+                <span>
+                  <strong>Pending Registration:</strong>{' '}
+                  {(!field.typeOfRig || field.typeOfRig.trim() === '' || field.typeOfRig.trim() === 'Unspecified Type') && !field.paymentDate
+                    ? 'Rig Type and Registration Payment Date are missing.'
+                    : (!field.typeOfRig || field.typeOfRig.trim() === '' || field.typeOfRig.trim() === 'Unspecified Type')
+                    ? 'Rig Type is not specified.'
+                    : 'Registration Payment Date is pending.'}
+                </span>
+              </div>
+              {!isReadOnly && (
+                <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] border-blue-300 bg-white hover:bg-blue-100 text-blue-700 dark:bg-slate-900 shrink-0" onClick={() => openDialog('editRigDetails', { rigIndex: index })}>
+                  Complete Details
+                </Button>
+              )}
+            </div>
+          )}
           
           <div className="p-4 border rounded-lg space-y-4 bg-secondary/20">
             <div className="flex justify-between items-center mb-2">
@@ -519,6 +607,18 @@ const RigAccordionItem = ({
                 <div className="md:col-span-1"><DetailRow label="Type of Rig" value={field.typeOfRig} /></div>
                 <div className="md:col-span-2"><DetailRow label="Last Reg/Renewal Date" value={formatDateSafe(field.registrationDate)} /></div>
                 <div className="md:col-span-1"><DetailRow label="Validity Upto" value={validityDate} /></div>
+                
+                {(field.applicationFee !== undefined || field.applicationPaymentDate || field.applicationChallanNo || field.applicationChallanAmount !== undefined) && (
+                  <>
+                    <div className="col-span-full border-t pt-4 mt-2"></div>
+                    <DetailRow label="Application Fee" value={field.applicationFee} />
+                    <DetailRow label="Payment Date" value={field.applicationPaymentDate} />
+                    <DetailRow label="Challan No." value={field.applicationChallanNo} />
+                    {field.applicationChallanAmount !== undefined && field.applicationChallanAmount !== null && (
+                      <DetailRow label="Challan Amount" value={`₹ ${field.applicationChallanAmount}`} />
+                    )}
+                  </>
+                )}
                 
                 <div className="col-span-full border-t pt-4 mt-2"></div>
                 <DetailRow label="Reg. Fee" value={field.registrationFee} />
@@ -844,7 +944,9 @@ export default function AgencyRegistrationPage() {
   const { fields: feeFields, append: appendFee, remove: removeFee, update: updateFee } = useFieldArray({ control, name: "applicationFees" });
   const { fields: rigFields, append: appendRig, remove: removeRig, update: updateRig } = useFieldArray({ control, name: "rigs" });
   
-  const activeRigCount = useMemo(() => rigFields.filter(rig => rig.status === 'Active').length, [rigFields]);
+  // Non-cancelled rigs count (Active + Pending combined max is 3)
+  const nonCancelledRigCount = useMemo(() => rigFields.filter(rig => rig.status !== 'Cancelled').length, [rigFields]);
+  const activeRigCount = nonCancelledRigCount;
   
   const returnPath = useMemo(() => {
       const page = pageFromUrl ? parseInt(pageFromUrl, 10) : 1;
@@ -1083,7 +1185,7 @@ export default function AgencyRegistrationPage() {
 
   const handleAddRig = () => {
     if (activeRigCount >= 3) {
-      toast({ title: "Maximum Rigs Reached", description: "You can only register a maximum of 3 active rigs per agency.", variant: "default" });
+      toast({ title: "Maximum Rigs Reached", description: "You can only register a maximum of 3 active/pending rigs per agency.", variant: "default" });
       return;
     }
     openDialog('addRig', {});
@@ -1107,10 +1209,14 @@ export default function AgencyRegistrationPage() {
                     app.owner?.secondaryMobile,
                     app.owner?.address,
                     ...(app.partners || []).flatMap(p => [p.name, p.mobile, p.secondaryMobile, p.address]),
+                    app.agencyApplicationChallanNo,
+                    app.agencyChallanNo,
+                    app.agencyAdditionalChallanNo,
                     ...(app.applicationFees || []).flatMap(fee => [fee.applicationFeeType, fee.applicationFeeChallanNo]),
                     ...(app.rigs || []).flatMap(rig => [
                         rig.rigRegistrationNo,
                         rig.typeOfRig,
+                        rig.applicationChallanNo,
                         rig.challanNo,
                         rig.additionalChallanNo,
                         rig.rigVehicle?.regNo,
@@ -1129,25 +1235,22 @@ export default function AgencyRegistrationPage() {
             const dateA = toDateOrNull(a.agencyRegistrationDate);
             const dateB = toDateOrNull(b.agencyRegistrationDate);
 
-            // Primary Sort: agencyRegistrationDate
-            if (dateA && dateB) {
-                if (dateA.getTime() !== dateB.getTime()) {
-                    return dateA.getTime() - dateB.getTime();
-                }
-            } else if (dateA) {
+            const dayA = dateA && isValid(dateA) ? format(dateA, 'yyyy-MM-dd') : '';
+            const dayB = dateB && isValid(dateB) ? format(dateB, 'yyyy-MM-dd') : '';
+
+            // Primary Sort: Calendar Date (yyyy-MM-dd)
+            if (dayA && dayB && dayA !== dayB) {
+                return dayA.localeCompare(dayB);
+            } else if (dayA && !dayB) {
                 return -1; // Entries with dates come before those without
-            } else if (dateB) {
+            } else if (!dayA && dayB) {
                 return 1;
             }
-            
-            const officeCode = officeAddress?.officeCode;
-            const regexPattern = officeCode ? `(?:/|${officeAddress.officeCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\/|GKT\/)` : `(?:/|GKT\/)`;
-            const regex = new RegExp(`${regexPattern}(\\d+)(?:\\(N\\)\/|\/)`);
 
-            // Secondary Sort: registration number
+            // Secondary Sort: registration number immediately following GWD/<OFFICE>/ or GWD/
             const getRegNumber = (regNo: string | null | undefined): number => {
                 if (!regNo) return 0;
-                const match = regNo.match(regex);
+                const match = regNo.match(/GWD\/(?:[A-Za-z0-9_-]+\/)?(\d+)/i);
                 return match && match[1] ? parseInt(match[1], 10) : 0;
             };
 
@@ -1158,12 +1261,17 @@ export default function AgencyRegistrationPage() {
                 return numA - numB;
             }
 
-            // Tertiary Sort: fileNo as a fallback
+            // Tertiary Sort: Fallback to exact timestamp if dates differ by time
+            if (dateA && dateB && dateA.getTime() !== dateB.getTime()) {
+                return dateA.getTime() - dateB.getTime();
+            }
+
+            // Quaternary Sort: fileNo as a fallback
             return (a.fileNo || '').localeCompare(b.fileNo || '');
         });
 
         return { filteredApplications: filtered };
-    }, [allAgencyApplications, searchTerm, officeAddress]);
+    }, [allAgencyApplications, searchTerm]);
 
   const completedApplications = useMemo(() => {
     return filteredApplications.filter((app: AgencyApplication) => app.status === 'Active');
@@ -1433,22 +1541,38 @@ export default function AgencyRegistrationPage() {
       toast({ title: "New Rig Added" });
     }
     closeDialog();
+
+    if (selectedApplicationId && selectedApplicationId !== 'new') {
+      setTimeout(() => {
+        form.handleSubmit(onSubmit, (err) => console.error("Validation error saving rig details:", err))();
+      }, 50);
+    }
   }
 
   const handleConfirmAgencyReg = (regData: any) => {
-    form.setValue('agencyRegistrationNo', regData.agencyRegistrationNo);
-    form.setValue('agencyRegistrationDate', regData.agencyRegistrationDate);
-    form.setValue('agencyApplicationFee', regData.agencyApplicationFee);
-    form.setValue('agencyApplicationPaymentDate', regData.agencyApplicationPaymentDate);
-    form.setValue('agencyApplicationChallanNo', regData.agencyApplicationChallanNo);
-    form.setValue('agencyRegistrationFee', regData.agencyRegistrationFee);
-    form.setValue('agencyPaymentDate', regData.agencyPaymentDate);
-    form.setValue('agencyChallanNo', regData.agencyChallanNo);
-    form.setValue('agencyAdditionalRegFee', regData.agencyAdditionalRegFee);
-    form.setValue('agencyAdditionalPaymentDate', regData.agencyAdditionalPaymentDate);
-    form.setValue('agencyAdditionalChallanNo', regData.agencyAdditionalChallanNo);
+    const opts = { shouldDirty: true, shouldTouch: true, shouldValidate: true };
+    form.setValue('agencyRegistrationNo', regData.agencyRegistrationNo, opts);
+    form.setValue('agencyRegistrationDate', regData.agencyRegistrationDate, opts);
+    form.setValue('agencyApplicationFee', regData.agencyApplicationFee, opts);
+    form.setValue('agencyApplicationPaymentDate', regData.agencyApplicationPaymentDate, opts);
+    form.setValue('agencyApplicationChallanNo', regData.agencyApplicationChallanNo, opts);
+    form.setValue('agencyApplicationChallanAmount', regData.agencyApplicationChallanAmount, opts);
+    form.setValue('agencyRegistrationFee', regData.agencyRegistrationFee, opts);
+    form.setValue('agencyPaymentDate', regData.agencyPaymentDate, opts);
+    form.setValue('agencyChallanNo', regData.agencyChallanNo, opts);
+    form.setValue('agencyChallanAmount', regData.agencyChallanAmount, opts);
+    form.setValue('agencyAdditionalRegFee', regData.agencyAdditionalRegFee, opts);
+    form.setValue('agencyAdditionalPaymentDate', regData.agencyAdditionalPaymentDate, opts);
+    form.setValue('agencyAdditionalChallanNo', regData.agencyAdditionalChallanNo, opts);
+    form.setValue('agencyAdditionalChallanAmount', regData.agencyAdditionalChallanAmount, opts);
     toast({ title: "Agency Registration Updated" });
     closeDialog();
+
+    if (selectedApplicationId && selectedApplicationId !== 'new') {
+      setTimeout(() => {
+        form.handleSubmit(onSubmit, (err) => console.error("Validation error saving agency reg:", err))();
+      }, 50);
+    }
   }
 
   const paginatedCompletedApplications = useMemo(() => {
@@ -1476,17 +1600,29 @@ export default function AgencyRegistrationPage() {
     setActiveTab(value);
   };
   
-  const { activeRigs, cancelledRigs } = useMemo(() => {
+  const { activeRigs, pendingRigs, cancelledRigs } = useMemo(() => {
     const active: { field: RigRegistrationType, originalIndex: number }[] = [];
+    const pending: { field: RigRegistrationType, originalIndex: number }[] = [];
     const cancelled: { field: RigRegistrationType, originalIndex: number }[] = [];
+
     rigFields.forEach((field, index) => {
       if (field.status === 'Cancelled') {
         cancelled.push({ field, originalIndex: index });
+        return;
+      }
+
+      // Check if rig is pending: unspecified type or missing payment date
+      const isTypeUnspecified = !field.typeOfRig || field.typeOfRig.trim() === '' || field.typeOfRig.trim() === 'Unspecified Type';
+      const isPaymentDateMissing = !field.paymentDate;
+
+      if (isTypeUnspecified || isPaymentDateMissing) {
+        pending.push({ field, originalIndex: index });
       } else {
         active.push({ field, originalIndex: index });
       }
     });
-    return { activeRigs: active, cancelledRigs: cancelled };
+
+    return { activeRigs: active, pendingRigs: pending, cancelledRigs: cancelled };
   }, [rigFields]);
   
   const handleExportExcel = useCallback(async () => {
@@ -1637,9 +1773,24 @@ export default function AgencyRegistrationPage() {
           );
       }
 
+      const hasPendingRigs = pendingRigs.length > 0;
       const hasCancelledRigs = cancelledRigs.length > 0;
-      const appFormsSectionNumber = hasCancelledRigs ? 6 : 5;
-      const remarksSectionNumber = hasCancelledRigs ? 7 : 6;
+      
+      let nextSec = 4;
+      const pendingRigsSectionNumber = hasPendingRigs ? nextSec++ : null;
+      const cancelledRigsSectionNumber = hasCancelledRigs ? nextSec++ : null;
+      const appFormsSectionNumber = nextSec++;
+      const remarksSectionNumber = nextSec++;
+
+      const hasExpiredActiveRigs = activeRigs.some(r => {
+        const lastDate = r.field.renewals && r.field.renewals.length > 0 
+          ? [...r.field.renewals].sort((a, b) => (toDateOrNull(b.renewalDate)?.getTime() ?? 0) - (toDateOrNull(a.renewalDate)?.getTime() ?? 0))[0]?.renewalDate 
+          : r.field.registrationDate;
+        const regDate = toDateOrNull(lastDate);
+        if (!regDate || !isValid(regDate)) return false;
+        const validity = new Date(addYears(regDate, 1).getTime() - (24 * 60 * 60 * 1000));
+        return new Date() > validity;
+      });
 
       return (
         <TooltipProvider>
@@ -1655,7 +1806,7 @@ export default function AgencyRegistrationPage() {
                 )}
                 className="space-y-6"
                 >
-                {/* Option C: Unified Administrative Timeline Track */}
+                {/* Unified Administrative Timeline Track */}
                 <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 ml-2.5 sm:ml-4 space-y-6 sm:space-y-8">
                   {/* 1. Application Details */}
                   <div className="relative">
@@ -1779,77 +1930,7 @@ export default function AgencyRegistrationPage() {
                     </Card>
                   </div>
 
-                  {/* 2. Application Fees */}
-                  <div className="relative">
-                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
-                      <div className="bg-emerald-50 dark:bg-emerald-950/60 p-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
-                        <Receipt className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <Card className="border-l-4 border-l-emerald-600 dark:border-l-emerald-500 shadow-xs">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
-                                  <Receipt className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-xl font-bold tracking-tight">2. Application Fees</CardTitle>
-                                    <CardDescription>Details of fees paid for registration applications.</CardDescription>
-                                </div>
-                            </div>
-                            {!isReadOnly && (
-                                <Button type="button" variant="outline" size="sm" onClick={() => openDialog('addFee', {})}>
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Fee
-                                </Button>
-                            )}
-                        </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {feeFields.length > 0 ? feeFields.map((field, index) => (
-                                <div key={field.id} className="p-4 border rounded-lg bg-secondary/20">
-                                    <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="font-bold text-sm text-muted-foreground">Sl. No. {index + 1}</div>
-                                        <h4 className="font-medium text-primary">{field.applicationFeeType || 'Not Set'}</h4>
-                                    </div>
-                                    {!isReadOnly && (
-                                        <div className="flex items-center gap-1">
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => openDialog('editFee', { index, fee: field })}>
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Edit Fee Details</p></TooltipContent>
-                                            </Tooltip>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setDeletingFeeIndex(index)}>
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Remove Fee</p></TooltipContent>
-                                            </Tooltip>
-                                        </div>
-                                    )}
-                                    </div>
-                                    <dl className="grid md:grid-cols-3 gap-4 border-t pt-2">
-                                    <DetailRow label="Type of Application" value={field.applicationFeeType} />
-                                    <DetailRow label="Fees Amount" value={field.applicationFeeAmount} />
-                                    <DetailRow label="Payment Date" value={field.applicationFeePaymentDate} />
-                                    <DetailRow label="Challan No." value={field.applicationFeeChallanNo} />
-                                    <DetailRow label="Purpose" value={field.rigNumber || 'Agency'} />
-                                    </dl>
-                                </div>
-                            )) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">No application fees added.</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-                  </div>
-
-                  {/* 3. Agency Registration */}
+                  {/* 2. Agency Registration */}
                   <div className="relative">
                     <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
                       <div className="bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded-full text-amber-600 dark:text-amber-400">
@@ -1863,8 +1944,8 @@ export default function AgencyRegistrationPage() {
                                   <Award className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-xl font-bold tracking-tight">3. Agency Registration</CardTitle>
-                                    <CardDescription>Main registration certificate details for the agency.</CardDescription>
+                                    <CardTitle className="text-xl font-bold tracking-tight">2. Agency Registration</CardTitle>
+                                    <CardDescription>Main registration certificate and associated fees for the agency.</CardDescription>
                                 </div>
                             </div>
                             {!isReadOnly && (
@@ -1881,35 +1962,53 @@ export default function AgencyRegistrationPage() {
                             <DetailRow label="Application Fee" value={form.watch('agencyApplicationFee')} />
                             <DetailRow label="App. Payment Date" value={form.watch('agencyApplicationPaymentDate')} />
                             <DetailRow label="App. Challan No." value={form.watch('agencyApplicationChallanNo')} />
+                            {form.watch('agencyApplicationChallanAmount') !== undefined && form.watch('agencyApplicationChallanAmount') !== null && (
+                              <DetailRow label="App. Challan Amount" value={form.watch('agencyApplicationChallanAmount')} />
+                            )}
                             <div className="col-span-full border-t pt-4 mt-2"></div>
                             <DetailRow label="Reg. Fee" value={form.watch('agencyRegistrationFee')} />
                             <DetailRow label="Payment Date" value={form.watch('agencyPaymentDate')} />
                             <DetailRow label="Challan No." value={form.watch('agencyChallanNo')} />
+                            {form.watch('agencyChallanAmount') !== undefined && form.watch('agencyChallanAmount') !== null && (
+                              <DetailRow label="Challan Amount" value={form.watch('agencyChallanAmount')} />
+                            )}
                             <div className="col-span-full border-t pt-4 mt-2"></div>
                             <DetailRow label="Additional Reg. Fee" value={form.watch('agencyAdditionalRegFee')} />
                             <DetailRow label="Additional Payment Date" value={form.watch('agencyAdditionalPaymentDate')} />
                             <DetailRow label="Additional Chalan No." value={form.watch('agencyAdditionalChallanNo')} />
+                            {form.watch('agencyAdditionalChallanAmount') !== undefined && form.watch('agencyAdditionalChallanAmount') !== null && (
+                              <DetailRow label="Additional Challan Amount" value={form.watch('agencyAdditionalChallanAmount')} />
+                            )}
                             </dl>
                         </CardContent>
                     </Card>
                   </div>
                 
-                  {/* 4. Rig Registrations */}
+                  {/* 3. Rig Registrations */}
                   <div className="relative">
                     <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
-                      <div className="bg-purple-50 dark:bg-purple-950/60 p-1.5 rounded-full text-purple-600 dark:text-purple-400">
+                      <div className={cn(
+                        "p-1.5 rounded-full",
+                        hasExpiredActiveRigs ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                      )}>
                         <Truck className="w-4 h-4" />
                       </div>
                     </div>
-                    <Card className="border-l-4 border-l-purple-600 dark:border-l-purple-500 shadow-xs">
+                    <Card className={cn(
+                      "border-l-4 shadow-xs",
+                      hasExpiredActiveRigs ? "border-l-amber-600 dark:border-l-amber-500" : "border-l-emerald-600 dark:border-l-emerald-500"
+                    )}>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+                                <div className={cn(
+                                  "p-2 rounded-lg",
+                                  hasExpiredActiveRigs ? "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400"
+                                )}>
                                   <Truck className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-xl font-bold tracking-tight">4. Rig Registrations ({activeRigs.length} Active)</CardTitle>
-                                    <CardDescription>Manage individual rig details, renewals, and status.</CardDescription>
+                                    <CardTitle className="text-xl font-bold tracking-tight">3. Rig Registrations ({activeRigs.length} Active)</CardTitle>
+                                    <CardDescription>Manage individual certified rig details, renewals, and validity.</CardDescription>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1960,13 +2059,57 @@ export default function AgencyRegistrationPage() {
                                 />
                                 ))}
                             </Accordion>
-                            {!isReadOnly && canEdit && activeRigCount >= 3 && <p className="text-sm text-muted-foreground mt-4 text-center">A maximum of 3 active rigs are allowed.</p>}
+                            {!isReadOnly && canEdit && nonCancelledRigCount >= 3 && <p className="text-sm text-muted-foreground mt-4 text-center">A maximum of 3 active/pending rigs are allowed.</p>}
                             {activeRigs.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No active rigs registered.</p>}
                         </CardContent>
                     </Card>
                   </div>
+
+                  {/* Pending Rigs (Section 4, if any) */}
+                  {hasPendingRigs && (
+                    <div className="relative">
+                      <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                        <div className="bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-full text-blue-600 dark:text-blue-400">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <Card className="border-l-4 border-l-blue-600 dark:border-l-blue-500 shadow-xs">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                                  <Clock className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{pendingRigsSectionNumber}. Pending Rigs ({pendingRigs.length})</CardTitle>
+                                    <CardDescription>Rigs with unspecified type or incomplete registration fee details.</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Accordion type="multiple" className="w-full space-y-2">
+                            {pendingRigs.map(({ field, originalIndex }, displayIndex) => (
+                                <RigAccordionItem
+                                key={field.id}
+                                field={field}
+                                index={originalIndex}
+                                displayIndex={displayIndex}
+                                isReadOnly={isReadOnly}
+                                onRemove={canEdit ? removeRig : undefined}
+                                openDialog={openDialog}
+                                onEditRenewal={handleEditRenewal}
+                                onDeleteRenewal={handleDeleteRenewal}
+                                form={form}
+                                applicationId={selectedApplicationId!}
+                                isPendingRig={true}
+                                />
+                            ))}
+                            </Accordion>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                     
-                  {/* 5. Cancelled Rigs (if any) */}
+                  {/* Cancelled Rigs (if any) */}
                   {hasCancelledRigs && (
                     <div className="relative">
                       <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
@@ -1981,7 +2124,7 @@ export default function AgencyRegistrationPage() {
                                   <AlertOctagon className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-xl font-bold tracking-tight text-destructive">5. Cancelled Rigs ({cancelledRigs.length})</CardTitle>
+                                    <CardTitle className="text-xl font-bold tracking-tight text-destructive">{cancelledRigsSectionNumber}. Cancelled Rigs ({cancelledRigs.length})</CardTitle>
                                     <CardDescription>Decommissioned or cancelled rig registrations.</CardDescription>
                                 </div>
                             </div>
@@ -2009,7 +2152,7 @@ export default function AgencyRegistrationPage() {
                     </div>
                   )}
 
-                  {/* 6. Application Forms */}
+                  {/* Application Forms */}
                   <div className="relative">
                     <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
                       <div className="bg-indigo-50 dark:bg-indigo-950/60 p-1.5 rounded-full text-indigo-600 dark:text-indigo-400">
@@ -2053,7 +2196,7 @@ export default function AgencyRegistrationPage() {
                     </Card>
                   </div>
 
-                  {/* 7. Remarks */}
+                  {/* Remarks */}
                   <div className="relative">
                     <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
                       <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full text-slate-600 dark:text-slate-400">
@@ -2407,13 +2550,35 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
         agencyApplicationFee: initialData?.agencyApplicationFee,
         agencyApplicationPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyApplicationPaymentDate)),
         agencyApplicationChallanNo: initialData?.agencyApplicationChallanNo ?? '',
+        agencyApplicationChallanAmount: initialData?.agencyApplicationChallanAmount,
         agencyRegistrationFee: initialData?.agencyRegistrationFee,
         agencyPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyPaymentDate)),
         agencyChallanNo: initialData?.agencyChallanNo ?? '',
+        agencyChallanAmount: initialData?.agencyChallanAmount,
         agencyAdditionalRegFee: initialData?.agencyAdditionalRegFee,
         agencyAdditionalPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyAdditionalPaymentDate)),
         agencyAdditionalChallanNo: initialData?.agencyAdditionalChallanNo ?? '',
+        agencyAdditionalChallanAmount: initialData?.agencyAdditionalChallanAmount,
     });
+
+    useEffect(() => {
+        setData({
+            agencyRegistrationNo: initialData?.agencyRegistrationNo ?? '',
+            agencyRegistrationDate: formatDateForInput(toDateOrNull(initialData?.agencyRegistrationDate)),
+            agencyApplicationFee: initialData?.agencyApplicationFee,
+            agencyApplicationPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyApplicationPaymentDate)),
+            agencyApplicationChallanNo: initialData?.agencyApplicationChallanNo ?? '',
+            agencyApplicationChallanAmount: initialData?.agencyApplicationChallanAmount,
+            agencyRegistrationFee: initialData?.agencyRegistrationFee,
+            agencyPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyPaymentDate)),
+            agencyChallanNo: initialData?.agencyChallanNo ?? '',
+            agencyChallanAmount: initialData?.agencyChallanAmount,
+            agencyAdditionalRegFee: initialData?.agencyAdditionalRegFee,
+            agencyAdditionalPaymentDate: formatDateForInput(toDateOrNull(initialData?.agencyAdditionalPaymentDate)),
+            agencyAdditionalChallanNo: initialData?.agencyAdditionalChallanNo ?? '',
+            agencyAdditionalChallanAmount: initialData?.agencyAdditionalChallanAmount,
+        });
+    }, [initialData]);
 
     return (
         <>
@@ -2436,10 +2601,18 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
 
                         <div className="space-y-4 rounded-lg border p-4">
                             <h4 className="font-medium text-primary">Application Fee Details</h4>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
                                 <div className="space-y-2">
                                 <Label htmlFor="agencyApplicationFee">Application Fee</Label>
-                                <Input id="agencyApplicationFee" type="number" value={data.agencyApplicationFee ?? ''} onChange={(e) => setData(d => ({ ...d, agencyApplicationFee: e.target.value === '' ? undefined : +e.target.value }))} />
+                                <Input 
+                                    id="agencyApplicationFee" 
+                                    type="number" 
+                                    value={data.agencyApplicationFee ?? ''} 
+                                    onChange={(e) => {
+                                        const val = e.target.value === '' ? undefined : +e.target.value;
+                                        setData(d => ({ ...d, agencyApplicationFee: val, agencyApplicationChallanAmount: d.agencyApplicationChallanAmount ?? val }));
+                                    }} 
+                                />
                                 </div>
                                 <div className="space-y-2">
                                 <Label htmlFor="agencyApplicationPaymentDate">Payment Date</Label>
@@ -2449,15 +2622,27 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
                                 <Label htmlFor="agencyApplicationChallanNo">Challan No.</Label>
                                 <Input id="agencyApplicationChallanNo" value={data.agencyApplicationChallanNo} onChange={(e) => setData(d => ({ ...d, agencyApplicationChallanNo: e.target.value }))} />
                                 </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="agencyApplicationChallanAmount">Challan Amount</Label>
+                                <Input id="agencyApplicationChallanAmount" type="number" value={data.agencyApplicationChallanAmount ?? ''} onChange={(e) => setData(d => ({ ...d, agencyApplicationChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} />
+                                </div>
                             </div>
                         </div>
 
                         <div className="space-y-4 rounded-lg border p-4">
                             <h4 className="font-medium text-primary">Registration Fee Details</h4>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
                                 <div className="space-y-2">
                                 <Label htmlFor="agencyRegistrationFee">Reg. Fee</Label>
-                                <Input id="agencyRegistrationFee" type="number" value={data.agencyRegistrationFee ?? ''} onChange={(e) => setData(d => ({ ...d, agencyRegistrationFee: e.target.value === '' ? undefined : +e.target.value }))} />
+                                <Input 
+                                    id="agencyRegistrationFee" 
+                                    type="number" 
+                                    value={data.agencyRegistrationFee ?? ''} 
+                                    onChange={(e) => {
+                                        const val = e.target.value === '' ? undefined : +e.target.value;
+                                        setData(d => ({ ...d, agencyRegistrationFee: val, agencyChallanAmount: d.agencyChallanAmount ?? val }));
+                                    }} 
+                                />
                                 </div>
                                 <div className="space-y-2">
                                 <Label htmlFor="agencyPaymentDate">Payment Date</Label>
@@ -2467,14 +2652,26 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
                                 <Label htmlFor="agencyChallanNo">Challan No.</Label>
                                 <Input id="agencyChallanNo" value={data.agencyChallanNo} onChange={(e) => setData(d => ({ ...d, agencyChallanNo: e.target.value }))} />
                                 </div>
+                                <div className="space-y-2">
+                                <Label htmlFor="agencyChallanAmount">Challan Amount</Label>
+                                <Input id="agencyChallanAmount" type="number" value={data.agencyChallanAmount ?? ''} onChange={(e) => setData(d => ({ ...d, agencyChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} />
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-4 rounded-lg border p-4">
                             <h4 className="font-medium text-primary">Additional Registration Fee</h4>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
                                     <div className="space-y-2">
                                     <Label htmlFor="agencyAdditionalRegFee">Additional Reg. Fee</Label>
-                                    <Input id="agencyAdditionalRegFee" type="number" value={data.agencyAdditionalRegFee ?? ''} onChange={(e) => setData(d => ({ ...d, agencyAdditionalRegFee: e.target.value === '' ? undefined : +e.target.value }))} />
+                                    <Input 
+                                        id="agencyAdditionalRegFee" 
+                                        type="number" 
+                                        value={data.agencyAdditionalRegFee ?? ''} 
+                                        onChange={(e) => {
+                                            const val = e.target.value === '' ? undefined : +e.target.value;
+                                            setData(d => ({ ...d, agencyAdditionalRegFee: val, agencyAdditionalChallanAmount: d.agencyAdditionalChallanAmount ?? val }));
+                                        }} 
+                                    />
                                     </div>
                                     <div className="space-y-2">
                                     <Label htmlFor="agencyAdditionalPaymentDate">Payment Date</Label>
@@ -2483,6 +2680,10 @@ function AgencyRegistrationDialogContent({ initialData, onConfirm, onCancel }: {
                                     <div className="space-y-2">
                                     <Label htmlFor="agencyAdditionalChallanNo">Challan No.</Label>
                                     <Input id="agencyAdditionalChallanNo" value={data.agencyAdditionalChallanNo} onChange={(e) => setData(d => ({ ...d, agencyAdditionalChallanNo: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                    <Label htmlFor="agencyAdditionalChallanAmount">Challan Amount</Label>
+                                    <Input id="agencyAdditionalChallanAmount" type="number" value={data.agencyAdditionalChallanAmount ?? ''} onChange={(e) => setData(d => ({ ...d, agencyAdditionalChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} />
                                     </div>
                                 </div>
                         </div>
@@ -2914,10 +3115,26 @@ function CancellationDialogContent({ initialData, onConfirm, onCancel }: { initi
     );
 }
 
+const prepareRigDataForDialog = (rig: RigRegistrationType): RigRegistrationType => {
+    if (!rig) return rig;
+    return {
+        ...rig,
+        registrationDate: formatDateForInput(rig.registrationDate),
+        applicationPaymentDate: formatDateForInput(rig.applicationPaymentDate),
+        paymentDate: formatDateForInput(rig.paymentDate),
+        additionalPaymentDate: formatDateForInput(rig.additionalPaymentDate),
+    };
+};
+
 function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isReadOnly }: { form: UseFormReturn<any>, rigIndex?: number, onConfirm: (data: any) => void, onCancel: () => void, isAdding?: boolean, isReadOnly: boolean }) {
     const { allStaffMembers } = useDataStore();
     const currentRigData = rigIndex !== undefined ? form.getValues(`rigs.${rigIndex}`) : createDefaultRig();
-    const [localRigData, setLocalRigData] = useState<RigRegistrationType>(currentRigData);
+    const [localRigData, setLocalRigData] = useState<RigRegistrationType>(() => prepareRigDataForDialog(currentRigData));
+
+    useEffect(() => {
+        const freshData = rigIndex !== undefined ? form.getValues(`rigs.${rigIndex}`) : createDefaultRig();
+        setLocalRigData(prepareRigDataForDialog(freshData));
+    }, [rigIndex, form, isAdding]);
 
     const officerOptions = useMemo<InspectionOfficerOption[]>(() => {
         const allowedDesignations = [
@@ -2966,7 +3183,8 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
     );
 
     const handleConfirm = () => {
-        onConfirm(localRigData);
+        const processed = processDataForSaving(localRigData);
+        onConfirm(processed);
     };
 
     return (
@@ -2980,91 +3198,234 @@ function RigDetailsDialog({ form, rigIndex, onConfirm, onCancel, isAdding, isRea
             <div className="flex-1 min-h-0">
                 <ScrollArea className="h-full px-6 py-4 no-scrollbar">
                     <div className="space-y-6">
-                        <Card>
-                            <CardHeader><CardTitle>Registration Details</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <FormItem><FormLabel>Rig Reg. No.</FormLabel><Input value={localRigData.rigRegistrationNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, rigRegistrationNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem>
-                                        <FormLabel>Type of Rig</FormLabel>
-                                        <Select onValueChange={(value) => setLocalRigData(d => ({ ...d, typeOfRig: value as RigType | null }))} value={localRigData.typeOfRig ?? ''} disabled={isReadOnly}>
-                                            <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
-                                            <SelectContent>{rigTypeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                    <FormItem>
-                                        <FormLabel>Type of Rig in Malayalam</FormLabel>
-                                        <Select onValueChange={(value) => setLocalRigData(d => ({ ...d, typeOfRigMalayalam: value === 'none' ? null : value }))} value={localRigData.typeOfRigMalayalam ?? ''} disabled={isReadOnly}>
-                                            <SelectTrigger><SelectValue placeholder="Select Type (Malayalam)" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">-- Select --</SelectItem>
-                                                {agencyRigTypeMalayalamOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                    <FormItem><FormLabel>Last Reg/Renewal Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.registrationDate)} onChange={e => setLocalRigData(d => ({ ...d, registrationDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
-                                </div>
-                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <FormItem><FormLabel>Reg. Fee</FormLabel><Input type="number" value={localRigData.registrationFee ?? ""} onChange={e => setLocalRigData(d => ({ ...d, registrationFee: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Payment Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.paymentDate)} onChange={e => setLocalRigData(d => ({ ...d, paymentDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Challan No.</FormLabel><Input value={localRigData.challanNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, challanNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Challan Amount</FormLabel><Input type="number" value={localRigData.challanAmount ?? ""} onChange={e => setLocalRigData(d => ({ ...d, challanAmount: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                </div>
-                                <Separator />
-                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <FormItem><FormLabel>Additional Reg. Fee</FormLabel><Input type="number" value={localRigData.additionalRegistrationFee ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalRegistrationFee: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Payment Date</FormLabel><Input type="date" value={formatDateForInput(localRigData.additionalPaymentDate)} onChange={e => setLocalRigData(d => ({ ...d, additionalPaymentDate: e.target.value ? new Date(e.target.value) : null }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Challan No.</FormLabel><Input value={localRigData.additionalChallanNo ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalChallanNo: e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                    <FormItem><FormLabel>Challan Amount</FormLabel><Input type="number" value={localRigData.additionalChallanAmount ?? ""} onChange={e => setLocalRigData(d => ({ ...d, additionalChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} readOnly={isReadOnly}/></FormItem>
-                                </div>
-                                <Separator />
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <FormItem className="md:col-span-2">
-                                        <FormLabel>Officer Assigned for Inspection</FormLabel>
-                                        <Select 
-                                            value={selectedRigOption ? selectedRigOption.id : (currentOfficerVal || 'none_selected')} 
-                                            onValueChange={(val) => {
-                                                if (val === 'none_selected') {
-                                                    setLocalRigData(d => ({ 
-                                                        ...d, 
-                                                        inspectingOfficer: '',
-                                                        inspectingOfficerName: '',
-                                                        inspectingOfficerDesig: ''
-                                                    }));
-                                                    return;
-                                                }
-                                                const selected = officerOptions.find(s => s.id === val || s.nameMalayalam === val || s.nameEnglish === val);
-                                                if (selected) {
-                                                    setLocalRigData(d => ({ 
-                                                        ...d, 
-                                                        inspectingOfficer: selected.nameMalayalam,
-                                                        inspectingOfficerName: selected.nameMalayalam,
-                                                        inspectingOfficerDesig: selected.designationMalayalam
-                                                    }));
-                                                } else {
-                                                    setLocalRigData(d => ({ 
-                                                        ...d, 
-                                                        inspectingOfficer: val,
-                                                        inspectingOfficerName: val
-                                                    }));
-                                                }
-                                            }}
-                                            disabled={isReadOnly}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Officer Assigned for Inspection" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none_selected">-- None / Leave Blank --</SelectItem>
-                                                {officerOptions.map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>
-                                                        {s.displayLabel}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        {/* Section 1: Rig Registration Details */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h4 className="font-medium text-primary">Rig Registration Details</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+                                <FormItem>
+                                    <FormLabel>Rig Reg. No.</FormLabel>
+                                    <Input 
+                                        value={localRigData.rigRegistrationNo ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, rigRegistrationNo: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Type of Rig</FormLabel>
+                                    <Select 
+                                        onValueChange={(value) => setLocalRigData(d => ({ ...d, typeOfRig: value as RigType | null }))} 
+                                        value={localRigData.typeOfRig ?? ''} 
+                                        disabled={isReadOnly}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+                                        <SelectContent>{rigTypeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Type of Rig in Malayalam</FormLabel>
+                                    <Select 
+                                        onValueChange={(value) => setLocalRigData(d => ({ ...d, typeOfRigMalayalam: value === 'none' ? null : value }))} 
+                                        value={localRigData.typeOfRigMalayalam ?? ''} 
+                                        disabled={isReadOnly}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select Type (Malayalam)" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">-- Select --</SelectItem>
+                                            {agencyRigTypeMalayalamOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Last Reg/Renewal Date</FormLabel>
+                                    <Input 
+                                        type="date" 
+                                        value={(localRigData.registrationDate as string) || ''} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, registrationDate: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                            </div>
+                            <div className="pt-2">
+                                <FormItem>
+                                    <FormLabel>Officer Assigned for Inspection</FormLabel>
+                                    <Select 
+                                        value={selectedRigOption ? selectedRigOption.id : (currentOfficerVal || 'none_selected')} 
+                                        onValueChange={(val) => {
+                                            if (val === 'none_selected') {
+                                                setLocalRigData(d => ({ 
+                                                    ...d, 
+                                                    inspectingOfficer: '',
+                                                    inspectingOfficerName: '',
+                                                    inspectingOfficerDesig: ''
+                                                }));
+                                                return;
+                                            }
+                                            const selected = officerOptions.find(s => s.id === val || s.nameMalayalam === val || s.nameEnglish === val);
+                                            if (selected) {
+                                                setLocalRigData(d => ({ 
+                                                    ...d, 
+                                                    inspectingOfficer: selected.nameMalayalam,
+                                                    inspectingOfficerName: selected.nameMalayalam,
+                                                    inspectingOfficerDesig: selected.designationMalayalam
+                                                }));
+                                            } else {
+                                                setLocalRigData(d => ({ 
+                                                    ...d, 
+                                                    inspectingOfficer: val,
+                                                    inspectingOfficerName: val
+                                                }));
+                                            }
+                                        }}
+                                        disabled={isReadOnly}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select Officer Assigned for Inspection" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none_selected">-- None / Leave Blank --</SelectItem>
+                                            {officerOptions.map(s => (
+                                                <SelectItem key={s.id} value={s.id}>
+                                                    {s.displayLabel}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Application Fee Details (NEW) */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h4 className="font-medium text-primary">Application Fee Details</h4>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
+                                <FormItem>
+                                    <FormLabel>Application Fee</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.applicationFee ?? ""} 
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? undefined : +e.target.value;
+                                            setLocalRigData(d => ({ ...d, applicationFee: val, applicationChallanAmount: d.applicationChallanAmount ?? val }));
+                                        }} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Payment Date</FormLabel>
+                                    <Input 
+                                        type="date" 
+                                        value={(localRigData.applicationPaymentDate as string) || ''} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, applicationPaymentDate: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan No.</FormLabel>
+                                    <Input 
+                                        value={localRigData.applicationChallanNo ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, applicationChallanNo: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan Amount</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.applicationChallanAmount ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, applicationChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Registration Fee Details */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h4 className="font-medium text-primary">Registration Fee Details</h4>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
+                                <FormItem>
+                                    <FormLabel>Reg. Fee</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.registrationFee ?? ""} 
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? undefined : +e.target.value;
+                                            setLocalRigData(d => ({ ...d, registrationFee: val, challanAmount: d.challanAmount ?? val }));
+                                        }} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Payment Date</FormLabel>
+                                    <Input 
+                                        type="date" 
+                                        value={(localRigData.paymentDate as string) || ''} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, paymentDate: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan No.</FormLabel>
+                                    <Input 
+                                        value={localRigData.challanNo ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, challanNo: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan Amount</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.challanAmount ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, challanAmount: e.target.value === '' ? undefined : +e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                            </div>
+                        </div>
+
+                        {/* Section 4: Additional Registration Fee */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h4 className="font-medium text-primary">Additional Registration Fee</h4>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-4 border-t">
+                                <FormItem>
+                                    <FormLabel>Additional Reg. Fee</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.additionalRegistrationFee ?? ""} 
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? undefined : +e.target.value;
+                                            setLocalRigData(d => ({ ...d, additionalRegistrationFee: val, additionalChallanAmount: d.additionalChallanAmount ?? val }));
+                                        }} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Payment Date</FormLabel>
+                                    <Input 
+                                        type="date" 
+                                        value={(localRigData.additionalPaymentDate as string) || ''} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, additionalPaymentDate: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan No.</FormLabel>
+                                    <Input 
+                                        value={localRigData.additionalChallanNo ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, additionalChallanNo: e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Challan Amount</FormLabel>
+                                    <Input 
+                                        type="number" 
+                                        value={localRigData.additionalChallanAmount ?? ""} 
+                                        onChange={e => setLocalRigData(d => ({ ...d, additionalChallanAmount: e.target.value === '' ? undefined : +e.target.value }))} 
+                                        readOnly={isReadOnly}
+                                    />
+                                </FormItem>
+                            </div>
+                        </div>
                         
                         <Card>
                             <CardHeader><CardTitle>Optional Details</CardTitle></CardHeader>

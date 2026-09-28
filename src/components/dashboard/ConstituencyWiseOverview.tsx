@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import type { DataEntryFormData, SitePurpose, Constituency, SiteDetailFormData, SiteWorkStatus } from '@/lib/schemas';
 import { constituencyOptions, sitePurposeOptions } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
-import { format, parse, startOfDay, endOfDay, isWithinInterval, isValid } from 'date-fns';
+import { format, parse, parseISO, startOfDay, endOfDay, isWithinInterval, isValid } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { MapPin, XCircle, CheckCircle } from 'lucide-react';
 

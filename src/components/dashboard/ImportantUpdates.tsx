@@ -98,15 +98,15 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
             fileNo: entry.fileNo || 'N/A',
             applicantName: entry.applicantName || 'Unnamed Applicant',
             siteName: site.nameOfSite || `Site #${sIdx + 1}`,
-            purpose: site.purpose || entry.purpose || 'N/A',
+            purpose: site.purpose || 'N/A',
             workStatus: site.workStatus,
-            workType: entry.workType,
-            category: (entry as any).category,
-            constituency: site.constituency || entry.constituency,
-            district: entry.district,
-            lsgName: site.lsgName,
-            estimateAmount: site.siteEstimateAmount || entry.totalEstimateAmount,
-            remarks: site.workRemarks || site.drillingRemarks || entry.remarks,
+            workType: (entry as any).workType || (entry as any).applicationType,
+            category: entry.category ?? undefined,
+            constituency: site.constituency || entry.constituency || undefined,
+            district: (entry as any).district || (site as any).district || undefined,
+            lsgName: (site as any).lsgName || (site as any).nameOfLSGD || undefined,
+            estimateAmount: (site as any).estimateAmount || (entry as any).estimateAmount,
+            remarks: site.workRemarks || (site as any).drillingRemarks || entry.remarks || undefined,
             type: 'work',
           });
         }
@@ -115,13 +115,13 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
 
     if (user?.role === 'supervisor') {
       rejectedUpdates.forEach(update => {
-        const firstSite = update.updatedSiteDetails?.[0];
+        const firstSite = update.updatedSiteDetails?.[0] as any;
         items.push({
           key: `rejection-${update.id}`,
-          id: update.fileId,
+          id: (update as any).fileId || update.fileNo,
           fileNo: update.fileNo || 'N/A',
           applicantName: 'Supervisor Update',
-          siteName: firstSite?.nameOfSite || 'Updated Site',
+          siteName: firstSite?.nameOfSite || firstSite?.nameOfWork || 'Updated Site',
           purpose: firstSite?.purpose || 'N/A',
           workStatus: 'Rejected',
           type: 'rejection',

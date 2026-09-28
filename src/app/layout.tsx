@@ -74,6 +74,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window !== 'undefined') {
+                  const originalError = console.error;
+                  console.error = function(...args) {
+                    if (typeof args[0] === 'string' && (args[0].includes('Failed to fetch RSC payload') || args[0].includes('Falling back to browser navigation'))) {
+                      console.warn(...args);
+                      return;
+                    }
+                    originalError.apply(console, args);
+                  };
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
         {children}
         <Toaster />

@@ -102,6 +102,11 @@ const nextConfig = {
   webpack: (config, { dev }) => {
     if (!dev) {
       config.devtool = false;
+    } else {
+      config.devtool = 'eval-cheap-module-source-map';
+      if (config.output) {
+        config.output.chunkLoadTimeout = 300000;
+      }
     }
     return config;
   },

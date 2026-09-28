@@ -791,7 +791,11 @@ export default function RigChecklistPrintPage() {
                             const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
                             const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
 
-                            const rigRegFee = (application.applicationFees || []).find(
+                            const rigRegFee = (rig.applicationFee ? {
+                                applicationFeeAmount: rig.applicationFee,
+                                applicationFeePaymentDate: rig.applicationPaymentDate,
+                                applicationFeeChallanNo: rig.applicationChallanNo
+                            } : null) || (application.applicationFees || []).find(
                                 f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
                             ) || (application.applicationFees || []).find(
                                 f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
@@ -877,7 +881,11 @@ export default function RigChecklistPrintPage() {
                     const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
                     const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
 
-                    const rigRegFee = (application.applicationFees || []).find(
+                    const rigRegFee = (rig.applicationFee ? {
+                        applicationFeeAmount: rig.applicationFee,
+                        applicationFeePaymentDate: rig.applicationPaymentDate,
+                        applicationFeeChallanNo: rig.applicationChallanNo
+                    } : null) || (application.applicationFees || []).find(
                         f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
                     ) || (application.applicationFees || []).find(
                         f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
@@ -1456,7 +1464,11 @@ export default function RigChecklistPrintPage() {
                                             const currentRigActiveIndex = activeRigsList.findIndex(r => r.id === rig.id);
                                             const currentRigLabel = currentRigActiveIndex !== -1 ? `Rig #${currentRigActiveIndex + 1}` : '';
 
-                                            const rigRegFee = (application.applicationFees || []).find(
+                                            const rigRegFee = (rig.applicationFee ? {
+                                                applicationFeeAmount: rig.applicationFee,
+                                                applicationFeePaymentDate: rig.applicationPaymentDate,
+                                                applicationFeeChallanNo: rig.applicationChallanNo
+                                            } : null) || (application.applicationFees || []).find(
                                                 f => f.applicationFeeType === "Rig Registration" && f.rigNumber === currentRigLabel
                                             ) || (application.applicationFees || []).find(
                                                 f => f.applicationFeeType === "Rig Registration" && (!f.rigNumber || f.rigNumber === 'none')
