@@ -476,8 +476,11 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
 
             if (entryModified) {
                 let resolvedFileStatus = entry.fileStatus;
-                const hasWip = updatedSites.some(s => s.workStatus === "Work in Progress");
-                const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
+                const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
+                const activeSites = updatedSites.filter(s => !isClosedSite(s));
+                const sitesForStatus = activeSites.length > 0 ? activeSites : updatedSites;
+                const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress");
+                const hasTendered = sitesForStatus.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
                 if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {
                     resolvedFileStatus = "Work Initiated";
                 } else if (hasTendered && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection"].includes(entry.fileStatus || '')) {
@@ -588,10 +591,14 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                 return currentSite;
             });
 
+            const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
+            const activeSites = updatedSites.filter(s => !isClosedSite(s));
+            const sitesForStatus = activeSites.length > 0 ? activeSites : updatedSites;
+
             const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Pending", "VES Pending"];
-            const hasWip = updatedSites.some(s => s.workStatus === "Work in Progress" || s.workStatus === "Work Initiated");
-            const hasTendered = updatedSites.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued" || s.workStatus === "Department Rig Allotted");
-            const allProcessing = updatedSites.length > 0 && updatedSites.every(s => processingGroup.includes(s.workStatus || ''));
+            const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress" || s.workStatus === "Work Initiated");
+            const hasTendered = sitesForStatus.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued" || s.workStatus === "Department Rig Allotted");
+            const allProcessing = sitesForStatus.length > 0 && sitesForStatus.every(s => processingGroup.includes(s.workStatus || ''));
 
             if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {
                 resolvedFileStatus = "Work Initiated";

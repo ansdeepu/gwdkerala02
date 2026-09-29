@@ -1292,7 +1292,22 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   useEffect(() => {
     if (!watchedSiteDetails || watchedSiteDetails.length === 0) return;
 
-    const allStatuses = watchedSiteDetails.map(s => s.workStatus).filter(Boolean);
+    const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
+
+    // 1. Check for File Closed (Financial Closure: all sites are closed)
+    const allSitesClosed = watchedSiteDetails.length > 0 && watchedSiteDetails.every(isClosedSite);
+    if (allSitesClosed) {
+        if (getValues('fileStatus') !== 'File Closed') {
+            setValue('fileStatus', 'File Closed', { shouldDirty: false });
+        }
+        return;
+    }
+
+    // Filter to ACTIVE SITES only for determining operational File Status
+    const activeSites = watchedSiteDetails.filter(s => !isClosedSite(s));
+    const targetSites = activeSites.length > 0 ? activeSites : watchedSiteDetails;
+
+    const allStatuses = targetSites.map(s => s.workStatus).filter(Boolean);
     if (allStatuses.length === 0) return;
 
     const isSpecialWorkType = workTypeContext === 'public' || workTypeContext === 'collector' || workTypeContext === 'private' || workTypeContext === 'planFund';
@@ -1308,26 +1323,15 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     const completionGroup = ["Work Failed", "Work Completed", "Completed"];
     const disputeGroup = ["Work Cancelled", "Refund Pending", "To be Refunded"];
     
-    const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
-    
     const allFinalGroup = [...completionGroup, ...disputeGroup];
     const partialIndicators = [...allFinalGroup, "Work in Progress", "Work Initiated"];
 
     const allIn = (list: any[], group: string[]) => list.length > 0 && list.every(s => group.includes(s));
     const hasAny = (list: any[], group: string[]) => list.some(s => group.includes(s));
 
-    // 1. Check for File Closed (Financial Closure)
-    const allSitesClosed = watchedSiteDetails.every(isClosedSite);
-    if (allSitesClosed) {
-        if (getValues('fileStatus') !== 'File Closed') {
-            setValue('fileStatus', 'File Closed', { shouldDirty: false });
-        }
-        return;
-    }
-
     let calculatedStatus: any = watch('fileStatus');
 
-    // 2. Check for Final States (all sites completed/failed/cancelled/refund)
+    // 2. Check for Final States among active sites (all active sites completed/failed/cancelled/refund)
     if (allIn(allStatuses, allFinalGroup)) {
         const hasCompletion = hasAny(allStatuses, completionGroup);
         const hasDispute = hasAny(allStatuses, disputeGroup);
@@ -1340,22 +1344,22 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             calculatedStatus = "Fully Disputed";
         }
     } 
-    // 3. Priority-based status mapping for mixed ongoing states:
-    // A. Mixed Completed and Ongoing -> Partially Completed
+    // 3. Priority-based status mapping for active sites:
+    // A. Mixed Completed and Ongoing among active sites -> Partially Completed
     else if (hasAny(allStatuses, allFinalGroup)) {
         calculatedStatus = "Partially Completed";
     }
-    // B. Execution Stage (any site in executionGroup) -> Work Initiated
+    // B. Execution Stage (any active site in executionGroup) -> Work Initiated
     else if (hasAny(allStatuses, executionGroup)) {
         calculatedStatus = "Work Initiated";
     }
-    // C. Tender Stage (any site in tenderingGroup) -> Tender Process
+    // C. Tender Stage (any active site in tenderingGroup) -> Tender Process
     else if (hasAny(allStatuses, tenderingGroup)) {
         calculatedStatus = "Tender Process";
     }
-    // D. Pre-execution / Processing (any site in processingGroup) -> File Under Process
+    // D. Pre-execution / Processing (any active site in processingGroup) -> File Under Process / Under Process
     else if (hasAny(allStatuses, processingGroup)) {
-        calculatedStatus = "File Under Process";
+        calculatedStatus = (workTypeContext === 'loggingPumping' || workTypeContext === 'investigation') ? "Under Process" : "File Under Process";
     }
 
     if (calculatedStatus && calculatedStatus !== getValues('fileStatus')) {

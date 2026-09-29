@@ -19,7 +19,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, startOfMonth, endOfMonth, isWithinInterval, isValid, addYears, parseISO } from 'date-fns';
 
-import { computeRigFinancialSummaryData } from '@/components/dashboard/RigFinancialSummary';
 const PresentWorkDetails = dynamic(() => import('@/components/dashboard/PresentWorkDetails'), {
   loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
   ssr: false,
@@ -383,12 +382,46 @@ export default function DashboardPage() {
     });
 
     // 7. Rig Financial Summary (Total Collections matching RigFinancialSummary.tsx)
-    const finSummary = computeRigFinancialSummaryData(agencies);
-    const appFeesTotal = (finSummary.totals.agencyRegAppFee || 0) + (finSummary.totals.rigRegAppFee || 0);
-    const agencyRegFeesTotal = finSummary.totals.agencyRegFee || 0;
-    const rigRegFeesTotal = finSummary.totals.rigRegFee || 0;
-    const renewalFeesTotal = finSummary.totals.renewalFee || 0;
-    const grandTotalAgencyRevenue = finSummary.grandTotalOfFees;
+    let appFeesTotal = 0;
+    let agencyRegFeesTotal = 0;
+    let rigRegFeesTotal = 0;
+    let renewalFeesTotal = 0;
+
+    agencies.forEach(app => {
+      // 1. Agency Application Fee from Agency Registration section
+      const agencyAppFee = Number(app.agencyApplicationFee || app.agencyApplicationChallanAmount) || 0;
+      appFeesTotal += agencyAppFee;
+
+      // 2. Legacy application fee array entries (avoid duplicate if matches agencyAppFee)
+      app.applicationFees?.forEach(fee => {
+        const amt = Number(fee.applicationFeeAmount) || 0;
+        if (fee.applicationFeeType === "Agency Registration") {
+          if (agencyAppFee === 0) appFeesTotal += amt;
+        } else {
+          appFeesTotal += amt;
+        }
+      });
+
+      // 3. Rig Application Fee from Rig Registrations (Active), Pending Rigs, and Cancelled Rigs
+      app.rigs?.forEach(rig => {
+        const rigAppFee = Number(rig.applicationFee || rig.applicationChallanAmount) || 0;
+        appFeesTotal += rigAppFee;
+      });
+    });
+
+    completedAgencies.forEach(app => {
+      agencyRegFeesTotal += (Number(app.agencyRegistrationFee) || 0) + (Number(app.agencyAdditionalRegFee) || 0);
+
+      app.rigs?.forEach(rig => {
+        rigRegFeesTotal += (Number(rig.registrationFee) || 0) + (Number(rig.additionalRegistrationFee) || 0);
+
+        rig.renewals?.forEach(renewal => {
+          renewalFeesTotal += (Number(renewal.renewalFee) || 0) + (Number((renewal as any).fee) || 0);
+        });
+      });
+    });
+
+    const grandTotalAgencyRevenue = appFeesTotal + agencyRegFeesTotal + rigRegFeesTotal + renewalFeesTotal;
 
     // 8. Work Progress (Monthly & Ongoing breakdown matching WorkProgress.tsx)
     const currentMonthStart = startOfMonth(today);
