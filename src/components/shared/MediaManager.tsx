@@ -998,13 +998,15 @@ export default function MediaManager({
 
                         if (driveId) {
                           return (
-                            <iframe
-                              src={`https://drive.google.com/file/d/${driveId}/preview`}
-                              className="w-full h-full border-none"
-                              allowFullScreen
-                              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                              title={item.description || item.fileName || 'Google Drive Video'}
-                            />
+                            <div className="w-full h-full flex flex-col relative">
+                              <iframe
+                                src={`https://drive.google.com/file/d/${driveId}/preview`}
+                                className="w-full flex-1 border-none"
+                                allowFullScreen
+                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                                title={item.description || item.fileName || 'Google Drive Video'}
+                              />
+                            </div>
                           );
                         }
 
@@ -1066,24 +1068,31 @@ export default function MediaManager({
             </div>
 
             {lightboxIndex !== null && fields[lightboxIndex] && (
-              <div className="p-4 bg-black/85 text-white border-t border-white/10 flex items-center justify-between gap-4">
-                <div className="min-w-0 flex-1">
+              <div className="p-3.5 sm:p-4 bg-black/90 text-white border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="text-sm font-medium truncate">
                     {fields[lightboxIndex].description || fields[lightboxIndex].fileName || `${title} (${lightboxIndex + 1} of ${fields.length})`}
                   </p>
-                  <p className="text-xs text-white/60">
-                    Saved in Google Drive: <code>{effectiveOffice}</code> folder
-                  </p>
+                  <div className="flex flex-wrap items-center gap-x-2 text-xs text-white/60">
+                    <span>Saved in Google Drive: <code className="text-white/80">{effectiveOffice}</code> folder</span>
+                    {type === 'video' && (
+                      <span className="text-amber-300/80 font-normal">
+                        • (Newly recorded videos take ~1–3 mins for Google web encoding)
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {(fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url) && (
-                  <a
-                    href={fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" /> Open in Google Drive
-                  </a>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Open in Google Drive
+                    </a>
+                  </div>
                 )}
               </div>
             )}
