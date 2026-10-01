@@ -353,3 +353,80 @@ export function FormDateInput({
     />
   );
 }
+
+// Option Box (e.g., [ ഇലക്ഷൻ കാർഡ് ] / [ ആധാർ കാർഡ് ] / [ മറ്റുള്ളവ ])
+export function OptionBox({
+  label,
+  selected,
+  onToggle,
+  className = "",
+}: {
+  label: string;
+  selected: boolean;
+  onToggle?: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`inline-flex items-center gap-1 border border-black px-2.5 py-0.5 text-xs font-medium select-none cursor-pointer transition-colors ${
+        selected ? "bg-black text-white font-bold" : "bg-white text-black hover:bg-gray-100"
+      } ${className}`}
+    >
+      <span className="w-2.5 text-center text-[10px]">{selected ? "✓" : ""}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+// Yes / No Toggle Box matching government format
+export function YesNoBox({
+  value,
+  onChange,
+}: {
+  value: boolean | string | undefined | null;
+  onChange: (v: string) => void;
+}) {
+  const isYes = value === true || value === "Yes" || value === "yes";
+  const isNo = value === false || value === "No" || value === "no";
+  return (
+    <div className="inline-flex items-center border border-black text-xs font-bold divide-x divide-black bg-white">
+      <button
+        type="button"
+        onClick={() => onChange("Yes")}
+        className={`px-2.5 py-0.5 transition-colors ${isYes ? "bg-black text-white" : "hover:bg-gray-100 text-black"}`}
+      >
+        Yes {isYes && "✓"}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("No")}
+        className={`px-2.5 py-0.5 transition-colors ${isNo ? "bg-black text-white" : "hover:bg-gray-100 text-black"}`}
+      >
+        No {isNo && "✓"}
+      </button>
+    </div>
+  );
+}
+
+// Single square checkbox box [ ] or [ ✓ ]
+export function SquareCheckbox({
+  checked,
+  onChange,
+  className = "",
+}: {
+  checked: boolean;
+  onChange?: (c: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      onClick={() => onChange?.(!checked)}
+      className={`w-6 h-6 border border-black inline-flex items-center justify-center cursor-pointer select-none bg-white font-bold text-sm ${className}`}
+    >
+      {checked ? "✓" : ""}
+    </div>
+  );
+}
+

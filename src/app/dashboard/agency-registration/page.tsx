@@ -1754,25 +1754,25 @@ export default function AgencyRegistrationPage() {
   }
 
   // FORM VIEW
+  if (activeFormView === 'registration') {
+      return (
+          <RigRegistrationApplicationFormView
+              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW' } as any}
+              onClose={() => setActiveFormView(null)}
+          />
+      );
+  }
+
+  if (activeFormView === 'renewal') {
+      return (
+          <RigRenewalApplicationFormView
+              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW' } as any}
+              onClose={() => setActiveFormView(null)}
+          />
+      );
+  }
+
   if (selectedApplicationId) {
-      if (activeFormView === 'registration') {
-          return (
-              <RigRegistrationApplicationFormView
-                  application={{ ...form.getValues(), id: selectedApplicationId } as any}
-                  onClose={() => setActiveFormView(null)}
-              />
-          );
-      }
-
-      if (activeFormView === 'renewal') {
-          return (
-              <RigRenewalApplicationFormView
-                  application={{ ...form.getValues(), id: selectedApplicationId } as any}
-                  onClose={() => setActiveFormView(null)}
-              />
-          );
-      }
-
       const hasPendingRigs = pendingRigs.length > 0;
       const hasCancelledRigs = cancelledRigs.length > 0;
       

@@ -463,8 +463,10 @@ export function RigRenewalApplicationFormView({
       receipt_date_recd: formatToDDMMYYYY(getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy"))),
       receipt_fee_paid_amount: getVal("receipt_fee_paid_amount", "10000"),
       receipt_fee_paid_date: formatToDDMMYYYY(getVal("receipt_fee_paid_date", format(new Date(), "dd/MM/yyyy"))),
-      receipt_renewal_count: getVal("receipt_renewal_count", "1"),
+      receipt_renewal_count: getVal("receipt_renewal_count", activeRigs.length > 0 ? String(activeRigs.length) : "1"),
       receipt_new_rig_count: getVal("receipt_new_rig_count", "0"),
+      receipt_renewal_check: getVal("receipt_renewal_check", true),
+      receipt_new_rig_check: getVal("receipt_new_rig_check", false),
     };
 
     // Rig renewal details for rig1, rig2, rig3
@@ -474,11 +476,16 @@ export function RigRenewalApplicationFormView({
       initial[`${rigKey}_regNo`] = getVal(`${rigKey}_regNo`, getVal(`${upperRigKey}_regNo`, rig?.rigRegistrationNo || ""));
       initial[`${rigKey}_expiryDate`] = formatToDDMMYYYY(getVal(`${rigKey}_expiryDate`, getVal(`${upperRigKey}_expiryDate`, "")));
       initial[`${rigKey}_type`] = getVal(`${rigKey}_type`, getVal(`${upperRigKey}_type`, rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്"));
+      initial[`${rigKey}_last_paid_amount`] = getVal(`${rigKey}_last_paid_amount`, rig?.applicationFee ? String(rig.applicationFee) : "10000");
+      initial[`${rigKey}_challan_info`] = getVal(`${rigKey}_challan_info`, rig?.applicationChallanNo || "");
       initial[`${rigKey}_ownerName`] = getVal(`${rigKey}_ownerName`, getVal(`${upperRigKey}_ownerName`, rig ? owner.name : ""));
       initial[`${rigKey}_address`] = getVal(`${rigKey}_address`, getVal(`${upperRigKey}_address`, rig ? owner.address : ""));
       initial[`${rigKey}_phone`] = getVal(`${rigKey}_phone`, getVal(`${upperRigKey}_phone`, (owner as any).phone || owner.mobile || ""));
       initial[`${rigKey}_mobile`] = getVal(`${rigKey}_mobile`, getVal(`${upperRigKey}_mobile`, owner.mobile || ""));
       initial[`${rigKey}_email`] = getVal(`${rigKey}_email`, getVal(`${upperRigKey}_email`, owner.email || ""));
+      initial[`${rigKey}_owner_phone`] = getVal(`${rigKey}_owner_phone`, (owner as any).phone || owner.mobile || "");
+      initial[`${rigKey}_owner_mobile`] = getVal(`${rigKey}_owner_mobile`, owner.mobile || "");
+      initial[`${rigKey}_owner_email`] = getVal(`${rigKey}_owner_email`, owner.email || "");
       initial[`${rigKey}_district`] = getVal(`${rigKey}_district`, getVal(`${upperRigKey}_district`, app.officeLocation || ""));
       initial[`${rigKey}_state`] = getVal(`${rigKey}_state`, getVal(`${upperRigKey}_state`, "Kerala"));
       initial[`${rigKey}_pincode`] = getVal(`${rigKey}_pincode`, getVal(`${upperRigKey}_pincode`, ""));
@@ -504,6 +511,7 @@ export function RigRenewalApplicationFormView({
       initial[`${rigKey}_well_dia`] = getVal(`${rigKey}_well_dia`, getVal(`${upperRigKey}_well_dia`, ""));
 
       initial[`${rigKey}_op_name`] = getVal(`${rigKey}_op_name`, getVal(`${upperRigKey}_op_name`, ""));
+      initial[`${rigKey}_op_age`] = getVal(`${rigKey}_op_age`, "");
       initial[`${rigKey}_op_address`] = getVal(`${rigKey}_op_address`, getVal(`${upperRigKey}_op_address`, ""));
       initial[`${rigKey}_op_phone`] = getVal(`${rigKey}_op_phone`, getVal(`${upperRigKey}_op_phone`, ""));
       initial[`${rigKey}_op_exp`] = getVal(`${rigKey}_op_exp`, getVal(`${upperRigKey}_op_exp`, ""));
