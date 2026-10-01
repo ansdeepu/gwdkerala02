@@ -406,6 +406,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     const isWellPurpose = useMemo(() => ['BWC', 'TWC', 'FPW'].includes(watchedPurpose as any), [watchedPurpose]);
     const isDevPurpose = useMemo(() => ['BW Dev', 'TW Dev', 'FPW Dev'].includes(watchedPurpose as any), [watchedPurpose]);
+    const isRigPurpose = useMemo(() => ['BWC', 'TWC', 'FPW', 'BW Dev', 'TW Dev', 'FPW Dev'].includes(watchedPurpose as any), [watchedPurpose]);
     const isMWSSPurpose = useMemo(() => ['MWSS', 'MWSS Ext', 'Pumping Scheme', 'MWSS Pump Reno'].includes(watchedPurpose as any), [watchedPurpose]);
     const isHPSPurpose = useMemo(() => ['HPS', 'HPR'].includes(watchedPurpose as any), [watchedPurpose]);
     const isARSPurpose = useMemo(() => watchedPurpose === 'ARS', [watchedPurpose]);
@@ -698,13 +699,23 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
         // 4. Rig Accessibility & TS Allocation
         const ts = Number(watchedTsAmount) || 0;
-        if (watchedSiteConditions === 'Accessible to Dept. Rig' && ts > 0) {
-            setValue('workStatus', 'Department Rig Allotted');
-            return;
-        }
-        if (watchedSiteConditions === 'Accessible to Private Rig' && ts > 0) {
-            setValue('workStatus', 'Tender Pending');
-            return;
+        const isRig = ['BWC', 'TWC', 'FPW', 'BW Dev', 'TW Dev', 'FPW Dev'].includes(watchedPurpose as any);
+
+        if (isRig) {
+            if (watchedSiteConditions === 'Accessible to Dept. Rig' && ts > 0) {
+                setValue('workStatus', 'Department Rig Allotted');
+                return;
+            }
+            if (watchedSiteConditions === 'Accessible to Private Rig' && ts > 0) {
+                setValue('workStatus', 'Tender Pending');
+                return;
+            }
+        } else {
+            // All other non-rig purposes (Pumping Scheme, MWSS, HPS, HPR, ARS, etc.)
+            if (ts > 0) {
+                setValue('workStatus', 'Tender Pending');
+                return;
+            }
         }
 
         // TS Pending - Only when explicitly toggled ON as Awaiting TS (and TS Amount is zero or not yet sanctioned)
@@ -956,23 +967,25 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                 </Card>
                                             )}
 
-                                            <Card>
+                                             <Card>
                                                 <CardHeader><CardTitle className="text-lg text-primary">Work Implementation</CardTitle></CardHeader>
                                                 <CardContent className="space-y-4">
-                                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                        <FormField name="siteConditions" control={control} render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Rig and Site Accessibility</FormLabel>
-                                                                <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(false)}>
-                                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Conditions" /></SelectTrigger></FormControl>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
-                                                                        {(siteConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}/>
+                                                    <div className={cn("grid grid-cols-1 gap-4", isRigPurpose ? "md:grid-cols-4" : "md:grid-cols-3")}>
+                                                        {isRigPurpose && (
+                                                            <FormField name="siteConditions" control={control} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Rig and Site Accessibility</FormLabel>
+                                                                    <Select onValueChange={(val) => field.onChange(val === '_clear_' ? undefined : val)} value={field.value || ""} disabled={isFieldReadOnly(false)}>
+                                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Conditions" /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="_clear_">-- Clear Selection --</SelectItem>
+                                                                            {(siteConditionsOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}/>
+                                                        )}
                                                         <FormField name="estimateAmount" control={control} render={({ field }) => <FormItem><FormLabel>Estimate Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField 

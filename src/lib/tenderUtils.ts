@@ -144,12 +144,21 @@ export const getResolvedWorkStatus = (
     }
 
     // 4. Rig Accessibility & TS Allocation
+    const isRigPurpose = ['BWC', 'TWC', 'FPW', 'BW Dev', 'TW Dev', 'FPW Dev'].includes(site.purpose as any);
     const tsAmt = Number(site.tsAmount) || 0;
-    if (site.siteConditions === 'Accessible to Dept. Rig' && tsAmt > 0) {
-        return "Department Rig Allotted";
-    }
-    if (site.siteConditions === 'Accessible to Private Rig' && tsAmt > 0) {
-        return "Tender Pending";
+
+    if (isRigPurpose) {
+        if (site.siteConditions === 'Accessible to Dept. Rig' && tsAmt > 0) {
+            return "Department Rig Allotted";
+        }
+        if (site.siteConditions === 'Accessible to Private Rig' && tsAmt > 0) {
+            return "Tender Pending";
+        }
+    } else {
+        // All other non-rig purposes (Pumping Scheme, MWSS, HPS, HPR, ARS, etc.)
+        if (tsAmt > 0) {
+            return "Tender Pending";
+        }
     }
 
     // 5. TS Pending - Only when site is explicitly marked as awaiting TS
