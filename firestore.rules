@@ -99,6 +99,11 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow write: if isSuperAdmin();
     }
+
+    match /systemSettings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
     
     match /localSelfGovernments/{docId} {
       allow get: if isApproved();

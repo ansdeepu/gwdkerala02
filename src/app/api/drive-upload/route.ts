@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { DEFAULT_GOOGLE_DRIVE_SCRIPT_URL } from "@/lib/config";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds timeout for video uploads
@@ -11,7 +12,7 @@ declare global {
   var __googleDriveScriptUrl: string | undefined;
 }
 
-function getStoredScriptUrl(): string | null {
+function getStoredScriptUrl(): string {
   if (globalThis.__googleDriveScriptUrl) {
     return globalThis.__googleDriveScriptUrl;
   }
@@ -28,7 +29,7 @@ function getStoredScriptUrl(): string | null {
       if (data.scriptUrl) return data.scriptUrl.trim();
     }
   } catch (e) {}
-  return process.env.GOOGLE_DRIVE_SCRIPT_URL || null;
+  return process.env.GOOGLE_DRIVE_SCRIPT_URL || DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
 }
 
 export async function POST(req: NextRequest) {

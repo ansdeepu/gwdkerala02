@@ -2,10 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { DEFAULT_GOOGLE_DRIVE_SCRIPT_URL } from "@/lib/config";
 
 export const dynamic = 'force-dynamic';
 
-function getStoredScriptUrl(): string | null {
+function getStoredScriptUrl(): string {
   try {
     if (fs.existsSync("/tmp/google-drive-settings.json")) {
       const data = JSON.parse(fs.readFileSync("/tmp/google-drive-settings.json", "utf-8"));
@@ -19,7 +20,7 @@ function getStoredScriptUrl(): string | null {
       if (data.scriptUrl) return data.scriptUrl.trim();
     }
   } catch (e) {}
-  return process.env.GOOGLE_DRIVE_SCRIPT_URL || null;
+  return process.env.GOOGLE_DRIVE_SCRIPT_URL || DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
 }
 
 export async function POST(req: NextRequest) {

@@ -391,7 +391,9 @@ export default function MediaManager({
       // For video files: videos require Google Drive to avoid exceeding Firestore's 1MB document limit.
       toast({
         title: "Google Drive Required for Videos",
-        description: "Videos cannot be saved directly in database documents. Please configure Google Drive in Settings or paste a Google Drive / YouTube link.",
+        description: isSuperAdmin 
+          ? "Videos cannot be saved directly in database documents. Please configure Google Drive in Settings or paste a Google Drive / YouTube link."
+          : "Videos cannot be stored directly in database documents. Please paste a Google Drive or YouTube link, or ensure central Google Drive is active.",
         variant: "destructive",
       });
       setIsSetupDialogOpen(true);
@@ -546,39 +548,49 @@ export default function MediaManager({
             });
             continue;
           } else {
-            console.warn("Google Drive upload failed, falling back to direct record storage:", result.error);
-            toast({
-              title: "Google Drive Notice",
-              description: result.error 
-                ? `${result.error}. Photo saved directly to site record.`
-                : "Could not reach Google Drive. Photo saved directly to site record.",
-              variant: "destructive",
-            });
+            console.warn("Google Drive upload failed:", result.error);
+            if (type === 'image') {
+              toast({
+                title: "Google Drive Notice",
+                description: result.error 
+                  ? `${result.error}. Photo saved directly to site record.`
+                  : "Photo saved directly to site record.",
+                variant: "default",
+              });
+              await saveMediaDirectly(file);
+            } else {
+              toast({
+                title: "Video Upload Issue",
+                description: result.error || "Could not complete video upload to Google Drive. Please verify your connection or attach a video link.",
+                variant: "destructive",
+              });
+            }
           }
         } else {
-          toast({
-            title: "Google Drive Not Configured",
-            description: "Google Apps Script Web App URL is not configured. Photo saved directly to site record. Click 'GWD Cloud Archive' to set up Drive.",
-          });
+          if (type === 'image') {
+            await saveMediaDirectly(file);
+          } else {
+            toast({
+              title: "Google Drive Required for Videos",
+              description: "Please attach a Google Drive or YouTube video link, or ensure Google Drive is active.",
+              variant: "destructive",
+            });
+            setIsSetupDialogOpen(true);
+          }
         }
-
-        // Fallback: Save media directly to site record
-        await saveMediaDirectly(file);
       }
     } catch (err: any) {
       console.error("Upload error:", err);
-      // Even on error, attempt direct fallback for first file if not yet saved
-      try {
-        if (filesArray[0]) {
+      if (type === 'image' && filesArray[0]) {
+        try {
           await saveMediaDirectly(filesArray[0]);
-        }
-      } catch (fallbackErr) {
-        toast({
-          title: "Upload Error",
-          description: err?.message || "An error occurred during file selection.",
-          variant: "destructive",
-        });
+        } catch (fallbackErr) {}
       }
+      toast({
+        title: "Upload Error",
+        description: err?.message || "An error occurred during media upload.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
       setUploadStatusText('');

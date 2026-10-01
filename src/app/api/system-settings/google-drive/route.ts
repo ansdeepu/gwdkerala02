@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { DEFAULT_GOOGLE_DRIVE_SCRIPT_URL } from "@/lib/config";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -11,7 +12,7 @@ declare global {
 const CONFIG_PATH = path.join(process.cwd(), "google-drive-settings.json");
 const TMP_CONFIG_PATH = "/tmp/google-drive-settings.json";
 
-function readScriptUrl(): string | null {
+function readScriptUrl(): string {
   if (globalThis.__googleDriveScriptUrl) {
     return globalThis.__googleDriveScriptUrl;
   }
@@ -37,7 +38,7 @@ function readScriptUrl(): string | null {
     return process.env.GOOGLE_DRIVE_SCRIPT_URL.trim();
   }
 
-  return null;
+  return DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
 }
 
 export async function GET() {

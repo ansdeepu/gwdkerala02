@@ -1,6 +1,7 @@
 // src/lib/googleDriveUploadClient.ts
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { DEFAULT_GOOGLE_DRIVE_SCRIPT_URL } from "@/lib/config";
 
 export interface DriveUploadOptions {
   file: File;
@@ -84,7 +85,7 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
     console.warn("Could not fetch googleDrive settings from Firestore:", err);
   }
 
-  return cachedScriptUrl;
+  return cachedScriptUrl || DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
 }
 
 export interface DriveStorageQuota {

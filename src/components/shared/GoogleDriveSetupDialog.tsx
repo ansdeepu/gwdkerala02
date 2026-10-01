@@ -181,40 +181,46 @@ export default function GoogleDriveSetupDialog({
               <HardDrive className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="space-y-0.5">
-              <DialogTitle className="text-base sm:text-lg font-bold">Google Drive & Video Media Options</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg font-bold">
+                {isSuperAdmin ? "Google Drive & Video Media Options" : "Attach Work Video Link"}
+              </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm">
-                Attach video links or configure <span className="font-semibold text-primary">keralagwd@gmail.com</span> Drive
+                {isSuperAdmin 
+                  ? "Attach video links or configure keralagwd@gmail.com Drive"
+                  : "Attach a Google Drive or YouTube video link to this site record"}
               </DialogDescription>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-1.5 mt-3 p-1 rounded-xl bg-muted/60 border text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => setActiveTab('video_link')}
-              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === 'video_link'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Video className="h-3.5 w-3.5 text-primary" />
-              <span>Attach Video Link</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('drive_config')}
-              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                activeTab === 'drive_config'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Settings2 className="h-3.5 w-3.5 text-primary" />
-              <span>Google Drive Cloud Setup</span>
-            </button>
-          </div>
+          {/* Navigation Tabs - Only show Drive Config tab to Super Admin */}
+          {isSuperAdmin && (
+            <div className="flex items-center gap-1.5 mt-3 p-1 rounded-xl bg-muted/60 border text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setActiveTab('video_link')}
+                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'video_link'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Video className="h-3.5 w-3.5 text-primary" />
+                <span>Attach Video Link</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('drive_config')}
+                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'drive_config'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
+                <span>Google Drive Cloud Setup</span>
+              </button>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
