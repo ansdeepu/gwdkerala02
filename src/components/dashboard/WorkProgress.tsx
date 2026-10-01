@@ -117,7 +117,7 @@ const WorkProgressCategoryView = ({
         const startOfMonthDate = startOfMonth(workReportMonth);
         const endOfMonthDate = endOfMonth(workReportMonth);
 
-        const ongoingWorkStatuses: SiteWorkStatus[] = ["Work Order Issued", "Work in Progress", "Department Rig Allotted", "Tendered", "Selection Notice Issued", "TS Pending", "Additional Fund Awaited", "Under Process", "Pending", "VES Pending"];
+        const ongoingWorkStatuses: SiteWorkStatus[] = ["Work Order Issued", "Work in Progress", "Department Rig Allotted", "Tendered", "Selection Notice Issued", "TS Pending", "Tender Pending", "Additional Fund Awaited", "Under Process", "Pending", "VES Pending"];
         const completedWorkStatuses: SiteWorkStatus[] = ["Work Failed", "Work Completed", "Completed"];
         
         const isSupervisor = currentUser?.role === 'supervisor';

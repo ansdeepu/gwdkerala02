@@ -37,6 +37,7 @@ const DEPOSIT_WORK_STATUS_OPTIONS = [
   "Under Process",
   "Additional Fund Awaited",
   "TS Pending",
+  "Tender Pending",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",

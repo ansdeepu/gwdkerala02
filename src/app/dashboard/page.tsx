@@ -225,7 +225,7 @@ export default function DashboardPage() {
     const loggingPumpingTestServiceOrder = LOGGING_PUMPING_TEST_PURPOSE_OPTIONS;
 
     const DEPOSIT_WORK_STATUS_OPTIONS = [
-      "Under Process", "Additional Fund Awaited", "TS Pending", "Refund Pending",
+      "Under Process", "Additional Fund Awaited", "TS Pending", "Tender Pending", "Refund Pending",
       "Department Rig Allotted", "Tendered", "Selection Notice Issued", "Work Order Issued",
       "Work in Progress", "Work Failed", "Work Cancelled", "Work Completed"
     ];
@@ -390,7 +390,7 @@ export default function DashboardPage() {
     // 8. Work Progress (Monthly & Ongoing breakdown matching WorkProgress.tsx)
     const currentMonthStart = startOfMonth(today);
     const currentMonthEnd = endOfMonth(today);
-    const progressOngoingStatuses = ["Work Order Issued", "Work in Progress", "Department Rig Allotted", "Tendered", "Selection Notice Issued", "TS Pending", "Additional Fund Awaited", "Under Process", "Pending", "VES Pending"];
+    const progressOngoingStatuses = ["Work Order Issued", "Work in Progress", "Department Rig Allotted", "Tendered", "Selection Notice Issued", "TS Pending", "Tender Pending", "Additional Fund Awaited", "Under Process", "Pending", "VES Pending"];
 
     let progressCompletedThisMonth = 0;
     let progressOngoingCount = 0;

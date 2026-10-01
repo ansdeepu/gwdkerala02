@@ -10,6 +10,10 @@ const nextConfig = {
   },
   productionBrowserSourceMaps: false,
   swcMinify: true,
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
   images: {
     remotePatterns: [
       {

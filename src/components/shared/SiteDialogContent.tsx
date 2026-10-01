@@ -69,6 +69,7 @@ const SITE_DIALOG_WORK_STATUS_OPTIONS = [
   "Under Process",
   "Additional Fund Awaited",
   "TS Pending",
+  "Tender Pending",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",
@@ -695,15 +696,18 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             return;
         }
 
-        // Department Rig Allotted - Rig and Site Accessibility is Accessible to Dept. Rig
-        if (watchedSiteConditions === 'Accessible to Dept. Rig') {
+        // 4. Rig Accessibility & TS Allocation
+        const ts = Number(watchedTsAmount) || 0;
+        if (watchedSiteConditions === 'Accessible to Dept. Rig' && ts > 0) {
             setValue('workStatus', 'Department Rig Allotted');
             return;
         }
+        if (watchedSiteConditions === 'Accessible to Private Rig' && ts > 0) {
+            setValue('workStatus', 'Tender Pending');
+            return;
+        }
 
-        // 4. Financial & TS Readiness
         // TS Pending - Only when explicitly toggled ON as Awaiting TS (and TS Amount is zero or not yet sanctioned)
-        const ts = Number(watchedTsAmount) || 0;
         if (watchedIsAwaitingTS && (!ts || ts === 0)) {
             setValue('workStatus', 'TS Pending');
             return;

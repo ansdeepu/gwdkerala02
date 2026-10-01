@@ -479,7 +479,7 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                 const isClosedSite = (s: any) => ((s.workStatus === 'Work Completed' || s.workStatus === 'Work Failed') && (Number(s.totalExpenditure) || 0) > 0) || s.workStatus === 'Work Cancelled';
                 const activeSites = updatedSites.filter(s => !isClosedSite(s));
                 const sitesForStatus = activeSites.length > 0 ? activeSites : updatedSites;
-                const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress");
+                const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress" || s.workStatus === "Department Rig Allotted" || s.workStatus === "Work Initiated");
                 const hasTendered = sitesForStatus.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
                 if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {
                     resolvedFileStatus = "Work Initiated";
@@ -595,9 +595,9 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
             const activeSites = updatedSites.filter(s => !isClosedSite(s));
             const sitesForStatus = activeSites.length > 0 ? activeSites : updatedSites;
 
-            const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Pending", "VES Pending"];
-            const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress" || s.workStatus === "Work Initiated");
-            const hasTendered = sitesForStatus.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued" || s.workStatus === "Department Rig Allotted");
+            const processingGroup = ["Under Process", "Additional Fund Awaited", "TS Pending", "Tender Pending", "Pending", "VES Pending"];
+            const hasWip = sitesForStatus.some(s => s.workStatus === "Work in Progress" || s.workStatus === "Department Rig Allotted" || s.workStatus === "Work Initiated");
+            const hasTendered = sitesForStatus.some(s => s.workStatus === "Tendered" || s.workStatus === "Selection Notice Issued" || s.workStatus === "Work Order Issued");
             const allProcessing = sitesForStatus.length > 0 && sitesForStatus.every(s => processingGroup.includes(s.workStatus || ''));
 
             if (hasWip && ["File Under Process", "Pending", "Technical Sanction", "Rig Accessibility Inspection", "Tender Process"].includes(entry.fileStatus || '')) {

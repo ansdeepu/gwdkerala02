@@ -22,7 +22,7 @@ interface SupervisorWorkProps {
 }
 
 const COMPLETED_STATUSES: string[] = ["Work Completed", "Work Failed", "Work Cancelled", "Completed"];
-const ONGOING_STATUSES: string[] = ["Work Order Issued", "Work in Progress", "Work Initiated", "Department Rig Allotted", "Pending", "VES Pending", "Under Process", "Additional Fund Awaited", "Tendered", "Selection Notice Issued", "Proposal Submitted", "AS & TS Issued", "TS Pending"];
+const ONGOING_STATUSES: string[] = ["Work Order Issued", "Work in Progress", "Work Initiated", "Department Rig Allotted", "Pending", "VES Pending", "Under Process", "Additional Fund Awaited", "TS Pending", "Tender Pending", "Tendered", "Selection Notice Issued", "Proposal Submitted", "AS & TS Issued"];
 
 export default function SupervisorWork({ allFileEntries, allArsEntries, allUsers, staffMembers, onOpenDialog }: SupervisorWorkProps) {
   

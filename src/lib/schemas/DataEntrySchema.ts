@@ -352,6 +352,7 @@ export const siteWorkStatusOptions = [
   "Under Process",
   "Additional Fund Awaited",
   "TS Pending",
+  "Tender Pending",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",

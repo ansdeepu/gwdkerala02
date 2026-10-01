@@ -143,13 +143,16 @@ export const getResolvedWorkStatus = (
         }
     }
 
-    // 4. Department Rig Allotted
-    if (site.siteConditions === 'Accessible to Dept. Rig') {
+    // 4. Rig Accessibility & TS Allocation
+    const tsAmt = Number(site.tsAmount) || 0;
+    if (site.siteConditions === 'Accessible to Dept. Rig' && tsAmt > 0) {
         return "Department Rig Allotted";
+    }
+    if (site.siteConditions === 'Accessible to Private Rig' && tsAmt > 0) {
+        return "Tender Pending";
     }
 
     // 5. TS Pending - Only when site is explicitly marked as awaiting TS
-    const tsAmt = Number(site.tsAmount) || 0;
     if (site.isAwaitingTS && (!tsAmt || tsAmt === 0)) {
         return "TS Pending";
     }
