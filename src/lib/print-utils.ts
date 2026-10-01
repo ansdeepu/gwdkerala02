@@ -495,12 +495,69 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
     }
   });
 
+  // 4b. Transform numbered / label flex rows (like conditions 1., 2. or Sub/Ref) into native borderless tables (CKEditor doesn't support flex)
+  const flexListContainers = clone.querySelectorAll('div[style*="display: flex"], div[style*="display:flex"], .flex');
+  flexListContainers.forEach((el) => {
+    const htmlEl = el as HTMLElement;
+    if (htmlEl.tagName.toLowerCase() === 'table' || htmlEl.closest('table')) return;
+    const directChildren = Array.from(htmlEl.children) as HTMLElement[];
+    if (directChildren.length === 2) {
+      const firstText = directChildren[0].textContent?.trim() || '';
+      // If the first child is an index/bullet like "1.", "2.", "Sub:", "Ref:", "സൂചന:", "വിഷയം:", etc. (under 16 chars)
+      if (firstText.length > 0 && firstText.length <= 16) {
+        const tbl = document.createElement('table');
+        tbl.setAttribute('width', '100%');
+        tbl.setAttribute('border', '0');
+        tbl.setAttribute('cellpadding', '0');
+        tbl.setAttribute('cellspacing', '0');
+        tbl.style.width = '100%';
+        tbl.style.borderCollapse = 'collapse';
+        tbl.style.border = 'none';
+        tbl.style.marginBottom = '6px';
+        tbl.style.clear = 'both';
+
+        const tr = document.createElement('tr');
+        tr.style.border = 'none';
+
+        const tdLeft = document.createElement('td');
+        const firstWidth = directChildren[0].style.width || directChildren[0].style.minWidth || '30px';
+        tdLeft.setAttribute('width', firstWidth.replace('px', ''));
+        tdLeft.setAttribute('valign', 'top');
+        tdLeft.style.width = firstWidth;
+        tdLeft.style.verticalAlign = 'top';
+        tdLeft.style.border = 'none';
+        tdLeft.style.padding = '2px 6px 2px 0';
+        tdLeft.style.fontFamily = fontStack;
+        tdLeft.style.fontSize = bodyFontSize;
+        tdLeft.innerHTML = directChildren[0].innerHTML;
+
+        const tdRight = document.createElement('td');
+        tdRight.setAttribute('valign', 'top');
+        tdRight.setAttribute('align', 'justify');
+        tdRight.style.verticalAlign = 'top';
+        tdRight.style.textAlign = 'justify';
+        tdRight.style.border = 'none';
+        tdRight.style.padding = '2px 0';
+        tdRight.style.fontFamily = fontStack;
+        tdRight.style.fontSize = bodyFontSize;
+        tdRight.style.lineHeight = lineHeight;
+        tdRight.innerHTML = directChildren[1].innerHTML;
+
+        tr.appendChild(tdLeft);
+        tr.appendChild(tdRight);
+        tbl.appendChild(tr);
+
+        htmlEl.replaceWith(tbl);
+      }
+    }
+  });
+
   // 5. Clean top-level container: remove card borders, outer shadows, background colors
   clone.style.border = 'none';
   clone.style.boxShadow = 'none';
   clone.style.background = 'transparent';
   clone.style.padding = '0';
-  clone.style.margin = '0 auto';
+  clone.style.margin = '0';
   clone.style.width = '100%';
   clone.style.maxWidth = '100%';
 
@@ -640,9 +697,22 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
       htmlEl.setAttribute('cellpadding', '6');
       htmlEl.setAttribute('cellspacing', '0');
 
-      const isBorderless = htmlEl.classList.contains('border-none') || htmlEl.classList.contains('border-0') || htmlEl.style.border === 'none' || htmlEl.getAttribute('border') === '0';
+      const styleAttr = (htmlEl.getAttribute('style') || '').toLowerCase();
+      const isBorderless = 
+        htmlEl.classList.contains('border-none') || 
+        htmlEl.classList.contains('border-0') || 
+        htmlEl.style.border === 'none' || 
+        htmlEl.style.borderWidth === '0px' ||
+        htmlEl.style.borderStyle === 'none' ||
+        styleAttr.includes('border: none') ||
+        styleAttr.includes('border:none') ||
+        styleAttr.includes('border: 0') ||
+        styleAttr.includes('border:0') ||
+        htmlEl.getAttribute('border') === '0';
+
       if (isBorderless) {
         htmlEl.style.border = 'none';
+        htmlEl.removeAttribute('border');
         htmlEl.setAttribute('border', '0');
       } else {
         htmlEl.style.border = '1px solid #000000';
@@ -653,7 +723,31 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
     // Table cells inline styling
     if (tagName === 'th' || tagName === 'td') {
       const parentTable = htmlEl.closest('table');
-      const isBorderlessTable = parentTable ? (parentTable.classList.contains('border-none') || parentTable.classList.contains('border-0') || parentTable.style.border === 'none' || parentTable.getAttribute('border') === '0') : false;
+      const parentStyleAttr = parentTable ? (parentTable.getAttribute('style') || '').toLowerCase() : '';
+      const isBorderlessTable = parentTable ? (
+        parentTable.classList.contains('border-none') || 
+        parentTable.classList.contains('border-0') || 
+        parentTable.style.border === 'none' || 
+        parentTable.style.borderWidth === '0px' ||
+        parentTable.style.borderStyle === 'none' ||
+        parentStyleAttr.includes('border: none') ||
+        parentStyleAttr.includes('border:none') ||
+        parentStyleAttr.includes('border: 0') ||
+        parentStyleAttr.includes('border:0') ||
+        parentTable.getAttribute('border') === '0'
+      ) : false;
+
+      const cellStyleAttr = (htmlEl.getAttribute('style') || '').toLowerCase();
+      const isCellBorderless = 
+        htmlEl.classList.contains('border-none') || 
+        htmlEl.classList.contains('border-0') || 
+        htmlEl.style.border === 'none' || 
+        htmlEl.style.borderWidth === '0px' ||
+        htmlEl.style.borderStyle === 'none' ||
+        cellStyleAttr.includes('border: none') || 
+        cellStyleAttr.includes('border:none') ||
+        cellStyleAttr.includes('border: 0') ||
+        cellStyleAttr.includes('border:0');
 
       htmlEl.style.verticalAlign = htmlEl.style.verticalAlign || 'top';
       htmlEl.style.fontSize = bodyFontSize;
@@ -661,15 +755,16 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
       if (htmlEl.style.width) {
         htmlEl.setAttribute('width', htmlEl.style.width);
       }
-      if (!isBorderlessTable) {
+      if (isBorderlessTable || isCellBorderless) {
+        htmlEl.style.border = 'none';
+        htmlEl.removeAttribute('border');
+      } else {
         if (!htmlEl.style.border || htmlEl.style.border === 'none') {
           htmlEl.style.border = '1px solid #000000';
         }
         if (!htmlEl.style.padding) {
           htmlEl.style.padding = '6px 8px';
         }
-      } else {
-        htmlEl.style.border = 'none';
       }
 
       if (tagName === 'th') {
@@ -685,9 +780,9 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
   // Standard CSS styles to wrap the HTML with so alignment, tables, borders, and margins are preserved when pasted
   const styles = `
     <style>
-      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: #ffffff; margin: 0; padding: 0; }
-      table { width: 100% !important; border-collapse: collapse !important; margin: 10px 0 16px 0; clear: both !important; }
-      th, td { padding: 6px 8px; vertical-align: top; font-size: ${bodyFontSize}; font-family: ${fontStack}; }
+      body { font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; margin: 0; padding: 0; width: 100%; }
+      table { width: 100% !important; border-collapse: collapse !important; margin: 8px 0 14px 0; clear: both !important; }
+      th, td { padding: 4px 6px; vertical-align: top; font-size: ${bodyFontSize}; font-family: ${fontStack}; }
       th { background-color: #f2f2f2; font-weight: bold; font-size: ${subheadingFontSize}; }
       h1, h2, .print-main-heading { font-size: ${headingFontSize}; font-weight: bold; margin: 4px 0; }
       h3, h4, .print-sub-heading { font-size: ${subheadingFontSize}; font-weight: bold; margin: 4px 0; }
@@ -706,7 +801,8 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
   `;
 
   // Wrap inside standard HTML template with MS Office / e-Office fragment comments for clipboard pasting
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><!--StartFragment--><div style="width: 100%; max-width: 750px; margin: 0 auto; padding: 0; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; background: #ffffff;">${contentHtml}</div><!--EndFragment--></body></html>`;
+  // Using 100% width with no restrictive max-width so it expands naturally across the e-Office Draft editor page
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head><body><!--StartFragment--><div style="width: 100%; margin: 0; padding: 0; font-family: ${fontStack}; font-size: ${bodyFontSize}; line-height: ${lineHeight}; color: #000000; box-sizing: border-box;">${contentHtml}</div><!--EndFragment--></body></html>`;
 
   try {
     const htmlBlob = new Blob([fullHtml], { type: 'text/html' });
@@ -732,5 +828,62 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
 };
 
 export const copyRichHtml = copyOfficialTable;
+
+/**
+ * Copies the natural rendered content of a document with its native alignments,
+ * tables, fonts, and inline styles intact.
+ * Replicates the exact browser native behavior of selecting text on screen and pressing Ctrl+C.
+ * Does not wrap the content in synthetic outer tables, avoiding exaggerated margins in e-Office.
+ */
+export const copyDocumentContent = async (elementId: string): Promise<boolean> => {
+  if (typeof window === 'undefined') return false;
+  const element = document.getElementById(elementId);
+  if (!element) {
+    console.error(`Element with id ${elementId} not found`);
+    return false;
+  }
+
+  // 1. Primary method: Native browser Selection API + execCommand('copy')
+  // This produces the EXACT clipboard payload generated when a user selects text with mouse and presses Ctrl+C.
+  let success = false;
+  try {
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      selection.addRange(range);
+      success = document.execCommand('copy');
+      selection.removeAllRanges();
+    }
+  } catch (err) {
+    console.warn('Selection copy failed, falling back to Clipboard API:', err);
+  }
+
+  if (success) {
+    return true;
+  }
+
+  // 2. Modern Clipboard API fallback with pure HTML & plain text
+  try {
+    if (navigator.clipboard && window.ClipboardItem) {
+      const htmlBlob = new Blob([element.innerHTML], { type: 'text/html' });
+      const textBlob = new Blob([element.innerText || element.textContent || ''], { type: 'text/plain' });
+      const item = new ClipboardItem({
+        'text/html': htmlBlob,
+        'text/plain': textBlob,
+      });
+      await navigator.clipboard.write([item]);
+      return true;
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(element.innerText || element.textContent || '');
+      return true;
+    }
+  } catch (err) {
+    console.error('Clipboard write failed:', err);
+  }
+
+  return false;
+};
 
 

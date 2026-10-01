@@ -1169,6 +1169,10 @@ export default function ETenderListPage() {
                 corrigendums: [],
                 retenders: [],
                 remarks: '',
+                isPerformanceGuaranteeSubmitted: false,
+                performanceGuaranteeReleaseStatus: 'Pending',
+                isAdditionalPerformanceGuaranteeSubmitted: false,
+                additionalPerformanceGuaranteeReleaseStatus: 'Pending',
             });
             toast({ title: "Tender Copied", description: "A new tender has been created. Redirecting to edit..." });
             router.push(`/dashboard/e-tender/${newTenderId}`);
@@ -1256,7 +1260,6 @@ export default function ETenderListPage() {
                                     onClick={() => setDialogContent({ title: stat.label, tenders: stat.data })}
                                     colorClass={stat.colorClass}
                                     icon={stat.icon}
-                                    tooltip={stat.tooltip}
                                 />
                             ))}
                             <StatCard
@@ -1265,10 +1268,11 @@ export default function ETenderListPage() {
                                 onClick={() => setIsLeaderboardOpen(true)}
                                 colorClass="border-gray-500/50 bg-gray-500/5"
                                 icon={TrendingUp}
-                                tooltip="Summary of L1 contractors based on successful bids within the selected period."
                             />
                         </div>
                     </div>
+                </CardContent>
+            </Card>
                     
                     <Tabs 
                         defaultValue="process" 
@@ -1410,8 +1414,6 @@ export default function ETenderListPage() {
                             </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
 
             <Card>
                 <CardContent className="p-0">

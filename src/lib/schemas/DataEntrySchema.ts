@@ -751,6 +751,7 @@ export type UpdatePasswordFormData = z.infer<typeof UpdatePasswordSchema>;
 // Agency Registration Schemas
 export const AgencyApplicationSchema = z.object({
   id: z.string().optional(),
+  applicationNo: z.string().optional().nullable(),
   fileNo: z.string().optional().nullable(),
   agencyName: z.string().min(1, "Agency name & address is required."),
   agencyNameMalayalam: optionalStringSchema,

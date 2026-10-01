@@ -1359,7 +1359,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     }
     // D. Pre-execution / Processing (any active site in processingGroup) -> File Under Process / Under Process
     else if (hasAny(allStatuses, processingGroup)) {
-        calculatedStatus = (workTypeContext === 'loggingPumping' || workTypeContext === 'investigation') ? "Under Process" : "File Under Process";
+        calculatedStatus = ((workTypeContext as string) === 'loggingPumpingTest' || (workTypeContext as string) === 'gwInvestigation' || (workTypeContext as string) === 'loggingPumping' || (workTypeContext as string) === 'investigation') ? "Under Process" : "File Under Process";
     }
 
     if (calculatedStatus && calculatedStatus !== getValues('fileStatus')) {
@@ -1990,10 +1990,10 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             const mergedSiteData = {
                 ...(originalData || {}),
                 ...data,
-                workImages: data.workImages && data.workImages.length > 0 
+                workImages: Array.isArray(data.workImages) 
                     ? data.workImages 
                     : (originalData?.workImages || []),
-                workVideos: data.workVideos && data.workVideos.length > 0 
+                workVideos: Array.isArray(data.workVideos) 
                     ? data.workVideos 
                     : (originalData?.workVideos || []),
             };

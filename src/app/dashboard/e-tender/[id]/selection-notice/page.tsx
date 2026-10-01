@@ -11,7 +11,7 @@ import { usePageHeader } from '@/hooks/usePageHeader';
 import { isValid } from 'date-fns';
 import { Copy, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { printDocument, copyOfficialTable } from '@/lib/print-utils';
+import { printDocument, copyDocumentContent } from '@/lib/print-utils';
 
 const parseStampPaperLogic = (description: string) => {
     const rateBasisMatch = description.match(/([\d,]+)\s*(?:for every|per)\s*[₹Rs\.]?\s*([\d,]+)/i);
@@ -282,13 +282,13 @@ export default function SelectionNoticePrintPage() {
             );
         };
 
-    const handleCopyOfficialTable = async () => {
+    const handleCopyContent = async () => {
         try {
-            const success = await copyOfficialTable('selection-notice-content');
+            const success = await copyDocumentContent('selection-notice-content');
             if (success) {
                 toast({
-                    title: "Copied Official Table!",
-                    description: "Selection Notice copied in Official Table format for e-Office Draft Editor.",
+                    title: "Copied!",
+                    description: "Selection Notice content copied with alignments and tables preserved.",
                 });
             } else {
                 toast({
@@ -298,7 +298,7 @@ export default function SelectionNoticePrintPage() {
                 });
             }
         } catch (err) {
-            console.error("Official Table copy error:", err);
+            console.error("Copy error:", err);
             toast({
                 title: "Copy Failed",
                 description: "An error occurred while copying.",
@@ -373,15 +373,15 @@ export default function SelectionNoticePrintPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
                   <tbody>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
+                          <td valign="top" style={{ width: '85px', minWidth: '85px', whiteSpace: 'nowrap', padding: '6px 8px 6px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
                               വിഷയം:
                           </td>
-                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
+                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '6px 0', border: 'none' }}>
                               {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.
                           </td>
                       </tr>
                       <tr>
-                          <td valign="top" style={{ width: '70px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
+                          <td valign="top" style={{ width: '85px', minWidth: '85px', whiteSpace: 'nowrap', padding: '6px 8px 6px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
                               സൂചന:
                           </td>
                           <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
@@ -433,9 +433,9 @@ export default function SelectionNoticePrintPage() {
                 >
                     Close
                 </Button>
-                <Button variant="outline" onClick={handleCopyOfficialTable} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
+                <Button variant="outline" onClick={handleCopyContent} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5">
                     <Copy className="h-4 w-4" />
-                    Copy Official Table
+                    Copy
                 </Button>
                 <Button onClick={() => printDocument('selection-notice-content', document.title || 'Selection Notice', '1cm 1.5cm 1cm 2.3cm')} className="gap-1.5">
                     <Printer className="h-4 w-4" />

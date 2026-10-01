@@ -3,7 +3,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import { useFileEntries } from "@/hooks/useFileEntries";
 import { useStaffMembers } from "@/hooks/useStaffMembers";
 import { useAgencyApplications } from '@/hooks/useAgencyApplications';
@@ -19,53 +18,18 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, startOfMonth, endOfMonth, isWithinInterval, isValid, addYears, parseISO } from 'date-fns';
 
-const PresentWorkDetails = dynamic(() => import('@/components/dashboard/PresentWorkDetails'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const FileStatusOverview = dynamic(() => import('@/components/dashboard/FileStatusOverview'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const WorkStatusByService = dynamic(() => import('@/components/dashboard/WorkStatusByService'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const ConstituencyWiseOverview = dynamic(() => import('@/components/dashboard/ConstituencyWiseOverview'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const FinanceOverview = dynamic(() => import('@/components/dashboard/FinanceOverview'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const ArsStatusOverview = dynamic(() => import('@/components/dashboard/ArsStatusOverview'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const RigRegistrationOverview = dynamic(() => import('@/components/dashboard/RigRegistrationOverview'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const RigFinancialSummary = dynamic(() => import('@/components/dashboard/RigFinancialSummary'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const WorkProgress = dynamic(() => import('@/components/dashboard/WorkProgress'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const SupervisorWork = dynamic(() => import('@/components/dashboard/SupervisorWork'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const DepartmentalRigWorks = dynamic(() => import('@/components/dashboard/DepartmentalRigWorks'), {
-  loading: () => <div className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>,
-  ssr: false,
-});
-const DashboardDialogs = dynamic(() => import('@/components/dashboard/DashboardDialogs'), {
-  ssr: false,
-});
+import PresentWorkDetails from '@/components/dashboard/PresentWorkDetails';
+import FileStatusOverview from '@/components/dashboard/FileStatusOverview';
+import WorkStatusByService from '@/components/dashboard/WorkStatusByService';
+import ConstituencyWiseOverview from '@/components/dashboard/ConstituencyWiseOverview';
+import FinanceOverview from '@/components/dashboard/FinanceOverview';
+import ArsStatusOverview from '@/components/dashboard/ArsStatusOverview';
+import RigRegistrationOverview from '@/components/dashboard/RigRegistrationOverview';
+import RigFinancialSummary from '@/components/dashboard/RigFinancialSummary';
+import WorkProgress from '@/components/dashboard/WorkProgress';
+import SupervisorWork from '@/components/dashboard/SupervisorWork';
+import DepartmentalRigWorks from '@/components/dashboard/DepartmentalRigWorks';
+import DashboardDialogs from '@/components/dashboard/DashboardDialogs';
 import { 
   PRIVATE_APPLICATION_TYPES, 
   LOGGING_PUMPING_TEST_PURPOSE_OPTIONS, 
@@ -894,8 +858,8 @@ export default function DashboardPage() {
       {/* 1. Top Row: 3 Essential Notice Widgets (Compact Daily Attention) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <ETenderNoticeBoard />
-        <ImportantUpdates allFileEntries={dashboardData.allFileEntries} />
-        <NoticeBoard staffMembers={dashboardData.staffMembers} />
+        <ImportantUpdates allFileEntries={dashboardData?.allFileEntries || []} />
+        <NoticeBoard staffMembers={dashboardData?.staffMembers || []} />
       </div>
 
       {/* 2. Section Title & Subtitle with Icon on the Left */}

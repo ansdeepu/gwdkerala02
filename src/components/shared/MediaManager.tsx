@@ -53,6 +53,7 @@ interface MediaManagerProps {
   officeLocation?: string;
   fileNo?: string;
   siteName?: string;
+  siteId?: string;
   docPath?: string | null;
 }
 
@@ -67,8 +68,10 @@ export default function MediaManager({
   officeLocation: propOfficeLocation,
   fileNo: propFileNo,
   siteName: propSiteName,
+  siteId: propSiteId,
   docPath,
 }: MediaManagerProps) {
+  console.log(`[MediaManager] ${title} rendered with fields count:`, fields.length);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -308,7 +311,7 @@ export default function MediaManager({
   };
 
   const saveMediaToFirestore = async (newFields: any[]) => {
-    if (!docPath || !propSiteName) return;
+    if (!docPath || (!propSiteName && !propSiteId)) return;
 
     try {
       const { getFirestore, doc, getDoc, updateDoc } = await import('firebase/firestore');
@@ -326,8 +329,11 @@ export default function MediaManager({
           let updated = false;
           siteDetails = siteDetails.map((site: any) => {
             const currentSiteName = (site.nameOfSite || site.name || '').trim().toLowerCase();
-            const targetSiteName = propSiteName.trim().toLowerCase();
-            if (currentSiteName === targetSiteName) {
+            const targetSiteName = (propSiteName || '').trim().toLowerCase();
+            const idMatches = Boolean(propSiteId && site.id && site.id === propSiteId);
+            const nameMatches = Boolean(targetSiteName && currentSiteName === targetSiteName);
+
+            if (idMatches || nameMatches) {
               updated = true;
               return {
                 ...site,
@@ -401,6 +407,44 @@ export default function MediaManager({
         title: "Video Attached to Site Record",
         description: `${file.name} saved directly to site record media.`,
       });
+    }
+  };
+
+  const handleDeleteMedia = async (index: number, field: any) => {
+    console.log("[MediaManager] handleDeleteMedia called", { index, field });
+    
+    // 1. Compute the updated fields array without the deleted item
+    const updatedFields = fields.filter((_, i) => i !== index);
+
+    // 2. Remove from local UI state (react-hook-form)
+    remove(index);
+    
+    // 3. Persist the updated array to Firestore immediately
+    if (docPath) {
+      await saveMediaToFirestore(updatedFields);
+    }
+
+    // 4. If it's a drive file, delete it from Google Drive
+    if (field.driveFileId) {
+      console.log("[MediaManager] Attempting to delete file from Drive:", field.driveFileId);
+      try {
+        const res = await fetch("/api/drive-delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId: field.driveFileId }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.warn("Failed to delete file from Google Drive:", data.error);
+          toast({ title: "Drive Deletion Notice", description: "Removed from gallery, but could not delete from Google Drive.", variant: "destructive" });
+        } else {
+          toast({ title: "Deleted", description: "File successfully removed from gallery and Google Drive." });
+        }
+      } catch (err) {
+        console.error("Error deleting file from Drive:", err);
+      }
+    } else {
+      toast({ title: "Deleted", description: "File removed from gallery." });
     }
   };
 
@@ -833,11 +877,7 @@ export default function MediaManager({
                       variant="destructive"
                       size="icon"
                       className="h-7 w-7 shadow-sm"
-                      onClick={() => {
-                        const updatedFields = fields.filter((_, i) => i !== index);
-                        remove(index);
-                        saveMediaToFirestore(updatedFields);
-                      }}
+                      onClick={() => handleDeleteMedia(index, field)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

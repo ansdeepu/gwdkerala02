@@ -902,7 +902,7 @@ export default function WorkAgreementPrintPage() {
                                             {lang === 'en' ? 'Performance Guarantee:' : 'പെർഫോമൻസ് ഗ്യാരണ്ടി:'}
                                         </td>
                                         <td className="p-1.5 md:p-2 text-black font-medium leading-relaxed">
-                                            {tender.securityDeposit ? `Rs. ${Number(tender.securityDeposit).toLocaleString('en-IN')}/-` : 'Rs. ____________/-'}
+                                            {(tender.performanceGuaranteeAmount || (tender as any).securityDeposit) ? `Rs. ${Number(tender.performanceGuaranteeAmount || (tender as any).securityDeposit).toLocaleString('en-IN')}/-` : 'Rs. ____________/-'}
                                         </td>
                                     </tr>
                                     <tr>
@@ -910,7 +910,7 @@ export default function WorkAgreementPrintPage() {
                                             {lang === 'en' ? 'Additional Performance Guarantee:' : 'അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരണ്ടി:'}
                                         </td>
                                         <td className="p-1.5 md:p-2 text-black font-medium leading-relaxed">
-                                            {tender.additionalPerformanceGuarantee ? `Rs. ${Number(tender.additionalPerformanceGuarantee).toLocaleString('en-IN')}/-` : 'Rs. ____________/-'}
+                                            {(tender.additionalPerformanceGuaranteeAmount || (tender as any).additionalPerformanceGuarantee) ? `Rs. ${Number(tender.additionalPerformanceGuaranteeAmount || (tender as any).additionalPerformanceGuarantee).toLocaleString('en-IN')}/-` : 'Rs. ____________/-'}
                                         </td>
                                     </tr>
                                 </tbody>

@@ -26,6 +26,7 @@ export const OwnerInfoSchema = z.object({
     mobile: optionalStringSchema,
     secondaryMobile: optionalStringSchema,
     email: optionalStringSchema,
+    photoUrl: optionalStringSchema,
 });
 export type OwnerInfo = z.infer<typeof OwnerInfoSchema>;
 

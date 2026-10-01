@@ -796,6 +796,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
         const finalExp = computedExpenditure !== undefined ? computedExpenditure : (data.totalExpenditure ?? initialData?.totalExpenditure ?? undefined);
 
+        const currentWorkImages = form.getValues('workImages');
+        const currentWorkVideos = form.getValues('workVideos');
         const updatedData = {
             ...(initialData || {}),
             ...data,
@@ -804,6 +806,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             casing10kgPipe: data.casing10kgPipe ?? "",
             casingPipeUsed: totalCasing > 0 ? totalCasing.toString() : "",
             totalExpenditure: finalExp,
+            workImages: Array.isArray(currentWorkImages) ? currentWorkImages : (data.workImages || []),
+            workVideos: Array.isArray(currentWorkVideos) ? currentWorkVideos : (data.workVideos || []),
         };
         onConfirm(updatedData);
     };
@@ -1576,6 +1580,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
                                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
+                                                        siteId={initialData?.id}
                                                         docPath={docPath}
                                                     />
                                                     <Separator />
@@ -1590,6 +1595,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                         officeLocation={(initialData as any)?.officeLocation || (initialData as any)?.district || (form.watch as any)('district') || 'kollam'}
                                                         fileNo={(initialData as any)?.fileNo || (initialData as any)?.currentFileNo || (form.watch as any)('fileNo') || 'General'}
                                                         siteName={form.watch('nameOfSite') || initialData?.nameOfSite}
+                                                        siteId={initialData?.id}
                                                         docPath={docPath}
                                                     />
                                                 </CardContent>

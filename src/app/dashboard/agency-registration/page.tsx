@@ -45,6 +45,7 @@ import { app } from '@/lib/firebase';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import MediaManager from '@/components/shared/MediaManager';
+import ApplicationGenerationSection from '@/components/agency/ApplicationGenerationSection';
 import { RigRegistrationApplicationFormModal, RigRenewalApplicationFormModal, RigRegistrationApplicationFormView, RigRenewalApplicationFormView } from '@/components/agency/RigApplicationFormsModal';
 
 const db = getFirestore(app);
@@ -2194,6 +2195,16 @@ export default function AgencyRegistrationPage() {
                             </Button>
                         </CardContent>
                     </Card>
+                  </div>
+
+                  {/* Application Generation */}
+                  <div className="relative">
+                    <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
+                      <div className="bg-teal-50 dark:bg-teal-950/60 p-1.5 rounded-full text-teal-600 dark:text-teal-400">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <ApplicationGenerationSection applicationData={form.getValues()} />
                   </div>
 
                   {/* Remarks */}

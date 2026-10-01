@@ -169,7 +169,7 @@ export function RigRegistrationApplicationFormView({
       office_inspector_signature: getVal("office_inspector_signature", ""),
 
       // Receipt
-      receipt_app_no: getVal("receipt_app_no", app.applicationNo || "APP/2026/001"),
+      receipt_app_no: getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001"),
       receipt_applicant_name: getVal("receipt_applicant_name", owner.name || ""),
       receipt_date_recd: formatToDDMMYYYY(getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy"))),
       receipt_paid_amount: getVal("receipt_paid_amount", "10000"),
@@ -457,7 +457,7 @@ export function RigRenewalApplicationFormView({
       office_recommendation: getVal("office_recommendation", ""),
 
       // Receipt
-      receipt_app_no: getVal("receipt_app_no", app.applicationNo || "APP/2026/001"),
+      receipt_app_no: getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001"),
       receipt_agency_name: getVal("receipt_agency_name", app.agencyName || ""),
       receipt_agency_reg_no: getVal("receipt_agency_reg_no", app.agencyRegistrationNo || ""),
       receipt_date_recd: formatToDDMMYYYY(getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy"))),
@@ -476,7 +476,7 @@ export function RigRenewalApplicationFormView({
       initial[`${rigKey}_type`] = getVal(`${rigKey}_type`, getVal(`${upperRigKey}_type`, rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്"));
       initial[`${rigKey}_ownerName`] = getVal(`${rigKey}_ownerName`, getVal(`${upperRigKey}_ownerName`, rig ? owner.name : ""));
       initial[`${rigKey}_address`] = getVal(`${rigKey}_address`, getVal(`${upperRigKey}_address`, rig ? owner.address : ""));
-      initial[`${rigKey}_phone`] = getVal(`${rigKey}_phone`, getVal(`${upperRigKey}_phone`, owner.phone || ""));
+      initial[`${rigKey}_phone`] = getVal(`${rigKey}_phone`, getVal(`${upperRigKey}_phone`, (owner as any).phone || owner.mobile || ""));
       initial[`${rigKey}_mobile`] = getVal(`${rigKey}_mobile`, getVal(`${upperRigKey}_mobile`, owner.mobile || ""));
       initial[`${rigKey}_email`] = getVal(`${rigKey}_email`, getVal(`${upperRigKey}_email`, owner.email || ""));
       initial[`${rigKey}_district`] = getVal(`${rigKey}_district`, getVal(`${upperRigKey}_district`, app.officeLocation || ""));
