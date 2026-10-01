@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { z } from 'zod';
 import { usePageHeader } from '@/hooks/usePageHeader';
 import { getInitials } from '@/lib/utils';
+import CentralGoogleDriveCard from '@/components/settings/CentralGoogleDriveCard';
 
 function SuperAdminUpdatePasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -266,6 +267,8 @@ export default function SuperAdminProfilePage() {
                                     <SuperAdminUpdatePasswordForm />
                                 </CardContent>
                             </Card>
+
+                            <CentralGoogleDriveCard />
                         </div>
                       </div>
                 </CardContent>

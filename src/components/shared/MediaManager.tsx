@@ -107,9 +107,7 @@ export default function MediaManager({
 
   const isSuperAdmin = 
     user?.role === 'superAdmin' || 
-    user?.role === 'admin' || 
     user?.email === 'keralagwd@gmail.com' || 
-    user?.email === 'ss.deepu@gmail.com' || 
     user?.email === SUPER_ADMIN_EMAIL;
 
   // Check if Google Drive is configured
@@ -372,8 +370,8 @@ export default function MediaManager({
     }
 
     if (type === 'image') {
-      // Compress with 960px max dimension and 0.65 quality to keep size ~30-50KB to respect Firestore's 1MB limit
-      const compressed = await compressImage(file, 960, 0.65);
+      // Compress with 720px max dimension and 0.50 quality to keep size ~15-30KB safely within Firestore limits
+      const compressed = await compressImage(file, 720, 0.50);
       const dataUrl = `data:${compressed.mimeType};base64,${compressed.base64Data}`;
       const newMediaItem = {
         id: uuidv4(),
@@ -387,26 +385,16 @@ export default function MediaManager({
       saveMediaToFirestore([...fields, newMediaItem]);
       toast({
         title: "Photo Attached to Site Record",
-        description: `${file.name} saved directly with optimized compression.`,
+        description: `${file.name} saved directly with optimized compression (<30KB).`,
       });
     } else {
-      // For video files: if under 15MB, attach as direct media data URL / link
-      const converted = await fileToBase64(file);
-      const dataUrl = `data:${converted.mimeType};base64,${converted.base64Data}`;
-      const newMediaItem = {
-        id: uuidv4(),
-        url: dataUrl,
-        fileName: file.name,
-        description: "",
-        storageType: 'direct',
-        createdAt: new Date().toISOString(),
-      };
-      append(newMediaItem);
-      saveMediaToFirestore([...fields, newMediaItem]);
+      // For video files: videos require Google Drive to avoid exceeding Firestore's 1MB document limit.
       toast({
-        title: "Video Attached to Site Record",
-        description: `${file.name} saved directly to site record media.`,
+        title: "Google Drive Required for Videos",
+        description: "Videos cannot be saved directly in database documents. Please configure Google Drive in Settings or paste a Google Drive / YouTube link.",
+        variant: "destructive",
       });
+      setIsSetupDialogOpen(true);
     }
   };
 

@@ -66,6 +66,49 @@ const sanitizeDataForFirestore = (data: any): any => {
     return data;
 };
 
+// Recursively inspects and cleans up oversized raw base64 data strings (>50KB) if the document approaches the 1MB Firestore limit
+const sanitizePayloadForFirestoreSize = (payload: any, fileNo?: string): any => {
+    try {
+        const jsonString = JSON.stringify(payload);
+        const approxBytes = typeof Blob !== 'undefined' ? new Blob([jsonString]).size : jsonString.length;
+        
+        // If safely below 800 KB, no modification needed
+        if (approxBytes < 800000) {
+            return payload;
+        }
+
+        console.warn(`[useFileEntries] Payload size (${(approxBytes / (1024 * 1024)).toFixed(2)} MB) for file "${fileNo || 'unknown'}" is near/above Firestore 1MB limit. Auto-sanitizing embedded heavy media...`);
+        
+        const cleanPayload = JSON.parse(JSON.stringify(payload));
+        
+        const stripHeavyBase64 = (obj: any): any => {
+            if (!obj) return obj;
+            if (Array.isArray(obj)) {
+                return obj.map(item => stripHeavyBase64(item));
+            }
+            if (typeof obj === 'object') {
+                const result: any = {};
+                for (const key of Object.keys(obj)) {
+                    const val = obj[key];
+                    if (typeof val === 'string' && (val.startsWith('data:image/') || val.startsWith('data:video/') || val.startsWith('data:application/')) && val.length > 40000) {
+                        console.warn(`[useFileEntries] Cleaned embedded base64 in field '${key}' (length ${val.length}) to protect Firestore document size.`);
+                        result[key] = obj.driveViewUrl || obj.url?.startsWith('http') ? obj.url : '';
+                    } else {
+                        result[key] = stripHeavyBase64(val);
+                    }
+                }
+                return result;
+            }
+            return obj;
+        };
+
+        return stripHeavyBase64(cleanPayload);
+    } catch (e) {
+        console.error("[useFileEntries] Error during payload size sanitization:", e);
+        return payload;
+    }
+};
+
 // Validates that the payload does not exceed Firestore's 1 MiB hard document limit
 const assertFirestoreDocumentSize = (payload: any, fileNo?: string) => {
     try {
@@ -195,7 +238,8 @@ export function useFileEntries() {
         const payload = { ...entryData, officeLocation: user.officeLocation };
         if (payload.id) delete payload.id;
 
-        const sanitizedPayload = sanitizeDataForFirestore({ ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        const sizeOptimizedPayload = sanitizePayloadForFirestoreSize(payload, entryData.fileNo);
+        const sanitizedPayload = sanitizeDataForFirestore({ ...sizeOptimizedPayload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         assertFirestoreDocumentSize(sanitizedPayload, entryData.fileNo);
 
         const docRef = await addDoc(collection(db, collectionPath), sanitizedPayload);
@@ -228,7 +272,8 @@ export function useFileEntries() {
         const payload = { ...entryData, fileNo: fileNoTrimmed };
         if (payload.id) delete payload.id;
 
-        const finalPayload = { ...payload, updatedAt: serverTimestamp() };
+        const sizeOptimizedPayload = sanitizePayloadForFirestoreSize(payload, entryData.fileNo);
+        const finalPayload = { ...sizeOptimizedPayload, updatedAt: serverTimestamp() };
         const sanitizedPayload = sanitizeDataForFirestore(finalPayload);
         assertFirestoreDocumentSize(sanitizedPayload, entryData.fileNo);
 

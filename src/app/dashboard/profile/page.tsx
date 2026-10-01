@@ -11,6 +11,7 @@ import { usePageHeader } from "@/hooks/usePageHeader";
 import { useEffect } from "react";
 import { cn } from '@/lib/utils';
 import { getInitials } from "@/lib/utils";
+import CentralGoogleDriveCard from '@/components/settings/CentralGoogleDriveCard';
 
 
 
@@ -115,7 +116,7 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
                     <div className="flex items-center space-x-3">
@@ -130,6 +131,8 @@ export default function ProfilePage() {
                     <UpdatePasswordForm />
                 </CardContent>
             </Card>
+
+            <CentralGoogleDriveCard />
         </div>
       </div>
     </div>
