@@ -830,10 +830,139 @@ export const copyOfficialTable = async (elementId: string, options?: ExtendedPri
 export const copyRichHtml = copyOfficialTable;
 
 /**
- * Copies the natural rendered content of a document with its native alignments,
- * tables, fonts, and inline styles intact.
- * Replicates the exact browser native behavior of selecting text on screen and pressing Ctrl+C.
- * Does not wrap the content in synthetic outer tables, avoiding exaggerated margins in e-Office.
+ * Preprocesses DOM trees for e-Office draft pasting:
+ * 1. Ensures 2-column header/signature blocks use borderless tables with width:100% 
+ *    so CKEditor keeps content strictly inside the white draft page without overflowing.
+ * 2. Removes all table borders and grid lines on non-data tables.
+ * 3. Keeps single-column blocks (Subject, Reference, Conditions, Main Body, Copy To) as clean paragraphs.
+ */
+export const prepareEofficeHtml = (element: HTMLElement): string => {
+  const clone = element.cloneNode(true) as HTMLElement;
+
+  // Remove any no-print action bars or temporary UI elements
+  const noPrints = clone.querySelectorAll('.no-print');
+  noPrints.forEach(node => node.remove());
+
+  // Enforce box-sizing: border-box and max-width: 100% on all elements so padding/margins never overflow
+  const allElements = clone.querySelectorAll('*');
+  allElements.forEach(el => {
+    const htmlEl = el as HTMLElement;
+    htmlEl.style.boxSizing = 'border-box';
+    htmlEl.style.maxWidth = '100%';
+  });
+
+  // Clean all flex containers that cause CKEditor right-margin overflow
+  const flexDivs = clone.querySelectorAll('div');
+  flexDivs.forEach(div => {
+    const htmlDiv = div as HTMLElement;
+    const styleAttr = (htmlDiv.getAttribute('style') || '').toLowerCase();
+    
+    // If it's a flex container for 2-column header/signature alignment
+    if (styleAttr.includes('display: flex') || styleAttr.includes('display:flex')) {
+      const children = Array.from(htmlDiv.children) as HTMLElement[];
+      if (children.length === 2) {
+        // Convert flex container to e-Office compliant borderless 2-column table
+        const table = document.createElement('table');
+        table.setAttribute('border', '0');
+        table.setAttribute('cellpadding', '0');
+        table.setAttribute('cellspacing', '0');
+        table.style.width = '100%';
+        table.style.maxWidth = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.border = 'none';
+        table.style.borderStyle = 'none';
+        table.style.margin = '8px 0 12px 0';
+        table.style.boxSizing = 'border-box';
+
+        const tbody = document.createElement('tbody');
+        const tr = document.createElement('tr');
+        tr.style.border = 'none';
+
+        const td1 = document.createElement('td');
+        td1.setAttribute('align', 'left');
+        td1.setAttribute('valign', 'top');
+        td1.style.width = '50%';
+        td1.style.verticalAlign = 'top';
+        td1.style.textAlign = children[0].style.textAlign || 'left';
+        td1.style.border = 'none';
+        td1.style.borderStyle = 'none';
+        td1.style.padding = '0';
+        td1.style.boxSizing = 'border-box';
+        td1.innerHTML = children[0].innerHTML;
+
+        const td2 = document.createElement('td');
+        td2.setAttribute('align', 'right');
+        td2.setAttribute('valign', 'top');
+        td2.style.width = '50%';
+        td2.style.verticalAlign = 'top';
+        td2.style.textAlign = children[1].style.textAlign || 'right';
+        td2.style.border = 'none';
+        td2.style.borderStyle = 'none';
+        td2.style.padding = '0';
+        td2.style.boxSizing = 'border-box';
+        td2.innerHTML = children[1].innerHTML;
+
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+        table.appendChild(tbody);
+
+        htmlDiv.parentNode?.replaceChild(table, htmlDiv);
+      } else {
+        htmlDiv.style.display = 'block';
+        htmlDiv.style.width = '100%';
+        htmlDiv.style.boxSizing = 'border-box';
+      }
+    }
+  });
+
+  // Ensure all paragraphs carry box-sizing: border-box and max-width: 100%
+  const paragraphs = clone.querySelectorAll('p');
+  paragraphs.forEach(p => {
+    const htmlP = p as HTMLElement;
+    htmlP.style.boxSizing = 'border-box';
+    htmlP.style.maxWidth = '100%';
+  });
+
+  // Strip all table borders and grid lines on all layout tables
+  const tables = clone.querySelectorAll('table');
+  tables.forEach(table => {
+    const htmlTable = table as HTMLElement;
+    htmlTable.setAttribute('border', '0');
+    htmlTable.setAttribute('cellpadding', '0');
+    htmlTable.setAttribute('cellspacing', '0');
+    htmlTable.style.width = '100%';
+    htmlTable.style.maxWidth = '100%';
+    htmlTable.style.borderCollapse = 'collapse';
+    htmlTable.style.boxSizing = 'border-box';
+
+    const styleAttr = (htmlTable.getAttribute('style') || '').toLowerCase();
+    const isExplicitDataGrid = htmlTable.classList.contains('bordered') || (styleAttr.includes('border:') && !styleAttr.includes('border: none') && !styleAttr.includes('border:none') && !styleAttr.includes('border: 0'));
+
+    if (!isExplicitDataGrid) {
+      htmlTable.style.border = 'none';
+      htmlTable.style.borderStyle = 'none';
+      htmlTable.style.borderWidth = '0px';
+
+      const cells = htmlTable.querySelectorAll('td, th, tr');
+      cells.forEach(cell => {
+        const c = cell as HTMLElement;
+        c.setAttribute('border', '0');
+        c.style.border = 'none';
+        c.style.borderStyle = 'none';
+        c.style.borderWidth = '0px';
+        c.style.outline = 'none';
+        c.style.boxSizing = 'border-box';
+      });
+    }
+  });
+
+  return clone.innerHTML;
+};
+
+/**
+ * Copies document content to clipboard with clean e-Office HTML formatting,
+ * eliminating table grid boxes AND preventing text overflow outside e-Office draft page.
  */
 export const copyDocumentContent = async (elementId: string): Promise<boolean> => {
   if (typeof window === 'undefined') return false;
@@ -843,9 +972,32 @@ export const copyDocumentContent = async (elementId: string): Promise<boolean> =
     return false;
   }
 
-  // 1. Primary method: Native browser Selection API + execCommand('copy')
-  // This produces the EXACT clipboard payload generated when a user selects text with mouse and presses Ctrl+C.
-  let success = false;
+  try {
+    const cleanedHtml = prepareEofficeHtml(element);
+    const textContent = element.innerText || element.textContent || '';
+
+    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body, div, p, span, table, td, th { font-family: 'Times New Roman', 'Suruma', 'Kartika', serif; font-size: 12pt; color: #000000; line-height: 1.5; box-sizing: border-box; }
+      table { border-collapse: collapse !important; border: none !important; border-style: none !important; border-width: 0px !important; width: 100% !important; max-width: 100% !important; margin: 8px 0; }
+      td, th { border: none !important; border-style: none !important; border-width: 0px !important; vertical-align: top; }
+      p { margin: 0 0 8px 0; }
+    </style></head><body><!--StartFragment--><div style="width:100%;max-width:100%;border:none;outline:none;box-sizing:border-box;">${cleanedHtml}</div><!--EndFragment--></body></html>`;
+
+    if (navigator.clipboard && window.ClipboardItem) {
+      const htmlBlob = new Blob([fullHtml], { type: 'text/html' });
+      const textBlob = new Blob([textContent], { type: 'text/plain' });
+      const item = new ClipboardItem({
+        'text/html': htmlBlob,
+        'text/plain': textBlob,
+      });
+      await navigator.clipboard.write([item]);
+      return true;
+    }
+  } catch (err) {
+    console.warn('ClipboardItem API copy failed, falling back to Selection API:', err);
+  }
+
+  // Fallback to Selection API
   try {
     const selection = window.getSelection();
     if (selection) {
@@ -853,34 +1005,12 @@ export const copyDocumentContent = async (elementId: string): Promise<boolean> =
       const range = document.createRange();
       range.selectNodeContents(element);
       selection.addRange(range);
-      success = document.execCommand('copy');
+      const success = document.execCommand('copy');
       selection.removeAllRanges();
+      if (success) return true;
     }
   } catch (err) {
-    console.warn('Selection copy failed, falling back to Clipboard API:', err);
-  }
-
-  if (success) {
-    return true;
-  }
-
-  // 2. Modern Clipboard API fallback with pure HTML & plain text
-  try {
-    if (navigator.clipboard && window.ClipboardItem) {
-      const htmlBlob = new Blob([element.innerHTML], { type: 'text/html' });
-      const textBlob = new Blob([element.innerText || element.textContent || ''], { type: 'text/plain' });
-      const item = new ClipboardItem({
-        'text/html': htmlBlob,
-        'text/plain': textBlob,
-      });
-      await navigator.clipboard.write([item]);
-      return true;
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(element.innerText || element.textContent || '');
-      return true;
-    }
-  } catch (err) {
-    console.error('Clipboard write failed:', err);
+    console.error('Selection copy failed:', err);
   }
 
   return false;

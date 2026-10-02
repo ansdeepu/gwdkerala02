@@ -89,36 +89,33 @@ export default function SupplyOrderPrintPage() {
           <div id="supply-order-content" className="max-w-5xl mx-auto p-12 text-black" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.4' }}>
             {/* Page 1 & 2 combined */}
             <div className="space-y-4">
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000000', marginTop: '8px', marginBottom: '16px' }}>
-                    <tbody>
-                        <tr>
-                            <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
-                                <p style={{ margin: 0, padding: 0 }}>File No. {officeAddress?.officeCode || 'GKT'}/{tender.fileNo || '__________'}</p>
-                                <p style={{ margin: 0, padding: 0 }}>Tender No. {tender.eTenderNo || '__________'}</p>
-                            </td>
-                            <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5', border: '1px solid #000000', padding: '8px' }}>
-                                <p style={{ margin: 0, padding: 0 }}>Office of the District Officer</p>
-                                <p style={{ margin: 0, padding: 0 }}>Ground Water Department</p>
-                                {(() => {
-                                    const raw = officeAddress?.address || '';
-                                    const clean = cleanAddress(raw);
-                                    if (clean.includes("High School Junction")) {
-                                        return (
-                                            <>
-                                                <p style={{ margin: 0, padding: 0 }}>High School Junction</p>
-                                                <p style={{ margin: 0, padding: 0 }}>Thevally P. O, Kollam - 691009</p>
-                                            </>
-                                        );
-                                    }
-                                    return <p style={{ margin: 0, padding: 0 }}>{clean}</p>;
-                                })()}
-                                <p style={{ margin: 0, padding: 0 }}>Phone: {officeAddress?.phoneNo || ''}</p>
-                                <p style={{ margin: 0, padding: 0 }}>Email: {officeAddress?.email || ''}</p>
-                                <p style={{ margin: 0, padding: 0 }}>Date: {formatDateSafe(tender.dateWorkOrder) || '__________'}</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                {/* Header without table */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px', marginBottom: '16px', fontSize: '12pt', lineHeight: '1.5' }}>
+                    <div style={{ textAlign: 'left' }}>
+                        <p style={{ margin: 0, padding: 0 }}>File No. {officeAddress?.officeCode || 'GKT'}/{tender.fileNo || '__________'}</p>
+                        <p style={{ margin: 0, padding: 0 }}>Tender No. {tender.eTenderNo || '__________'}</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{ margin: 0, padding: 0 }}>Office of the District Officer</p>
+                        <p style={{ margin: 0, padding: 0 }}>Ground Water Department</p>
+                        {(() => {
+                            const raw = officeAddress?.address || '';
+                            const clean = cleanAddress(raw);
+                            if (clean.includes("High School Junction")) {
+                                return (
+                                    <>
+                                        <p style={{ margin: 0, padding: 0 }}>High School Junction</p>
+                                        <p style={{ margin: 0, padding: 0 }}>Thevally P. O, Kollam - 691009</p>
+                                    </>
+                                );
+                            }
+                            return <p style={{ margin: 0, padding: 0 }}>{clean}</p>;
+                        })()}
+                        <p style={{ margin: 0, padding: 0 }}>Phone: {officeAddress?.phoneNo || ''}</p>
+                        <p style={{ margin: 0, padding: 0 }}>Email: {officeAddress?.email || ''}</p>
+                        <p style={{ margin: 0, padding: 0 }}>Date: {formatDateSafe(tender.dateWorkOrder) || '__________'}</p>
+                    </div>
+                </div>
                 
                  <div style={{ marginTop: '16px', fontSize: '12pt' }}>
                     <p style={{ margin: 0, padding: 0 }}>From</p>
@@ -135,43 +132,34 @@ export default function SupplyOrderPrintPage() {
                     <p style={{ margin: 0, padding: 0 }}>Sir,</p>
                 </div>
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
-                    <tbody>
-                        <tr>
-                            <td valign="top" style={{ width: '50px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
-                                Sub:
-                            </td>
-                            <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
-                                GWD, {officeAddress?.officeLocation || ''} - {tender.nameOfWork} - Supply Order issued – reg.
-                            </td>
-                        </tr>
-                        <tr>
-                            <td valign="top" style={{ width: '50px', whiteSpace: 'nowrap', padding: '8px 8px 8px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
-                                Ref:
-                            </td>
-                            <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
-                                <p style={{ margin: 0, padding: 0 }}>1. e-Tender Notice of this office, {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.tenderDate) || '__________'}.</p>
-                                <p style={{ margin: 0, padding: 0 }}>2. Supply Agreement No. {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.agreementDate) || '__________'}.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                {/* Sub & Ref without table */}
+                <div style={{ marginTop: '12px', marginBottom: '12px', fontSize: '12pt', lineHeight: '1.5' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>
+                        <p style={{ margin: 0, padding: 0, fontWeight: 'bold', minWidth: '50px' }}>Sub:</p>
+                        <p style={{ margin: 0, padding: 0, textAlign: 'justify', flex: 1 }}>
+                            GWD, {officeAddress?.officeLocation || ''} - {tender.nameOfWork} - Supply Order issued – reg.
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                        <p style={{ margin: 0, padding: 0, fontWeight: 'bold', minWidth: '50px' }}>Ref:</p>
+                        <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, padding: 0 }}>1. e-Tender Notice of this office, {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.tenderDate) || '__________'}.</p>
+                            <p style={{ margin: 0, padding: 0 }}>2. Supply Agreement No. {tender.eTenderNo || '__________'}, dated {formatDateSafe(tender.agreementDate) || '__________'}.</p>
+                        </div>
+                    </div>
+                </div>
 
                 <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>As per the 1st reference cited above, e-tender was invited for the purchase of {tender.nameOfWork}.</p>
                 <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>Vide the 2nd reference cited, {l1Bidder?.name || 'N/A'}, {l1Bidder?.address || 'N/A'}, submitted the lowest bid of Rs. {contractAmount?.toLocaleString('en-IN') || '0.00'}/- (Rupees {quotedAmountInWords} only) for the aforesaid purchase. Your bid was accepted accordingly.</p>
                 <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>You are therefore directed to supply the items as per the schedule and specifications mentioned in the e-tender, and complete the supply within the stipulated period of {tender.periodOfCompletion || '___'} days under the supervision of {supervisorDetailsText}. Thereafter, you shall submit the bill in triplicate to this office for processing of payment.</p>
                 
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '30px', fontSize: '12pt' }}>
-                    <tbody>
-                        <tr>
-                            <td style={{ width: '50%' }}></td>
-                            <td align="right" valign="top" style={{ width: '50%', textAlign: 'right', verticalAlign: 'top' }}>
-                                <div style={{ height: '30px' }}></div>
-                                <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>District Officer</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                {/* Signature without table */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px', fontSize: '12pt' }}>
+                    <div style={{ textAlign: 'right', minWidth: '180px' }}>
+                        <div style={{ height: '30px' }}></div>
+                        <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>District Officer</p>
+                    </div>
+                </div>
                 
                 <div style={{ marginTop: '16px', fontSize: '12pt' }}>
                   <p style={{ margin: 0, padding: 0 }}>Copy to:</p>

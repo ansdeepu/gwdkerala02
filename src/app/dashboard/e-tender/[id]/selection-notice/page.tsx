@@ -330,28 +330,25 @@ export default function SelectionNoticePrintPage() {
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
               
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '8px', marginBottom: '16px' }}>
-                  <tbody>
-                      <tr>
-                          <td align="left" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'left', fontSize: '12pt', lineHeight: '1.5', border: 'none', padding: '8px 8px 8px 0' }}>
-                              <p style={{ margin: 0, padding: 0 }}>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
-                              <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
-                          </td>
-                          <td align="right" valign="top" style={{ width: '50%', verticalAlign: 'top', textAlign: 'right', fontSize: '12pt', lineHeight: '1.5', border: 'none', padding: '8px 0 8px 8px' }}>
-                              {(() => {
-                                  const addrMalayalam = officeAddress?.addressMalayalam || "ജില്ലാ ഓഫീസറുടെ കാര്യാലയം\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ, തേവള്ളി പി. ഓ.\nകൊല്ലം - 691009";
-                                  const lines = addrMalayalam.split('\n').map(l => l.trim()).filter(Boolean);
-                                  return lines.map((line, idx) => (
-                                      <p key={idx} style={{ margin: 0, padding: 0 }}>{line}</p>
-                                  ));
-                              })()}
-                              <p style={{ margin: 0, padding: 0 }}>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
-                              <p style={{ margin: 0, padding: 0 }}>ഇമെയിൽ: {officeAddress?.email || ''}</p>
-                              <p style={{ margin: 0, padding: 0 }}>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
-                          </td>
-                      </tr>
-                  </tbody>
-              </table>
+              {/* Header without table */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '8px', marginBottom: '16px', fontSize: '12pt', lineHeight: '1.5' }}>
+                  <div style={{ textAlign: 'left' }}>
+                      <p style={{ margin: 0, padding: 0 }}>നമ്പർ: {officeAddress?.officeCode || 'GKT'} / {tender.fileNo || '__________'}</p>
+                      <p style={{ margin: 0, padding: 0 }}>ടെണ്ടർ നമ്പർ : {tender.eTenderNo || '__________'}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                      {(() => {
+                          const addrMalayalam = officeAddress?.addressMalayalam || "ജില്ലാ ഓഫീസറുടെ കാര്യാലയം\nഭൂജലവകുപ്പ് ജില്ലാ ഓഫീസ്\nഹൈസ്കൂൾ ജംഗ്ഷൻ, തേവള്ളി പി. ഓ.\nകൊല്ലം - 691009";
+                          const lines = addrMalayalam.split('\n').map(l => l.trim()).filter(Boolean);
+                          return lines.map((line, idx) => (
+                              <p key={idx} style={{ margin: 0, padding: 0 }}>{line}</p>
+                          ));
+                      })()}
+                      <p style={{ margin: 0, padding: 0 }}>ഫോൺനമ്പർ: {officeAddress?.phoneNo || ''}</p>
+                      <p style={{ margin: 0, padding: 0 }}>ഇമെയിൽ: {officeAddress?.email || ''}</p>
+                      <p style={{ margin: 0, padding: 0 }}>തീയതി: {formatDateSafe(tender.selectionNoticeDate) || '__________'}</p>
+                  </div>
+              </div>
 
               <div style={{ marginTop: '16px', fontSize: '12pt' }}>
                   <p style={{ margin: 0, padding: 0 }}>പ്രേഷകൻ</p>
@@ -370,51 +367,42 @@ export default function SelectionNoticePrintPage() {
                   <p style={{ margin: 0, padding: 0 }}>സർ,</p>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '12px', marginBottom: '12px', fontSize: '12pt' }}>
-                  <tbody>
-                      <tr>
-                          <td valign="top" style={{ width: '85px', minWidth: '85px', whiteSpace: 'nowrap', padding: '6px 8px 6px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
-                              വിഷയം:
-                          </td>
-                          <td valign="top" align="justify" style={{ verticalAlign: 'top', textAlign: 'justify', lineHeight: '1.5', padding: '6px 0', border: 'none' }}>
-                              {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.
-                          </td>
-                      </tr>
-                      <tr>
-                          <td valign="top" style={{ width: '85px', minWidth: '85px', whiteSpace: 'nowrap', padding: '6px 8px 6px 0', fontWeight: 'bold', verticalAlign: 'top', border: 'none' }}>
-                              സൂചന:
-                          </td>
-                          <td valign="top" align="left" style={{ verticalAlign: 'top', textAlign: 'left', lineHeight: '1.5', padding: '8px 0', border: 'none' }}>
-                              {references.length <= 1 ? (
-                                  references[0]
-                              ) : (
-                                  <ol style={{ margin: 0, paddingLeft: '20px' }}>
-                                      {references.map((refText, idx) => (
-                                          <li key={idx} style={{ marginBottom: '4px' }}>{refText}</li>
-                                      ))}
-                                  </ol>
-                              )}
-                          </td>
-                      </tr>
-                  </tbody>
-              </table>
+              {/* Subject & Ref without table */}
+              <div style={{ marginTop: '12px', marginBottom: '12px', fontSize: '12pt', lineHeight: '1.5' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>
+                      <p style={{ margin: 0, padding: 0, fontWeight: 'bold', minWidth: '85px' }}>വിഷയം:</p>
+                      <p style={{ margin: 0, padding: 0, textAlign: 'justify', flex: 1 }}>
+                          {tender.nameOfWorkMalayalam || tender.nameOfWork} - ടെണ്ടർ അംഗീകരിച്ച് സെലക്ഷൻ നോട്ടീസ് നൽകുന്നത് - സംബന്ധിച്ച്.
+                      </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                      <p style={{ margin: 0, padding: 0, fontWeight: 'bold', minWidth: '85px' }}>സൂചന:</p>
+                      <div style={{ flex: 1 }}>
+                          {references.length <= 1 ? (
+                              references[0]
+                          ) : (
+                              <ol style={{ margin: 0, paddingLeft: '20px' }}>
+                                  {references.map((refText, idx) => (
+                                      <li key={idx} style={{ marginBottom: '4px' }}>{refText}</li>
+                                  ))}
+                              </ol>
+                          )}
+                      </div>
+                  </div>
+              </div>
               
               <div style={{ marginTop: '12px' }}>
                   <MainContent />
               </div>
               
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '40px', fontSize: '12pt' }}>
-                  <tbody>
-                      <tr>
-                          <td style={{ width: '50%' }}></td>
-                          <td align="right" valign="top" style={{ width: '50%', textAlign: 'right', verticalAlign: 'top' }}>
-                              <p style={{ margin: 0, padding: 0 }}>വിശ്വസ്തതയോടെ</p>
-                              <div style={{ height: '50px' }}></div>
-                              <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>ജില്ലാ ഓഫീസർ</p>
-                          </td>
-                      </tr>
-                  </tbody>
-              </table>
+              {/* Signature without table */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '40px', fontSize: '12pt' }}>
+                  <div style={{ textAlign: 'right', minWidth: '180px' }}>
+                      <p style={{ margin: 0, padding: 0 }}>വിശ്വസ്തതയോടെ</p>
+                      <div style={{ height: '50px' }}></div>
+                      <p style={{ margin: 0, padding: 0, fontWeight: 'bold' }}>ജില്ലാ ഓഫീസർ</p>
+                  </div>
+              </div>
           </div>
             <div className="fixed bottom-4 right-4 no-print flex gap-2 bg-white/95 p-2 rounded-lg border shadow-lg backdrop-blur z-50">
                 <Button 
