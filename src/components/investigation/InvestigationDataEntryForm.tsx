@@ -82,8 +82,8 @@ import { usePendingUpdates } from "@/hooks/usePendingUpdates";
 import { z } from "zod";
 import { useAuth, type UserProfile } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getFirestore, doc, updateDoc, serverTimestamp, query, collection, where, getDocs, Timestamp, writeBatch, addDoc } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { doc, updateDoc, serverTimestamp, query, collection, where, getDocs, Timestamp, writeBatch, addDoc } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import { useDataStore } from "@/hooks/use-data-store";
 import { 
   getModuleCategoryFromData,
@@ -100,8 +100,6 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/comp
 import { Badge } from "@/components/ui/badge";
 import InvestigationSiteDialog from '@/components/investigation/InvestigationSiteDialog';
 import { MoveCopySiteDialog } from '../shared/MoveCopyDialogs';
-
-const db = getFirestore(app);
 
 const getStatusColorClass = (status: SiteWorkStatus | undefined | null): string => {
     return getSiteNameStatusColorClass(status);

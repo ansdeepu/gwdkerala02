@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
-import { getFirestore, collection, onSnapshot, query, Timestamp, DocumentData, orderBy, getDocs, type QuerySnapshot, where, deleteDoc, doc, addDoc, updateDoc, serverTimestamp, writeBatch, collectionGroup, setDoc } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { collection, onSnapshot, query, Timestamp, DocumentData, orderBy, getDocs, type QuerySnapshot, where, deleteDoc, doc, addDoc, updateDoc, serverTimestamp, writeBatch, collectionGroup, setDoc } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import { useAuth, type UserProfile } from './useAuth';
 import type { DataEntryFormData } from '@/lib/schemas/DataEntrySchema';
 import type { ArsEntry } from './useArsEntries';
@@ -18,8 +18,6 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { formatDistrictLocation } from '@/lib/utils';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, isStartDateReached } from '@/lib/tenderUtils';
-
-const db = getFirestore(app);
 
 /**
  * Robustly converts Firestore documents or data objects to JS objects.

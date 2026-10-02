@@ -2,8 +2,8 @@
 "use client";
 
 import { useCallback } from 'react';
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, getDocs, type DocumentData, Timestamp } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, getDocs, type DocumentData, Timestamp } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import { useAuth } from './useAuth';
 import type { E_tenderFormData } from '@/lib/schemas/eTenderSchema';
 import { toast } from './use-toast';
@@ -11,8 +11,6 @@ import { useDataStore } from './use-data-store';
 import { SUPER_ADMIN_EMAIL } from '@/lib/config';
 import { calculateWorkCommencementDate } from '@/lib/holidayUtils';
 import { normalizeFileNo, matchFileNo, isTenderCancelledOrRetender, isSiteTargetedByTender, isFinalSiteStatus, getResolvedWorkStatus, getAutoResolvedTenderStatus, isStartDateReached } from '@/lib/tenderUtils';
-
-const db = getFirestore(app);
 
 export type E_tender = E_tenderFormData & {
   id: string;

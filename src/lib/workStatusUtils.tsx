@@ -20,13 +20,17 @@ export const getWorkStatusBadgeClasses = (status?: string | null): string => {
     return 'bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
   }
 
-  // 2. Work Failed: Rose Red Badge
+  // 2. Land / Work Dispute: Orange/Amber Alert Badge
+  if (sLower.includes('dispute') || sLower.includes('conflict')) {
+    return 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700 font-bold';
+  }
+
+  // 3. Work Failed: Rose Red Badge
   if (
     sLower === 'work failed' || 
     sLower.includes('fail') || 
     sLower.includes('non-feasible') || 
-    sLower.includes('not feasible') ||
-    sLower.includes('disputed')
+    sLower.includes('not feasible')
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800';
   }

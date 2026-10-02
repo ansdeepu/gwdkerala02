@@ -3,7 +3,6 @@
 
 import { useCallback } from 'react';
 import {
-  getFirestore,
   collection,
   doc,
   addDoc,
@@ -12,13 +11,11 @@ import {
   deleteDoc,
   Timestamp
 } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import type { AgencyApplication as AgencyApplicationFormData, RigRegistration as RigRegistrationFormData, OwnerInfo } from '@/lib/schemas';
 import { useAuth } from './useAuth';
 import { toast } from './use-toast';
 import { useDataStore } from './use-data-store'; // Import the central store hook
-
-const db = getFirestore(app);
 
 // Type definitions that include the ID and handle Date objects
 export type RigRegistration = RigRegistrationFormData & { id: string };

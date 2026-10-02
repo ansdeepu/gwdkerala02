@@ -30,8 +30,8 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import type { UserProfile } from '@/hooks/useAuth';
 import Link from 'next/link';
 
@@ -76,7 +76,6 @@ export default function DashboardDialogs({ dialogState, setDialogState, allFileE
   const { isOpen, title, data, columns, type } = dialogState;
   const [deletingItem, setDeletingItem] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const db = getFirestore(app);
   
   const getFileDetailUrl = (row: any) => {
     const fileNo = row.fileNo;

@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  getFirestore,
   collection,
   query,
   where,
@@ -19,11 +18,10 @@ import {
   type DocumentData,
   deleteDoc,
 } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import { useAuth, type UserProfile } from './useAuth';
 import type { PendingUpdate, DataEntryFormData, SiteDetailFormData, ArsEntryFormData } from '@/lib/schemas';
 
-const db = getFirestore(app);
 const PENDING_UPDATES_COLLECTION = 'pendingUpdates';
 
 const convertTimestampToDate = (data: DocumentData): PendingUpdate => {

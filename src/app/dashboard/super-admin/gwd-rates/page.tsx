@@ -53,8 +53,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, query, writeBatch, setDoc, orderBy } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, query, writeBatch, setDoc, orderBy } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import { GwdRateItemFormDataSchema, type GwdRateItem, type GwdRateItemFormData, gwdRateCategories } from "@/lib/schemas";
 import { z } from 'zod';
 import { usePageHeader } from "@/hooks/usePageHeader";
@@ -68,10 +68,6 @@ import { DollarSign, PlusCircle, Trash2, Loader2, Save, X, ShieldAlert, Eye, Mov
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 
-
-
-
-const db = getFirestore(app);
 const RATES_COLLECTION = 'gwdRates';
 const RATE_DESCRIPTIONS_COLLECTION = 'rateDescriptions';
 

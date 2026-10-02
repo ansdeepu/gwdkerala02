@@ -146,7 +146,7 @@ export default function WorkOrderPrintPage() {
             }
           `}</style>
           <div id="work-order-content" className="max-w-4xl print:max-w-none mx-auto p-8 space-y-4 font-serif text-base" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000' }}>
-              <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
+              <div style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
 

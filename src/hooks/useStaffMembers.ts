@@ -6,7 +6,6 @@ import type { StaffMember, StaffMemberFormData, Designation, StaffStatusType } f
 import { designationOptions } from "@/lib/schemas";
 import { useState, useEffect, useCallback } from "react";
 import {
-  getFirestore,
   collection,
   addDoc,
   deleteDoc,
@@ -21,14 +20,11 @@ import {
   where,
   Timestamp
 } from "firebase/firestore";
-import { getStorage, ref as storageRef, deleteObject } from "firebase/storage"; 
-import { app } from "@/lib/firebase";
+import { ref as storageRef, deleteObject } from "firebase/storage"; 
+import { app, db, storage } from "@/lib/firebase";
 import { useAuth, type UserProfile } from './useAuth';
 import { useDataStore } from './use-data-store'; 
 import { toast } from "./use-toast";
-
-const db = getFirestore(app);
-const storage = getStorage(app);
 
 const sanitizeStaffMemberForFirestore = (data: any): any => {
   const sanitized: any = {};

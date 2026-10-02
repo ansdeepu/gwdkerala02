@@ -40,16 +40,12 @@ import { useAgencyApplications } from '@/hooks/useAgencyApplications';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer, ClipboardList, Receipt, Award, Truck, AlertOctagon, MessageSquare, Wrench } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import MediaManager from '@/components/shared/MediaManager';
 import { RigRegistrationApplicationFormModal, RigRenewalApplicationFormModal, RigRegistrationApplicationFormView, RigRenewalApplicationFormView } from '@/components/agency/RigApplicationFormsModal';
-
-const db = getFirestore(app);
-
-
 
 const createDefaultRig = (): RigRegistrationType => ({
     id: uuidv4(),

@@ -61,6 +61,7 @@ export interface AgencyDetails {
   village: string;
   taluk: string;
   panchayat: string;
+  state?: string;
   pin: string;
   gstNumber: string;
   localBodyRegistrationNumber: string;

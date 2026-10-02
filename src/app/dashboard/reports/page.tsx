@@ -551,11 +551,11 @@ export default function ReportsPage() {
 
         if (entry.siteDetails && entry.siteDetails.length > 0) {
             entry.siteDetails.forEach(site => {
-                if (!isAll(workCategoryFilter) && !workCategoryFilter.includes(site.workStatus)) return;
-                if (!isAll(lsgFilter) && !lsgFilter.includes(site.localSelfGovt)) return;
-                if (!isAll(constituencyFilter) && !constituencyFilter.includes(site.constituency)) return;
-                if (!isAll(typeOfRigFilter) && !typeOfRigFilter.includes(site.typeOfRig)) return;
-                if (!isAll(serviceTypeFilter) && !serviceTypeFilter.includes(site.purpose)) return;
+                if (!isAll(workCategoryFilter) && !workCategoryFilter.includes(site.workStatus || '')) return;
+                if (!isAll(lsgFilter) && !lsgFilter.includes(site.localSelfGovt || '')) return;
+                if (!isAll(constituencyFilter) && !constituencyFilter.includes(site.constituency || '')) return;
+                if (!isAll(typeOfRigFilter) && !typeOfRigFilter.includes(site.typeOfRig || '')) return;
+                if (!isAll(serviceTypeFilter) && !serviceTypeFilter.includes(site.purpose || '')) return;
                 if (!doesSiteMatchDateFilter(site, entry)) return;
 
                 flattenedRows.push({

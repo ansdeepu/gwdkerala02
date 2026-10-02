@@ -1170,9 +1170,9 @@ export default function ETenderListPage() {
                 retenders: [],
                 remarks: '',
                 isPerformanceGuaranteeSubmitted: false,
-                performanceGuaranteeReleaseStatus: 'Pending',
+                performanceGuaranteeReleaseStatus: 'Withheld',
                 isAdditionalPerformanceGuaranteeSubmitted: false,
-                additionalPerformanceGuaranteeReleaseStatus: 'Pending',
+                additionalPerformanceGuaranteeReleaseStatus: 'Withheld',
             });
             toast({ title: "Tender Copied", description: "A new tender has been created. Redirecting to edit..." });
             router.push(`/dashboard/e-tender/${newTenderId}`);

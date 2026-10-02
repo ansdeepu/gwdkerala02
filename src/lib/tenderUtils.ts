@@ -91,11 +91,18 @@ export const getResolvedWorkStatus = (
 ): string | null => {
     if (!site) return null;
 
-    // 1. Terminal / Final Outcomes (Highest Priority)
+    // 1. Terminal / Final Outcomes & Disputes (Highest Priority)
     if (hasValidCompletionDate(site.dateOfCompletion)) {
         return "Work Completed";
     }
+    const disputeType = site.typeOfDispute;
+    if (disputeType && disputeType !== 'None') {
+        return "Land / Work Dispute";
+    }
     const activeCondition = site.drillingConditions || site.developingConditions || site.schemeConditions;
+    if (activeCondition === 'Land Disputes' || activeCondition === 'Work Disputes and Conflicts') {
+        return "Land / Work Dispute";
+    }
     if (activeCondition === 'Failed' || activeCondition === 'Collapsed') {
         return "Work Failed";
     }

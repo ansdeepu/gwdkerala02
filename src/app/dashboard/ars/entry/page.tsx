@@ -65,7 +65,7 @@ export default function ArsEntryPage() {
     const searchParams = useSearchParams();
     const { user, isLoading: authLoading } = useAuth();
     const { toast } = useToast();
-    const { getArsEntryById, addArsEntry, updateArsEntry, isLoading: arsLoading } = useArsEntries();
+    const { arsEntries, getArsEntryById, addArsEntry, updateArsEntry, isLoading: arsLoading } = useArsEntries();
     const { createArsPendingUpdate } = usePendingUpdates();
     const { allStaffMembers, allUsers, allLsgConstituencyMaps, allE_tenders, allBidders, isLoading: dataStoreLoading } = useDataStore();
     
@@ -240,7 +240,7 @@ export default function ArsEntryPage() {
             if (data.fileNo) {
                 data.fileNo = data.fileNo.replace(/^[a-zA-Z]{2,}[a-zA-Z\s\/\\-]*?(?=\d)/, '').trim();
                 const cleanedTarget = cleanFileNo(data.fileNo);
-                const conflict = (allArsEntries || []).find(e => 
+                const conflict = (arsEntries || []).find((e: any) => 
                     e.id !== (id && id !== 'new' ? id : null) &&
                     cleanFileNo(e.fileNo) === cleanedTarget
                 );
@@ -492,7 +492,7 @@ export default function ArsEntryPage() {
                                     remove={removeImage} 
                                     update={updateImage} 
                                     isReadOnly={isReadOnly}
-                                    officeLocation={watch('district') || (user as any)?.officeLocation || 'kollam'}
+                                    officeLocation={(watch as any)('district') || (user as any)?.officeLocation || 'kollam'}
                                     fileNo={watch('fileNo') || 'General'}
                                     siteName={watch('nameOfSite') || ''}
                                 />
@@ -505,7 +505,7 @@ export default function ArsEntryPage() {
                                     remove={removeVideo} 
                                     update={updateVideo} 
                                     isReadOnly={isReadOnly}
-                                    officeLocation={watch('district') || (user as any)?.officeLocation || 'kollam'}
+                                    officeLocation={(watch as any)('district') || (user as any)?.officeLocation || 'kollam'}
                                     fileNo={watch('fileNo') || 'General'}
                                     siteName={watch('nameOfSite') || ''}
                                 />

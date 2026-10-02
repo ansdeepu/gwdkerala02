@@ -4,8 +4,8 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useDataStore } from "@/hooks/use-data-store";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import InvestigationReportViewer, { type InvestigationReportDocType } from "@/components/investigation/InvestigationReportViewer";
@@ -68,7 +68,6 @@ export default function GWInvestigationPrintPage() {
       // 3. Directly fetch from Firestore by ID if available
       if (id && id !== "new") {
         try {
-          const db = getFirestore(app);
           // Try fetching directly by doc ID
           const docRef = doc(db, "fileEntries", id);
           const snap = await getDoc(docRef);

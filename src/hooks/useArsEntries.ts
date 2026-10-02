@@ -3,16 +3,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, type DocumentData, Timestamp, writeBatch, query, getDocs, where } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, type DocumentData, Timestamp, writeBatch, query, getDocs, where } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import type { ArsEntryFormData, SiteWorkStatus, ArsStatus } from '@/lib/schemas';
 import { useAuth, type UserProfile } from './useAuth';
 import { toast } from './use-toast';
 import { parse, isValid } from 'date-fns';
 import { usePendingUpdates } from './usePendingUpdates';
 import { useDataStore } from './use-data-store'; // Import the new central store hook
-
-const db = getFirestore(app);
 
 // This is the shape of the data as it's stored and used in the app
 export type ArsEntry = ArsEntryFormData & {

@@ -24,12 +24,14 @@ if (!getApps().length) {
     app = getApp();
 }
 
-// Initialize Firestore with robust persistence cache and auto-detecting transport
+// Initialize Firestore with robust persistence cache and forced long polling for proxy/iframe stability
 let db: Firestore;
 try {
     db = initializeFirestore(app, {
-        localCache: persistentLocalCache({}),
-        experimentalAutoDetectLongPolling: true
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        }),
+        experimentalForceLongPolling: true
     });
 } catch (e) {
     db = getFirestore(app);

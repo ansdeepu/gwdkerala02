@@ -71,8 +71,8 @@ import { usePendingUpdates } from "@/hooks/usePendingUpdates";
 import { z } from "zod";
 import { useAuth, type UserProfile } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getFirestore, doc, query, collection, where, getDocs, Timestamp, serverTimestamp, writeBatch, updateDoc, addDoc } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { doc, query, collection, where, getDocs, Timestamp, serverTimestamp, writeBatch, updateDoc, addDoc } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import { useDataStore } from "@/hooks/use-data-store";
 import { isSiteTargetedByTender, getResolvedWorkStatus } from "@/lib/tenderUtils";
 import { 
@@ -89,9 +89,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import SiteDialogContent from "./SiteDialogContent";
 import { MoveCopySiteDialog } from './MoveCopyDialogs';
-
-
-const db = getFirestore(app);
 
 export const calculateSiteExpenditure = (site: any, payments: any[]): number => {
     if (!payments || !Array.isArray(payments)) return 0;

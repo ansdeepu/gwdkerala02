@@ -157,9 +157,9 @@ export default function SupplyOrderPrintPage() {
                     </tbody>
                 </table>
 
-                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>As per the 1st reference cited above, e-tender was invited for the purchase of {tender.nameOfWork}.</p>
-                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>Vide the 2nd reference cited, {l1Bidder?.name || 'N/A'}, {l1Bidder?.address || 'N/A'}, submitted the lowest bid of Rs. {contractAmount?.toLocaleString('en-IN') || '0.00'}/- (Rupees {quotedAmountInWords} only) for the aforesaid purchase. Your bid was accepted accordingly.</p>
-                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>You are therefore directed to supply the items as per the schedule and specifications mentioned in the e-tender, and complete the supply within the stipulated period of {tender.periodOfCompletion || '___'} days under the supervision of {supervisorDetailsText}. Thereafter, you shall submit the bill in triplicate to this office for processing of payment.</p>
+                <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>As per the 1st reference cited above, e-tender was invited for the purchase of {tender.nameOfWork}.</p>
+                <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>Vide the 2nd reference cited, {l1Bidder?.name || 'N/A'}, {l1Bidder?.address || 'N/A'}, submitted the lowest bid of Rs. {contractAmount?.toLocaleString('en-IN') || '0.00'}/- (Rupees {quotedAmountInWords} only) for the aforesaid purchase. Your bid was accepted accordingly.</p>
+                <p style={{ textAlign: 'justify', textIndent: '35px', marginTop: '12px', marginBottom: '12px', lineHeight: '1.6', fontSize: '12pt' }}>You are therefore directed to supply the items as per the schedule and specifications mentioned in the e-tender, and complete the supply within the stipulated period of {tender.periodOfCompletion || '___'} days under the supervision of {supervisorDetailsText}. Thereafter, you shall submit the bill in triplicate to this office for processing of payment.</p>
                 
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '30px', fontSize: '12pt' }}>
                     <tbody>
@@ -178,14 +178,14 @@ export default function SupplyOrderPrintPage() {
                   <p style={{ margin: 0, padding: 0 }}>1. File, 2. OC</p>
                 </div>
 
-                <div align="center" style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
+                <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
                     <h2 style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', margin: '0 0 8px 0' }}>Special Conditions</h2>
                     <ol style={{ textAlign: 'left', marginTop: '4px', marginLeft: '32px', paddingLeft: 0, lineHeight: '1.5' }}>
                         <li>The entire supply shall be completed within 15 days from the date of receipt of this order.</li>
                         <li>No advance payment will be made for the entire supply of items.</li>
                     </ol>
                 </div>
-                 <div align="center" style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
+                 <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12pt' }}>
                     <h2 style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', margin: '0 0 8px 0' }}>Notes</h2>
                     <ol style={{ textAlign: 'justify', marginTop: '4px', marginLeft: '32px', paddingLeft: 0, lineHeight: '1.5' }}>
                         <li>INVOICES IN TRIPLICATE SHOULD BE DRAWN ON AND FORWARDED FOR PAYMENT TO The District Officer, District Office, Groundwater Department, {cleanAddress(officeAddress?.address || '')}.</li>

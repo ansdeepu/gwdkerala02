@@ -13,8 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { getFirestore, collection, addDoc, deleteDoc, onSnapshot, query, orderBy, doc, writeBatch, updateDoc, getDocs, setDoc, where, serverTimestamp } from "firebase/firestore";
-import { app } from "@/lib/firebase";
+import { collection, addDoc, deleteDoc, onSnapshot, query, orderBy, doc, writeBatch, updateDoc, getDocs, setDoc, where, serverTimestamp } from "firebase/firestore";
+import { app, db } from "@/lib/firebase";
 import { useDataStore } from '@/hooks/use-data-store';
 import type { OfficeAddress, LsgConstituencyMap, StaffMember, Designation } from '@/lib/schemas';
 import { useAuth, type UserProfile } from '@/hooks/useAuth';
@@ -37,8 +37,6 @@ import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
 import AndroidAppDownloadCard from '@/components/settings/AndroidAppDownloadCard';
 import CentralGoogleDriveCard from '@/components/settings/CentralGoogleDriveCard';
 import { getGoogleDriveScriptUrl, getGoogleDriveStorageQuota, type DriveStorageQuota } from '@/lib/googleDriveUploadClient';
-
-const db = getFirestore(app);
 
 const districts = ["Directorate TVM", "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha", "Kottayam", "Idukki", "Ernakulam", "Thrissur", "Palakkad", "Malappuram", "Kozhikode", "Wayanad", "Kannur", "Kasaragod", "Lab TVM", "Lab EKM", "Lab KKD"];
 

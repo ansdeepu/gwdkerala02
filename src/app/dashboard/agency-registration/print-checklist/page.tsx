@@ -10,11 +10,11 @@ import { Printer, ArrowLeft, Edit2, Check, Loader2, X, RotateCcw, Save, Settings
 import { cn, getDistrictMalayalam } from '@/lib/utils';
 import { printDocument, copyRichHtml } from '@/lib/print-utils';
 import { PrintStyleToolbar, DEFAULT_PRINT_STYLES, getPrintContainerStyle, getPageMarginsCss, type PrintStyleSettings } from '@/components/shared/PrintStyleToolbar';
-import { getFirestore, collectionGroup, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collectionGroup, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import type { AgencyApplication } from '@/hooks/useAgencyApplications';
 import ExcelJS from 'exceljs';
 
@@ -135,7 +135,6 @@ export default function RigChecklistPrintPage() {
         let isMounted = true;
         const fetchDirectly = async () => {
             try {
-                const db = getFirestore(app);
                 const q = query(collectionGroup(db, 'agencyApplications'));
                 const querySnapshot = await getDocs(q);
                 const foundDoc = querySnapshot.docs.find(d => d.id === id);
@@ -246,7 +245,6 @@ export default function RigChecklistPrintPage() {
                 updatedAt: new Date().toISOString()
             };
 
-            const db = getFirestore(app);
             const officeLoc = (data.application.officeLocation || 'kollam').toLowerCase();
             const docRef = doc(db, `offices/${officeLoc}/agencyApplications`, data.application.id);
 
@@ -488,7 +486,7 @@ export default function RigChecklistPrintPage() {
         {
             num: "3",
             label: "ഇ മെയിൽ വിലാസം",
-            value: application.owner?.email || application.owner?.emailId || application.email || (application as any).emailId || (application as any).email || "രേഖപ്പെടുത്തിയിട്ടില്ല"
+            value: (application.owner as any)?.email || (application.owner as any)?.emailId || (application as any)?.email || (application as any)?.emailId || "രേഖപ്പെടുത്തിയിട്ടില്ല"
         },
         {
             num: "4",

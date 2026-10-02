@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { printDocument } from '@/lib/print-utils';
-import { getFirestore, collectionGroup, query, getDocs } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { collectionGroup, query, getDocs } from 'firebase/firestore';
+import { app, db } from '@/lib/firebase';
 import type { AgencyApplication } from '@/hooks/useAgencyApplications';
 
 const toDateOrNull = (value: any): Date | null => {
@@ -57,7 +57,6 @@ export default function AgencyExpiryPrintPage() {
         let isMounted = true;
         const fetchDirectly = async () => {
             try {
-                const db = getFirestore(app);
                 const q = query(collectionGroup(db, 'agencyApplications'));
                 const querySnapshot = await getDocs(q);
                 const foundDoc = querySnapshot.docs.find(d => d.id === id);

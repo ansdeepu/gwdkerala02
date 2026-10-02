@@ -312,9 +312,8 @@ export default function MediaManager({
     if (!docPath || (!propSiteName && !propSiteId)) return;
 
     try {
-      const { getFirestore, doc, getDoc, updateDoc } = await import('firebase/firestore');
-      const { app } = await import('@/lib/firebase');
-      const db = getFirestore(app);
+      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
 
       const docRef = doc(db, docPath);
       const docSnap = await getDoc(docRef);

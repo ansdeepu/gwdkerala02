@@ -252,14 +252,14 @@ export default function SelectionNoticePrintPage() {
                 if (effectiveApgRequired) {
                     const additionalPerformanceGuaranteeStr = additionalPerformanceGuarantee.toLocaleString('en-IN');
                     return (
-                        <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                        <p style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
                             മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. {isLabourSociety ? 'പ്രസ്തുത സൊസൈറ്റിയെ' : 'താങ്കളെ'} പെർഫോമൻസ് ഗ്യാരന്റി തുക കെട്ടിവെയ്ക്കുന്നതിൽ നിന്നും ഒഴിവാക്കിയിട്ടുള്ളതും, എന്നാൽ അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരന്റിയായി എസ്റ്റിമേറ്റ് തുകയുടെ <span style={{ fontWeight: 'bold' }}>{excessPercentageText}%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{additionalPerformanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെന്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                         </p>
                     );
                 }
 
                 return (
-                    <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                    <p style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
                         മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം ({isLabourSociety ? 'പ്രസ്തുത സൊസൈറ്റിയെ' : 'താങ്കളെ'} പെർഫോമൻസ് ഗ്യാരന്റി തുക കെട്ടിവെയ്ക്കുന്നതിൽ നിന്നും ഒഴിവാക്കിയിട്ടുള്ളതിനാൽ) <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെൻ്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                     </p>
                 );
@@ -269,14 +269,14 @@ export default function SelectionNoticePrintPage() {
                 const additionalPerformanceGuaranteeStr = additionalPerformanceGuarantee.toLocaleString('en-IN');
     
                 return (
-                     <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                     <p style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
                         മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span style={{ fontWeight: 'bold' }}>{quotedAmountStr}/-</span> രൂപയുടെ <span style={{ fontWeight: 'bold' }}>5%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും, അഡിഷണൽ പെർഫോമൻസ് ഗ്യാരന്റിയായി എസ്റ്റിമേറ്റ് തുകയുടെ <span style={{ fontWeight: 'bold' }}>{excessPercentageText}%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{additionalPerformanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായും ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെന്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                     </p>
                 );
             }
     
             return (
-                <p align="justify" style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
+                <p style={{ textAlign: 'justify', textIndent: '35px', lineHeight: '1.6', fontSize: '12pt', marginTop: '12px', marginBottom: '12px' }}>
                     മേൽ സൂചന പ്രകാരം {workName} നടപ്പിലാക്കുന്നതിന് വേണ്ടി താങ്കൾ സമർപ്പിച്ചിട്ടുള്ള ടെണ്ടർ അംഗീകരിച്ചു. ടെണ്ടർ പ്രകാരമുള്ള പ്രവൃത്തികൾ ഏറ്റെടുക്കുന്നതിന് മുന്നോടിയായി ഈ നോട്ടീസ് തീയതി മുതൽ പതിന്നാല് ദിവസത്തിനകം പെർഫോമൻസ് ഗ്യാരന്റിയായി {amountLabel} <span style={{ fontWeight: 'bold' }}>{quotedAmountStr}/-</span> രൂപയുടെ <span style={{ fontWeight: 'bold' }}>5%</span> തുകയായ <span style={{ fontWeight: 'bold' }}>{performanceGuaranteeStr}/-</span> രൂപയിൽ കുറയാത്ത തുക ട്രഷറി ഫിക്സഡ് ഡെപ്പോസിറ്റായി ഈ ഓഫീസിൽ കെട്ടിവയ്ക്കുന്നതിനും <span style={{ fontWeight: 'bold' }}>{stampPaperValueStr}/-</span> രൂപയുടെ മുദ്രപത്രത്തിൽ ഇതോടൊപ്പം ഉള്ളടക്കം ചെയ്തിട്ടുള്ള ഫോർമാറ്റിൽ വർക്ക് എഗ്രിമെൻ്റ് വയ്ക്കുന്നതിനും നിർദ്ദേശിക്കുന്നു.
                 </p>
             );
@@ -326,7 +326,7 @@ export default function SelectionNoticePrintPage() {
                 }
             `}} />
             <div id="selection-notice-content" className="max-w-4xl print:max-w-none mx-auto bg-white shadow-sm print:shadow-none print:p-0 space-y-4 print:space-y-2 font-serif text-base print:text-[13px] print:leading-relaxed" style={{ fontFamily: "'Times New Roman', 'Suruma', 'Kartika', serif", fontSize: '12pt', color: '#000000', paddingTop: '1cm', paddingBottom: '1cm', paddingLeft: '2.3cm', paddingRight: '1.5cm' }}>
-              <div align="center" style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
+              <div style={{ textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', fontSize: '13pt', marginBottom: '12px' }}>
                   &quot;ഭരണഭാഷ-മാതൃഭാഷ&quot;
               </div>
               

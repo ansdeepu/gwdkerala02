@@ -353,6 +353,7 @@ export const siteWorkStatusOptions = [
   "Additional Fund Awaited",
   "TS Pending",
   "Tender Pending",
+  "Land / Work Dispute",
   "Refund Pending",
   "Department Rig Allotted",
   "Tendered",
@@ -425,9 +426,14 @@ export type SiteTypeOfRig = typeof siteTypeOfRigOptions[number];
 export const siteConditionsOptions = ['Accessible to Dept. Rig', 'Accessible to Private Rig', 'Inaccessible to Other Rigs'] as const;
 export type SiteConditions = typeof siteConditionsOptions[number];
 
-export const drillingConditionsOptions = [
+export const typeOfDisputeOptions = [
+  "None",
   "Land Disputes",
-  "Work Disputes and Conflicts",
+  "Work Disputes and Conflicts"
+] as const;
+export type TypeOfDispute = typeof typeOfDisputeOptions[number];
+
+export const drillingConditionsOptions = [
   "Collapsed",
   "Refund",
   "Cancelled",
@@ -563,6 +569,7 @@ export const SiteDetailSchema = z.object({
   startDate: nativeDateSchema.optional().nullable(),
   dateOfDrilling: nativeDateSchema.optional().nullable(),
   typeOfRig: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional()),
+  typeOfDispute: z.preprocess((val) => (val === "" || val === null || val === undefined ? "None" : val), z.string().optional().default("None")),
   drillingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   developingConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),
   schemeConditions: z.preprocess((val) => (val === "" || val === null || val === '_clear_' ? undefined : val), z.string().optional().nullable()),

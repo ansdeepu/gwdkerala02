@@ -55,6 +55,7 @@ export const AgencySchema = z.object({
   village: z.string().min(1, 'Village is required'),
   taluk: z.string().min(1, 'Taluk is required'),
   panchayat: z.string().min(1, 'Panchayat is required'),
+  state: z.string().optional(),
   pin: z.string().min(6, 'Pin code is required'),
   gstNumber: z.string().min(1, 'GST number is required'),
   localBodyRegistrationNumber: z.string().min(1, 'Local body registration number is required'),

@@ -983,7 +983,7 @@ export default function DashboardPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/50">
             {activeSection === 'present-work' && (
               <PresentWorkDetails 
-                allFileEntries={dashboardData.allFileEntries} 
+                allFileEntries={dashboardData?.allFileEntries || []} 
                 allArsEntries={arsEntries} 
                 onOpenDialog={handleOpenDialog} 
               />
@@ -991,14 +991,14 @@ export default function DashboardPage() {
 
             {activeSection === 'file-status' && (
               <FileStatusOverview 
-                nonArsEntries={dashboardData.allFileEntries.filter(e => !e.applicationType?.includes("ARS"))}
+                nonArsEntries={(dashboardData?.allFileEntries || []).filter(e => !e.applicationType?.includes("ARS"))}
                 onOpenDialog={handleOpenDialog}
               />
             )}
 
             {activeSection === 'work-status' && (
               <WorkStatusByService 
-                allFileEntries={dashboardData.allFileEntries}
+                allFileEntries={dashboardData?.allFileEntries || []}
                 onOpenDialog={handleOpenDialog}
                 currentUserRole={currentUser?.role}
               />
@@ -1020,7 +1020,7 @@ export default function DashboardPage() {
 
             {activeSection === 'finance' && (
               <FinanceOverview 
-                allFileEntries={dashboardData.allFileEntries}
+                allFileEntries={dashboardData?.allFileEntries || []}
                 onOpenDialog={handleOpenDialog}
                 dates={financeDates}
                 onSetDates={setFinanceDates}
@@ -1051,7 +1051,7 @@ export default function DashboardPage() {
 
             {activeSection === 'work-progress' && (
               <WorkProgress
-                allFileEntries={dashboardData.allFileEntries}
+                allFileEntries={dashboardData?.allFileEntries || []}
                 allArsEntries={arsEntries}
                 onOpenDialog={handleOpenDialog}
                 currentUser={currentUser}
@@ -1060,17 +1060,17 @@ export default function DashboardPage() {
 
             {activeSection === 'supervisor-work' && (
               <SupervisorWork
-                allFileEntries={dashboardData.allFileEntries}
+                allFileEntries={dashboardData?.allFileEntries || []}
                 allArsEntries={arsEntries}
                 allUsers={allUsers}
-                staffMembers={dashboardData.staffMembers}
+                staffMembers={dashboardData?.staffMembers || []}
                 onOpenDialog={handleOpenDialog}
               />
             )}
 
             {activeSection === 'rig-works' && (
               <DepartmentalRigWorks
-                allFileEntries={dashboardData.allFileEntries}
+                allFileEntries={dashboardData?.allFileEntries || []}
                 rigCompressors={allRigCompressors}
                 onOpenDialog={handleOpenDialog}
               />
@@ -1083,7 +1083,7 @@ export default function DashboardPage() {
       <DashboardDialogs 
         dialogState={dialogState}
         setDialogState={setDialogState}
-        allFileEntries={dashboardData.allFileEntries}
+        allFileEntries={dashboardData?.allFileEntries || []}
         allArsEntries={arsEntries}
         financeDates={financeDates}
         currentUser={currentUser}

@@ -22,6 +22,7 @@ import {
   siteDiameterOptions,
   siteTypeOfRigOptions,
   siteConditionsOptions,
+  typeOfDisputeOptions,
   drillingConditionsOptions,
   developingConditionsOptions,
   schemeConditionsOptions,
@@ -200,6 +201,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
             dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
             arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
+            typeOfDispute: initialData?.typeOfDispute || 'None',
             isAwaitingTS: initialData?.isAwaitingTS ?? false,
             workImages: initialData?.workImages || [],
             workVideos: initialData?.workVideos || [],
@@ -218,6 +220,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const watchedContractorName = watch('contractorName');
     const watchedSupervisorName = watch('supervisorName');
     const watchedSiteConditions = watch('siteConditions');
+    const watchedTypeOfDispute = watch('typeOfDispute');
     const watchedDrillingConditions = watch('drillingConditions');
     const watchedDevelopingConditions = watch('developingConditions');
     const watchedSchemeConditions = watch('schemeConditions');
@@ -581,12 +584,19 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
 
     // Automated Work Status Calculation based on Priority Rules
     useEffect(() => {
-        const activeCondition = watchedDrillingConditions || watchedDevelopingConditions || watchedSchemeConditions;
-
-        // 1. Terminal / Final Outcomes (Highest Priority)
+        // 1. Terminal / Final Outcomes & Disputes (Highest Priority)
         // Work Completed - Completion Date is present
         if (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') {
             setValue('workStatus', 'Work Completed');
+            return;
+        }
+        if (watchedTypeOfDispute && watchedTypeOfDispute !== 'None') {
+            setValue('workStatus', 'Land / Work Dispute');
+            return;
+        }
+        const activeCondition = watchedDrillingConditions || watchedDevelopingConditions || watchedSchemeConditions;
+        if (activeCondition === 'Land Disputes' || activeCondition === 'Work Disputes and Conflicts') {
+            setValue('workStatus', 'Land / Work Dispute');
             return;
         }
         // Work Failed - Drilling Conditions is Failed (or Collapsed)
@@ -728,6 +738,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         setValue('workStatus', 'Under Process');
     }, [
         watchedCompletionDate,
+        watchedTypeOfDispute,
         watchedStartDate,
         watchedTotalDepth,
         watchedDateOfDrilling,
@@ -956,7 +967,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                              <Card>
                                                 <CardHeader><CardTitle className="text-lg text-primary">Work Implementation</CardTitle></CardHeader>
                                                 <CardContent className="space-y-4">
-                                                    <div className={cn("grid grid-cols-1 gap-4", isRigPurpose ? "md:grid-cols-4" : "md:grid-cols-3")}>
+                                                    <div className={cn("grid grid-cols-1 gap-4", isRigPurpose ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4")}>
                                                         {isRigPurpose && (
                                                             <FormField name="siteConditions" control={control} render={({ field }) => (
                                                                 <FormItem>
@@ -972,6 +983,28 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                                                                 </FormItem>
                                                             )}/>
                                                         )}
+                                                        <FormField name="typeOfDispute" control={control} render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Type of Dispute</FormLabel>
+                                                                <Select 
+                                                                    onValueChange={(val) => {
+                                                                        const nextVal = val || "None";
+                                                                        field.onChange(nextVal);
+                                                                        if (nextVal === 'Land Disputes' || nextVal === 'Work Disputes and Conflicts') {
+                                                                            setValue('workStatus', 'Land / Work Dispute', { shouldValidate: true, shouldDirty: true });
+                                                                        }
+                                                                    }} 
+                                                                    value={field.value || "None"} 
+                                                                    disabled={isFieldReadOnly(false)}
+                                                                >
+                                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Dispute" /></SelectTrigger></FormControl>
+                                                                    <SelectContent>
+                                                                        {(typeOfDisputeOptions || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}/>
                                                         <FormField name="estimateAmount" control={control} render={({ field }) => <FormItem><FormLabel>Estimate Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField name="remittedAmount" control={control} render={({ field }) => <FormItem><FormLabel>Remitted Amount (₹)</FormLabel><FormControl><Input type="number" step="any" {...field} value={field.value ?? ""} placeholder="e.g. 45000" onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} readOnly={isFieldReadOnly(false)} /></FormControl><FormMessage /></FormItem>} />
                                                         <FormField 

@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  getFirestore,
   collection,
   query,
   where,
@@ -18,7 +17,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import type { DataEntryFormData, SiteWorkStatus, SiteDetailFormData, ApplicationType } from '@/lib/schemas';
 import { 
     PRIVATE_APPLICATION_TYPES, 
@@ -38,7 +37,6 @@ import { usePendingUpdates } from './usePendingUpdates';
 import { useDataStore } from './use-data-store'; 
 import { v4 as uuidv4 } from 'uuid';
 
-const db = getFirestore(app);
 const FILE_ENTRIES_COLLECTION = 'fileEntries';
 
 // Helper function to recursively remove `undefined` values, replacing them with `null`.
