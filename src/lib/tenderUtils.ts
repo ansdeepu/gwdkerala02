@@ -109,10 +109,9 @@ export const getResolvedWorkStatus = (
         return null;
     }
 
-    // 2. Physical Execution Stage
-    const startDateReached = isStartDateReached(site.startDate);
+    // 2. Physical Execution Stage (Ground drilling physical progress)
     const hasActualDrilling = (Number(site.totalDepth) > 0) || (site.dateOfDrilling && String(site.dateOfDrilling).trim() !== '');
-    if (startDateReached || hasActualDrilling) {
+    if (hasActualDrilling) {
         return "Work in Progress";
     }
 
@@ -130,6 +129,7 @@ export const getResolvedWorkStatus = (
         const ts = latestTender.presentStatus;
 
         if (ts === "Work Order Issued" || ts === "Supply Order Issued") {
+            const startDateReached = isStartDateReached(site.startDate);
             if (startDateReached || hasActualDrilling) {
                 return "Work in Progress";
             }
@@ -149,6 +149,10 @@ export const getResolvedWorkStatus = (
 
     if (isRigPurpose) {
         if (site.siteConditions === 'Accessible to Dept. Rig' && tsAmt > 0) {
+            const startDateReached = isStartDateReached(site.startDate);
+            if (startDateReached || hasActualDrilling) {
+                return "Work in Progress";
+            }
             return "Department Rig Allotted";
         }
         if (site.siteConditions === 'Accessible to Private Rig' && tsAmt > 0) {
@@ -230,6 +234,7 @@ export const isSiteTargetedByTender = (
         // 3. Normalized index match across file prefixes: e.g. "1320/2026_0" matching "KLM/1320/2026" index 0
         const matchesIndexPattern = (idStr?: string) => {
             if (!idStr || typeof idStr !== 'string') return false;
+            if (typeof idx !== 'number' || idx < 0) return false;
             const suffix = `_${idx}`;
             if (!idStr.endsWith(suffix)) return false;
             const idFilePart = idStr.slice(0, -suffix.length);

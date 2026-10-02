@@ -445,27 +445,6 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                     }
                 }
 
-                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank, provided site is NOT completed
-                const isCompletedSite = (currentSite.dateOfCompletion && String(currentSite.dateOfCompletion).trim() !== '') || isFinalSiteStatus(currentSite.workStatus);
-                if (!isCompletedSite && (!currentSite.startDate || String(currentSite.startDate).trim() === '')) {
-                    const matchingTenders = (allE_tenders || []).filter(tender => isSiteTargetedByTender(currentSite, entry.fileNo, idx, tender));
-                    if (matchingTenders.length > 0) {
-                        matchingTenders.sort((a, b) => {
-                            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
-                            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
-                            return timeB - timeA;
-                        });
-                        const latest = matchingTenders[0];
-                        if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
-                            const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
-                            if (autoStart && isStartDateReached(autoStart)) {
-                                currentSite.startDate = autoStart;
-                                entryModified = true;
-                            }
-                        }
-                    }
-                }
-
                 const resolvedStatus = getResolvedWorkStatus(currentSite, entry.fileNo, idx, allE_tenders, (entry as any).workTypeContext || (entry as any).typeOfApplication);
                 if (resolvedStatus && resolvedStatus !== currentSite.workStatus) {
                     entryModified = true;
@@ -559,27 +538,6 @@ export function DataStoreProvider({ children, user }: { children: ReactNode, use
                         delete currentSite.contractorName;
                         delete currentSite.quotedPercentage;
                         needsDbUpdate = true;
-                    }
-                }
-
-                // Default site's Start Date after 4th day of Work Order Date (skipping Sundays and Public Holidays) if blank, provided site is NOT completed
-                const isCompletedDbSite = (currentSite.dateOfCompletion && String(currentSite.dateOfCompletion).trim() !== '') || isFinalSiteStatus(currentSite.workStatus);
-                if (!isCompletedDbSite && (!currentSite.startDate || String(currentSite.startDate).trim() === '')) {
-                    const matchingTenders = (allE_tenders || []).filter(tender => isSiteTargetedByTender(currentSite, entry.fileNo, idx, tender));
-                    if (matchingTenders.length > 0) {
-                        matchingTenders.sort((a, b) => {
-                            const timeA = a.tenderDate instanceof Date ? a.tenderDate.getTime() : (a.tenderDate ? new Date(a.tenderDate as any).getTime() : 0);
-                            const timeB = b.tenderDate instanceof Date ? b.tenderDate.getTime() : (b.tenderDate ? new Date(b.tenderDate as any).getTime() : 0);
-                            return timeB - timeA;
-                        });
-                        const latest = matchingTenders[0];
-                        if ((latest.presentStatus === 'Work Order Issued' || latest.presentStatus === 'Supply Order Issued') && latest.dateWorkOrder) {
-                            const autoStart = calculateWorkCommencementDate(latest.dateWorkOrder);
-                            if (autoStart && isStartDateReached(autoStart)) {
-                                currentSite.startDate = autoStart;
-                                needsDbUpdate = true;
-                            }
-                        }
                     }
                 }
 

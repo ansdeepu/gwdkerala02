@@ -153,7 +153,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const initialMatchedTender = useMemo(() => {
         if (!allE_tenders || allE_tenders.length === 0) return null;
         const siteFileNo = (initialData as any)?.fileNo;
-        const siteIdx = (initialData as any)?.index ?? 0;
+        const siteIdx = (initialData as any)?.index !== undefined ? Number((initialData as any).index) : -1;
 
         const matchingTenders = allE_tenders.filter(t => isSiteTargetedByTender(initialData, siteFileNo, siteIdx, t));
         if (matchingTenders.length === 0) return null;
@@ -170,15 +170,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         if (initialData?.startDate && String(initialData.startDate).trim() !== '') {
             return formatDateForInput(initialData.startDate);
         }
-        const isSiteCompleted = (initialData?.dateOfCompletion && String(initialData.dateOfCompletion).trim() !== '') || isFinalSiteStatus(initialData?.workStatus);
-        if (!isSiteCompleted && initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
-            const autoStart = calculateWorkCommencementDate(initialMatchedTender.dateWorkOrder);
-            if (autoStart && isStartDateReached(autoStart)) {
-                return autoStart;
-            }
-        }
         return "";
-    }, [initialData?.startDate, initialData?.dateOfCompletion, initialData?.workStatus, initialMatchedTender]);
+    }, [initialData?.startDate]);
 
     const expectedStartFormatted = useMemo(() => {
         if (initialMatchedTender && (initialMatchedTender.presentStatus === 'Work Order Issued' || initialMatchedTender.presentStatus === 'Supply Order Issued') && initialMatchedTender.dateWorkOrder) {
@@ -624,9 +617,10 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         // 3. e-Tender / Rig Allotment Stage
         let activeTender: any = null;
         const siteFileNo = (initialData as any)?.fileNo;
-        const siteIdx = (initialData as any)?.index ?? 0;
+        const siteIdx = (initialData as any)?.index !== undefined ? Number((initialData as any).index) : -1;
         const currentSiteSnapshot = {
             ...initialData,
+            ...getValues(),
             nameOfSite: watchedNameOfSite,
             purpose: watchedPurpose,
             tenderNo: watchedTenderNo
@@ -660,15 +654,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             if (ts === 'Work Order Issued' || ts === 'Supply Order Issued') {
                 const isSiteCompleted = (watchedCompletionDate && String(watchedCompletionDate).trim() !== '') || isFinalSiteStatus(watchedWorkStatus);
                 if (!isSiteCompleted) {
-                    let effectiveStart = watchedStartDate;
-                    if (!effectiveStart && activeTender.dateWorkOrder) {
-                        const autoStart = calculateWorkCommencementDate(activeTender.dateWorkOrder);
-                        if (autoStart && isStartDateReached(autoStart)) {
-                            effectiveStart = autoStart;
-                            setValue('startDate', autoStart);
-                        }
-                    }
-                    const startDateReached = isStartDateReached(effectiveStart);
+                    const startDateReached = isStartDateReached(watchedStartDate);
                     const hasActualDrilling = (Number(watchedTotalDepth) > 0) || (watchedDateOfDrilling && String(watchedDateOfDrilling).trim() !== '');
                     
                     if (startDateReached || hasActualDrilling) {
