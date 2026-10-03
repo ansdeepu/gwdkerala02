@@ -239,6 +239,16 @@ export default function MediaManager({
     return url;
   };
 
+  const getFullImageUrl = (field: any) => {
+    if (!field) return '';
+    const url = field.url || '';
+    const driveId = field.driveFileId || extractDriveFileId(url) || extractDriveFileId(field.driveViewUrl || '') || extractDriveFileId(field.driveThumbnailUrl || '');
+    if (driveId) {
+      return `https://drive.google.com/thumbnail?id=${driveId}&sz=w2560`;
+    }
+    return url;
+  };
+
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
 
   const handleSyncDriveMedia = async () => {
@@ -982,10 +992,37 @@ export default function MediaManager({
                   {type === 'image' ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
-                      src={fields[lightboxIndex].url}
-                      alt={fields[lightboxIndex].description || 'Full Photo'}
-                      className="max-h-[72vh] max-w-full object-contain shadow-2xl rounded"
+                      src={getFullImageUrl(fields[lightboxIndex])}
+                      alt={fields[lightboxIndex].description || fields[lightboxIndex].fileName || 'Full Photo'}
+                      className="max-h-[75vh] max-w-full object-contain shadow-2xl rounded select-none"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const currentItem = fields[lightboxIndex];
+                        const driveId = currentItem?.driveFileId || extractDriveFileId(currentItem?.url || '') || extractDriveFileId(currentItem?.driveViewUrl || '') || extractDriveFileId(currentItem?.driveThumbnailUrl || '');
+                        
+                        if (driveId) {
+                          const fallbackUrls = [
+                            `https://drive.google.com/thumbnail?id=${driveId}&sz=w2560`,
+                            `https://lh3.googleusercontent.com/d/${driveId}=w2560`,
+                            `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`,
+                            `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`,
+                            currentItem?.driveThumbnailUrl || '',
+                            currentItem?.url || '',
+                          ].filter(Boolean);
+
+                          const currentSrc = target.src;
+                          const currentIndex = fallbackUrls.indexOf(currentSrc);
+                          if (currentIndex >= 0 && currentIndex < fallbackUrls.length - 1) {
+                            target.src = fallbackUrls[currentIndex + 1];
+                            return;
+                          }
+                          if (currentIndex === -1 && fallbackUrls.length > 0) {
+                            target.src = fallbackUrls[0];
+                            return;
+                          }
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full max-w-4xl aspect-video bg-black flex flex-col items-center justify-center overflow-hidden rounded-lg shadow-2xl relative">
