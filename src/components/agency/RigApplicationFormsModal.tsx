@@ -69,6 +69,7 @@ export function RigRegistrationApplicationFormView({
       // Section 1
       agencyName: getVal("agencyName", app.agencyName || ""),
       address: getVal("address", owner.address || ""),
+      address_line2: getVal("address_line2", ""),
       village: getVal("village", ""),
       taluk: getVal("taluk", ""),
       panchayath: getVal("panchayath", ""),
@@ -80,6 +81,7 @@ export function RigRegistrationApplicationFormView({
       // Section 2 Owner A
       ownerA_name: getVal("ownerA_name", owner.name || ""),
       ownerA_curr_address: getVal("ownerA_curr_address", owner.address || ""),
+      ownerA_curr_address2: getVal("ownerA_curr_address2", ""),
       ownerA_curr_village: getVal("ownerA_curr_village", ""),
       ownerA_curr_taluk: getVal("ownerA_curr_taluk", ""),
       ownerA_curr_panchayath: getVal("ownerA_curr_panchayath", ""),
@@ -88,6 +90,7 @@ export function RigRegistrationApplicationFormView({
       ownerA_curr_photo: getVal("ownerA_curr_photo", owner.photoUrl || ""),
 
       ownerA_perm_address: getVal("ownerA_perm_address", owner.address || ""),
+      ownerA_perm_address2: getVal("ownerA_perm_address2", ""),
       ownerA_perm_village: getVal("ownerA_perm_village", ""),
       ownerA_perm_taluk: getVal("ownerA_perm_taluk", ""),
       ownerA_perm_panchayath: getVal("ownerA_perm_panchayath", ""),
@@ -101,55 +104,56 @@ export function RigRegistrationApplicationFormView({
       ownerA_nominee: getVal("ownerA_nominee", ""),
 
       // Section 2 Partner B
-      ownerB_name: getVal("ownerB_name", partners[0]?.name || ""),
-      ownerB_curr_address: getVal("ownerB_curr_address", partners[0]?.address || ""),
-      ownerB_curr_village: getVal("ownerB_curr_village", ""),
-      ownerB_curr_taluk: getVal("ownerB_curr_taluk", ""),
-      ownerB_curr_panchayath: getVal("ownerB_curr_panchayath", ""),
-      ownerB_curr_district: getVal("ownerB_curr_district", app.officeLocation || ""),
-      ownerB_curr_pincode: getVal("ownerB_curr_pincode", ""),
-      ownerB_curr_photo: getVal("ownerB_curr_photo", ""),
+      partnerB_name: getVal("partnerB_name", getVal("ownerB_name", partners[0]?.name || "")),
+      partnerB_curr_address: getVal("partnerB_curr_address", getVal("ownerB_curr_address", partners[0]?.address || "")),
+      partnerB_curr_village: getVal("partnerB_curr_village", ""),
+      partnerB_curr_taluk: getVal("partnerB_curr_taluk", ""),
+      partnerB_curr_panchayath: getVal("partnerB_curr_panchayath", ""),
+      partnerB_curr_district: getVal("partnerB_curr_district", app.officeLocation || ""),
+      partnerB_curr_pincode: getVal("partnerB_curr_pincode", ""),
+      partnerB_photo: getVal("partnerB_photo", getVal("ownerB_curr_photo", "")),
 
-      ownerB_perm_address: getVal("ownerB_perm_address", partners[0]?.address || ""),
-      ownerB_perm_village: getVal("ownerB_perm_village", ""),
-      ownerB_perm_taluk: getVal("ownerB_perm_taluk", ""),
-      ownerB_perm_panchayath: getVal("ownerB_perm_panchayath", ""),
-      ownerB_perm_district: getVal("ownerB_perm_district", app.officeLocation || ""),
-      ownerB_perm_pincode: getVal("ownerB_perm_pincode", ""),
+      partnerB_perm_address: getVal("partnerB_perm_address", getVal("ownerB_perm_address", partners[0]?.address || "")),
+      partnerB_perm_village: getVal("partnerB_perm_village", ""),
+      partnerB_perm_taluk: getVal("partnerB_perm_taluk", ""),
+      partnerB_perm_panchayath: getVal("partnerB_perm_panchayath", ""),
+      partnerB_perm_district: getVal("partnerB_perm_district", app.officeLocation || ""),
+      partnerB_perm_pincode: getVal("partnerB_perm_pincode", ""),
 
-      ownerB_id_type: getVal("ownerB_id_type", "Aadhaar"),
-      ownerB_id_no: getVal("ownerB_id_no", ""),
-      ownerB_pan: getVal("ownerB_pan", ""),
-      ownerB_nominee: getVal("ownerB_nominee", ""),
+      partnerB_id_type: getVal("partnerB_id_type", "Aadhaar"),
+      partnerB_id_no: getVal("partnerB_id_no", ""),
+      partnerB_pan: getVal("partnerB_pan", ""),
+      partnerB_nominee: getVal("partnerB_nominee", ""),
 
       // Section 2 Partner C
-      ownerC_name: getVal("ownerC_name", partners[1]?.name || ""),
-      ownerC_curr_address: getVal("ownerC_curr_address", partners[1]?.address || ""),
-      ownerC_curr_village: getVal("ownerC_curr_village", ""),
-      ownerC_curr_taluk: getVal("ownerC_curr_taluk", ""),
-      ownerC_curr_panchayath: getVal("ownerC_curr_panchayath", ""),
-      ownerC_curr_district: getVal("ownerC_curr_district", app.officeLocation || ""),
-      ownerC_curr_pincode: getVal("ownerC_curr_pincode", ""),
-      ownerC_curr_photo: getVal("ownerC_curr_photo", ""),
+      partnerC_name: getVal("partnerC_name", getVal("ownerC_name", partners[1]?.name || "")),
+      partnerC_curr_address: getVal("partnerC_curr_address", getVal("ownerC_curr_address", partners[1]?.address || "")),
+      partnerC_curr_village: getVal("partnerC_curr_village", ""),
+      partnerC_curr_taluk: getVal("partnerC_curr_taluk", ""),
+      partnerC_curr_panchayath: getVal("partnerC_curr_panchayath", ""),
+      partnerC_curr_district: getVal("partnerC_curr_district", app.officeLocation || ""),
+      partnerC_curr_pincode: getVal("partnerC_curr_pincode", ""),
+      partnerC_photo: getVal("partnerC_photo", getVal("ownerC_curr_photo", "")),
 
-      ownerC_perm_address: getVal("ownerC_perm_address", partners[1]?.address || ""),
-      ownerC_perm_village: getVal("ownerC_perm_village", ""),
-      ownerC_perm_taluk: getVal("ownerC_perm_taluk", ""),
-      ownerC_perm_panchayath: getVal("ownerC_perm_panchayath", ""),
-      ownerC_perm_district: getVal("ownerC_perm_district", app.officeLocation || ""),
-      ownerC_perm_pincode: getVal("ownerC_perm_pincode", ""),
+      partnerC_perm_address: getVal("partnerC_perm_address", getVal("ownerC_perm_address", partners[1]?.address || "")),
+      partnerC_perm_village: getVal("partnerC_perm_village", ""),
+      partnerC_perm_taluk: getVal("partnerC_perm_taluk", ""),
+      partnerC_perm_panchayath: getVal("partnerC_perm_panchayath", ""),
+      partnerC_perm_district: getVal("partnerC_perm_district", app.officeLocation || ""),
+      partnerC_perm_pincode: getVal("partnerC_perm_pincode", ""),
 
-      ownerC_id_type: getVal("ownerC_id_type", "Aadhaar"),
-      ownerC_id_no: getVal("ownerC_id_no", ""),
-      ownerC_pan: getVal("ownerC_pan", ""),
-      ownerC_nominee: getVal("ownerC_nominee", ""),
+      partnerC_id_type: getVal("partnerC_id_type", "Aadhaar"),
+      partnerC_id_no: getVal("partnerC_id_no", ""),
+      partnerC_pan: getVal("partnerC_pan", ""),
+      partnerC_nominee: getVal("partnerC_nominee", ""),
 
-      date: formatToDDMMYYYY(getVal("date", format(new Date(), "dd/MM/yyyy"))),
-      place: getVal("place", app.officeLocation || ""),
+      // Declaration
+      declarationDate: formatToDDMMYYYY(getVal("declarationDate", getVal("date", format(new Date(), "dd/MM/yyyy")))),
+      declarationPlace: getVal("declarationPlace", getVal("place", app.officeLocation || "")),
 
       // Office use
-      office_date_recd: formatToDDMMYYYY(getVal("office_date_recd", "")),
-      office_fee_details: getVal("office_fee_details", (() => {
+      office_appReceivedDate: formatToDDMMYYYY(getVal("office_appReceivedDate", getVal("office_date_recd", ""))),
+      office_feeDetails: getVal("office_feeDetails", getVal("office_fee_details", (() => {
         const firstRig = activeRigs[0];
         if (firstRig?.applicationFee || firstRig?.applicationChallanNo) {
           const parts: string[] = [];
@@ -158,55 +162,75 @@ export function RigRegistrationApplicationFormView({
           return parts.join(', ');
         }
         return "";
-      })()),
-      office_paid_amount: getVal("office_paid_amount", (() => {
+      })())),
+      office_feeAmount: getVal("office_feeAmount", getVal("office_paid_amount", (() => {
         const firstRig = activeRigs[0];
         if (firstRig?.applicationFee) return String(firstRig.applicationFee);
         return "";
-      })()),
-      office_rig_inspected_date: formatToDDMMYYYY(getVal("office_rig_inspected_date", "")),
-      office_recommendation: getVal("office_recommendation", ""),
-      office_inspector_signature: getVal("office_inspector_signature", ""),
+      })())),
+      office_rigInspectionDate: formatToDDMMYYYY(getVal("office_rigInspectionDate", getVal("office_rig_inspected_date", ""))),
+      office_recommendation1: getVal("office_recommendation1", getVal("office_recommendation", "")),
+      office_recommendation2: getVal("office_recommendation2", ""),
+      office_recommendation3: getVal("office_recommendation3", ""),
 
       // Receipt
-      receipt_app_no: getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001"),
-      receipt_applicant_name: getVal("receipt_applicant_name", owner.name || ""),
-      receipt_date_recd: formatToDDMMYYYY(getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy"))),
-      receipt_paid_amount: getVal("receipt_paid_amount", "10000"),
-      receipt_paid_date: formatToDDMMYYYY(getVal("receipt_paid_date", format(new Date(), "dd/MM/yyyy"))),
-      receipt_agency_reg_check: getVal("receipt_agency_reg_check", true),
-      receipt_rig1_check: getVal("receipt_rig1_check", true),
-      receipt_rig2_check: getVal("receipt_rig2_check", false),
-      receipt_rig3_check: getVal("receipt_rig3_check", false),
+      receipt_appNo: getVal("receipt_appNo", getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001")),
+      receipt_applicantName: getVal("receipt_applicantName", getVal("receipt_applicant_name", owner.name || "")),
+      receipt_receivedDate: formatToDDMMYYYY(getVal("receipt_receivedDate", getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy")))),
+      receipt_feeAmount: getVal("receipt_feeAmount", getVal("receipt_paid_amount", "10000")),
+      receipt_feeDate: formatToDDMMYYYY(getVal("receipt_feeDate", getVal("receipt_paid_date", format(new Date(), "dd/MM/yyyy")))),
+      receipt_hasAgencyReg: getVal("receipt_hasAgencyReg", getVal("receipt_agency_reg_check", true)),
+      receipt_rigCount: getVal("receipt_rigCount", activeRigs.length || 1),
+      receipt_signDate: formatToDDMMYYYY(getVal("receipt_signDate", format(new Date(), "dd/MM/yyyy"))),
     };
 
     // Populate Rigs (Max 3: A, B, C)
     ["A", "B", "C"].forEach((letter, idx) => {
       const rig = activeRigs[idx];
       initial[`rig${letter}_type`] = getVal(`rig${letter}_type`, rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്");
-      initial[`rig${letter}_owner_name`] = getVal(`rig${letter}_owner_name`, rig ? owner.name : "");
-      initial[`rig${letter}_owner_address`] = getVal(`rig${letter}_owner_address`, rig ? owner.address : "");
-      initial[`rig${letter}_district`] = getVal(`rig${letter}_district`, app.officeLocation || "");
-      initial[`rig${letter}_state`] = getVal(`rig${letter}_state`, "Kerala");
-      initial[`rig${letter}_veh_type`] = getVal(`rig${letter}_veh_type`, rig?.rigVehicle?.type || "");
-      initial[`rig${letter}_veh_reg`] = getVal(`rig${letter}_veh_reg`, rig?.rigVehicle?.regNo || "");
-      initial[`rig${letter}_veh_chassis`] = getVal(`rig${letter}_veh_chassis`, rig?.rigVehicle?.chassisNo || "");
-      initial[`rig${letter}_veh_engine`] = getVal(`rig${letter}_veh_engine`, rig?.rigVehicle?.engineNo || "");
-      initial[`rig${letter}_comp_model`] = getVal(`rig${letter}_comp_model`, rig?.compressorDetails?.model || "");
-      initial[`rig${letter}_comp_cap`] = getVal(`rig${letter}_comp_cap`, rig?.compressorDetails?.capacity || "");
-      initial[`rig${letter}_gen_type`] = getVal(`rig${letter}_gen_type`, rig?.generatorDetails?.type || "");
-      initial[`rig${letter}_gen_model`] = getVal(`rig${letter}_gen_model`, rig?.generatorDetails?.model || "");
-      initial[`rig${letter}_gen_cap`] = getVal(`rig${letter}_gen_cap`, rig?.generatorDetails?.capacity || "");
-      initial[`rig${letter}_gen_engine`] = getVal(`rig${letter}_gen_engine`, rig?.generatorDetails?.engineNo || "");
+      initial[`rig${letter}_ownerName`] = getVal(`rig${letter}_ownerName`, getVal(`rig${letter}_owner_name`, rig ? owner.name : ""));
+      initial[`rig${letter}_ownerAddress`] = getVal(`rig${letter}_ownerAddress`, getVal(`rig${letter}_owner_address`, rig ? owner.address : ""));
+      initial[`rig${letter}_ownerAddress2`] = getVal(`rig${letter}_ownerAddress2`, "");
+      initial[`rig${letter}_ownerDistrict`] = getVal(`rig${letter}_ownerDistrict`, getVal(`rig${letter}_district`, app.officeLocation || ""));
+      initial[`rig${letter}_ownerState`] = getVal(`rig${letter}_ownerState`, getVal(`rig${letter}_state`, "Kerala"));
+      initial[`rig${letter}_ownerPincode`] = getVal(`rig${letter}_ownerPincode`, getVal(`rig${letter}_pincode`, ""));
+
+      initial[`rig${letter}_vehType`] = getVal(`rig${letter}_vehType`, getVal(`rig${letter}_veh_type`, rig?.rigVehicle?.type || ""));
+      initial[`rig${letter}_vehRegNo`] = getVal(`rig${letter}_vehRegNo`, getVal(`rig${letter}_veh_reg`, rig?.rigVehicle?.regNo || ""));
+      initial[`rig${letter}_chassisNo`] = getVal(`rig${letter}_chassisNo`, getVal(`rig${letter}_veh_chassis`, rig?.rigVehicle?.chassisNo || ""));
+      initial[`rig${letter}_engineNo`] = getVal(`rig${letter}_engineNo`, getVal(`rig${letter}_veh_engine`, rig?.rigVehicle?.engineNo || ""));
+
+      initial[`rig${letter}_compModel`] = getVal(`rig${letter}_compModel`, getVal(`rig${letter}_comp_model`, rig?.compressorDetails?.model || ""));
+      initial[`rig${letter}_compCapacity`] = getVal(`rig${letter}_compCapacity`, getVal(`rig${letter}_comp_cap`, rig?.compressorDetails?.capacity || ""));
+
+      initial[`rig${letter}_genType`] = getVal(`rig${letter}_genType`, getVal(`rig${letter}_gen_type`, rig?.generatorDetails?.type || ""));
+      initial[`rig${letter}_genModel`] = getVal(`rig${letter}_genModel`, getVal(`rig${letter}_gen_model`, rig?.generatorDetails?.model || ""));
+      initial[`rig${letter}_genCapacity`] = getVal(`rig${letter}_genCapacity`, getVal(`rig${letter}_gen_cap`, rig?.generatorDetails?.capacity || ""));
+      initial[`rig${letter}_genEngineNo`] = getVal(`rig${letter}_genEngineNo`, getVal(`rig${letter}_gen_engine`, rig?.generatorDetails?.engineNo || ""));
+
+      initial[`rig${letter}_maxDepth`] = getVal(`rig${letter}_maxDepth`, getVal(`rig${letter}_well_depth`, ""));
+      initial[`rig${letter}_maxDia`] = getVal(`rig${letter}_maxDia`, getVal(`rig${letter}_well_dia`, ""));
+
+      initial[`rig${letter}_opName`] = getVal(`rig${letter}_opName`, getVal(`rig${letter}_op_name`, ""));
+      initial[`rig${letter}_opAge`] = getVal(`rig${letter}_opAge`, getVal(`rig${letter}_op_age`, ""));
+      initial[`rig${letter}_opExp`] = getVal(`rig${letter}_opExp`, getVal(`rig${letter}_op_exp`, ""));
+      initial[`rig${letter}_opIdType`] = getVal(`rig${letter}_opIdType`, getVal(`rig${letter}_op_id_type`, "Aadhaar"));
+      initial[`rig${letter}_opIdNo`] = getVal(`rig${letter}_opIdNo`, getVal(`rig${letter}_op_id_no`, ""));
     });
 
     if (hasSaved) {
       const dateKeys = [
+        "declarationDate",
         "date",
+        "office_appReceivedDate",
         "office_date_recd",
+        "office_rigInspectionDate",
         "office_rig_inspected_date",
+        "receipt_receivedDate",
         "receipt_date_recd",
+        "receipt_feeDate",
         "receipt_paid_date",
+        "receipt_signDate",
       ];
       Object.keys(savedFormData).forEach((k) => {
         if (savedFormData[k] !== undefined) {
@@ -409,11 +433,11 @@ export function RigRenewalApplicationFormView({
     const initial: Record<string, any> = {
       // Section A
       agencyName: getVal("agencyName", app.agencyName || ""),
-      agency_reg_no: getVal("agency_reg_no", getVal("agencyRegNo", app.agencyRegistrationNo || "")),
-      agency_reg_expiry: formatToDDMMYYYY(getVal("agency_reg_expiry", "")),
-      registeredDistrict: getVal("registeredDistrict", app.officeLocation || ""),
+      existingAgencyRegNo: getVal("existingAgencyRegNo", getVal("agency_reg_no", getVal("agencyRegNo", app.agencyRegistrationNo || ""))),
+      agencyRegDistrict: getVal("agencyRegDistrict", getVal("registeredDistrict", app.officeLocation || "")),
       address: getVal("address", owner.address || ""),
-      phone: getVal("phone", owner.mobile || ""),
+      address_line2: getVal("address_line2", ""),
+      phone: getVal("phone", (owner as any).phone || owner.mobile || ""),
       email: getVal("email", owner.email || ""),
       village: getVal("village", ""),
       taluk: getVal("taluk", ""),
@@ -423,50 +447,45 @@ export function RigRenewalApplicationFormView({
       gstin: getVal("gstin", ""),
       lsgdRegNo: getVal("lsgdRegNo", ""),
 
-      // Section 2 Owner
-      owner_name: getVal("owner_name", owner.name || ""),
-      owner_curr_address: getVal("owner_curr_address", owner.address || ""),
-      owner_curr_village: getVal("owner_curr_village", ""),
-      owner_curr_taluk: getVal("owner_curr_taluk", ""),
-      owner_curr_panchayath: getVal("owner_curr_panchayath", ""),
-      owner_curr_district: getVal("owner_curr_district", app.officeLocation || ""),
-      owner_curr_pincode: getVal("owner_curr_pincode", ""),
-      owner_curr_photo: getVal("owner_curr_photo", owner.photoUrl || ""),
+      // Summary table for Rig 1, 2, 3 on Page 1
+      summaryRig1_type: getVal("summaryRig1_type", activeRigs[0]?.typeOfRigMalayalam || activeRigs[0]?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്"),
+      summaryRig1_regNo: getVal("summaryRig1_regNo", activeRigs[0]?.rigRegistrationNo || ""),
+      summaryRig1_paidAmount: getVal("summaryRig1_paidAmount", activeRigs[0]?.applicationFee ? String(activeRigs[0].applicationFee) : "10000"),
+      summaryRig1_challanDetails: getVal("summaryRig1_challanDetails", activeRigs[0]?.applicationChallanNo ? `Challan: ${activeRigs[0].applicationChallanNo}` : ""),
+      summaryRig1_expiryDate: formatToDDMMYYYY(getVal("summaryRig1_expiryDate", "")),
 
-      owner_perm_address: getVal("owner_perm_address", owner.address || ""),
-      owner_perm_village: getVal("owner_perm_village", ""),
-      owner_perm_taluk: getVal("owner_perm_taluk", ""),
-      owner_perm_panchayath: getVal("owner_perm_panchayath", ""),
-      owner_perm_district: getVal("owner_perm_district", app.officeLocation || ""),
-      owner_perm_pincode: getVal("owner_perm_pincode", ""),
+      summaryRig2_type: getVal("summaryRig2_type", activeRigs[1]?.typeOfRigMalayalam || activeRigs[1]?.typeOfRig || ""),
+      summaryRig2_regNo: getVal("summaryRig2_regNo", activeRigs[1]?.rigRegistrationNo || ""),
+      summaryRig2_paidAmount: getVal("summaryRig2_paidAmount", activeRigs[1]?.applicationFee ? String(activeRigs[1].applicationFee) : ""),
+      summaryRig2_challanDetails: getVal("summaryRig2_challanDetails", activeRigs[1]?.applicationChallanNo ? `Challan: ${activeRigs[1].applicationChallanNo}` : ""),
+      summaryRig2_expiryDate: formatToDDMMYYYY(getVal("summaryRig2_expiryDate", "")),
 
-      owner_id_type: getVal("owner_id_type", "Aadhaar"),
-      owner_id_no: getVal("owner_id_no", ""),
-      owner_pan: getVal("owner_pan", ""),
-      owner_exp: getVal("owner_exp", ""),
-      owner_nominee: getVal("owner_nominee", ""),
+      summaryRig3_type: getVal("summaryRig3_type", activeRigs[2]?.typeOfRigMalayalam || activeRigs[2]?.typeOfRig || ""),
+      summaryRig3_regNo: getVal("summaryRig3_regNo", activeRigs[2]?.rigRegistrationNo || ""),
+      summaryRig3_paidAmount: getVal("summaryRig3_paidAmount", activeRigs[2]?.applicationFee ? String(activeRigs[2].applicationFee) : ""),
+      summaryRig3_challanDetails: getVal("summaryRig3_challanDetails", activeRigs[2]?.applicationChallanNo ? `Challan: ${activeRigs[2].applicationChallanNo}` : ""),
+      summaryRig3_expiryDate: formatToDDMMYYYY(getVal("summaryRig3_expiryDate", "")),
 
-      date: formatToDDMMYYYY(getVal("date", format(new Date(), "dd/MM/yyyy"))),
-      place: getVal("place", app.officeLocation || ""),
+      // Declaration
+      declarationDate: formatToDDMMYYYY(getVal("declarationDate", getVal("date", format(new Date(), "dd/MM/yyyy")))),
+      declarationPlace: getVal("declarationPlace", getVal("place", app.officeLocation || "")),
 
       // Office use
-      office_date_recd: formatToDDMMYYYY(getVal("office_date_recd", "")),
-      office_fee_amount: getVal("office_fee_amount", ""),
-      office_fee_date: formatToDDMMYYYY(getVal("office_fee_date", "")),
-      office_rig_inspected_date: formatToDDMMYYYY(getVal("office_rig_inspected_date", "")),
-      office_recommendation: getVal("office_recommendation", ""),
+      office_appReceivedDate: formatToDDMMYYYY(getVal("office_appReceivedDate", getVal("office_date_recd", ""))),
+      office_feeAmount: getVal("office_feeAmount", getVal("office_fee_amount", "10000")),
+      office_feeDate: formatToDDMMYYYY(getVal("office_feeDate", getVal("office_fee_date", ""))),
+      office_rigInspectionDate: formatToDDMMYYYY(getVal("office_rigInspectionDate", getVal("office_rig_inspected_date", ""))),
+      office_recommendation1: getVal("office_recommendation1", getVal("office_recommendation", "")),
+      office_recommendation2: getVal("office_recommendation2", ""),
 
       // Receipt
-      receipt_app_no: getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001"),
-      receipt_agency_name: getVal("receipt_agency_name", app.agencyName || ""),
-      receipt_agency_reg_no: getVal("receipt_agency_reg_no", app.agencyRegistrationNo || ""),
-      receipt_date_recd: formatToDDMMYYYY(getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy"))),
-      receipt_fee_paid_amount: getVal("receipt_fee_paid_amount", "10000"),
-      receipt_fee_paid_date: formatToDDMMYYYY(getVal("receipt_fee_paid_date", format(new Date(), "dd/MM/yyyy"))),
-      receipt_renewal_count: getVal("receipt_renewal_count", activeRigs.length > 0 ? String(activeRigs.length) : "1"),
-      receipt_new_rig_count: getVal("receipt_new_rig_count", "0"),
-      receipt_renewal_check: getVal("receipt_renewal_check", true),
-      receipt_new_rig_check: getVal("receipt_new_rig_check", false),
+      receipt_appNo: getVal("receipt_appNo", getVal("receipt_app_no", (app as any).applicationNo || app.id || "APP/2026/001")),
+      receipt_receivedDate: formatToDDMMYYYY(getVal("receipt_receivedDate", getVal("receipt_date_recd", format(new Date(), "dd/MM/yyyy")))),
+      receipt_feeAmount: getVal("receipt_feeAmount", getVal("receipt_fee_paid_amount", "10000")),
+      receipt_feeDate: formatToDDMMYYYY(getVal("receipt_feeDate", getVal("receipt_fee_paid_date", format(new Date(), "dd/MM/yyyy")))),
+      receipt_renewalCount: getVal("receipt_renewalCount", getVal("receipt_renewal_count", activeRigs.length > 0 ? String(activeRigs.length) : "1")),
+      receipt_newRigCount: getVal("receipt_newRigCount", getVal("receipt_new_rig_count", "0")),
+      receipt_signDate: formatToDDMMYYYY(getVal("receipt_signDate", format(new Date(), "dd/MM/yyyy"))),
     };
 
     // Rig renewal details for rig1, rig2, rig3
@@ -476,61 +495,64 @@ export function RigRenewalApplicationFormView({
       initial[`${rigKey}_regNo`] = getVal(`${rigKey}_regNo`, getVal(`${upperRigKey}_regNo`, rig?.rigRegistrationNo || ""));
       initial[`${rigKey}_expiryDate`] = formatToDDMMYYYY(getVal(`${rigKey}_expiryDate`, getVal(`${upperRigKey}_expiryDate`, "")));
       initial[`${rigKey}_type`] = getVal(`${rigKey}_type`, getVal(`${upperRigKey}_type`, rig?.typeOfRigMalayalam || rig?.typeOfRig || "റോട്ടറി കം.ഡി.റ്റി.എച്ച് റിഗ്"));
-      initial[`${rigKey}_last_paid_amount`] = getVal(`${rigKey}_last_paid_amount`, rig?.applicationFee ? String(rig.applicationFee) : "10000");
-      initial[`${rigKey}_challan_info`] = getVal(`${rigKey}_challan_info`, rig?.applicationChallanNo || "");
       initial[`${rigKey}_ownerName`] = getVal(`${rigKey}_ownerName`, getVal(`${upperRigKey}_ownerName`, rig ? owner.name : ""));
-      initial[`${rigKey}_address`] = getVal(`${rigKey}_address`, getVal(`${upperRigKey}_address`, rig ? owner.address : ""));
-      initial[`${rigKey}_phone`] = getVal(`${rigKey}_phone`, getVal(`${upperRigKey}_phone`, (owner as any).phone || owner.mobile || ""));
-      initial[`${rigKey}_mobile`] = getVal(`${rigKey}_mobile`, getVal(`${upperRigKey}_mobile`, owner.mobile || ""));
-      initial[`${rigKey}_email`] = getVal(`${rigKey}_email`, getVal(`${upperRigKey}_email`, owner.email || ""));
-      initial[`${rigKey}_owner_phone`] = getVal(`${rigKey}_owner_phone`, (owner as any).phone || owner.mobile || "");
-      initial[`${rigKey}_owner_mobile`] = getVal(`${rigKey}_owner_mobile`, owner.mobile || "");
-      initial[`${rigKey}_owner_email`] = getVal(`${rigKey}_owner_email`, owner.email || "");
-      initial[`${rigKey}_district`] = getVal(`${rigKey}_district`, getVal(`${upperRigKey}_district`, app.officeLocation || ""));
-      initial[`${rigKey}_state`] = getVal(`${rigKey}_state`, getVal(`${upperRigKey}_state`, "Kerala"));
-      initial[`${rigKey}_pincode`] = getVal(`${rigKey}_pincode`, getVal(`${upperRigKey}_pincode`, ""));
+      initial[`${rigKey}_ownerAddress`] = getVal(`${rigKey}_ownerAddress`, getVal(`${upperRigKey}_address`, rig ? owner.address : ""));
+      initial[`${rigKey}_ownerAddress2`] = getVal(`${rigKey}_ownerAddress2`, "");
+      initial[`${rigKey}_ownerPhone`] = getVal(`${rigKey}_ownerPhone`, getVal(`${upperRigKey}_phone`, (owner as any).phone || owner.mobile || ""));
+      initial[`${rigKey}_ownerMobile`] = getVal(`${rigKey}_ownerMobile`, getVal(`${upperRigKey}_mobile`, owner.mobile || ""));
+      initial[`${rigKey}_ownerEmail`] = getVal(`${rigKey}_ownerEmail`, getVal(`${upperRigKey}_email`, owner.email || ""));
+      initial[`${rigKey}_ownerDistrict`] = getVal(`${rigKey}_ownerDistrict`, getVal(`${upperRigKey}_district`, app.officeLocation || ""));
+      initial[`${rigKey}_ownerState`] = getVal(`${rigKey}_ownerState`, getVal(`${upperRigKey}_state`, "Kerala"));
+      initial[`${rigKey}_ownerPincode`] = getVal(`${rigKey}_ownerPincode`, getVal(`${upperRigKey}_pincode`, ""));
 
-      initial[`${rigKey}_veh_reg`] = getVal(`${rigKey}_veh_reg`, getVal(`${upperRigKey}_veh_reg`, rig?.rigVehicle?.regNo || ""));
-      initial[`${rigKey}_veh_chassis`] = getVal(`${rigKey}_veh_chassis`, getVal(`${upperRigKey}_veh_chassis`, rig?.rigVehicle?.chassisNo || ""));
-      initial[`${rigKey}_veh_engine`] = getVal(`${rigKey}_veh_engine`, getVal(`${upperRigKey}_veh_engine`, rig?.rigVehicle?.engineNo || ""));
+      initial[`${rigKey}_vehRegNo`] = getVal(`${rigKey}_vehRegNo`, getVal(`${upperRigKey}_veh_reg`, rig?.rigVehicle?.regNo || ""));
+      initial[`${rigKey}_chassisNo`] = getVal(`${rigKey}_chassisNo`, getVal(`${upperRigKey}_veh_chassis`, rig?.rigVehicle?.chassisNo || ""));
+      initial[`${rigKey}_engineNo`] = getVal(`${rigKey}_engineNo`, getVal(`${upperRigKey}_veh_engine`, rig?.rigVehicle?.engineNo || ""));
 
-      initial[`${rigKey}_has_support_veh`] = getVal(`${rigKey}_has_support_veh`, getVal(`${upperRigKey}_has_support_veh`, "No"));
-      initial[`${rigKey}_sup_veh_reg`] = getVal(`${rigKey}_sup_veh_reg`, getVal(`${upperRigKey}_sup_veh_reg`, ""));
-      initial[`${rigKey}_sup_veh_chassis`] = getVal(`${rigKey}_sup_veh_chassis`, getVal(`${upperRigKey}_sup_veh_chassis`, ""));
-      initial[`${rigKey}_sup_veh_engine`] = getVal(`${rigKey}_sup_veh_engine`, getVal(`${upperRigKey}_sup_veh_engine`, ""));
+      initial[`${rigKey}_hasSupportVeh`] = getVal(`${rigKey}_hasSupportVeh`, getVal(`${upperRigKey}_has_support_veh`, "No"));
+      initial[`${rigKey}_supportVehRegNo`] = getVal(`${rigKey}_supportVehRegNo`, getVal(`${upperRigKey}_sup_veh_reg`, ""));
+      initial[`${rigKey}_supportChassisNo`] = getVal(`${rigKey}_supportChassisNo`, getVal(`${upperRigKey}_sup_veh_chassis`, ""));
+      initial[`${rigKey}_supportEngineNo`] = getVal(`${rigKey}_supportEngineNo`, getVal(`${upperRigKey}_sup_veh_engine`, ""));
 
-      initial[`${rigKey}_comp_model`] = getVal(`${rigKey}_comp_model`, getVal(`${upperRigKey}_comp_model`, rig?.compressorDetails?.model || ""));
-      initial[`${rigKey}_comp_cap`] = getVal(`${rigKey}_comp_cap`, getVal(`${upperRigKey}_comp_cap`, rig?.compressorDetails?.capacity || ""));
+      initial[`${rigKey}_compModel`] = getVal(`${rigKey}_compModel`, getVal(`${upperRigKey}_comp_model`, rig?.compressorDetails?.model || ""));
+      initial[`${rigKey}_compCapacity`] = getVal(`${rigKey}_compCapacity`, getVal(`${upperRigKey}_comp_cap`, rig?.compressorDetails?.capacity || ""));
 
-      initial[`${rigKey}_gen_type`] = getVal(`${rigKey}_gen_type`, getVal(`${upperRigKey}_gen_type`, rig?.generatorDetails?.type || ""));
-      initial[`${rigKey}_gen_model`] = getVal(`${rigKey}_gen_model`, getVal(`${upperRigKey}_gen_model`, rig?.generatorDetails?.model || ""));
-      initial[`${rigKey}_gen_cap`] = getVal(`${rigKey}_gen_cap`, getVal(`${upperRigKey}_gen_cap`, rig?.generatorDetails?.capacity || ""));
-      initial[`${rigKey}_gen_engine`] = getVal(`${rigKey}_gen_engine`, getVal(`${upperRigKey}_gen_engine`, rig?.generatorDetails?.engineNo || ""));
+      initial[`${rigKey}_genType`] = getVal(`${rigKey}_genType`, getVal(`${upperRigKey}_gen_type`, rig?.generatorDetails?.type || ""));
+      initial[`${rigKey}_genModel`] = getVal(`${rigKey}_genModel`, getVal(`${upperRigKey}_gen_model`, rig?.generatorDetails?.model || ""));
+      initial[`${rigKey}_genCapacity`] = getVal(`${rigKey}_genCapacity`, getVal(`${upperRigKey}_gen_cap`, rig?.generatorDetails?.capacity || ""));
+      initial[`${rigKey}_genEngineNo`] = getVal(`${rigKey}_genEngineNo`, getVal(`${upperRigKey}_gen_engine`, rig?.generatorDetails?.engineNo || ""));
 
-      initial[`${rigKey}_well_depth`] = getVal(`${rigKey}_well_depth`, getVal(`${upperRigKey}_well_depth`, ""));
-      initial[`${rigKey}_well_dia`] = getVal(`${rigKey}_well_dia`, getVal(`${upperRigKey}_well_dia`, ""));
+      initial[`${rigKey}_maxDepth`] = getVal(`${rigKey}_maxDepth`, getVal(`${upperRigKey}_well_depth`, ""));
+      initial[`${rigKey}_maxDia`] = getVal(`${rigKey}_maxDia`, getVal(`${upperRigKey}_well_dia`, ""));
 
-      initial[`${rigKey}_op_name`] = getVal(`${rigKey}_op_name`, getVal(`${upperRigKey}_op_name`, ""));
-      initial[`${rigKey}_op_age`] = getVal(`${rigKey}_op_age`, "");
-      initial[`${rigKey}_op_address`] = getVal(`${rigKey}_op_address`, getVal(`${upperRigKey}_op_address`, ""));
-      initial[`${rigKey}_op_phone`] = getVal(`${rigKey}_op_phone`, getVal(`${upperRigKey}_op_phone`, ""));
-      initial[`${rigKey}_op_exp`] = getVal(`${rigKey}_op_exp`, getVal(`${upperRigKey}_op_exp`, ""));
-      initial[`${rigKey}_op_id_type`] = getVal(`${rigKey}_op_id_type`, getVal(`${upperRigKey}_op_id_type`, "Aadhaar"));
-      initial[`${rigKey}_op_id_no`] = getVal(`${rigKey}_op_id_no`, getVal(`${upperRigKey}_op_id_no`, ""));
+      initial[`${rigKey}_opName`] = getVal(`${rigKey}_opName`, getVal(`${upperRigKey}_op_name`, ""));
+      initial[`${rigKey}_opAge`] = getVal(`${rigKey}_opAge`, "");
+      initial[`${rigKey}_opExp`] = getVal(`${rigKey}_opExp`, getVal(`${upperRigKey}_op_exp`, ""));
+      initial[`${rigKey}_opIdType`] = getVal(`${rigKey}_opIdType`, getVal(`${upperRigKey}_op_id_type`, "Aadhaar"));
+      initial[`${rigKey}_opIdNo`] = getVal(`${rigKey}_opIdNo`, getVal(`${upperRigKey}_op_id_no`, ""));
     });
 
     if (hasSaved) {
       const dateKeys = [
+        "declarationDate",
         "date",
+        "office_appReceivedDate",
         "office_date_recd",
+        "office_feeDate",
         "office_fee_date",
+        "office_rigInspectionDate",
         "office_rig_inspected_date",
+        "receipt_receivedDate",
         "receipt_date_recd",
+        "receipt_feeDate",
         "receipt_fee_paid_date",
-        "agency_reg_expiry",
+        "summaryRig1_expiryDate",
+        "summaryRig2_expiryDate",
+        "summaryRig3_expiryDate",
         "rig1_expiryDate",
         "rig2_expiryDate",
         "rig3_expiryDate",
+        "receipt_signDate",
       ];
       Object.keys(savedFormData).forEach((k) => {
         if (savedFormData[k] !== undefined) {
