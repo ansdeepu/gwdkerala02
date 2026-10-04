@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { type AgencyApplication, type RigRegistration as RigRegistrationType, type OwnerInfo } from "@/hooks/useAgencyApplications";
+import { type AgencyApplication, type RigRegistration as RigRegistrationType, type OwnerInfo, type SavedApplicationFormRecord } from "@/hooks/useAgencyApplications";
 import { useForm, useFieldArray, FormProvider, useWatch, Controller, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AgencyApplicationSchema, RigRegistrationSchema, RigRenewalSchema, type RigRenewal as RigRenewalFormData, applicationFeeTypes, ApplicationFeeSchema, ApplicationFeeType, type ApplicationFee, OwnerInfoSchema, agencyRigTypeOptions as rigTypeOptions, agencyRigTypeMalayalamOptions, type AgencyRigType as RigType, designationOptions, designationMalayalamOptions } from "@/lib/schemas";
@@ -38,7 +38,7 @@ import ExcelJS from "exceljs";
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAgencyApplications } from '@/hooks/useAgencyApplications';
 import { useDataStore } from '@/hooks/use-data-store';
-import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer, ClipboardList, Receipt, Award, Truck, AlertOctagon, MessageSquare, Wrench } from 'lucide-react';
+import { Loader2, Search, PlusCircle, Save, X, Trash2, ShieldAlert, UserPlus, FilePlus, ChevronsUpDown, ChevronDown, RotateCcw, RefreshCw, CheckCircle, Info, Ban, FileUp, MoreVertical, ArrowLeft, Eye, FileDown, Clock, ArrowUpDown, ArrowUp, ArrowDown, FileText, Languages, Printer, ClipboardList, Receipt, Award, Truck, AlertOctagon, MessageSquare, Wrench, Pencil } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { app, db } from '@/lib/firebase';
@@ -931,6 +931,9 @@ export default function AgencyRegistrationPage() {
   });
 
   const [activeFormView, setActiveFormView] = useState<'registration' | 'renewal' | null>(null);
+  const [selectedSavedForm, setSelectedSavedForm] = useState<SavedApplicationFormRecord | null>(null);
+  const [deletingSavedForm, setDeletingSavedForm] = useState<SavedApplicationFormRecord | null>(null);
+  const [isDeletingForm, setIsDeletingForm] = useState(false);
   const [showRegistrationFormModal, setShowRegistrationFormModal] = useState(false);
   const [showRenewalFormModal, setShowRenewalFormModal] = useState(false);
 
@@ -1751,19 +1754,33 @@ export default function AgencyRegistrationPage() {
 
   // FORM VIEW
   if (activeFormView === 'registration') {
+      const currentApp = selectedApplicationId && selectedApplicationId !== 'new'
+        ? allAgencyApplications.find((a: AgencyApplication) => a.id === selectedApplicationId)
+        : null;
       return (
           <RigRegistrationApplicationFormView
-              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW' } as any}
-              onClose={() => setActiveFormView(null)}
+              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW', savedForms: currentApp?.savedForms } as any}
+              initialSavedForm={selectedSavedForm}
+              onClose={() => {
+                setActiveFormView(null);
+                setSelectedSavedForm(null);
+              }}
           />
       );
   }
 
   if (activeFormView === 'renewal') {
+      const currentApp = selectedApplicationId && selectedApplicationId !== 'new'
+        ? allAgencyApplications.find((a: AgencyApplication) => a.id === selectedApplicationId)
+        : null;
       return (
           <RigRenewalApplicationFormView
-              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW' } as any}
-              onClose={() => setActiveFormView(null)}
+              application={{ ...form.getValues(), id: selectedApplicationId || 'NEW', savedForms: currentApp?.savedForms } as any}
+              initialSavedForm={selectedSavedForm}
+              onClose={() => {
+                setActiveFormView(null);
+                setSelectedSavedForm(null);
+              }}
           />
       );
   }
@@ -1787,6 +1804,95 @@ export default function AgencyRegistrationPage() {
         const validity = new Date(addYears(regDate, 1).getTime() - (24 * 60 * 60 * 1000));
         return new Date() > validity;
       });
+
+      const currentApplicationForForms = selectedApplicationId && selectedApplicationId !== 'new'
+        ? allAgencyApplications.find((a: AgencyApplication) => a.id === selectedApplicationId) || null
+        : null;
+
+      const savedFormsList: SavedApplicationFormRecord[] = (() => {
+        if (!currentApplicationForForms) return [];
+        const list = [...(currentApplicationForForms.savedForms || [])];
+
+        const hasRegInList = list.some(f => f.type === 'registration');
+        const legacyReg = (currentApplicationForForms as any)?.officialFormData || (currentApplicationForForms as any)?.registrationFormData;
+        if (!hasRegInList && legacyReg && Object.keys(legacyReg).length > 0) {
+          list.unshift({
+            id: 'legacy-reg',
+            type: 'registration',
+            title: `Rig Registration Form - ${currentApplicationForForms.fileNo || currentApplicationForForms.agencyRegistrationNo || 'Saved Copy'}`,
+            savedAt: currentApplicationForForms.updatedAt ? new Date(currentApplicationForForms.updatedAt).toISOString() : new Date().toISOString(),
+            savedBy: 'Sub-Office Officer',
+            formData: legacyReg,
+            summary: {
+              fileNo: currentApplicationForForms.fileNo || undefined,
+              rigCount: (currentApplicationForForms.rigs || []).filter(r => r.status === 'Active').length,
+            }
+          });
+        }
+
+        const hasRenInList = list.some(f => f.type === 'renewal');
+        const legacyRen = (currentApplicationForForms as any)?.renewalFormData;
+        if (!hasRenInList && legacyRen && Object.keys(legacyRen).length > 0) {
+          list.push({
+            id: 'legacy-ren',
+            type: 'renewal',
+            title: `Rig Renewal Form - ${currentApplicationForForms.fileNo || currentApplicationForForms.agencyRegistrationNo || 'Saved Copy'}`,
+            savedAt: currentApplicationForForms.updatedAt ? new Date(currentApplicationForForms.updatedAt).toISOString() : new Date().toISOString(),
+            savedBy: 'Sub-Office Officer',
+            formData: legacyRen,
+            summary: {
+              fileNo: currentApplicationForForms.fileNo || undefined,
+              rigCount: (currentApplicationForForms.rigs || []).filter(r => r.status === 'Active').length,
+            }
+          });
+        }
+
+        return list;
+      })();
+
+      const handleEditSavedForm = (formRecord: SavedApplicationFormRecord) => {
+        setSelectedSavedForm(formRecord);
+        setActiveFormView(formRecord.type);
+      };
+
+      const confirmDeleteSavedForm = async () => {
+        if (!deletingSavedForm || !selectedApplicationId || selectedApplicationId === 'new') {
+          setDeletingSavedForm(null);
+          return;
+        }
+        setIsDeletingForm(true);
+        try {
+          const currentList = currentApplicationForForms?.savedForms || [];
+          const updatedList = currentList.filter(f => f.id !== deletingSavedForm.id);
+
+          const updates: any = {
+            savedForms: updatedList,
+          };
+          if (deletingSavedForm.type === 'registration' && !updatedList.some(f => f.type === 'registration')) {
+            updates.officialFormData = null;
+            updates.registrationFormData = null;
+          }
+          if (deletingSavedForm.type === 'renewal' && !updatedList.some(f => f.type === 'renewal')) {
+            updates.renewalFormData = null;
+          }
+
+          await updateApplication(selectedApplicationId, updates);
+          toast({
+            title: "Saved Form Deleted",
+            description: `"${deletingSavedForm.title}" has been removed.`,
+          });
+        } catch (error: any) {
+          console.error("Error deleting saved form:", error);
+          toast({
+            title: "Delete Failed",
+            description: error.message || "Failed to delete saved form.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsDeletingForm(false);
+          setDeletingSavedForm(null);
+        }
+      };
 
       return (
         <TooltipProvider>
@@ -2152,42 +2258,210 @@ export default function AgencyRegistrationPage() {
                   <div className="relative">
                     <div className="absolute -left-[37px] sm:-left-[45px] top-4 bg-background p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs z-10">
                       <div className="bg-indigo-50 dark:bg-indigo-950/60 p-1.5 rounded-full text-indigo-600 dark:text-indigo-400">
-                        <Printer className="w-4 h-4" />
+                        <FileText className="w-4 h-4" />
                       </div>
                     </div>
                     <Card className="border-l-4 border-l-indigo-600 dark:border-l-indigo-500 shadow-xs">
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-                                  <Printer className="h-5 w-5" />
+                                  <FileText className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-xl font-bold tracking-tight">{appFormsSectionNumber}. Application Forms</CardTitle>
+                                    <div className="flex items-center gap-2">
+                                      <CardTitle className="text-xl font-bold tracking-tight">{appFormsSectionNumber}. Application Forms</CardTitle>
+                                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 text-[11px] font-semibold">
+                                        Approach 1: AcroForm + Master Template
+                                      </Badge>
+                                    </div>
                                     <CardDescription>
-                                        Generate, view, fill, and print official application forms for Rig Registration and Rig Renewal.
+                                        Native Fillable AcroForm PDF, Super Admin Master Template integration, in-app high-res preview & 5-page printing.
                                     </CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex flex-wrap gap-4 pb-6">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
-                                onClick={() => setActiveFormView('registration')}
-                            >
-                                <FileText className="h-4 w-4 text-blue-600" />
-                                Rig Registration Application Form
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="flex items-center gap-2 border-primary/20 hover:bg-primary/5 font-semibold text-gray-800 dark:text-gray-100"
-                                onClick={() => setActiveFormView('renewal')}
-                            >
-                                <RefreshCw className="h-4 w-4 text-blue-600" />
-                                Rig Renewal Application Form
-                            </Button>
+                        <CardContent className="space-y-4 pb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 flex flex-col justify-between space-y-3">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                                <FileText className="h-4 w-4 text-blue-600" />
+                                                New Rig Registration Application Form
+                                            </span>
+                                            <Badge className="bg-blue-600 text-white text-[10px]">5 Pages</Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Includes Agency details, Owner/Partner profiles, 3 Rig mechanical specs, declarations, office inspection report & counterfoil receipt.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs gap-2"
+                                        onClick={() => {
+                                          setSelectedSavedForm(null);
+                                          setActiveFormView('registration');
+                                        }}
+                                    >
+                                        <Eye className="h-3.5 w-3.5" />
+                                        Open Registration Form
+                                    </Button>
+                                </div>
+
+                                <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col justify-between space-y-3">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                                <RefreshCw className="h-4 w-4 text-emerald-600" />
+                                                Rig Renewal Application Form
+                                            </span>
+                                            <Badge className="bg-emerald-600 text-white text-[10px]">5 Pages</Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Includes registration validity checks, operator specs, fee records, office inspection findings & renewal acknowledgment counterfoil.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs gap-2"
+                                        onClick={() => {
+                                          setSelectedSavedForm(null);
+                                          setActiveFormView('renewal');
+                                        }}
+                                    >
+                                        <Eye className="h-3.5 w-3.5" />
+                                        Open Renewal Form
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Saved Forms Scroll Sub-Section */}
+                            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                                            <Save className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-foreground">Saved Forms Repository</h4>
+                                                <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold border-slate-300 dark:border-slate-700">
+                                                    {savedFormsList.length} {savedFormsList.length === 1 ? 'Form' : 'Forms'}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Previously saved official AcroForm records for this agency registration.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {savedFormsList.length === 0 ? (
+                                    <div className="p-5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-center space-y-1.5">
+                                        <FileText className="h-7 w-7 text-muted-foreground/40 mx-auto" />
+                                        <p className="text-xs font-semibold text-foreground">No saved forms yet</p>
+                                        <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+                                            Open either form above, complete the necessary entries, and click &ldquo;Save Form Data&rdquo; in the top toolbar to store records here.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="max-h-72 overflow-y-auto pr-1.5 space-y-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 p-1.5 bg-slate-50/30 dark:bg-slate-900/20">
+                                        {savedFormsList.map((item) => {
+                                            const isReg = item.type === 'registration';
+                                            const savedDate = (() => {
+                                                try {
+                                                    if (!item.savedAt) return "";
+                                                    const d = parseISO(item.savedAt);
+                                                    return isValid(d) ? format(d, "dd/MM/yyyy hh:mm a") : item.savedAt;
+                                                } catch {
+                                                    return item.savedAt || "";
+                                                }
+                                            })();
+
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    className="p-3 rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                                                >
+                                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                                        <div className={cn(
+                                                            "p-2 rounded-lg shrink-0 mt-0.5",
+                                                            isReg
+                                                                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40"
+                                                                : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40"
+                                                        )}>
+                                                            {isReg ? <FileText className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+                                                        </div>
+
+                                                        <div className="space-y-1 min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[260px] sm:max-w-md" title={item.title}>
+                                                                    {item.title}
+                                                                </span>
+                                                                <Badge className={cn("text-[10px] font-semibold px-1.5 py-0 h-4", isReg ? "bg-blue-600 text-white" : "bg-emerald-600 text-white")}>
+                                                                    {isReg ? "Registration" : "Renewal"}
+                                                                </Badge>
+                                                            </div>
+
+                                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                                                                {savedDate && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3 text-slate-400" />
+                                                                        {savedDate}
+                                                                    </span>
+                                                                )}
+                                                                {item.savedBy && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                                        <span>By: <strong className="text-foreground/80 font-medium">{item.savedBy}</strong></span>
+                                                                    </span>
+                                                                )}
+                                                                {item.summary?.challanNo && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                                        <span>Challan: {item.summary.challanNo}</span>
+                                                                    </span>
+                                                                )}
+                                                                {item.summary?.rigCount !== undefined && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                                        <span>Rigs: {item.summary.rigCount}</span>
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Actions: Edit and Delete Buttons */}
+                                                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 sm:h-8 px-2.5 text-xs gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950 font-medium"
+                                                            onClick={() => handleEditSavedForm(item)}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 sm:h-8 px-2.5 text-xs gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950 font-medium"
+                                                            onClick={() => setDeletingSavedForm(item)}
+                                                            disabled={isReadOnly}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                   </div>
@@ -2366,6 +2640,34 @@ export default function AgencyRegistrationPage() {
                         <AlertDialogFooter>
                             <Button variant="outline" onClick={() => setDeletingRenewal(null)}>Cancel</Button>
                             <Button variant="destructive" onClick={handleConfirmDeleteRenewal}>Delete</Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog open={!!deletingSavedForm} onOpenChange={(open) => !open && setDeletingSavedForm(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Saved Form?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to permanently delete &ldquo;{deletingSavedForm?.title}&rdquo;? This will remove this saved form snapshot from this agency. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <Button variant="outline" onClick={() => setDeletingSavedForm(null)} disabled={isDeletingForm}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={confirmDeleteSavedForm} disabled={isDeletingForm}>
+                                {isDeletingForm ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Form
+                                    </>
+                                )}
+                            </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

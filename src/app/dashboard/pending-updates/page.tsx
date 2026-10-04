@@ -1,7 +1,7 @@
 // src/app/dashboard/pending-updates/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePendingUpdates } from '@/hooks/usePendingUpdates';
 import { useDataStore } from '@/hooks/use-data-store';
@@ -9,8 +9,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, format, isValid } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogClose 
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PendingUpdate, SiteDetailFormData, ArsEntryFormData, DataEntryFormData } from '@/lib/schemas';
@@ -18,12 +35,25 @@ import { LOGGING_PUMPING_TEST_PURPOSE_OPTIONS } from '@/lib/schemas';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { usePageHeader } from '@/hooks/usePageHeader';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, CheckCircle, XCircle, UserX, ListChecks, Trash2, FolderOpen, Waves, TestTube2, Droplets, Info } from 'lucide-react';
+import { 
+  Loader2, 
+  CheckCircle, 
+  XCircle, 
+  UserX, 
+  ListChecks, 
+  Trash2, 
+  FolderOpen, 
+  Waves, 
+  TestTube2, 
+  Droplets, 
+  Info,
+  ShieldCheck,
+  CheckCircle2
+} from 'lucide-react';
 import UpdateTable from '@/components/admin/PendingUpdatesTable';
-
 
 const toDateOrNull = (value: any): Date | null => {
   if (!value) return null;
@@ -71,7 +101,7 @@ export default function PendingUpdatesPage() {
   const [changesToView, setChangesToView] = useState<{ title: string; changes: { field: string; oldValue: string; newValue: string }[] } | null>(null);
 
   useEffect(() => {
-    setHeader('Pending Actions', 'Review and approve or reject updates submitted by supervisors.');
+    setHeader('Pending Actions', 'Review and approve or reject site updates submitted by supervisors.');
   }, [setHeader]);
 
   useEffect(() => {
@@ -93,7 +123,7 @@ export default function PendingUpdatesPage() {
         if (update.isArsUpdate) {
             ars.push(update);
         } else {
-            const firstSite = update.updatedSiteDetails[0] as SiteDetailFormData;
+            const firstSite = update.updatedSiteDetails?.[0] as SiteDetailFormData | undefined;
             const purpose = firstSite?.purpose || 'Deposit Work';
 
             if (purpose === 'GW Investigation') {
@@ -238,7 +268,7 @@ export default function PendingUpdatesPage() {
     }
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superAdmin';
   const isScientist = user?.role === 'scientist';
   const isEngineer = user?.role === 'engineer';
 
@@ -246,7 +276,7 @@ export default function PendingUpdatesPage() {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-3 text-muted-foreground">Loading pending updates...</p>
+        <p className="ml-3 text-muted-foreground font-medium">Loading supervisor pending updates...</p>
       </div>
     );
   }
@@ -321,23 +351,23 @@ export default function PendingUpdatesPage() {
       <AlertDialog open={!!updateToReject} onOpenChange={() => setUpdateToReject(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Reject this update?</AlertDialogTitle><AlertDialogDescription>Please provide a reason for the rejection below.</AlertDialogDescription></AlertDialogHeader>
-            <div className="py-2"><Label htmlFor="rejection-reason" className="text-left">Reason (Optional)</Label><Textarea id="rejection-reason" placeholder="e.g., Incorrect work status." value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="mt-2" /></div>
-            <AlertDialogFooter><AlertDialogCancel disabled={isRejecting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleReject} disabled={isRejecting} className="bg-destructive hover:bg-destructive/90">{isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Yes, Reject"}</AlertDialogAction></AlertDialogFooter>
+            <div className="py-2"><Label htmlFor="rejection-reason" className="text-left text-xs font-semibold">Reason (Optional)</Label><Textarea id="rejection-reason" placeholder="e.g., Incorrect work status or incomplete documentation." value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="mt-2 text-xs" /></div>
+            <AlertDialogFooter><AlertDialogCancel disabled={isRejecting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleReject} disabled={isRejecting} className="bg-destructive hover:bg-destructive/90 text-xs">{isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Yes, Reject"}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={!!updateToDelete} onOpenChange={() => setUpdateToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Permanently delete this update?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone and will remove the update record permanently.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Yes, Delete"}</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-xs">{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Yes, Delete"}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <Dialog open={!!changesToView} onOpenChange={() => setChangesToView(null)}>
         <DialogContent className="sm:max-w-2xl p-0">
           <DialogHeader className="p-6 pb-4 border-b">
-            <DialogTitle>{changesToView?.title}</DialogTitle>
-            <DialogDescription>Review the changes submitted by the supervisor.</DialogDescription>
+            <DialogTitle className="text-base font-bold">{changesToView?.title}</DialogTitle>
+            <DialogDescription className="text-xs">Review the changes submitted by the supervisor.</DialogDescription>
           </DialogHeader>
           <div className="p-6">
             <ScrollArea className="max-h-[60vh] pr-4">
@@ -349,7 +379,7 @@ export default function PendingUpdatesPage() {
           </div>
           <DialogFooter className="p-6 pt-4 border-t">
             <DialogClose asChild>
-              <Button>Close</Button>
+              <Button size="sm">Close</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>

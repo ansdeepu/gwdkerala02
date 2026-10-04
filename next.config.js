@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -10,10 +9,6 @@ const nextConfig = {
   },
   productionBrowserSourceMaps: false,
   swcMinify: true,
-  experimental: {
-    cpus: 1,
-    workerThreads: false,
-  },
   images: {
     remotePatterns: [
       {
@@ -85,6 +80,8 @@ const nextConfig = {
     ],
   },
   experimental: {
+    cpus: 1,
+    workerThreads: false,
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -102,17 +99,6 @@ const nextConfig = {
       '@radix-ui/react-toast',
       '@radix-ui/react-tooltip',
     ],
-  },
-  webpack: (config, { dev }) => {
-    if (!dev) {
-      config.devtool = false;
-    } else {
-      config.devtool = 'eval-cheap-module-source-map';
-      if (config.output) {
-        config.output.chunkLoadTimeout = 300000;
-      }
-    }
-    return config;
   },
 };
 

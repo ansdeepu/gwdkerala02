@@ -301,7 +301,7 @@ export default function SuperAdminDashboardPage() {
           />
         </div>
         
-        <div id="rig-registration">
+        <div id="rig-registration" className="space-y-6">
           <RigRegistrationOverview 
             agencyApplications={allAgencyApplications}
             onOpenDialog={handleOpenDialog}

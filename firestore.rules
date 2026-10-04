@@ -123,6 +123,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isSubOfficeAdmin();
     }
 
+    match /masterPdfTemplates/{docId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if isSignedIn() || isSuperAdmin();
+    }
+
     /* ================= OFFICE SUBCOLLECTIONS ================= */
 
     match /offices/{officeId} {
@@ -243,6 +249,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
     }
+
+    match /masterPdfTemplates/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
     
     /* ================= COLLECTION GROUP RULES FOR SUPER ADMIN LISTS ================= */
 
@@ -296,6 +307,11 @@ service cloud.firestore {
     match /{path=**}/sanctionedStrength/{docId} {
       allow get: if isApproved();
       allow list: if isSignedIn();
+    }
+    match /{path=**}/masterPdfTemplates/{docId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if isSignedIn() || isSuperAdmin();
     }
   }
 }

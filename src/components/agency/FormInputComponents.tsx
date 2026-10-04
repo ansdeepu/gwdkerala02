@@ -231,7 +231,7 @@ export function FormLineInput({
   onChange,
   className = "",
   placeholder = "",
-  width = "flex-1 min-w-0",
+  width = "flex-1 min-w-[100px]",
 }: {
   value: string | undefined | null;
   onChange: (v: string) => void;
@@ -246,7 +246,7 @@ export function FormLineInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       title={value ? String(value) : ""}
-      className={`${width} min-w-0 bg-transparent border-b border-dotted border-black px-1 text-xs sm:text-sm font-semibold focus:outline-none focus:border-solid focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
+      className={`${width} bg-transparent border-b border-slate-900 dark:border-slate-300 px-1 py-0.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
     />
   );
 }
@@ -349,7 +349,7 @@ export function FormDateInput({
       placeholder={placeholder}
       maxLength={10}
       title="Date format: dd/mm/yyyy"
-      className={`${width} min-w-0 bg-transparent border-b border-dotted border-black px-1 text-xs sm:text-sm font-semibold text-center focus:outline-none focus:border-solid focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
+      className={`${width} min-w-[100px] bg-transparent border-b border-slate-900 dark:border-slate-300 px-1 py-0.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 text-center focus:outline-none focus:border-blue-600 focus:bg-blue-50/50 print:border-black print:border-b ${className}`}
     />
   );
 }

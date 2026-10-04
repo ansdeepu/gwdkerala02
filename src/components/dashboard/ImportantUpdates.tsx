@@ -248,15 +248,15 @@ export default function ImportantUpdates({ allFileEntries }: ImportantUpdatesPro
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Bell className="h-3.5 w-3.5" />
               </div>
-              <span className="truncate">Pending Actions</span>
+              <span className="truncate">Action Needed Files</span>
               <Badge variant="secondary" className="font-mono text-[11px] px-1.5 py-0 h-4 font-bold shrink-0">
                 {allAlerts.length}
               </Badge>
             </CardTitle>
 
             <Link href="/dashboard/pending-updates" className="shrink-0">
-              <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-primary hover:text-primary hover:bg-primary/10 gap-0.5">
-                <span>Manage</span>
+              <Button variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-primary hover:text-primary hover:bg-primary/10 gap-0.5" title="View field staff approval queue">
+                <span>Approvals</span>
                 <ChevronRight className="h-3 w-3" />
               </Button>
             </Link>

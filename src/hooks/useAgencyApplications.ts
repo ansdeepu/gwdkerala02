@@ -18,10 +18,26 @@ import { toast } from './use-toast';
 import { useDataStore } from './use-data-store'; // Import the central store hook
 
 // Type definitions that include the ID and handle Date objects
+export interface SavedApplicationFormRecord {
+  id: string;
+  type: 'registration' | 'renewal';
+  title: string;
+  savedAt: string;
+  savedBy: string;
+  formData: Record<string, any>;
+  summary?: {
+    fileNo?: string;
+    rigCount?: number;
+    challanNo?: string;
+    paymentDate?: string;
+  };
+}
+
 export type RigRegistration = RigRegistrationFormData & { id: string };
 export type AgencyApplication = Omit<AgencyApplicationFormData, 'rigs'> & {
   id: string;
   rigs: RigRegistration[];
+  savedForms?: SavedApplicationFormRecord[];
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -69,9 +85,11 @@ export function useAgencyApplications() {
 
   const updateApplication = useCallback(async (id: string, applicationData: Partial<AgencyApplication>) => {
     if (!user) throw new Error("User must be logged in to update an application.");
-    if (!user.officeLocation) throw new Error("User must have an office location.");
+    const existingApp = allAgencyApplications.find(a => a.id === id);
+    const office = (existingApp as any)?.officeLocationFromPath || (existingApp as any)?.officeLocation || (applicationData as any)?.officeLocation || user.officeLocation;
+    if (!office) throw new Error("Office location could not be determined for this application.");
     
-    const collectionPath = `offices/${user.officeLocation.toLowerCase()}/agencyApplications`;
+    const collectionPath = `offices/${office.toLowerCase()}/agencyApplications`;
     const docRef = doc(db, collectionPath, id);
     const payload = {
         ...applicationData,
@@ -83,7 +101,7 @@ export function useAgencyApplications() {
     
     const sanitizedPayload = sanitizeDataForFirestore(payload);
     await updateDoc(docRef, sanitizedPayload);
-  }, [user]);
+  }, [user, allAgencyApplications]);
   
   const deleteApplication = useCallback(async (id: string) => {
     if (!user || (user.role !== 'admin' && user.role !== 'engineer')) {

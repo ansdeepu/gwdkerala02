@@ -694,6 +694,11 @@ export const DataEntrySchema = z.object({
   reportOverrides: z.record(z.any()).optional().nullable(),
   printOverrides: z.record(z.any()).optional().nullable(),
 }).superRefine((data, ctx) => {
+  // If editing an existing file (id is present), allow updating without blocking on remittance reconciliation
+  if (data.id) {
+    return;
+  }
+
   // This validation should only apply if there's a financial commitment via site estimates.
   const hasSitesWithEstimates = data.siteDetails?.some(site => site.estimateAmount && site.estimateAmount > 0);
 
@@ -790,6 +795,9 @@ export const AgencyApplicationSchema = z.object({
   history: z.array(z.string()).optional().nullable(),
   remarks: z.string().optional().nullable(),
   officeLocation: z.string().optional().nullable(),
+  officialFormData: z.any().optional().nullable(),
+  renewalFormData: z.any().optional().nullable(),
+  savedForms: z.array(z.any()).optional().nullable(),
 });
 export type AgencyApplication = z.infer<typeof AgencyApplicationSchema>;
 

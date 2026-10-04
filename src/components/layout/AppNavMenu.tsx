@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePageNavigation } from '@/hooks/usePageNavigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { LayoutDashboard, Users, FileText, BarChart3, Briefcase, Truck, ClipboardList, Waves, Landmark, HelpCircle, Settings, FolderOpen, Building, DollarSign, Hammer, Hourglass, ArrowUpRight, TestTube2, Droplets, Database } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, BarChart3, Briefcase, Truck, ClipboardList, Waves, Landmark, HelpCircle, Settings, FolderOpen, Building, DollarSign, Hammer, Hourglass, ArrowUpRight, TestTube2, Droplets, Database, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/hooks/use-data-store';
 
@@ -65,6 +65,7 @@ export const superAdminNavItems: NavItem[] = [
     { href: '/dashboard/super-admin/gwd-rates', label: 'GWD Rates', icon: DollarSign },
     { href: '/dashboard/super-admin/establishment', label: 'Establishment', icon: Briefcase },
     { href: '/dashboard/super-admin/office-management', label: 'Office Management', icon: Building },
+    { href: '/dashboard/super-admin/templates', label: 'PDF Templates', icon: Layers },
     { href: '/dashboard/super-admin/user-management', label: 'Directorate Users', icon: Users },
     { href: '/dashboard/super-admin/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/help', label: 'Help & About', icon: HelpCircle },
@@ -82,12 +83,27 @@ export default function AppNavMenu() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { clearAllSearchTerms } = useDataStore();
+  const { clearAllSearchTerms, allFileEntries } = useDataStore();
   const { subscribeToPendingUpdates } = usePendingUpdates();
   const { setIsNavigating } = usePageNavigation();
   const [pendingCount, setPendingCount] = useState(0);
 
   const isSuperAdmin = user?.role === 'superAdmin';
+
+  const actionItemsCount = useMemo(() => {
+    const actionStatuses = ["Refund Pending", "To be Refunded", "Under Process", "TS Pending", "Additional Fund Awaited"];
+    let count = 0;
+    (allFileEntries || []).forEach(entry => {
+      entry.siteDetails?.forEach(s => {
+        if (s.workStatus && actionStatuses.includes(s.workStatus)) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [allFileEntries]);
+
+  const totalPendingBadge = pendingCount + actionItemsCount;
 
   useEffect(() => {
     if (!user || (user.role !== 'admin' && user.role !== 'scientist' && user.role !== 'engineer' && !isSuperAdmin)) {

@@ -115,7 +115,18 @@ export const UpdateTable = ({
                   } else if (!update.isArsUpdate) {
                     const parentFileId = (parentFile as DataEntryFormData)?.id;
                     if (parentFileId) {
-                      reviewLink = `/dashboard/data-entry?id=${parentFileId}&approveUpdateId=${update.id}`;
+                      const firstSite = update.updatedSiteDetails?.[0] as SiteDetailFormData | undefined;
+                      const isGwInvestigation = firstSite?.purpose === 'GW Investigation';
+                      const isLoggingPumping = firstSite?.purpose && LOGGING_PUMPING_TEST_PURPOSE_OPTIONS.includes(firstSite.purpose as any);
+                      if (isGwInvestigation) {
+                        reviewLink = `/dashboard/data-entry?id=${parentFileId}&workType=gwInvestigation&approveUpdateId=${update.id}`;
+                      } else if (isLoggingPumping) {
+                        reviewLink = `/dashboard/data-entry?id=${parentFileId}&workType=loggingPumpingTest&approveUpdateId=${update.id}`;
+                      } else {
+                        const workType = (parentFile as any)?.workType;
+                        const workTypeParam = workType ? `&workType=${workType}` : '';
+                        reviewLink = `/dashboard/data-entry?id=${parentFileId}${workTypeParam}&approveUpdateId=${update.id}`;
+                      }
                     }
                   }
 

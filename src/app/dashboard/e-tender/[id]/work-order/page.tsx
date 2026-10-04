@@ -197,7 +197,7 @@ export default function WorkOrderPrintPage() {
                       <p style={{ margin: 0, padding: 0, fontWeight: 'bold', minWidth: '85px' }}>സൂചന:</p>
                       <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, padding: 0 }}>1. ഈ ഓഫീസിലെ {formatDateSafe(tender.dateOfOpeningBid) || '__________'} തീയതിയിലെ ടെണ്ടർ നമ്പർ {tender.eTenderNo || '__________'}</p>
-                          <p style={{ margin: 0, padding: 0 }}>2. വർക്ക് എഗ്രിമെന്റ് നമ്പർ {tender.agreementNo || tender.eTenderNo || '__________'} തീയതി {formatDateSafe(tender.agreementDate) || '__________'}</p>
+                          <p style={{ margin: 0, padding: 0 }}>2. വർക്ക് എഗ്രിമെന്റ് നമ്പർ {(tender as any).agreementNo || tender.eTenderNo || '__________'} തീയതി {formatDateSafe((tender as any).agreementDate) || '__________'}</p>
                       </div>
                   </div>
               </div>

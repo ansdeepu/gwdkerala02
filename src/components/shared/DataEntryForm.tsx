@@ -1186,6 +1186,18 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
     savedSnapshotRef.current = serializeDataForSnapshot(initialData);
   }, [initialData, fileIdToEdit, parseDateValue, serializeDataForSnapshot, determineSaveType]);
 
+  // Prevent accidental tab closure or navigation when form has unsaved modifications
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isManualDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isManualDirty]);
+
   const [activeAccordionItem, setActiveAccordionItem] = useState<string>("");
   const [reappAccordionValue, setReappAccordionValue] = useState<string>("");
   const [dialogState, setDialogState] = useState<{ type: null | 'application' | 'remittance' | 'reappropriation' | 'payment' | 'site' | 'reorderSite' | 'viewSite' | 'moveCopySite'; data: any, isView?: boolean }>({ type: null, data: null, isView: false });
@@ -1993,9 +2005,39 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             if (originalData.index !== undefined) updateSite(originalData.index, mergedSiteData); else appendSite(mergedSiteData);
             setIsManualDirty(true);
             closeDialog();
-            setTimeout(() => {
-                handleSubmit(onSubmit)();
-            }, 300);
+
+            // Direct persistence for existing files to guarantee drilling details & completion dates are saved immediately
+            const currentSites = getValues('siteDetails') || [];
+            const newSites = [...currentSites];
+            if (originalData.index !== undefined) {
+                newSites[originalData.index] = mergedSiteData;
+            } else {
+                newSites.push(mergedSiteData);
+            }
+            setValue('siteDetails', newSites, { shouldDirty: true });
+
+            const effectiveRole = userRole || user?.role;
+            const canDirectSave = Boolean(fileIdToEdit && !isSupervisor && (effectiveRole === 'admin' || effectiveRole === 'engineer' || effectiveRole === 'superAdmin'));
+
+            if (canDirectSave) {
+                const currentFormData = getValues();
+                const payloadToSave = {
+                    ...currentFormData,
+                    siteDetails: newSites,
+                };
+                updateFileEntry(fileIdToEdit, payloadToSave).then(() => {
+                    toast({ title: "Site Details Saved", description: "Drilling actuals and completion details updated." });
+                    setLastSavedAt(new Date());
+                    setIsManualDirty(false);
+                }).catch((err: any) => {
+                    console.error("Direct site update error:", err);
+                    handleSubmit(onSubmit, onInvalid)();
+                });
+            } else {
+                setTimeout(() => {
+                    handleSubmit(onSubmit, onInvalid)();
+                }, 300);
+            }
             return;
         } else if (type === 'reorderSite') {
             const reorderedSites = data as SiteDetailFormData[];
@@ -2349,6 +2391,21 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                         ) : null}
                                                     </span>
                                                     {renderSiteStatusBadge(site.field.workStatus)}
+                                                    {site.field.totalDepth !== null && site.field.totalDepth !== undefined && (
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                                                            TD: {site.field.totalDepth}m
+                                                        </span>
+                                                    )}
+                                                    {site.field.casingPipeUsed && String(site.field.casingPipeUsed).trim() !== '' && (
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                                            Casing: {site.field.casingPipeUsed}m
+                                                        </span>
+                                                    )}
+                                                    {site.field.dateOfCompletion && (
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                                                            Completed: {formatDateForInput(site.field.dateOfCompletion)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </AccordionTrigger>
                                         </div>
@@ -2375,6 +2432,14 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                 <DetailRow label="Status" value={site.field.workStatus} />
                                                 <DetailRow label="Contractor" value={site.field.contractorName} />
                                                 <DetailRow label="Supervisor" value={site.field.supervisorName} />
+                                                <DetailRow label="Actual Diameter" value={site.field.diameter} />
+                                                <DetailRow label="Actual Total Depth (TD)" value={site.field.totalDepth ? `${site.field.totalDepth} m` : null} />
+                                                <DetailRow label="Total Casing Used" value={site.field.casingPipeUsed ? `${site.field.casingPipeUsed} m ${[site.field.casing10kgPipe ? `(10kg: ${site.field.casing10kgPipe}m)` : '', site.field.casing8kgPipe ? `(8kg: ${site.field.casing8kgPipe}m)` : '', site.field.casing6kgPipe ? `(6kg: ${site.field.casing6kgPipe}m)` : ''].filter(Boolean).join(' ')}` : null} />
+                                                <DetailRow label="Actual Overburden (OB)" value={site.field.surveyOB ? `${site.field.surveyOB} m` : null} />
+                                                <DetailRow label="Start Date" value={site.field.startDate} />
+                                                <DetailRow label="Completion Date" value={site.field.dateOfCompletion} />
+                                                <DetailRow label="Estimate Amount (₹)" value={site.field.estimateAmount} />
+                                                <DetailRow label="TS Amount (₹)" value={site.field.tsAmount} />
                                             </dl>
                                         </div>
                                     </AccordionContent>
@@ -2409,6 +2474,21 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                             ) : null}
                                                         </span>
                                                         {renderSiteStatusBadge(site.field.workStatus)}
+                                                        {site.field.totalDepth !== null && site.field.totalDepth !== undefined && (
+                                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                                                                TD: {site.field.totalDepth}m
+                                                            </span>
+                                                        )}
+                                                        {site.field.casingPipeUsed && String(site.field.casingPipeUsed).trim() !== '' && (
+                                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                                                Casing: {site.field.casingPipeUsed}m
+                                                            </span>
+                                                        )}
+                                                        {site.field.dateOfCompletion && (
+                                                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                                                                Completed: {formatDateForInput(site.field.dateOfCompletion)}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </AccordionTrigger>
                                             </div>
@@ -2430,6 +2510,11 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                 <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-4">
                                                     <DetailRow label="Purpose" value={site.field.purpose} />
                                                     <DetailRow label="Status" value={site.field.workStatus} />
+                                                    <DetailRow label="Contractor" value={site.field.contractorName} />
+                                                    <DetailRow label="Supervisor" value={site.field.supervisorName} />
+                                                    <DetailRow label="Actual Diameter" value={site.field.diameter} />
+                                                    <DetailRow label="Actual Total Depth (TD)" value={site.field.totalDepth ? `${site.field.totalDepth} m` : null} />
+                                                    <DetailRow label="Total Casing Used" value={site.field.casingPipeUsed ? `${site.field.casingPipeUsed} m ${[site.field.casing10kgPipe ? `(10kg: ${site.field.casing10kgPipe}m)` : '', site.field.casing8kgPipe ? `(8kg: ${site.field.casing8kgPipe}m)` : '', site.field.casing6kgPipe ? `(6kg: ${site.field.casing6kgPipe}m)` : ''].filter(Boolean).join(' ')}` : null} />
                                                     <DetailRow label="Total Expenditure (₹)" value={site.field.totalExpenditure} />
                                                     <DetailRow label="Completion Date" value={site.field.dateOfCompletion} />
                                                 </dl>
