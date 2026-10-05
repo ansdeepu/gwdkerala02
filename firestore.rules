@@ -162,7 +162,7 @@ service cloud.firestore {
             || (isInvestigator() && request.auth.uid in resource.data.assignedInvestigatorUids);
         allow list: if isSignedIn();
         allow delete: if canManageAll();
-        allow create, update: if canEditEngineering() || canEditScience();
+        allow create, update: if canEditEngineering() || canEditScience() || ((isSupervisor() || isInvestigator()) && sameOffice(officeId));
       }
 
       match /arsEntries/{docId} {

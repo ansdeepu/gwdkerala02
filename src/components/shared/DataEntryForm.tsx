@@ -27,9 +27,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, ClipboardList } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, CheckCircle2, Activity, Printer, FileText, ExternalLink, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, ClipboardList, ShieldCheck, Database } from "lucide-react";
 import { getSiteNameStatusColorClass, getWorkStatusBadgeClasses, renderWorkStatusPillBadge } from "@/lib/workStatusUtils";
 import PrintableReportModal, { type ReportDocType } from "../database/PrintableReportModal";
+import VerifyDatabaseModal from "./VerifyDatabaseModal";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import {
   DataEntrySchema,
@@ -243,6 +244,17 @@ interface DataEntryFormProps {
 const formatDateForInput = (date: Date | string | null | undefined): string => {
     if (!date) return "";
     try { return format(new Date(date), 'yyyy-MM-dd'); } catch { return ""; }
+};
+
+const formatDateForDisplay = (date: Date | string | null | undefined): string => {
+    if (!date) return "";
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return String(date);
+        return format(d, 'dd/MM/yyyy');
+    } catch {
+        return String(date || "");
+    }
 };
 
 const ApplicationDialogContent = ({ initialData, onConfirm, onCancel, formOptions, isEditing, workTypeContext, fileIdToEdit }: { 
@@ -1205,6 +1217,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printModalDocType, setPrintModalDocType] = useState<ReportDocType>('completion_report');
   const [printModalEntry, setPrintModalEntry] = useState<DataEntryFormData | null>(null);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   useEffect(() => {
     const printModalParam = searchParams.get("printModal");
@@ -1759,8 +1772,13 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         try {
           setIsAutoSaving(true);
           const dataToSave = getValues();
+          
+          // Safeguard: Ensure siteDetails retains any existing site actuals, completion dates and media
+          const currentFormSites = Array.isArray(dataToSave.siteDetails) ? dataToSave.siteDetails : [];
+          
           const sanitizedData = {
             ...dataToSave,
+            siteDetails: currentFormSites,
             constituency: dataToSave.constituency === undefined ? null : dataToSave.constituency,
             lastSavedType: 'auto' as const,
           };
@@ -1908,13 +1926,13 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
         }
         
         const now = new Date();
-        if (isSupervisor) {
-            await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
-            toast({ title: "Update Submitted" });
-            reset(sanitizedData);
-        } else if (fileIdToEdit) {
+        if (fileIdToEdit) {
             await updateFileEntry(fileIdToEdit, sanitizedData, approveUpdateId || undefined);
-            toast({ title: "File Updated" });
+            toast({ title: "File Updated", description: "All site and drilling data saved successfully." });
+            reset(sanitizedData);
+        } else if (isSupervisor) {
+            await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
+            toast({ title: "Update Submitted", description: "Submission sent for review." });
             reset(sanitizedData);
         } else {
             const newDocId = await addFileEntry(sanitizedData);
@@ -2016,18 +2034,16 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             }
             setValue('siteDetails', newSites, { shouldDirty: true });
 
-            const effectiveRole = userRole || user?.role;
-            const canDirectSave = Boolean(fileIdToEdit && !isSupervisor && (effectiveRole === 'admin' || effectiveRole === 'engineer' || effectiveRole === 'superAdmin'));
-
-            if (canDirectSave) {
+            if (fileIdToEdit) {
                 const currentFormData = getValues();
                 const payloadToSave = {
                     ...currentFormData,
                     siteDetails: newSites,
                 };
                 updateFileEntry(fileIdToEdit, payloadToSave).then(() => {
-                    toast({ title: "Site Details Saved", description: "Drilling actuals and completion details updated." });
+                    toast({ title: "Site Details Saved", description: "Drilling actuals, completion date, and media updated." });
                     setLastSavedAt(new Date());
+                    savedSnapshotRef.current = serializeDataForSnapshot(payloadToSave);
                     setIsManualDirty(false);
                 }).catch((err: any) => {
                     console.error("Direct site update error:", err);
@@ -2403,7 +2419,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                     )}
                                                     {site.field.dateOfCompletion && (
                                                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                                                            Completed: {formatDateForInput(site.field.dateOfCompletion)}
+                                                            Completed: {formatDateForDisplay(site.field.dateOfCompletion)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -2486,7 +2502,7 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                         )}
                                                         {site.field.dateOfCompletion && (
                                                             <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                                                                Completed: {formatDateForInput(site.field.dateOfCompletion)}
+                                                                Completed: {formatDateForDisplay(site.field.dateOfCompletion)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -2815,6 +2831,18 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                             <span>Not saved yet</span>
                         </span>
                     )}
+                    {fileIdToEdit && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsVerifyModalOpen(true)}
+                            className="h-7 text-xs gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 hover:bg-emerald-100 dark:bg-emerald-950/40"
+                        >
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                            Verify Database Record
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 shrink-0">
@@ -2833,6 +2861,14 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                 </div>
             </CardFooter>
         </form>
+        <VerifyDatabaseModal
+            isOpen={isVerifyModalOpen}
+            onClose={() => setIsVerifyModalOpen(false)}
+            fileId={fileIdToEdit}
+            officeLocation={watch('officeLocation') || getValues('officeLocation') || (user as any)?.officeLocation || 'kollam'}
+            fileNo={watch('fileNo') || currentFileNo}
+            localFormData={getValues()}
+        />
         <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} formOptions={formOptions} isEditing={isEditing} workTypeContext={workTypeContext} fileIdToEdit={fileIdToEdit} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'remittance'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><RemittanceDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} isDeferredFunding={isDeferredFunding} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reappropriation'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><ReappropriationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>

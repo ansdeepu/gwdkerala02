@@ -26,11 +26,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Printer, FileText, CheckCircle2, ClipboardList, Receipt, RefreshCw, MapPin, CreditCard, BarChart3 } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, X, Save, Clock, Eye, ArrowUpDown, Copy, Info, ChevronLeft, ChevronRight, Edit, Move, Printer, FileText, CheckCircle2, ClipboardList, Receipt, RefreshCw, MapPin, CreditCard, BarChart3, ShieldCheck } from "lucide-react";
 import { getSiteNameStatusColorClass, renderWorkStatusPillBadge } from "@/lib/workStatusUtils";
 import { calculateSiteExpenditure } from "@/components/shared/DataEntryForm";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
 import { type InvestigationReportDocType } from '@/components/investigation/InvestigationReportViewer';
+import VerifyDatabaseModal from "@/components/shared/VerifyDatabaseModal";
 import {
   DataEntrySchema,
   type DataEntryFormData,
@@ -1112,6 +1113,7 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
   const [activeAccordionItem, setActiveAccordionItem] = useState<string>("");
   const [reappAccordionValue, setReappAccordionValue] = useState<string>("");
   const [dialogState, setDialogState] = useState<{ type: null | 'application' | 'remittance' | 'reappropriation' | 'payment' | 'site' | 'reorderSite' | 'viewSite' | 'moveCopySite'; data: any, isView?: boolean }>({ type: null, data: null, isView: false });
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [isReappInfoOpen, setIsReappInfoOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'remittance' | 'reappropriation' | 'payment' | 'site'; index: number } | null>(null);
 
@@ -1639,13 +1641,13 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
         }
         
         const now = new Date();
-        if (isSupervisor || isInvestigator) {
-            await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
-            toast({ title: "Update Submitted" });
-            reset(sanitizedData);
-        } else if (fileIdToEdit) {
+        if (fileIdToEdit) {
             await updateFileEntry(fileIdToEdit, sanitizedData, approveUpdateId || undefined);
-            toast({ title: "File Updated" });
+            toast({ title: "File Updated", description: "All investigation details saved successfully." });
+            reset(sanitizedData);
+        } else if (isSupervisor || isInvestigator) {
+            await createPendingUpdate(sanitizedData.fileNo, sanitizedData.siteDetails!, user, fileLevelUpdates);
+            toast({ title: "Update Submitted", description: "Submission sent for review." });
             reset(sanitizedData);
         } else {
             const newDocId = await addFileEntry(sanitizedData);
@@ -1709,12 +1711,54 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
                 appendPayment(paymentData);
             }
         } else if (type === 'site') {
-            if (originalData.index !== undefined) updateSite(originalData.index, data); else appendSite(data);
+            const mergedSiteData = {
+                ...(originalData || {}),
+                ...data,
+                workImages: Array.isArray(data.workImages) 
+                    ? data.workImages 
+                    : (originalData?.workImages || []),
+                workVideos: Array.isArray(data.workVideos) 
+                    ? data.workVideos 
+                    : (originalData?.workVideos || []),
+            };
+            if (originalData.index !== undefined) updateSite(originalData.index, mergedSiteData); else appendSite(mergedSiteData);
             setIsManualDirty(true);
             closeDialog();
-            setTimeout(() => {
-                handleSubmit(onSubmit)();
-            }, 300);
+
+            const currentSites = getValues('siteDetails') || [];
+            const newSites = [...currentSites];
+            if (originalData.index !== undefined) {
+                newSites[originalData.index] = mergedSiteData;
+            } else {
+                newSites.push(mergedSiteData);
+            }
+            setValue('siteDetails', newSites, { shouldDirty: true });
+
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+                autoSaveTimerRef.current = null;
+            }
+
+            if (fileIdToEdit) {
+                const currentFormData = getValues();
+                const payloadToSave = {
+                    ...currentFormData,
+                    siteDetails: newSites,
+                };
+                savedSnapshotRef.current = serializeDataForSnapshot(payloadToSave);
+                updateFileEntry(fileIdToEdit, payloadToSave).then(() => {
+                    toast({ title: "Site Details Saved", description: "Investigation details updated in database." });
+                    setLastSavedAt(new Date());
+                    setIsManualDirty(false);
+                }).catch((err: any) => {
+                    console.error("Direct site update error:", err);
+                    handleSubmit(onSubmit, onInvalid)();
+                });
+            } else {
+                setTimeout(() => {
+                    handleSubmit(onSubmit, onInvalid)();
+                }, 300);
+            }
             return;
         } else if (type === 'reorderSite') {
             const reorderedSites = data as SiteDetailFormData[];
@@ -2189,6 +2233,18 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
                             <span>Not saved yet</span>
                         </span>
                     )}
+                    {fileIdToEdit && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsVerifyModalOpen(true)}
+                            className="h-7 text-xs gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 hover:bg-emerald-100 dark:bg-emerald-950/40"
+                        >
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                            Verify Database Record
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 shrink-0">
@@ -2207,6 +2263,14 @@ export default function InvestigationDataEntryFormComponent({ fileNoToEdit, init
                 </div>
             </CardFooter>
         </form>
+        <VerifyDatabaseModal
+            isOpen={isVerifyModalOpen}
+            onClose={() => setIsVerifyModalOpen(false)}
+            fileId={fileIdToEdit}
+            officeLocation={watch('officeLocation') || getValues('officeLocation') || (user as any)?.officeLocation || 'kollam'}
+            fileNo={watch('fileNo') || currentFileNo}
+            localFormData={getValues()}
+        />
         <Dialog open={dialogState.type === 'application'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-4xl"><ApplicationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} workTypeContext={workTypeContext} isEditing={isEditing} fileIdToEdit={fileIdToEdit} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'remittance'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><RemittanceDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} category={getValues('category')} /></DialogContent></Dialog>
         <Dialog open={dialogState.type === 'reappropriation'} onOpenChange={closeDialog}><DialogContent onPointerDownOutside={(e) => e.preventDefault()} className="max-w-3xl"><ReappropriationDialogContent initialData={dialogState.data} onConfirm={handleDialogConfirm} onCancel={closeDialog} /></DialogContent></Dialog>

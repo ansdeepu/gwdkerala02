@@ -89,8 +89,8 @@ const sanitizePayloadForFirestoreSize = (payload: any, fileNo?: string): any => 
                 for (const key of Object.keys(obj)) {
                     const val = obj[key];
                     if (typeof val === 'string' && (val.startsWith('data:image/') || val.startsWith('data:video/') || val.startsWith('data:application/')) && val.length > 40000) {
-                        console.warn(`[useFileEntries] Cleaned embedded base64 in field '${key}' (length ${val.length}) to protect Firestore document size.`);
-                        result[key] = obj.driveViewUrl || obj.url?.startsWith('http') ? obj.url : '';
+                        console.warn(`[useFileEntries] Heavy embedded base64 in field '${key}' (length ${val.length}) detected for file "${fileNo || 'unknown'}".`);
+                        result[key] = obj.driveViewUrl || (typeof obj.url === 'string' && obj.url.startsWith('http') ? obj.url : val);
                     } else {
                         result[key] = stripHeavyBase64(val);
                     }
@@ -217,9 +217,9 @@ export function useFileEntries() {
   }, [user, allFileEntries, dataStoreLoading, pendingUpdatesMap]);
 
     const addFileEntry = useCallback(async (entryData: DataEntryFormData): Promise<string> => {
-        if (!user || !['admin', 'engineer', 'scientist'].includes(user.role)) throw new Error("Permission denied to add file entry.");
-        if (!user.officeLocation) throw new Error("User must have an office location.");
-        const collectionPath = `offices/${user.officeLocation.toLowerCase()}/fileEntries`;
+        if (!user || !['admin', 'engineer', 'scientist', 'superAdmin'].includes(user.role)) throw new Error("Permission denied to add file entry.");
+        const effectiveOffice = (entryData.officeLocation || user.officeLocation || 'kollam').toLowerCase();
+        const collectionPath = `offices/${effectiveOffice}/fileEntries`;
         
         const fileNoTrimmed = entryData.fileNo ? entryData.fileNo.trim().toUpperCase() : '';
         if (fileNoTrimmed) {
@@ -233,7 +233,7 @@ export function useFileEntries() {
             }
         }
 
-        const payload = { ...entryData, officeLocation: user.officeLocation };
+        const payload = { ...entryData, officeLocation: effectiveOffice };
         if (payload.id) delete payload.id;
 
         const sizeOptimizedPayload = sanitizePayloadForFirestoreSize(payload, entryData.fileNo);
@@ -245,29 +245,72 @@ export function useFileEntries() {
     }, [user]);
 
     const updateFileEntry = useCallback(async (fileId: string, entryData: DataEntryFormData, approveUpdateId?: string): Promise<void> => {
-        if (!user || !['admin', 'engineer', 'scientist'].includes(user.role)) throw new Error("Permission denied to update file entry.");
-        if (!user.officeLocation) throw new Error("User has no office location.");
+        if (!user || !['admin', 'engineer', 'scientist', 'superAdmin', 'supervisor', 'investigator'].includes(user.role)) throw new Error("Permission denied to update file entry.");
         
-        const collectionPath = `offices/${user.officeLocation.toLowerCase()}/fileEntries`;
-        const docRef = doc(db, collectionPath, fileId);
+        const effectiveOffice = (entryData.officeLocation || user.officeLocation || 'kollam').toLowerCase();
+        let collectionPath = `offices/${effectiveOffice}/fileEntries`;
+        let docRef = doc(db, collectionPath, fileId);
 
-        const fileNoTrimmed = entryData.fileNo.trim().toUpperCase();
+        const fileNoTrimmed = entryData.fileNo ? entryData.fileNo.trim().toUpperCase() : '';
 
-        const originalDocSnap = await getDoc(docRef);
+        let originalDocSnap = await getDoc(docRef);
         if (!originalDocSnap.exists()) {
-            throw new Error("The file you are trying to edit does not exist.");
+            // Check fallback if officeLocation from path differed
+            const pathOffice = (entryData as any)?.officeLocationFromPath || user.officeLocation?.toLowerCase();
+            if (pathOffice && pathOffice !== effectiveOffice) {
+                const altPath = `offices/${pathOffice}/fileEntries`;
+                const altRef = doc(db, altPath, fileId);
+                const altSnap = await getDoc(altRef);
+                if (altSnap.exists()) {
+                    collectionPath = altPath;
+                    docRef = altRef;
+                    originalDocSnap = altSnap;
+                }
+            }
+            if (!originalDocSnap.exists()) {
+                throw new Error("The file you are trying to edit does not exist.");
+            }
         }
 
-        const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
-        const querySnapshot = await getDocs(q);
-        const existingDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const targetCategory = getModuleCategoryFromData(entryData);
-        const conflictCheck = checkFileNumberConflict(entryData.fileNo, targetCategory, fileId, existingDocs);
-        if (conflictCheck.conflict) {
-            throw new Error(conflictCheck.errorMessage);
+        if (fileNoTrimmed) {
+            const q = query(collection(db, collectionPath), where("fileNo", "==", fileNoTrimmed));
+            const querySnapshot = await getDocs(q);
+            const existingDocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const targetCategory = getModuleCategoryFromData(entryData);
+            const conflictCheck = checkFileNumberConflict(entryData.fileNo, targetCategory, fileId, existingDocs);
+            if (conflictCheck.conflict) {
+                throw new Error(conflictCheck.errorMessage);
+            }
         }
         
-        const payload = { ...entryData, fileNo: fileNoTrimmed };
+        const originalData = originalDocSnap.data() || {};
+        const existingSiteDetails = originalData.siteDetails || [];
+        const incomingSiteDetails = entryData.siteDetails;
+
+        let finalSiteDetails = incomingSiteDetails;
+        if ((!incomingSiteDetails || incomingSiteDetails.length === 0) && existingSiteDetails.length > 0) {
+            finalSiteDetails = existingSiteDetails;
+        } else if (Array.isArray(incomingSiteDetails) && incomingSiteDetails.length > 0 && Array.isArray(existingSiteDetails) && existingSiteDetails.length > 0) {
+            finalSiteDetails = incomingSiteDetails.map((incSite, idx) => {
+                const origSite = existingSiteDetails[idx] || {};
+                return {
+                    ...origSite,
+                    ...incSite,
+                    dateOfCompletion: incSite.dateOfCompletion !== undefined && incSite.dateOfCompletion !== null && incSite.dateOfCompletion !== '' 
+                        ? incSite.dateOfCompletion 
+                        : origSite.dateOfCompletion,
+                    workImages: (incSite.workImages && incSite.workImages.length > 0) ? incSite.workImages : (origSite.workImages || []),
+                    workVideos: (incSite.workVideos && incSite.workVideos.length > 0) ? incSite.workVideos : (origSite.workVideos || []),
+                };
+            });
+        }
+
+        const payload = { 
+            ...originalData,
+            ...entryData, 
+            siteDetails: finalSiteDetails,
+            fileNo: fileNoTrimmed 
+        };
         if (payload.id) delete payload.id;
 
         const sizeOptimizedPayload = sanitizePayloadForFirestoreSize(payload, entryData.fileNo);
@@ -275,10 +318,10 @@ export function useFileEntries() {
         const sanitizedPayload = sanitizeDataForFirestore(finalPayload);
         assertFirestoreDocumentSize(sanitizedPayload, entryData.fileNo);
 
-        if (approveUpdateId && (user.role === 'admin' || user.role === 'scientist' || user.role === 'engineer')) {
+        if (approveUpdateId && (user.role === 'admin' || user.role === 'scientist' || user.role === 'engineer' || user.role === 'superAdmin')) {
             const batch = writeBatch(db);
             batch.update(docRef, sanitizedPayload);
-            const updateRef = doc(db, `offices/${user.officeLocation.toLowerCase()}/pendingUpdates`, approveUpdateId);
+            const updateRef = doc(db, `offices/${effectiveOffice}/pendingUpdates`, approveUpdateId);
             batch.update(updateRef, { status: 'approved', reviewedByUid: user.uid, reviewedAt: serverTimestamp() });
             await batch.commit();
         } else {
@@ -287,22 +330,18 @@ export function useFileEntries() {
         
     }, [user]);
 
-
   const deleteFileEntry = useCallback(async (docId: string): Promise<void> => {
-    if (user?.role !== 'admin') {
+    if (user?.role !== 'admin' && user?.role !== 'superAdmin') {
         toast({ title: "Permission Denied", description: "You don't have permission to delete entries.", variant: "destructive" });
         return;
     }
-    if (!user?.officeLocation) {
-        toast({ title: "Deletion Failed", description: "User has no office location.", variant: "destructive" });
-        return;
-    }
+    const effectiveOffice = (user?.officeLocation || 'kollam').toLowerCase();
     if (!docId) {
         toast({ title: "Deletion Failed", description: "Invalid item ID provided.", variant: "destructive" });
         return;
     }
     try {
-        const collectionPath = `offices/${user.officeLocation.toLowerCase()}/fileEntries`;
+        const collectionPath = `offices/${effectiveOffice}/fileEntries`;
         await deleteDoc(doc(db, collectionPath, docId));
         toast({ title: "Entry Deleted", description: "The file entry has been removed." });
     } catch (error: any) {
@@ -312,7 +351,7 @@ export function useFileEntries() {
   }, [user, toast]);
 
   const batchDeleteFileEntries = useCallback(async (fileNos: string[]): Promise<{ successCount: number; failureCount: number }> => {
-    if (user?.role !== 'admin') {
+    if (user?.role !== 'admin' && user?.role !== 'superAdmin') {
         toast({ title: "Permission Denied", variant: "destructive" });
         return { successCount: 0, failureCount: fileNos.length };
     }

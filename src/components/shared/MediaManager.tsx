@@ -90,6 +90,7 @@ export default function MediaManager({
   } | null>(null);
   const [isSetupDialogOpen, setIsSetupDialogOpen] = useState(false);
   const [hasDriveConfig, setHasDriveConfig] = useState<boolean | null>(null);
+  const [videoPlayerMode, setVideoPlayerMode] = useState<'native' | 'drive'>('native');
 
   // Hidden inputs for file browsing and direct mobile camera capture
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -249,12 +250,21 @@ export default function MediaManager({
     return url;
   };
 
+  const autoSyncedRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoSyncedRef.current && (propSiteName || propFileNo) && hasDriveConfig) {
+      autoSyncedRef.current = true;
+      handleSyncDriveMedia(true);
+    }
+  }, [propSiteName, propFileNo, hasDriveConfig]);
+
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
 
-  const handleSyncDriveMedia = async () => {
+  const handleSyncDriveMedia = async (silent: boolean = false) => {
     if (isSyncingDrive) return;
     setIsSyncingDrive(true);
-    setUploadStatusText("Scanning Google Drive folder for uploaded files...");
+    if (!silent) setUploadStatusText("Scanning Google Drive folder for uploaded files...");
     try {
       const res = await fetch("/api/drive-upload", {
         method: "POST",
@@ -289,7 +299,7 @@ export default function MediaManager({
               description: file.title || `${type === 'image' ? 'Site Image' : 'Site Video'}`,
               driveFileId: fileDriveId,
               driveViewUrl: file.viewUrl,
-              storageType: 'drive',
+              storageType: 'drive' as const,
               createdAt: new Date().toISOString(),
             };
             append(newMediaItem);
@@ -300,18 +310,22 @@ export default function MediaManager({
 
         if (addedCount > 0) {
           saveMediaToFirestore(updatedFields);
-          toast({ title: "Media Auto-Synced", description: `Automatically recovered and linked ${addedCount} ${type}(s) from Google Drive.` });
-        } else if (matchingFiles.length > 0) {
-          toast({ title: "Media Up to Date", description: `All ${matchingFiles.length} file(s) found in Google Drive are already linked.` });
-        } else {
-          toast({ title: "No Media Found", description: `No ${type}s found in the site's Drive folder yet.` });
+          toast({ title: "Media Auto-Synced", description: `Automatically linked ${addedCount} ${type}(s) from Google Drive.` });
+        } else if (!silent) {
+          if (matchingFiles.length > 0) {
+            toast({ title: "Media Up to Date", description: `All ${matchingFiles.length} file(s) found in Google Drive are already linked.` });
+          } else {
+            toast({ title: "No Media Found", description: `No ${type}s found in the site's Drive folder yet.` });
+          }
         }
-      } else {
+      } else if (!silent) {
         toast({ title: "Drive Search Completed", description: "No uploaded files found or Drive search requires configuration.", variant: "default" });
       }
     } catch (err) {
       console.warn("Error auto-syncing drive media:", err);
-      toast({ title: "Sync Error", description: "Could not scan Google Drive folder automatically.", variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Sync Error", description: "Could not scan Google Drive folder automatically.", variant: "destructive" });
+      }
     } finally {
       setIsSyncingDrive(false);
       setUploadStatusText("");
@@ -319,7 +333,7 @@ export default function MediaManager({
   };
 
   const saveMediaToFirestore = async (newFields: any[]) => {
-    if (!docPath || (!propSiteName && !propSiteId)) return;
+    if (!docPath) return;
 
     try {
       const { doc, getDoc, updateDoc } = await import('firebase/firestore');
@@ -332,13 +346,19 @@ export default function MediaManager({
         const fileData = docSnap.data();
         let siteDetails = fileData?.siteDetails || [];
 
-        if (Array.isArray(siteDetails)) {
+        if (Array.isArray(siteDetails) && siteDetails.length > 0) {
           let updated = false;
+          const cleanStr = (s: string) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          const targetSiteClean = cleanStr(propSiteName || '');
+
           siteDetails = siteDetails.map((site: any) => {
-            const currentSiteName = (site.nameOfSite || site.name || '').trim().toLowerCase();
-            const targetSiteName = (propSiteName || '').trim().toLowerCase();
+            const currentSiteClean = cleanStr(site.nameOfSite || site.name || '');
             const idMatches = Boolean(propSiteId && site.id && site.id === propSiteId);
-            const nameMatches = Boolean(targetSiteName && currentSiteName === targetSiteName);
+            const nameMatches = Boolean(targetSiteClean && currentSiteClean && (
+              currentSiteClean === targetSiteClean || 
+              currentSiteClean.includes(targetSiteClean) || 
+              targetSiteClean.includes(currentSiteClean)
+            ));
 
             if (idMatches || nameMatches) {
               updated = true;
@@ -349,6 +369,15 @@ export default function MediaManager({
             }
             return site;
           });
+
+          // Single site fallback if name didn't match directly
+          if (!updated && siteDetails.length === 1) {
+            updated = true;
+            siteDetails[0] = {
+              ...siteDetails[0],
+              [type === 'image' ? 'workImages' : 'workVideos']: newFields,
+            };
+          }
 
           if (updated) {
             await updateDoc(docRef, { siteDetails });
@@ -1032,20 +1061,6 @@ export default function MediaManager({
                         const driveId = item.driveFileId || extractDriveFileId(videoUrl) || extractDriveFileId(item.driveViewUrl || '');
                         const isExternalEmbed = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') || videoUrl.includes('vimeo.com');
 
-                        if (driveId) {
-                          return (
-                            <div className="w-full h-full flex flex-col relative">
-                              <iframe
-                                src={`https://drive.google.com/file/d/${driveId}/preview`}
-                                className="w-full flex-1 border-none"
-                                allowFullScreen
-                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                                title={item.description || item.fileName || 'Google Drive Video'}
-                              />
-                            </div>
-                          );
-                        }
-
                         if (isExternalEmbed) {
                           const embedUrl = getEmbedUrl(videoUrl);
                           return (
@@ -1059,16 +1074,45 @@ export default function MediaManager({
                           );
                         }
 
+                        if (driveId && videoPlayerMode === 'drive') {
+                          return (
+                            <div className="w-full h-full flex flex-col relative">
+                              <iframe
+                                src={`https://drive.google.com/file/d/${driveId}/preview`}
+                                className="w-full flex-1 border-none"
+                                allowFullScreen
+                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                                title={item.description || item.fileName || 'Google Drive Video'}
+                              />
+                            </div>
+                          );
+                        }
+
+                        const primaryVideoSrc = driveId 
+                          ? `/api/drive-video?id=${driveId}` 
+                          : videoUrl;
+                        const fallbackDriveDownloadUrl = driveId 
+                          ? `https://drive.google.com/uc?export=download&id=${driveId}` 
+                          : '';
+                        const fallbackLh3Url = driveId 
+                          ? `https://lh3.googleusercontent.com/d/${driveId}` 
+                          : '';
+
                         return (
                           <div className="w-full h-full relative flex items-center justify-center bg-black">
                             <video
-                              src={videoUrl}
+                              src={primaryVideoSrc}
                               controls
                               playsInline
-                              preload="metadata"
+                              autoPlay
+                              preload="auto"
                               className="w-full h-full max-h-[75vh] object-contain"
-                              key={videoUrl}
+                              key={`${videoPlayerMode}-${driveId || videoUrl}`}
                             >
+                              {primaryVideoSrc && <source src={primaryVideoSrc} type="video/mp4" />}
+                              {fallbackDriveDownloadUrl && <source src={fallbackDriveDownloadUrl} type="video/mp4" />}
+                              {fallbackLh3Url && <source src={fallbackLh3Url} type="video/mp4" />}
+                              {videoUrl && <source src={videoUrl} type="video/mp4" />}
                               Your browser does not support the video tag.
                             </video>
                           </div>
@@ -1105,31 +1149,55 @@ export default function MediaManager({
 
             {lightboxIndex !== null && fields[lightboxIndex] && (
               <div className="p-3.5 sm:p-4 bg-black/90 text-white border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-sm font-medium truncate">
                     {fields[lightboxIndex].description || fields[lightboxIndex].fileName || `${title} (${lightboxIndex + 1} of ${fields.length})`}
                   </p>
                   <div className="flex flex-wrap items-center gap-x-2 text-xs text-white/60">
                     <span>Saved in Google Drive: <code className="text-white/80">{effectiveOffice}</code> folder</span>
                     {type === 'video' && (
-                      <span className="text-amber-300/80 font-normal">
-                        • (Newly recorded videos take ~1–3 mins for Google web encoding)
+                      <span className="text-amber-300/90 font-normal">
+                        • Tip: Switch between Direct Player & Drive Embed if playback is delayed
                       </span>
                     )}
                   </div>
                 </div>
-                {(fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url) && (
-                  <div className="flex items-center gap-2 shrink-0">
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {type === 'video' && (
+                    <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-md">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setVideoPlayerMode('native')}
+                        className={`h-7 px-2.5 text-xs gap-1.5 transition-colors ${videoPlayerMode === 'native' ? 'bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
+                      >
+                        <Play className="h-3 w-3 fill-current" /> Direct Player
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setVideoPlayerMode('drive')}
+                        className={`h-7 px-2.5 text-xs gap-1.5 transition-colors ${videoPlayerMode === 'drive' ? 'bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
+                      >
+                        <HardDrive className="h-3 w-3" /> Drive Embed
+                      </Button>
+                    </div>
+                  )}
+
+                  {(fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url) && (
                     <a
                       href={fields[lightboxIndex].driveViewUrl || fields[lightboxIndex].url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-white/15 hover:bg-white/25 text-white transition-colors shadow-sm"
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Open in Google Drive
                     </a>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
