@@ -2407,21 +2407,6 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                                                         ) : null}
                                                     </span>
                                                     {renderSiteStatusBadge(site.field.workStatus)}
-                                                    {site.field.totalDepth !== null && site.field.totalDepth !== undefined && (
-                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                                                            TD: {site.field.totalDepth}m
-                                                        </span>
-                                                    )}
-                                                    {site.field.casingPipeUsed && String(site.field.casingPipeUsed).trim() !== '' && (
-                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
-                                                            Casing: {site.field.casingPipeUsed}m
-                                                        </span>
-                                                    )}
-                                                    {site.field.dateOfCompletion && (
-                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                                                            Completed: {formatDateForDisplay(site.field.dateOfCompletion)}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </AccordionTrigger>
                                         </div>
