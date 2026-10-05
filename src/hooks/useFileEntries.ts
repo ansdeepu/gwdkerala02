@@ -290,19 +290,57 @@ export function useFileEntries() {
         let finalSiteDetails = incomingSiteDetails;
         if ((!incomingSiteDetails || incomingSiteDetails.length === 0) && existingSiteDetails.length > 0) {
             finalSiteDetails = existingSiteDetails;
-        } else if (Array.isArray(incomingSiteDetails) && incomingSiteDetails.length > 0 && Array.isArray(existingSiteDetails) && existingSiteDetails.length > 0) {
+        } else if (Array.isArray(incomingSiteDetails) && Array.isArray(existingSiteDetails)) {
             finalSiteDetails = incomingSiteDetails.map((incSite, idx) => {
-                const origSite = existingSiteDetails[idx] || {};
-                return {
-                    ...origSite,
-                    ...incSite,
-                    dateOfCompletion: incSite.dateOfCompletion !== undefined && incSite.dateOfCompletion !== null && incSite.dateOfCompletion !== '' 
-                        ? incSite.dateOfCompletion 
-                        : origSite.dateOfCompletion,
-                    workImages: (incSite.workImages && incSite.workImages.length > 0) ? incSite.workImages : (origSite.workImages || []),
-                    workVideos: (incSite.workVideos && incSite.workVideos.length > 0) ? incSite.workVideos : (origSite.workVideos || []),
-                };
+                const cleanStr = (s: string) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                const incName = cleanStr(incSite.nameOfSite || incSite.name || '');
+                
+                let origSite = existingSiteDetails.find((s: any) => incSite.id && s.id && s.id === incSite.id);
+                if (!origSite && incName) {
+                    origSite = existingSiteDetails.find((s: any) => cleanStr(s.nameOfSite || s.name || '') === incName);
+                }
+                if (!origSite) {
+                    origSite = existingSiteDetails[idx] || {};
+                }
+
+                const mergedSite = { ...origSite, ...incSite };
+
+                Object.keys(mergedSite).forEach(key => {
+                    const incVal = incSite[key];
+                    const origVal = origSite[key];
+
+                    if (key === 'workImages') {
+                        mergedSite.workImages = (Array.isArray(incVal) && incVal.length > 0) 
+                            ? incVal 
+                            : (Array.isArray(origVal) && origVal.length > 0 ? origVal : (incVal || []));
+                    } else if (key === 'workVideos') {
+                        mergedSite.workVideos = (Array.isArray(incVal) && incVal.length > 0) 
+                            ? incVal 
+                            : (Array.isArray(origVal) && origVal.length > 0 ? origVal : (incVal || []));
+                    } else if (key === 'dateOfCompletion') {
+                        mergedSite.dateOfCompletion = (incVal !== undefined && incVal !== null && incVal !== '') 
+                            ? incVal 
+                            : origVal;
+                    } else {
+                        if ((incVal === '' || incVal === null || incVal === undefined) && (origVal !== '' && origVal !== null && origVal !== undefined)) {
+                            mergedSite[key] = origVal;
+                        }
+                    }
+                });
+
+                return mergedSite;
             });
+
+            if (incomingSiteDetails.length < existingSiteDetails.length) {
+                existingSiteDetails.forEach((origS: any) => {
+                    const origId = origS.id;
+                    const origNameClean = (origS.nameOfSite || origS.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const existsInFinal = finalSiteDetails.some((f: any) => (origId && f.id === origId) || ((origS.nameOfSite || origS.name) && (f.nameOfSite || f.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === origNameClean));
+                    if (!existsInFinal) {
+                        finalSiteDetails.push(origS);
+                    }
+                });
+            }
         }
 
         const payload = { 

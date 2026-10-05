@@ -218,6 +218,7 @@ export default function MediaManager({
   };
 
   const getMediaThumbnail = (field: any) => {
+    if (!field) return null;
     const url = field.url || '';
     if (type === 'video') {
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -226,7 +227,7 @@ export default function MediaManager({
       }
       const driveId = field.driveFileId || extractDriveFileId(url) || extractDriveFileId(field.driveViewUrl || '');
       if (driveId) {
-        return `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+        return `https://lh3.googleusercontent.com/d/${driveId}=s800`;
       }
       return null;
     }
@@ -235,7 +236,7 @@ export default function MediaManager({
     if (field.driveThumbnailUrl) return field.driveThumbnailUrl;
     const driveId = field.driveFileId || extractDriveFileId(url) || extractDriveFileId(field.driveViewUrl || '');
     if (driveId) {
-      return `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+      return `https://lh3.googleusercontent.com/d/${driveId}=s800`;
     }
     return url;
   };
@@ -856,10 +857,11 @@ export default function MediaManager({
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                         onError={(e) => {
-                          // Fallback to original url or placeholder
                           const target = e.currentTarget;
-                          if (field.url && target.src !== field.url) {
-                            target.src = field.url;
+                          const driveId = field.driveFileId || extractDriveFileId(field.url || '') || extractDriveFileId(field.driveViewUrl || '');
+                          if (driveId && !target.dataset.triedFallback) {
+                            target.dataset.triedFallback = 'true';
+                            target.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
                           }
                         }}
                       />
@@ -869,7 +871,7 @@ export default function MediaManager({
                       </div>
                     )
                   ) : (
-                    <div className="w-full h-full relative flex items-center justify-center bg-black/40">
+                    <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
                       {thumb ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
@@ -877,6 +879,16 @@ export default function MediaManager({
                           alt={field.description || 'Site Video'}
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const driveId = field.driveFileId || extractDriveFileId(field.url || '') || extractDriveFileId(field.driveViewUrl || '');
+                            if (driveId && !target.dataset.triedFallback) {
+                              target.dataset.triedFallback = 'true';
+                              target.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+                            } else {
+                              target.style.display = 'none';
+                            }
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary">

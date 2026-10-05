@@ -213,31 +213,37 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     const { fields: imageFields, append: appendImage, remove: removeImage, update: updateImage } = useFieldArray({ control, name: "workImages" });
     const { fields: videoFields, append: appendVideo, remove: removeVideo, update: updateVideo } = useFieldArray({ control, name: "workVideos" });
 
-    // Sync form state whenever initialData changes or when dialog opens
+    // Track initialData site ID to prevent form.reset from running repeatedly on computedExpenditure re-renders
+    const lastResetKeyRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (initialData) {
-            const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
-            const casing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : (initialData?.casingPipeUsed || "");
-            const obValue = (initialData?.surveyOB !== undefined && initialData?.surveyOB !== null) ? String(initialData.surveyOB) : "";
+            const currentResetKey = `${initialData.id || ''}_${initialData.nameOfSite || ''}_${initialData.index ?? ''}`;
+            if (lastResetKeyRef.current !== currentResetKey) {
+                lastResetKeyRef.current = currentResetKey;
+                const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
+                const casing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : (initialData?.casingPipeUsed || "");
+                const obValue = (initialData?.surveyOB !== undefined && initialData?.surveyOB !== null) ? String(initialData.surveyOB) : "";
 
-            form.reset({
-                ...initialData,
-                startDate: initialData?.startDate ? formatDateForInput(initialData.startDate) : "",
-                totalExpenditure: computedExpenditure !== undefined ? computedExpenditure : (initialData?.totalExpenditure ?? undefined),
-                casing6kgPipe: casing6kg ?? "",
-                casing8kgPipe: initialData?.casing8kgPipe ?? "",
-                casing10kgPipe: initialData?.casing10kgPipe ?? "",
-                casingPipeUsed: initialData?.casingPipeUsed ?? "",
-                surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? "",
-                surveyOB: obValue,
-                surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
-                dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
-                arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
-                typeOfDispute: initialData?.typeOfDispute || 'None',
-                isAwaitingTS: initialData?.isAwaitingTS ?? false,
-                workImages: Array.isArray(initialData?.workImages) ? initialData.workImages : [],
-                workVideos: Array.isArray(initialData?.workVideos) ? initialData.workVideos : [],
-            });
+                form.reset({
+                    ...initialData,
+                    startDate: initialData?.startDate ? formatDateForInput(initialData.startDate) : "",
+                    totalExpenditure: computedExpenditure !== undefined ? computedExpenditure : (initialData?.totalExpenditure ?? undefined),
+                    casing6kgPipe: casing6kg ?? "",
+                    casing8kgPipe: initialData?.casing8kgPipe ?? "",
+                    casing10kgPipe: initialData?.casing10kgPipe ?? "",
+                    casingPipeUsed: initialData?.casingPipeUsed ?? "",
+                    surveyRecommendedCasingPipe: initialData?.surveyRecommendedCasingPipe ?? "",
+                    surveyOB: obValue,
+                    surveyRecommendedOB: initialData?.surveyRecommendedOB ?? "",
+                    dateOfCompletion: formatDateForInput(initialData?.dateOfCompletion),
+                    arsSanctionedDate: formatDateForInput(initialData?.arsSanctionedDate),
+                    typeOfDispute: initialData?.typeOfDispute || 'None',
+                    isAwaitingTS: initialData?.isAwaitingTS ?? false,
+                    workImages: Array.isArray(initialData?.workImages) ? initialData.workImages : [],
+                    workVideos: Array.isArray(initialData?.workVideos) ? initialData.workVideos : [],
+                });
+            }
         }
     }, [initialData, form, computedExpenditure]);
 
