@@ -1971,7 +1971,10 @@ export default function PrintableReportModal({
     twcMsCasingRate,
     twcMsCasingQty,
     allGwdRates,
-    getAgreedRate,
+    baseLoggingRate,
+    currentSite,
+    isDeptRigWork,
+    storeQuotedPct,
     lang
   ]);
 

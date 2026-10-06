@@ -805,7 +805,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
         initialData,
         matchFileNo,
         workTypeContext,
-        setValue
+        setValue,
+        getValues
     ]);
 
     const rigOptions = useMemo(() => {

@@ -1,7 +1,7 @@
 // src/components/shared/VerifyDatabaseModal.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,7 @@ export default function VerifyDatabaseModal({
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const fetchLiveDatabaseRecord = async () => {
+  const fetchLiveDatabaseRecord = useCallback(async () => {
     if (!fileId) {
       setFetchError("No database document ID found (file must be saved first).");
       return;
@@ -92,7 +92,7 @@ export default function VerifyDatabaseModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fileId, officeLocation]);
 
   useEffect(() => {
     if (isOpen) {
@@ -101,7 +101,7 @@ export default function VerifyDatabaseModal({
       setCloudData(null);
       setFetchError(null);
     }
-  }, [isOpen, fileId, officeLocation]);
+  }, [isOpen, fetchLiveDatabaseRecord]);
 
   const parseFirestoreTimestamp = (val: any) => {
     if (!val) return 'N/A';

@@ -310,20 +310,14 @@ export function useFileEntries() {
                     const origVal = origSite[key];
 
                     if (key === 'workImages') {
-                        mergedSite.workImages = (Array.isArray(incVal) && incVal.length > 0) 
-                            ? incVal 
-                            : (Array.isArray(origVal) && origVal.length > 0 ? origVal : (incVal || []));
+                        mergedSite.workImages = Array.isArray(incVal) ? incVal : (origVal || []);
                     } else if (key === 'workVideos') {
-                        mergedSite.workVideos = (Array.isArray(incVal) && incVal.length > 0) 
-                            ? incVal 
-                            : (Array.isArray(origVal) && origVal.length > 0 ? origVal : (incVal || []));
+                        mergedSite.workVideos = Array.isArray(incVal) ? incVal : (origVal || []);
                     } else if (key === 'dateOfCompletion') {
-                        mergedSite.dateOfCompletion = (incVal !== undefined && incVal !== null && incVal !== '') 
-                            ? incVal 
-                            : origVal;
+                        mergedSite.dateOfCompletion = (incVal !== undefined && incVal !== null) ? incVal : origVal;
                     } else {
-                        if ((incVal === '' || incVal === null || incVal === undefined) && (origVal !== '' && origVal !== null && origVal !== undefined)) {
-                            mergedSite[key] = origVal;
+                        if (Object.prototype.hasOwnProperty.call(incSite, key)) {
+                            mergedSite[key] = incVal;
                         }
                     }
                 });

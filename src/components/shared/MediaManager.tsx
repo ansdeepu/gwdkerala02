@@ -251,12 +251,66 @@ export default function MediaManager({
     return url;
   };
 
+  const getItemDriveId = useCallback((item: any): string | null => {
+    if (!item) return null;
+    if (item.driveFileId && typeof item.driveFileId === 'string' && item.driveFileId.trim()) {
+      return item.driveFileId.trim();
+    }
+    const urlId = extractDriveFileId(item.url || '') || extractDriveFileId(item.driveViewUrl || '') || extractDriveFileId(item.driveThumbnailUrl || '');
+    if (urlId && urlId.trim()) return urlId.trim();
+    return null;
+  }, []);
+
   const autoSyncedRef = useRef(false);
+  const deletedDriveFileIdsRef = useRef<Set<string>>(new Set());
+
+  // Auto-deduplicate existing fields sharing the same Google Drive file ID or URL
+  useEffect(() => {
+    if (!fields || fields.length <= 1) return;
+    const seenIds = new Set<string>();
+    const seenUrls = new Set<string>();
+    const indicesToRemove: number[] = [];
+
+    fields.forEach((item, idx) => {
+      const driveId = getItemDriveId(item);
+      const url = (item.url || item.driveViewUrl || '').trim();
+
+      let isDup = false;
+      if (driveId) {
+        if (seenIds.has(driveId) || deletedDriveFileIdsRef.current.has(driveId)) {
+          isDup = true;
+        } else {
+          seenIds.add(driveId);
+        }
+      } else if (url) {
+        if (seenUrls.has(url)) {
+          isDup = true;
+        } else {
+          seenUrls.add(url);
+        }
+      }
+
+      if (isDup) {
+        indicesToRemove.push(idx);
+      }
+    });
+
+    if (indicesToRemove.length > 0) {
+      console.log(`[MediaManager] Deduplicating ${title}: removing ${indicesToRemove.length} duplicate items at indices`, indicesToRemove);
+      for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+        remove(indicesToRemove[i]);
+      }
+    }
+  }, [fields, remove, getItemDriveId, title]);
+
+  const handleSyncDriveMediaRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!autoSyncedRef.current && (propSiteName || propFileNo) && hasDriveConfig) {
       autoSyncedRef.current = true;
-      handleSyncDriveMedia(true);
+      if (handleSyncDriveMediaRef.current) {
+        handleSyncDriveMediaRef.current(true);
+      }
     }
   }, [propSiteName, propFileNo, hasDriveConfig]);
 
@@ -285,33 +339,52 @@ export default function MediaManager({
           return f.type === 'video';
         });
 
+        // Extract Drive IDs and URLs from all existing fields in current form state
+        const existingDriveIds = new Set<string>();
+        const existingUrls = new Set<string>();
+
+        fields.forEach(f => {
+          const dId = getItemDriveId(f);
+          if (dId) existingDriveIds.add(dId);
+          if (f.url) existingUrls.add(f.url);
+          if (f.driveViewUrl) existingUrls.add(f.driveViewUrl);
+        });
+
         let addedCount = 0;
-        const existingUrls = new Set(fields.map(f => f.url || f.driveViewUrl));
-        const existingDriveIds = new Set(fields.map(f => f.driveFileId).filter(Boolean));
-        const updatedFields = [...fields];
 
         for (const file of matchingFiles) {
-          const fileDriveId = file.id;
+          const fileDriveId = file.id ? String(file.id).trim() : null;
           const fileUrl = file.url || file.directImageUrl || file.viewUrl;
-          if (!existingDriveIds.has(fileDriveId) && !existingUrls.has(fileUrl)) {
+
+          // Check if deleted by user in current session
+          if (fileDriveId && deletedDriveFileIdsRef.current.has(fileDriveId)) {
+            continue;
+          }
+
+          const isAlreadyInGallery = Boolean(
+            (fileDriveId && existingDriveIds.has(fileDriveId)) ||
+            (fileUrl && existingUrls.has(fileUrl))
+          );
+
+          if (!isAlreadyInGallery) {
             const newMediaItem = {
               id: uuidv4(),
               url: fileUrl,
               description: file.title || `${type === 'image' ? 'Site Image' : 'Site Video'}`,
-              driveFileId: fileDriveId,
+              driveFileId: fileDriveId || undefined,
               driveViewUrl: file.viewUrl,
               storageType: 'drive' as const,
               createdAt: new Date().toISOString(),
             };
             append(newMediaItem);
-            updatedFields.push(newMediaItem);
+            if (fileDriveId) existingDriveIds.add(fileDriveId);
+            if (fileUrl) existingUrls.add(fileUrl);
             addedCount++;
           }
         }
 
         if (addedCount > 0) {
-          saveMediaToFirestore(updatedFields);
-          toast({ title: "Media Auto-Synced", description: `Automatically linked ${addedCount} ${type}(s) from Google Drive.` });
+          toast({ title: "Media Auto-Synced", description: `Linked ${addedCount} new ${type}(s) from Google Drive.` });
         } else if (!silent) {
           if (matchingFiles.length > 0) {
             toast({ title: "Media Up to Date", description: `All ${matchingFiles.length} file(s) found in Google Drive are already linked.` });
@@ -333,66 +406,12 @@ export default function MediaManager({
     }
   };
 
+  handleSyncDriveMediaRef.current = handleSyncDriveMedia;
+
   const saveMediaToFirestore = async (newFields: any[]) => {
-    if (!docPath) return;
-
-    try {
-      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-
-      const docRef = doc(db, docPath);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const fileData = docSnap.data();
-        let siteDetails = fileData?.siteDetails || [];
-
-        if (Array.isArray(siteDetails) && siteDetails.length > 0) {
-          let updated = false;
-          const cleanStr = (s: string) => (s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-          const targetSiteClean = cleanStr(propSiteName || '');
-
-          siteDetails = siteDetails.map((site: any) => {
-            const currentSiteClean = cleanStr(site.nameOfSite || site.name || '');
-            const idMatches = Boolean(propSiteId && site.id && site.id === propSiteId);
-            const nameMatches = Boolean(targetSiteClean && currentSiteClean && (
-              currentSiteClean === targetSiteClean || 
-              currentSiteClean.includes(targetSiteClean) || 
-              targetSiteClean.includes(currentSiteClean)
-            ));
-
-            if (idMatches || nameMatches) {
-              updated = true;
-              return {
-                ...site,
-                [type === 'image' ? 'workImages' : 'workVideos']: newFields,
-              };
-            }
-            return site;
-          });
-
-          // Single site fallback if name didn't match directly
-          if (!updated && siteDetails.length === 1) {
-            updated = true;
-            siteDetails[0] = {
-              ...siteDetails[0],
-              [type === 'image' ? 'workImages' : 'workVideos']: newFields,
-            };
-          }
-
-          if (updated) {
-            await updateDoc(docRef, { siteDetails });
-            console.log(`[MediaManager] Real-time saved ${type} list directly to Firestore at path: ${docPath}`);
-          }
-        } else {
-          const fieldName = type === 'image' ? 'workImages' : 'workVideos';
-          await updateDoc(docRef, { [fieldName]: newFields });
-          console.log(`[MediaManager] Real-time saved ${type} list directly to Firestore field ${fieldName} at path: ${docPath}`);
-        }
-      }
-    } catch (error) {
-      console.error("[MediaManager] Failed to auto-save media directly to Firestore:", error);
-    }
+    // Disabled background updateDoc calls to prevent erasing or overwriting siteDetails in Firestore.
+    // Media array updates are held safely in form state and persisted atomically on "Save Changes".
+    return;
   };
 
   // Helper for saving photo/video directly as base64 data URL
@@ -442,32 +461,30 @@ export default function MediaManager({
   const handleDeleteMedia = async (index: number, field: any) => {
     console.log("[MediaManager] handleDeleteMedia called", { index, field });
     
-    // 1. Compute the updated fields array without the deleted item
-    const updatedFields = fields.filter((_, i) => i !== index);
+    // 1. Extract Drive ID and track in deleted set so auto-sync never re-adds it
+    const driveId = getItemDriveId(field);
+    if (driveId) {
+      deletedDriveFileIdsRef.current.add(driveId);
+    }
 
     // 2. Remove from local UI state (react-hook-form)
     remove(index);
     
-    // 3. Persist the updated array to Firestore immediately
-    if (docPath) {
-      await saveMediaToFirestore(updatedFields);
-    }
-
-    // 4. If it's a drive file, delete it from Google Drive
-    if (field.driveFileId) {
-      console.log("[MediaManager] Attempting to delete file from Drive:", field.driveFileId);
+    // 3. Delete file from Google Drive if it has a Drive ID
+    if (driveId) {
+      console.log("[MediaManager] Attempting to delete file from Drive:", driveId);
       try {
         const res = await fetch("/api/drive-delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: field.driveFileId }),
+          body: JSON.stringify({ fileId: driveId }),
         });
         const data = await res.json();
         if (!data.success) {
           console.warn("Failed to delete file from Google Drive:", data.error);
-          toast({ title: "Drive Deletion Notice", description: "Removed from gallery, but could not delete from Google Drive.", variant: "destructive" });
+          toast({ title: "Drive Deletion Notice", description: "Removed from gallery, but could not delete from Google Drive (gwdklm@gmail.com).", variant: "destructive" });
         } else {
-          toast({ title: "Deleted", description: "File successfully removed from gallery and Google Drive." });
+          toast({ title: "Deleted", description: "File successfully removed from Media Gallery and Google Drive (gwdklm@gmail.com)." });
         }
       } catch (err) {
         console.error("Error deleting file from Drive:", err);
