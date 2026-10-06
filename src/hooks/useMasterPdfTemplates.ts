@@ -69,6 +69,13 @@ export function useMasterPdfTemplates() {
     let list: MasterPdfTemplate[] = [];
     let firestoreSuccess = false;
 
+    if (!user) {
+      list = getLocalCachedTemplates();
+      setTemplates(list);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const colRef = collection(db, "masterPdfTemplates");
       const snap = await getDocs(colRef);
@@ -77,9 +84,8 @@ export function useMasterPdfTemplates() {
         list.push({ ...val, id: d.id });
       });
       firestoreSuccess = true;
-    } catch (err: any) {
+    } catch {
       // If Firestore permission is restricted or offline, seamlessly fallback to local cache
-      console.warn("Firestore master PDF fetch notice (using cache fallback):", err?.message || err);
       list = getLocalCachedTemplates();
     }
 
@@ -98,7 +104,7 @@ export function useMasterPdfTemplates() {
 
     setTemplates(list);
     setIsLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchTemplates();

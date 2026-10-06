@@ -305,15 +305,6 @@ export default function MediaManager({
 
   const handleSyncDriveMediaRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
 
-  useEffect(() => {
-    if (!autoSyncedRef.current && (propSiteName || propFileNo) && hasDriveConfig) {
-      autoSyncedRef.current = true;
-      if (handleSyncDriveMediaRef.current) {
-        handleSyncDriveMediaRef.current(true);
-      }
-    }
-  }, [propSiteName, propFileNo, hasDriveConfig]);
-
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
 
   const handleSyncDriveMedia = async (silent: boolean = false) => {

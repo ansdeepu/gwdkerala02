@@ -122,11 +122,27 @@ function doPost(e) {
 
     var officeLocation = cleanName(data.officeLocation || "General");
 
-    // Handle listing media files inside a site folder
+    // Handle listing media files inside a site folder (read-only: will NOT create empty folders)
     if (data.action === "listFolderMedia" || data.action === "listMedia" || data.action === "listFiles") {
-      var rFolder = getOrCreateFolder(DriveApp, rootFolderName);
-      var oFolder = getOrCreateFolder(rFolder, officeLocation);
-      var tgtFolder = oFolder;
+      var rFolder = findFolderOnly(DriveApp, rootFolderName);
+      if (!rFolder) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          action: "listFolderMedia",
+          files: [],
+          folderFound: false
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var oFolder = findFolderOnly(rFolder, officeLocation);
+      if (!oFolder) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          action: "listFolderMedia",
+          files: [],
+          folderFound: false
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
 
       var fNo = cleanName(data.fileNo || "");
       var sName = cleanName(data.siteName || "");
@@ -137,8 +153,18 @@ function doPost(e) {
         sFolderName = (fNo ? fNo + " - " : "") + sName;
       }
 
+      var tgtFolder = oFolder;
       if (sFolderName && sFolderName !== "staff - staff" && sFolderName !== "General - General") {
-        tgtFolder = getOrCreateFolder(oFolder, sFolderName);
+        tgtFolder = findFolderOnly(oFolder, sFolderName);
+      }
+
+      if (!tgtFolder) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          action: "listFolderMedia",
+          files: [],
+          folderFound: false
+        })).setMimeType(ContentService.MimeType.JSON);
       }
 
       var filesIter = tgtFolder.getFiles();
@@ -329,6 +355,21 @@ function getOrCreateFolder(parentFolder, name) {
       lock.releaseLock();
     } catch (eRel) {}
   }
+}
+
+function findFolderOnly(parentFolder, name) {
+  var targetName = cleanName(name);
+  if (!targetName || !parentFolder) return null;
+  try {
+    var folders = parentFolder.getFolders();
+    while (folders.hasNext()) {
+      var f = folders.next();
+      if (f.getName().toLowerCase() === targetName.toLowerCase()) {
+        return f;
+      }
+    }
+  } catch (e) {}
+  return null;
 }
 
 function cleanName(name) {
