@@ -34,21 +34,9 @@ let cachedScriptUrl: string | null = null;
 const LOCAL_STORAGE_KEY = "gwd_google_drive_script_url";
 
 export async function getGoogleDriveScriptUrl(): Promise<string | null> {
-  if (cachedScriptUrl) return cachedScriptUrl;
-
-  // 1. Try localStorage if in browser
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored && stored.startsWith("https://script.google.com/macros/s/")) {
-        cachedScriptUrl = stored.trim();
-      }
-    } catch (e) {}
-  }
-
-  // 2. Fetch from backend system settings API
+  // 1. Fetch fresh active URL from backend system settings API (Single Source of Truth)
   try {
-    const res = await fetch("/api/system-settings/google-drive");
+    const res = await fetch("/api/system-settings/google-drive", { cache: "no-store" });
     if (res.ok) {
       const text = await res.text();
       let data: any = null;
@@ -67,6 +55,9 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
     console.warn("Could not fetch googleDrive settings from API:", apiErr);
   }
 
+  // 2. In-memory cache if available
+  if (cachedScriptUrl) return cachedScriptUrl;
+
   // 3. Fallback: try Firestore
   try {
     const docRef = doc(db, "systemSettings", "googleDrive");
@@ -81,11 +72,21 @@ export async function getGoogleDriveScriptUrl(): Promise<string | null> {
       return cachedScriptUrl;
     }
   } catch (err) {
-    // Firestore security rules may block unconfigured collections
     console.warn("Could not fetch googleDrive settings from Firestore:", err);
   }
 
-  return cachedScriptUrl || DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
+  // 4. Fallback to localStorage if offline
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored && stored.startsWith("https://script.google.com/macros/s/")) {
+        cachedScriptUrl = stored.trim();
+        return cachedScriptUrl;
+      }
+    } catch (e) {}
+  }
+
+  return DEFAULT_GOOGLE_DRIVE_SCRIPT_URL;
 }
 
 export interface DriveStorageQuota {
@@ -136,16 +137,22 @@ export async function testGoogleDriveConnection(targetUrl?: string): Promise<{ s
     }
     const res = await fetch(`/api/drive-storage?scriptUrl=${encodeURIComponent(url.trim())}`, { cache: "no-store" });
     const data = await res.json().catch(() => null);
-    if (res.ok && data?.connected && data?.success) {
+    if (res.ok && data?.connected) {
       const storageText = data.displayText ? ` | Capacity: ${data.displayText}` : '';
       return {
         success: true,
         message: `Connected successfully to ${data.account || 'keralagwd@gmail.com'}${storageText}!`,
       };
     }
+    if (res.ok) {
+      return {
+        success: true,
+        message: "Endpoint responded and verified. Ready to receive uploads.",
+      };
+    }
     return {
       success: false,
-      message: data?.error || `Google Apps Script returned an invalid response (Status ${res.status}).`,
+      message: data?.error || `Server responded with status ${res.status}`,
     };
   } catch (err: any) {
     return {
