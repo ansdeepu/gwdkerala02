@@ -174,7 +174,6 @@ export function checkIsSiteDataChanged(initialData: any, currentValues: any): bo
 
   if (!currentValues) return false;
 
-  const ignoreKeys = new Set(['index', 'fileNo', 'officeLocation', 'district', 'office', 'currentFileNo']);
   const allKeys = new Set([
     ...Object.keys(initialData || {}),
     ...Object.keys(currentValues || {})
