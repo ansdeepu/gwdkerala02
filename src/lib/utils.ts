@@ -139,21 +139,37 @@ export function getDistrictMalayalam(location?: string | null): string {
 
 export function checkIsSiteDataChanged(initialData: any, currentValues: any): boolean {
   if (!initialData) return true;
+  if (!currentValues) return false;
   
+  const ignoreKeys = new Set(['index', 'fileNo', 'officeLocation', 'district', 'office', 'currentFileNo', 'id']);
+
   // Check if initialData was empty (adding a new site)
   const isNewSite = !initialData.id && !initialData.nameOfSite && !initialData.name;
   
   if (isNewSite) {
-    return Boolean(
-      (currentValues?.nameOfSite && currentValues.nameOfSite.trim() !== '') ||
-      (currentValues?.name && currentValues.name.trim() !== '') ||
-      (currentValues?.location && currentValues.location.trim() !== '') ||
-      (currentValues?.purpose && currentValues.purpose.trim() !== '') ||
-      (currentValues?.typeOfWell && currentValues.typeOfWell.trim() !== '') ||
-      (currentValues?.workStatus && currentValues.workStatus !== 'Under Process') ||
-      (currentValues?.workImages && currentValues.workImages.length > 0) ||
-      (currentValues?.workVideos && currentValues.workVideos.length > 0)
-    );
+    for (const [key, val] of Object.entries(currentValues)) {
+      if (ignoreKeys.has(key)) continue;
+      if (val === null || val === undefined || val === '') continue;
+      if (Array.isArray(val)) {
+        if (val.length > 0) return true;
+        continue;
+      }
+      if (typeof val === 'boolean' && val === false) continue;
+      if (typeof val === 'object') {
+        if (Object.keys(val).length > 0) return true;
+        continue;
+      }
+      // Skip default initial values
+      if (key === 'workStatus' && val === 'Under Process') continue;
+      if (key === 'typeOfDispute' && val === 'None') continue;
+      if (key === 'isAwaitingTS' && val === false) continue;
+      if (key === 'purpose' && (val === initialData?.purpose || val === 'GW Investigation' || val === '')) continue;
+      
+      if (String(val).trim() !== '') {
+        return true;
+      }
+    }
+    return false;
   }
 
   if (!currentValues) return false;

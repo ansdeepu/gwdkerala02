@@ -904,7 +904,15 @@ const PaymentDialogContent = ({ initialData, onConfirm, onCancel, isDeferredFund
     }>>(initialAllocations);
 
     useEffect(() => {
-        setSiteAllocations(initialAllocations);
+        setSiteAllocations(prev => {
+            return initialAllocations.map(initAlloc => {
+                const existingUserAlloc = prev.find(p => (p.siteId && initAlloc.siteId && p.siteId === initAlloc.siteId) || p.siteName === initAlloc.siteName);
+                if (existingUserAlloc && existingUserAlloc.amount !== undefined) {
+                    return { ...initAlloc, amount: existingUserAlloc.amount };
+                }
+                return initAlloc;
+            });
+        });
     }, [initialAllocations]);
 
     const form = useForm<PaymentDetailFormData>({
@@ -2041,18 +2049,19 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                     siteDetails: newSites,
                 };
                 updateFileEntry(fileIdToEdit, payloadToSave).then(() => {
-                    toast({ title: "Site Details Saved", description: "Drilling actuals, completion date, and media updated." });
+                    toast({ title: "Site Details Saved", description: "Site details updated in database." });
                     setLastSavedAt(new Date());
                     savedSnapshotRef.current = serializeDataForSnapshot(payloadToSave);
                     setIsManualDirty(false);
                 }).catch((err: any) => {
                     console.error("Direct site update error:", err);
-                    handleSubmit(onSubmit, onInvalid)();
+                    toast({ title: "Save Notice", description: "Site updated in form draft. Click 'Save' at the bottom of the page to sync to the database." });
                 });
             } else {
-                setTimeout(() => {
-                    handleSubmit(onSubmit, onInvalid)();
-                }, 300);
+                toast({ 
+                    title: "Site Added to Draft", 
+                    description: "Site details added. Click 'Save' at the bottom of the page to save this file to the database." 
+                });
             }
             return;
         } else if (type === 'reorderSite') {
@@ -2060,6 +2069,28 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             replaceSites(reorderedSites);
         }
         closeDialog();
+
+        if (fileIdToEdit) {
+            const currentFormData = getValues();
+            updateFileEntry(fileIdToEdit, currentFormData).then(() => {
+                const titleMap: Record<string, string> = {
+                    application: "Application Details Saved",
+                    remittance: "Remittance Details Saved",
+                    reappropriation: "Re-appropriation Details Saved",
+                    payment: "Payment Details Saved",
+                    reorderSite: "Sites Reordered",
+                };
+                toast({ 
+                    title: titleMap[type] || "Saved to Database", 
+                    description: `${titleMap[type] || "Details"} updated in Firebase database.` 
+                });
+                setLastSavedAt(new Date());
+                savedSnapshotRef.current = serializeDataForSnapshot(currentFormData);
+                setIsManualDirty(false);
+            }).catch((err: any) => {
+                console.error("Direct section update error:", err);
+            });
+        }
     };
 
     const handleDeleteItem = () => {

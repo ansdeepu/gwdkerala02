@@ -11,8 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn, checkIsSiteDataChanged } from "@/lib/utils";
-import { Save, X, Info, Loader2, UserPlus, Users } from "lucide-react";
+import { Save, X, Info, Loader2, UserPlus, Users, AlertTriangle } from "lucide-react";
 import { MalayalamInput } from "@/components/ui/malayalam-input-helper";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
 import {
   SiteDetailSchema,
   type SiteDetailFormData,
@@ -210,6 +218,9 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     
     const { control, setValue, watch, handleSubmit, getValues } = form;
 
+    const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
     const { fields: imageFields, append: appendImage, remove: removeImage, update: updateImage } = useFieldArray({ control, name: "workImages" });
     const { fields: videoFields, append: appendVideo, remove: removeVideo, update: updateVideo } = useFieldArray({ control, name: "workVideos" });
 
@@ -219,7 +230,8 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     useEffect(() => {
         if (initialData) {
             const currentResetKey = `${initialData.id || ''}_${initialData.nameOfSite || ''}_${initialData.index ?? ''}`;
-            if (lastResetKeyRef.current !== currentResetKey) {
+            // Guard: Do not wipe the user's actively typed changes on parent re-renders
+            if (lastResetKeyRef.current !== currentResetKey && !form.formState.isDirty) {
                 lastResetKeyRef.current = currentResetKey;
                 const hasExplicitCasing6kg = initialData?.casing6kgPipe !== undefined && initialData?.casing6kgPipe !== null;
                 const casing6kg = hasExplicitCasing6kg ? initialData.casing6kgPipe : (initialData?.casingPipeUsed || "");
@@ -834,6 +846,7 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
     }, [allRigCompressors]);
 
     const handleDialogSubmit = (data: SiteDetailFormData) => {
+        setIsSaving(true);
         const v10 = parseFloat(data.casing10kgPipe || '0') || 0;
         const v8 = parseFloat(data.casing8kgPipe || '0') || 0;
         const v6 = parseFloat(data.casing6kgPipe || '0') || 0;
@@ -856,6 +869,14 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
             workVideos: Array.isArray(currentWorkVideos) ? currentWorkVideos : (data.workVideos || []),
         };
         onConfirm(updatedData);
+    };
+
+    const handleCancelClick = () => {
+        if (isFormDirty && !isReadOnly) {
+            setShowUnsavedPrompt(true);
+        } else {
+            onCancel();
+        }
     };
 
     return (
@@ -1675,18 +1696,81 @@ export default function SiteDialogContent({ initialData, onConfirm, onCancel, is
                 </ScrollArea>
             </div>
             <div className="flex justify-end p-6 pt-4 shrink-0 border-t gap-2">
-                <Button variant="outline" type="button" onClick={onCancel}>{isReadOnly ? 'Close' : 'Cancel'}</Button>
+                <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={handleCancelClick}
+                    disabled={isSaving}
+                >
+                    {isReadOnly || !isFormDirty ? 'Close' : 'Cancel'}
+                </Button>
                 {!isReadOnly && (
                     <Button 
                         type="submit" 
                         form="site-dialog-form" 
-                        disabled={!isFormDirty}
+                        disabled={!isFormDirty || isSaving}
                         className={!isFormDirty ? "opacity-50 cursor-not-allowed" : "shadow-xs font-semibold"}
                     >
-                        Save Changes
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving Changes...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Save Changes
+                            </>
+                        )}
                     </Button>
                 )}
             </div>
+
+            <AlertDialog open={showUnsavedPrompt} onOpenChange={setShowUnsavedPrompt}>
+                <AlertDialogContent className="z-[9999] max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Unsaved Site Changes
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm text-foreground/80 pt-2">
+                            You have unsaved changes in this site details pop-up window. Do you want to save your changes to the database or discard them?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setShowUnsavedPrompt(false)}
+                            disabled={isSaving}
+                        >
+                            Keep Editing
+                        </Button>
+                        <Button 
+                            type="button" 
+                            variant="destructive" 
+                            onClick={() => {
+                                setShowUnsavedPrompt(false);
+                                onCancel();
+                            }}
+                            disabled={isSaving}
+                        >
+                            Discard Changes
+                        </Button>
+                        <Button 
+                            type="button" 
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                            onClick={() => {
+                                setShowUnsavedPrompt(false);
+                                form.handleSubmit(handleDialogSubmit)();
+                            }}
+                            disabled={isSaving}
+                        >
+                            Save & Close
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

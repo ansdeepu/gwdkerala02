@@ -54,6 +54,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'GWD Dashboard',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },

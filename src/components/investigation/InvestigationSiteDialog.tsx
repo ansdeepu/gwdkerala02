@@ -11,7 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn, checkIsSiteDataChanged } from "@/lib/utils";
-import { Save, X, Expand } from "lucide-react";
+import { Save, X, Expand, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
 import {
   SiteDetailSchema,
   type SiteDetailFormData,
@@ -78,6 +86,8 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
     });
 
     const { control, handleSubmit, watch, setValue, getValues } = form;
+    const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { fields: imageFields, append: appendImage, remove: removeImage, update: updateImage } = useFieldArray({ control, name: "workImages" });
     const { fields: videoFields, append: appendVideo, remove: removeVideo, update: updateVideo } = useFieldArray({ control, name: "workVideos" });
     
@@ -199,7 +209,18 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
         ).sort((a, b) => a.name.localeCompare(b.name)), 
     [allStaffMembers]);
 
-    const handleFormSubmit = (data: SiteDetailFormData) => onConfirm(data);
+    const handleFormSubmit = (data: SiteDetailFormData) => {
+        setIsSaving(true);
+        onConfirm(data);
+    };
+
+    const handleCancelClick = () => {
+        if (isFormDirty && !isReadOnly) {
+            setShowUnsavedPrompt(true);
+        } else {
+            onCancel();
+        }
+    };
     
     const sortedLsgMaps = useMemo(() => [...(allLsgConstituencyMaps || [])].sort((a, b) => a.name.localeCompare(b.name)), [allLsgConstituencyMaps]);
     const constituencyOptionsForLsg = useMemo(() => {
@@ -543,18 +564,81 @@ export default function InvestigationSiteDialog({ initialData, onConfirm, onCanc
                     </ScrollArea>
                 </div>
                 <div className="flex justify-end p-6 pt-4 shrink-0 border-t gap-2">
-                    <Button variant="outline" type="button" onClick={onCancel}>{isReadOnly ? 'Close' : 'Cancel'}</Button>
-                    {!isReadOnly && (
                     <Button 
-                        type="submit" 
-                        form="investigation-site-dialog-form" 
-                        disabled={!isFormDirty}
-                        className={!isFormDirty ? "opacity-50 cursor-not-allowed" : "shadow-xs font-semibold"}
+                        variant="outline" 
+                        type="button" 
+                        onClick={handleCancelClick}
+                        disabled={isSaving}
                     >
-                        Save Changes
+                        {isReadOnly || !isFormDirty ? 'Close' : 'Cancel'}
                     </Button>
-                )}
+                    {!isReadOnly && (
+                        <Button 
+                            type="submit" 
+                            form="investigation-site-dialog-form" 
+                            disabled={!isFormDirty || isSaving}
+                            className={!isFormDirty ? "opacity-50 cursor-not-allowed" : "shadow-xs font-semibold"}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving Changes...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Save Changes
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
+
+                <AlertDialog open={showUnsavedPrompt} onOpenChange={setShowUnsavedPrompt}>
+                    <AlertDialogContent className="z-[9999] max-w-md">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                                <AlertTriangle className="h-5 w-5" />
+                                Unsaved Site Changes
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm text-foreground/80 pt-2">
+                                You have unsaved changes in this site details pop-up window. Do you want to save your changes to the database or discard them?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setShowUnsavedPrompt(false)}
+                                disabled={isSaving}
+                            >
+                                Keep Editing
+                            </Button>
+                            <Button 
+                                type="button" 
+                                variant="destructive" 
+                                onClick={() => {
+                                    setShowUnsavedPrompt(false);
+                                    onCancel();
+                                }}
+                                disabled={isSaving}
+                            >
+                                Discard Changes
+                            </Button>
+                            <Button 
+                                type="button" 
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                                onClick={() => {
+                                    setShowUnsavedPrompt(false);
+                                    handleSubmit(handleFormSubmit)();
+                                }}
+                                disabled={isSaving}
+                            >
+                                Save & Close
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </form>
         </FormProvider>
     );
