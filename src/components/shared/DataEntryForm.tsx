@@ -2043,14 +2043,22 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
             setValue('siteDetails', newSites, { shouldDirty: true });
 
             if (fileIdToEdit) {
+                if (autoSaveTimerRef.current) {
+                    clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = null;
+                }
                 const currentFormData = getValues();
                 const payloadToSave = {
                     ...currentFormData,
                     siteDetails: newSites,
+                    lastSavedType: 'manual' as const,
                 };
                 updateFileEntry(fileIdToEdit, payloadToSave).then(() => {
                     toast({ title: "Site Details Saved", description: "Site details updated in database." });
-                    setLastSavedAt(new Date());
+                    const now = new Date();
+                    setLastSavedAt(now);
+                    setLastSavedType('manual');
+                    lastSavedTypeRef.current = 'manual';
                     savedSnapshotRef.current = serializeDataForSnapshot(payloadToSave);
                     setIsManualDirty(false);
                 }).catch((err: any) => {

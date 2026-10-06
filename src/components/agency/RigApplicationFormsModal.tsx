@@ -582,20 +582,6 @@ export function RigRegistrationApplicationFormView({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 4. Super Admin Master PDF Template Manager Link */}
-            {isSuperAdmin && (
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs gap-1.5"
-              >
-                <Link href="/dashboard/super-admin/templates">
-                  <Layers className="w-3.5 h-3.5 text-blue-600" /> Master PDF Template Manager
-                </Link>
-              </Button>
-            )}
-
             {/* Reset Actions */}
             <Button
               size="sm"
@@ -1152,20 +1138,6 @@ export function RigRenewalApplicationFormView({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 4. Super Admin Master PDF Template Manager Link */}
-            {isSuperAdmin && (
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs gap-1.5"
-              >
-                <Link href="/dashboard/super-admin/templates">
-                  <Layers className="w-3.5 h-3.5 text-blue-600" /> Master PDF Template Manager
-                </Link>
-              </Button>
-            )}
-
             {/* Reset Actions */}
             <Button
               size="sm"

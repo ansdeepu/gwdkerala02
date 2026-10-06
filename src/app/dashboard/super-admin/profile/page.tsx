@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { KeyRound, Loader2, ShieldCheck, UserCircle, User, FileText, ArrowRight, Layers } from "lucide-react";
+import { KeyRound, Loader2, ShieldCheck, UserCircle, User, FileText } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
@@ -266,34 +266,6 @@ export default function SuperAdminProfilePage() {
                                 </CardHeader>
                                 <CardContent>
                                     <SuperAdminUpdatePasswordForm />
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-blue-200 dark:border-blue-900 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-sm">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
-                                                <Layers className="h-5 w-5" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-lg">Master PDF Template Manager</CardTitle>
-                                                <CardDescription>
-                                                    Upload official 5-Page master PDF forms for Rig Registration & Renewal.
-                                                </CardDescription>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                                            <Link href="/dashboard/super-admin/templates">
-                                                Open Manager <ArrowRight className="w-4 h-4" />
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="text-xs text-muted-foreground pt-0">
-                                    <p>
-                                        Templates uploaded here are automatically propagated as the active AcroForm master template across all 14 district sub-offices in the state.
-                                    </p>
                                 </CardContent>
                             </Card>
 

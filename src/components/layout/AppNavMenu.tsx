@@ -65,7 +65,6 @@ export const superAdminNavItems: NavItem[] = [
     { href: '/dashboard/super-admin/gwd-rates', label: 'GWD Rates', icon: DollarSign },
     { href: '/dashboard/super-admin/establishment', label: 'Establishment', icon: Briefcase },
     { href: '/dashboard/super-admin/office-management', label: 'Office Management', icon: Building },
-    { href: '/dashboard/super-admin/templates', label: 'PDF Templates', icon: Layers },
     { href: '/dashboard/super-admin/user-management', label: 'Directorate Users', icon: Users },
     { href: '/dashboard/super-admin/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/help', label: 'Help & About', icon: HelpCircle },

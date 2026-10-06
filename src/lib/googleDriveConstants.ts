@@ -306,14 +306,29 @@ function doPost(e) {
 function getOrCreateFolder(parentFolder, name) {
   var targetName = cleanName(name);
   if (!targetName) return parentFolder;
-  var folders = parentFolder.getFolders();
-  while (folders.hasNext()) {
-    var f = folders.next();
-    if (f.getName().toLowerCase() === targetName.toLowerCase()) {
-      return f;
-    }
+
+  // Use LockService to prevent race conditions during concurrent multi-file uploads
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // wait up to 30 seconds
+  } catch (eLock) {
+    // Continue even if lock fails
   }
-  return parentFolder.createFolder(targetName);
+
+  try {
+    var folders = parentFolder.getFolders();
+    while (folders.hasNext()) {
+      var f = folders.next();
+      if (f.getName().toLowerCase() === targetName.toLowerCase()) {
+        return f;
+      }
+    }
+    return parentFolder.createFolder(targetName);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (eRel) {}
+  }
 }
 
 function cleanName(name) {

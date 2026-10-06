@@ -152,22 +152,23 @@ export function useAuth() {
         const userDocRef = doc(db, "users", firebaseUser.uid);
         let userDocSnap = null;
         let retries = 0;
-        const maxRetries = 2;
+        const maxRetries = 3;
 
         while (retries < maxRetries) {
             try {
-                // Wrap getDoc with a 3-second timeout
+                // Wrap getDoc with an 8-second timeout to allow Firestore initial connection / token handshake
                 const fetchPromise = getDoc(userDocRef);
                 const timeoutPromise = new Promise<never>((_, reject) => 
-                  setTimeout(() => reject(new Error('Auth getDoc timeout')), 3000)
+                  setTimeout(() => reject(new Error('Auth getDoc timeout')), 8000)
                 );
                 userDocSnap = await Promise.race([fetchPromise, timeoutPromise]);
                 break;
             } catch (err: any) {
                 if (err.code === 'permission-denied' || err.code === 'unavailable' || err.message === 'Auth getDoc timeout') {
-                    console.warn(`[Auth] Retry ${retries + 1} for user profile fetch due to ${err.message || err.code}`);
                     retries++;
-                    await new Promise(resolve => setTimeout(resolve, 300 * retries));
+                    if (retries < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 400 * retries));
+                    }
                 } else {
                     throw err;
                 }
