@@ -48,6 +48,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    let lastErrorText = "";
+    let is404 = false;
+    let isGoogleLogin = false;
+
     // Attempt 1: Fetch via GET from the deployed Web App
     try {
       const res = await fetch(targetScriptUrl, {
@@ -57,8 +61,11 @@ export async function GET(req: NextRequest) {
         cache: "no-store",
       });
 
-      if (res.ok) {
-        const text = await res.text();
+      const text = await res.text();
+      is404 = res.status === 404 || text.includes("ppConfig") || (text.includes("<!DOCTYPE") && text.includes("404"));
+      isGoogleLogin = text.includes("accounts.google.com") || text.includes("ServiceLogin");
+
+      if (res.ok && !is404 && !isGoogleLogin) {
         try {
           const data = JSON.parse(text);
           if (data && data.storage) {
@@ -87,49 +94,78 @@ export async function GET(req: NextRequest) {
         } catch (jsonErr) {
           // Continue to POST fallback
         }
+      } else {
+        lastErrorText = text;
       }
-    } catch (getErr) {
+    } catch (getErr: any) {
       console.warn("GET to Google Apps Script failed, trying POST fallback:", getErr);
+      lastErrorText = getErr?.message || "";
+    }
+
+    if (is404) {
+      return NextResponse.json({
+        success: false,
+        connected: false,
+        requiresSetup: true,
+        account: "keralagwd@gmail.com",
+        error: "Google Drive Web App URL is inactive or expired (HTTP 404). Please copy the latest Web App URL from script.google.com and update Settings."
+      });
+    }
+
+    if (isGoogleLogin) {
+      return NextResponse.json({
+        success: false,
+        connected: false,
+        requiresSetup: true,
+        account: "keralagwd@gmail.com",
+        error: "Google Drive Web App requires permissions. Ensure 'Who has access' is set to 'Anyone' in script.google.com."
+      });
     }
 
     // Attempt 2: Fetch via POST with action: getStorageQuota
     try {
       const postRes = await fetch(targetScriptUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "getStorageQuota" }),
         redirect: "follow",
       });
 
+      const postText = await postRes.text();
+      const postIs404 = postRes.status === 404 || postText.includes("ppConfig");
+      if (postIs404) {
+        return NextResponse.json({
+          success: false,
+          connected: false,
+          requiresSetup: true,
+          account: "keralagwd@gmail.com",
+          error: "Google Drive Web App URL is inactive or expired (HTTP 404)."
+        });
+      }
+
       if (postRes.ok) {
-        const postText = await postRes.text();
-        const postData = JSON.parse(postText);
-        if (postData && postData.storage) {
-          return NextResponse.json({
-            success: true,
-            connected: true,
-            account: postData.account || "keralagwd@gmail.com",
-            ...postData.storage
-          });
-        }
+        try {
+          const postData = JSON.parse(postText);
+          if (postData && postData.storage) {
+            return NextResponse.json({
+              success: true,
+              connected: true,
+              account: postData.account || "keralagwd@gmail.com",
+              ...postData.storage
+            });
+          }
+        } catch (e) {}
       }
     } catch (postErr) {
       console.warn("POST to Google Apps Script failed:", postErr);
     }
 
-    // If script is connected but an older deployment is running
     return NextResponse.json({
-      success: true,
-      connected: true,
+      success: false,
+      connected: false,
+      requiresSetup: true,
       account: "keralagwd@gmail.com",
-      usedBytes: 0,
-      limitBytes: 15 * 1024 * 1024 * 1024,
-      freeBytes: 15 * 1024 * 1024 * 1024,
-      usedGB: 0,
-      limitGB: 15,
-      freeGB: 15,
-      percentUsed: 0,
-      displayText: "Connected to keralagwd@gmail.com Google Drive"
+      error: "Could not connect to Google Apps Script. Please verify your Web App URL in Settings."
     });
 
   } catch (error: any) {

@@ -77,34 +77,54 @@ export async function POST(req: NextRequest) {
     }
 
     // Forward to Google Apps Script
-    // Node.js fetch will follow the 302 redirect from script.google.com to script.googleusercontent.com
+    // Using text/plain;charset=utf-8 ensures Google's 302/307 redirect proxy forwards the POST payload seamlessly
+    const payloadString = JSON.stringify({
+      action,
+      base64Data: effectiveBase64,
+      fileName: fileName || (isFolderAction ? "_folder_info.txt" : `file_${Date.now()}`),
+      mimeType: mimeType || (isFolderAction ? "text/plain" : "application/octet-stream"),
+      officeLocation,
+      fileNo,
+      siteName,
+      type,
+      rootFolder,
+      skipSubFolder,
+      subFolder,
+    });
+
     const response = await fetch(targetScriptUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain;charset=utf-8",
       },
-      body: JSON.stringify({
-        action,
-        base64Data: effectiveBase64,
-        fileName: fileName || (isFolderAction ? "_folder_info.txt" : `file_${Date.now()}`),
-        mimeType: mimeType || (isFolderAction ? "text/plain" : "application/octet-stream"),
-        officeLocation,
-        fileNo,
-        siteName,
-        type,
-        rootFolder,
-        skipSubFolder,
-        subFolder,
-      }),
+      body: payloadString,
       redirect: "follow",
     });
 
     const responseText = await response.text();
 
+    const isHtml = responseText.toLowerCase().includes("<!doctype") || responseText.toLowerCase().includes("<html");
+    const is404 = response.status === 404 || responseText.includes("ppConfig") || (isHtml && responseText.includes("404"));
+    const isGoogleLogin = responseText.includes("accounts.google.com") || responseText.includes("ServiceLogin");
+
+    if (is404) {
+      return NextResponse.json({
+        success: false,
+        error: "Google Drive Web App URL is inactive, expired, or invalid (HTTP 404). Please open script.google.com, copy the active Web App URL from 'Deploy' > 'Manage deployments', and update Settings > Google Drive."
+      }, { status: 502 });
+    }
+
+    if (isGoogleLogin) {
+      return NextResponse.json({
+        success: false,
+        error: "Google Drive Web App requires authorization. Please open script.google.com, click 'Deploy' > 'Manage deployments', and ensure 'Who has access' is set to 'Anyone'."
+      }, { status: 502 });
+    }
+
     if (!response.ok) {
       return NextResponse.json({
         success: false,
-        error: `Google Apps Script returned status ${response.status}: ${responseText.slice(0, 200)}`
+        error: `Google Apps Script returned status ${response.status}: ${isHtml ? "Unexpected HTML response" : responseText.slice(0, 200)}`
       }, { status: 502 });
     }
 
@@ -113,19 +133,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     } catch (parseError) {
       console.error("Non-JSON response from Google Apps Script:", responseText);
-      
-      const isHtml = responseText.toLowerCase().includes("<!doctype") || responseText.toLowerCase().includes("<html");
-      const isGoogleLogin = responseText.includes("accounts.google.com") || responseText.includes("ServiceLogin");
 
-      let userError = "Google Apps Script returned an invalid non-JSON response.";
-      if (isGoogleLogin || isHtml) {
-        userError = "Google Apps Script required Google Sign-In or returned an authorization page. Please open script.google.com, click 'Deploy' > 'Manage deployments', and ensure 'Who has access' is set to 'Anyone'.";
+      let userError = "Google Apps Script returned an invalid response.";
+      if (isHtml) {
+        userError = "Google Apps Script returned an unexpected HTML page. Please verify your Web App deployment in script.google.com ('Who has access' must be 'Anyone').";
       }
 
       return NextResponse.json({
         success: false,
         error: userError,
-        rawPreview: responseText.slice(0, 300)
+        rawPreview: responseText.slice(0, 200)
       }, { status: 502 });
     }
 

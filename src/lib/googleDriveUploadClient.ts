@@ -136,22 +136,16 @@ export async function testGoogleDriveConnection(targetUrl?: string): Promise<{ s
     }
     const res = await fetch(`/api/drive-storage?scriptUrl=${encodeURIComponent(url.trim())}`, { cache: "no-store" });
     const data = await res.json().catch(() => null);
-    if (res.ok && data?.connected) {
+    if (res.ok && data?.connected && data?.success) {
       const storageText = data.displayText ? ` | Capacity: ${data.displayText}` : '';
       return {
         success: true,
         message: `Connected successfully to ${data.account || 'keralagwd@gmail.com'}${storageText}!`,
       };
     }
-    if (res.ok) {
-      return {
-        success: true,
-        message: "Endpoint responded and verified. Ready to receive uploads.",
-      };
-    }
     return {
       success: false,
-      message: data?.error || `Server responded with status ${res.status}`,
+      message: data?.error || `Google Apps Script returned an invalid response (Status ${res.status}).`,
     };
   } catch (err: any) {
     return {
