@@ -119,6 +119,26 @@ export default function RigChecklistPrintPage() {
     const [isCopying, setIsCopying] = useState(false);
     const [printSettings, setPrintSettings] = useState<PrintStyleSettings>(DEFAULT_PRINT_STYLES);
 
+    const handleBack = () => {
+        if (typeof window !== 'undefined') {
+            try {
+                if (window.history.length > 1 && document.referrer && (document.referrer.includes('/dashboard/agency-registration') || document.referrer.includes(window.location.host))) {
+                    router.back();
+                    return;
+                }
+            } catch {
+                // ignore
+            }
+
+            try {
+                window.close();
+            } catch {
+                // ignore
+            }
+            router.push('/dashboard/agency-registration');
+        }
+    };
+
     useEffect(() => {
         if (!id || id === 'new') {
             setIsFetchingDoc(false);
@@ -1256,7 +1276,7 @@ export default function RigChecklistPrintPage() {
             <div className="max-w-4xl mx-auto mb-4 bg-white rounded-lg shadow-sm p-3 border space-y-3 no-print print:hidden">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => router.back()} className="h-8 px-2 text-xs">
+                        <Button variant="ghost" size="sm" onClick={handleBack} className="h-8 px-2 text-xs">
                             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back
                         </Button>
                         <span className="text-gray-300">|</span>

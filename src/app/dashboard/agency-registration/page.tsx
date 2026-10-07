@@ -1820,7 +1820,7 @@ export default function AgencyRegistrationPage() {
             id: 'legacy-reg',
             type: 'registration',
             title: `Rig Registration Form - ${currentApplicationForForms.fileNo || currentApplicationForForms.agencyRegistrationNo || 'Saved Copy'}`,
-            savedAt: currentApplicationForForms.updatedAt ? new Date(currentApplicationForForms.updatedAt).toISOString() : new Date().toISOString(),
+            savedAt: (currentApplicationForForms.updatedAt ? toDateOrNull(currentApplicationForForms.updatedAt)?.toISOString() : null) || new Date().toISOString(),
             savedBy: 'Sub-Office Officer',
             formData: legacyReg,
             summary: {
@@ -1837,7 +1837,7 @@ export default function AgencyRegistrationPage() {
             id: 'legacy-ren',
             type: 'renewal',
             title: `Rig Renewal Form - ${currentApplicationForForms.fileNo || currentApplicationForForms.agencyRegistrationNo || 'Saved Copy'}`,
-            savedAt: currentApplicationForForms.updatedAt ? new Date(currentApplicationForForms.updatedAt).toISOString() : new Date().toISOString(),
+            savedAt: (currentApplicationForForms.updatedAt ? toDateOrNull(currentApplicationForForms.updatedAt)?.toISOString() : null) || new Date().toISOString(),
             savedBy: 'Sub-Office Officer',
             formData: legacyRen,
             summary: {
@@ -2371,10 +2371,10 @@ export default function AgencyRegistrationPage() {
                                             const savedDate = (() => {
                                                 try {
                                                     if (!item.savedAt) return "";
-                                                    const d = parseISO(item.savedAt);
-                                                    return isValid(d) ? format(d, "dd/MM/yyyy hh:mm a") : item.savedAt;
+                                                    const d = toDateOrNull(item.savedAt);
+                                                    return d && isValid(d) ? format(d, "dd/MM/yyyy hh:mm a") : String(item.savedAt || "");
                                                 } catch {
-                                                    return item.savedAt || "";
+                                                    return String(item.savedAt || "");
                                                 }
                                             })();
 

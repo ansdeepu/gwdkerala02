@@ -41,6 +41,26 @@ export default function AgencyExpiryPrintPage() {
     const [fetchedApp, setFetchedApp] = useState<AgencyApplication | null>(null);
     const [isFetchingDoc, setIsFetchingDoc] = useState<boolean>(true);
 
+    const handleBack = () => {
+        if (typeof window !== 'undefined') {
+            try {
+                if (window.history.length > 1 && document.referrer && (document.referrer.includes('/dashboard/agency-registration') || document.referrer.includes(window.location.host))) {
+                    router.back();
+                    return;
+                }
+            } catch {
+                // ignore cross-origin referrer error
+            }
+
+            try {
+                window.close();
+            } catch {
+                // ignore
+            }
+            router.push('/dashboard/agency-registration');
+        }
+    };
+
     useEffect(() => {
         if (!id || id === 'new') {
             setIsFetchingDoc(false);
@@ -143,7 +163,7 @@ export default function AgencyExpiryPrintPage() {
     if (!data) return (
         <div className="p-10 text-center space-y-4">
             <p className="text-muted-foreground">No expired rigs found for this application to generate a letter.</p>
-            <Button variant="outline" onClick={() => window.close()}>Close</Button>
+            <Button variant="outline" onClick={handleBack}>Close</Button>
         </div>
     );
 
@@ -294,7 +314,7 @@ export default function AgencyExpiryPrintPage() {
                     <Button onClick={() => printDocument('print-letter-content', 'Agency Registration Renewal Letter', '1.2cm 1.5cm 1.2cm 1.5cm')} className="shadow-lg">
                         <Printer className="mr-2 h-4 w-4" /> Print Letter
                     </Button>
-                    <Button variant="outline" onClick={() => router.back()} className="shadow-lg">
+                    <Button variant="outline" onClick={handleBack} className="shadow-lg">
                         Back
                     </Button>
                 </div>
