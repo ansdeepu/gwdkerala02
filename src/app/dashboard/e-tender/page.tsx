@@ -663,10 +663,20 @@ function TenderSummaryDialog({ tender, isOpen, onOpenChange }: { tender: E_tende
                                 <TenderDetailRow label="L1 Address" value={l1Bidder?.address} className="lg:col-span-2" />
                                 <TenderDetailRow label="L1 Amount" value={l1Amount} isCurrency />
                                 <TenderDetailRow label="Selection Notice Date" value={tender.selectionNoticeDate} />
-                                <TenderDetailRow label="PG (₹)" value={tender.performanceGuaranteeAmount} isCurrency />
-                                <TenderDetailRow label="Addl. PG (₹)" value={tender.additionalPerformanceGuaranteeAmount} isCurrency />
-                                <TenderDetailRow label="SP (₹)" value={tender.stampPaperAmount} isCurrency />
                                 <TenderDetailRow label="Order Issued Date" value={tender.dateWorkOrder} />
+                                <TenderDetailRow label="SP (₹)" value={tender.stampPaperAmountSubmitted} isCurrency />
+                                <TenderDetailRow 
+                                    label="PG (₹)" 
+                                    value={tender.performanceGuaranteeAmountSubmitted} 
+                                    isCurrency 
+                                    subValue={tender.performanceGuaranteeAmountSubmitted !== null && tender.performanceGuaranteeAmountSubmitted !== undefined ? (tender.performanceGuaranteeReleaseStatus === 'Released' ? 'Released' : 'Withheld') : undefined}
+                                />
+                                <TenderDetailRow 
+                                    label="Addl. PG (₹)" 
+                                    value={tender.additionalPerformanceGuaranteeAmountSubmitted} 
+                                    isCurrency 
+                                    subValue={tender.additionalPerformanceGuaranteeAmountSubmitted !== null && tender.additionalPerformanceGuaranteeAmountSubmitted !== undefined ? (tender.additionalPerformanceGuaranteeReleaseStatus === 'Released' ? 'Released' : 'Withheld') : undefined}
+                                />
                             </div>
                         </div>
 
