@@ -48,7 +48,7 @@ export const regularNavItems: NavItem[] = [
   { href: '/dashboard/gwd-rates', label: 'GWD Rates', icon: DollarSign },
   { href: '/dashboard/establishment', label: 'Establishment', icon: Briefcase, roles: ['admin', 'engineer', 'scientist', 'viewer'] },
   { href: '/dashboard/user-management', label: 'User Management', icon: Users, roles: ['admin'] },
-  { href: '/dashboard/downloads', label: 'Downloads', icon: FileText },
+  { href: '/dashboard/downloads', label: 'Documents', icon: FileText },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
   { href: '/dashboard/help', label: 'Help & About', icon: HelpCircle },
 ];
@@ -67,7 +67,7 @@ export const superAdminNavItems: NavItem[] = [
     { href: '/dashboard/super-admin/establishment', label: 'Establishment', icon: Briefcase },
     { href: '/dashboard/super-admin/office-management', label: 'Office Management', icon: Building },
     { href: '/dashboard/super-admin/user-management', label: 'Directorate Users', icon: Users },
-    { href: '/dashboard/super-admin/downloads', label: 'Downloads', icon: FileText },
+    { href: '/dashboard/super-admin/downloads', label: 'Upload Documents', icon: FileText },
     { href: '/dashboard/super-admin/settings', label: 'Settings', icon: Settings },
     { href: '/dashboard/help', label: 'Help & About', icon: HelpCircle },
 ];
