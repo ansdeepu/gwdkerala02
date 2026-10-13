@@ -242,6 +242,16 @@ const safeParseDate = (dateValue: any): Date | null => {
   return null;
 };
 
+const safeFormatDate = (dateValue: any, outputFormat = "dd/MM/yyyy", fallback = "-"): string => {
+  const parsed = safeParseDate(dateValue);
+  if (!parsed) return fallback;
+  try {
+    return format(parsed, outputFormat);
+  } catch {
+    return fallback;
+  }
+};
+
 const isAll = (filterArr: string[] | string) => {
   if (!filterArr) return true;
   if (typeof filterArr === 'string') return filterArr === 'all';
@@ -545,7 +555,7 @@ export default function ReportsPage() {
 
     currentFileEntries.forEach(entry => {
         const remittanceDate = entry.remittanceDetails?.[0]?.dateOfRemittance;
-        const fileFirstRemittanceDate = remittanceDate ? format(new Date(remittanceDate), "dd/MM/yyyy") : "-";
+        const fileFirstRemittanceDate = safeFormatDate(remittanceDate, "dd/MM/yyyy", "-");
         const totalRemittance = (Number(entry.totalRemittance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
         const balance = (Number(entry.overallBalance) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -597,8 +607,8 @@ export default function ReportsPage() {
 
                     sitePurpose: site.purpose || "-", 
                     siteWorkStatus: site.workStatus || "-", 
-                    startDate: site.startDate ? format(new Date(site.startDate), "dd/MM/yyyy") : 'N/A',
-                    dateOfCompletion: site.dateOfCompletion ? format(new Date(site.dateOfCompletion), "dd/MM/yyyy") : 'N/A',
+                    startDate: safeFormatDate(site.startDate, "dd/MM/yyyy", "N/A"),
+                    dateOfCompletion: safeFormatDate(site.dateOfCompletion, "dd/MM/yyyy", "N/A"),
                     siteConditions: site.siteConditions || 'N/A',
                     accessibleRig: site.accessibleRig || 'N/A',
                     workRemarks: site.workRemarks || 'N/A',
@@ -652,11 +662,11 @@ export default function ReportsPage() {
                     implementationRemarks: site.implementationRemarks || 'N/A',
 
                     nameOfInvestigator: site.nameOfInvestigator || 'N/A',
-                    dateOfInvestigation: site.dateOfInvestigation ? format(new Date(site.dateOfInvestigation), "dd/MM/yyyy") : 'N/A',
+                    dateOfInvestigation: safeFormatDate(site.dateOfInvestigation, "dd/MM/yyyy", "N/A"),
                     feasibility: site.feasibility || 'N/A',
                     vesRequired: site.vesRequired || 'N/A',
                     vesInvestigator: site.vesInvestigator || 'N/A',
-                    vesDate: site.vesDate ? format(new Date(site.vesDate), "dd/MM/yyyy") : 'N/A',
+                    vesDate: safeFormatDate(site.vesDate, "dd/MM/yyyy", "N/A"),
                     hydrogeologicalRemarks: site.hydrogeologicalRemarks || 'N/A',
                     geophysicalRemarks: site.geophysicalRemarks || 'N/A'
                 });
@@ -698,7 +708,7 @@ export default function ReportsPage() {
         }
 
         const dateStr = entry.arsSanctionedDate;
-        const fileFirstRemittanceDate = dateStr ? format(new Date(dateStr), "dd/MM/yyyy") : "-";
+        const fileFirstRemittanceDate = safeFormatDate(dateStr, "dd/MM/yyyy", "-");
         const totalExpenditure = (Number(entry.totalExpenditure) || 0);
 
         flattenedRows.push({
@@ -727,7 +737,7 @@ export default function ReportsPage() {
             arsStorageCapacity: entry.arsStorageCapacity || 'N/A',
             arsNumberOfFillings: entry.arsNumberOfFillings || 'N/A',
             arsAsTsDetails: entry.arsAsTsDetails || 'N/A',
-            arsSanctionedDate: entry.arsSanctionedDate ? format(new Date(entry.arsSanctionedDate), "dd/MM/yyyy") : 'N/A',
+            arsSanctionedDate: safeFormatDate(entry.arsSanctionedDate, "dd/MM/yyyy", "N/A"),
             tsAmount: entry.tsAmount ? Number(entry.tsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A',
             arsTenderNo: entry.arsTenderNo || 'N/A',
             arsTenderedAmount: entry.arsTenderedAmount ? Number(entry.arsTenderedAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A',

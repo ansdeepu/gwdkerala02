@@ -26,26 +26,23 @@ const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [modalType, setModalType] = useState<"privacy" | "terms" | null>(null);
 
   useEffect(() => {
-    // Prefetch target routes so RSC payload is ready
-    try {
-      router.prefetch('/dashboard');
-      router.prefetch('/dashboard/super-admin');
-    } catch (e) {}
-  }, [router]);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // If the authentication state is resolved and the user is authenticated, redirect.
-    if (!isLoading && isAuthenticated && user) {
+    if (mounted && !isLoading && isAuthenticated && user) {
       const target = user.email === SUPER_ADMIN_EMAIL ? '/dashboard/super-admin' : '/dashboard';
       router.replace(target);
     }
-  }, [isAuthenticated, isLoading, router, user]);
+  }, [mounted, isAuthenticated, isLoading, router, user]);
 
-  // Show a loading screen only while the initial check is happening.
-  if (isLoading) {
+  // Show a loading screen while SSR or initial auth check is happening.
+  if (!mounted || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -117,10 +117,11 @@ function addOrSetTextField(
         y: options.y,
         width: options.width,
         height: options.height,
-        borderWidth: options.borderWidth ?? 0.5,
-        borderColor: rgb(0.7, 0.7, 0.7),
-        backgroundColor: rgb(0.98, 0.98, 0.98),
+        borderWidth: options.borderWidth ?? 0,
+        backgroundColor: undefined,
       });
+      textField.setBorderColor(undefined);
+      textField.setBackgroundColor(undefined);
       if (options.multiline) {
         textField.enableMultiline();
       }
@@ -145,22 +146,263 @@ function addOrSetTextField(
 }
 
 /**
+ * Intelligently maps database data directly into the uploaded official PDF AcroForm interactive fields.
+ */
+export async function populatePdfAcroFormFields(
+  pdfDoc: PDFDocument,
+  data: Record<string, any>
+): Promise<number> {
+  let filledCount = 0;
+  try {
+    const form = pdfDoc.getForm();
+    const fields = form.getFields();
+    if (!fields || fields.length === 0) return 0;
+
+    // Build lookup maps for fast matching
+    const normalizedData: Record<string, any> = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (v !== undefined && v !== null && v !== "") {
+        normalizedData[k.toLowerCase().replace(/[^a-z0-9]/g, "")] = v;
+      }
+    }
+
+    // Comprehensive alias dictionary
+    const resolveValue = (fieldName: string): any => {
+      // 1. Direct key
+      if (data[fieldName] !== undefined && data[fieldName] !== null && data[fieldName] !== "") {
+        return data[fieldName];
+      }
+
+      // 2. Normalized key
+      const norm = fieldName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normalizedData[norm] !== undefined && normalizedData[norm] !== null && normalizedData[norm] !== "") {
+        return normalizedData[norm];
+      }
+
+      // 3. Domain Aliases
+      const aliasMap: Record<string, any> = {
+        agencyname: data.agencyName || data.nameOfAgency || data.firmName,
+        nameofagency: data.agencyName || data.nameOfAgency,
+        firmname: data.agencyName || data.nameOfAgency,
+        agency: data.agencyName,
+        establishment: data.agencyName,
+
+        address: data.address || data.agencyAddress || data.officeAddress,
+        agencyaddress: data.address,
+        addressline1: data.address,
+        address1: data.address,
+        addressline2: data.address_line2 || data.addressLine2,
+        address2: data.address_line2,
+
+        village: data.village || data.agencyVillage,
+        taluk: data.taluk || data.agencyTaluk,
+        panchayath: data.panchayath || data.agencyPanchayath || data.panchayat,
+        panchayat: data.panchayath,
+        district: data.district || data.agencyDistrict || data.officeLocation,
+        pincode: data.pincode || data.agencyPincode || data.pin,
+        pin: data.pincode,
+
+        gstin: data.gstin || data.gstNo || data.gst,
+        gst: data.gstin || data.gstNo,
+        lsgdregno: data.lsgdRegNo || data.lsgdNo,
+        lsgdno: data.lsgdRegNo,
+
+        ownername: data.ownerA_name || data.ownerName || data.name,
+        ownera: data.ownerA_name || data.ownerName,
+        owneraname: data.ownerA_name || data.ownerName,
+        proprietorname: data.ownerA_name || data.ownerName,
+        ownercurraddress: data.ownerA_curr_address || data.ownerAddress || data.address,
+        ownerpresentaddress: data.ownerA_curr_address || data.ownerAddress,
+        ownercurrvillage: data.ownerA_curr_village || data.village,
+        ownercurrtaluk: data.ownerA_curr_taluk || data.taluk,
+        ownercurrpanchayath: data.ownerA_curr_panchayath || data.panchayath,
+        ownercurrdistrict: data.ownerA_curr_district || data.district,
+        ownercurrpincode: data.ownerA_curr_pincode || data.pincode,
+
+        ownerpermaddress: data.ownerA_perm_address || data.ownerA_curr_address || data.address,
+        ownerpermanentaddress: data.ownerA_perm_address || data.ownerA_curr_address,
+        ownerpermvillage: data.ownerA_perm_village || data.ownerA_curr_village,
+        ownerpermtaluk: data.ownerA_perm_taluk || data.ownerA_curr_taluk,
+        ownerpermpanchayath: data.ownerA_perm_panchayath || data.ownerA_curr_panchayath,
+        ownerpermdistrict: data.ownerA_perm_district || data.ownerA_curr_district,
+        ownerpermpincode: data.ownerA_perm_pincode || data.ownerA_curr_pincode,
+
+        owneridtype: data.ownerA_id_type || "Aadhaar",
+        owneridno: data.ownerA_id_no || data.idNo,
+        ownerpan: data.ownerA_pan || data.panNo || data.pan,
+        pan: data.ownerA_pan || data.panNo || data.pan,
+        panno: data.ownerA_pan || data.panNo || data.pan,
+        ownerexp: data.ownerA_exp || data.experience,
+        ownernominee: data.ownerA_nominee || data.nominee,
+
+        partnerbname: data.partnerB_name,
+        partnerbcurraddress: data.partnerB_curr_address,
+        partnerbcurrvillage: data.partnerB_curr_village,
+        partnerbcurrtaluk: data.partnerB_curr_taluk,
+        partnerbcurrpanchayath: data.partnerB_curr_panchayath,
+        partnerbcurrdistrict: data.partnerB_curr_district,
+        partnerbcurrpincode: data.partnerB_curr_pincode,
+        partnerbidno: data.partnerB_id_no,
+        partnerbpan: data.partnerB_pan,
+        partnerbnominee: data.partnerB_nominee,
+
+        partnercname: data.partnerC_name,
+        partnerccurraddress: data.partnerC_curr_address,
+        partnerccurrvillage: data.partnerC_curr_village,
+        partnerccurrtaluk: data.partnerC_curr_taluk,
+        partnerccurrpanchayath: data.partnerC_curr_panchayath,
+        partnerccurrdistrict: data.partnerC_curr_district,
+        partnerccurrpincode: data.partnerC_curr_pincode,
+        partnercidno: data.partnerC_id_no,
+        partnercpan: data.partnerC_pan,
+        partnercnominee: data.partnerC_nominee,
+
+        rigatype: data.rigA_type || data.rig1_type,
+        rig1type: data.rigA_type || data.rig1_type,
+        typeofrig: data.rigA_type || data.rig1_type,
+        rigaownername: data.rigA_owner_name || data.rig1_owner_name || data.ownerA_name,
+        rig1ownername: data.rigA_owner_name || data.rig1_owner_name || data.ownerA_name,
+        rigavehtype: data.rigA_veh_type || data.rig1_veh_type,
+        rig1vehtype: data.rigA_veh_type || data.rig1_veh_type,
+        rigavehreg: data.rigA_veh_reg || data.rig1_veh_reg || data.vehRegNo,
+        rig1vehreg: data.rigA_veh_reg || data.rig1_veh_reg || data.vehRegNo,
+        vehicleregno: data.rigA_veh_reg || data.rig1_veh_reg,
+        regno: data.rigA_veh_reg || data.rig1_veh_reg,
+        truckno: data.rigA_veh_reg || data.rig1_veh_reg,
+        rigachassis: data.rigA_veh_chassis || data.rig1_veh_chassis,
+        rig1chassis: data.rigA_veh_chassis || data.rig1_veh_chassis,
+        chassisno: data.rigA_veh_chassis || data.rig1_veh_chassis,
+        rigaengine: data.rigA_veh_engine || data.rig1_veh_engine,
+        rig1engine: data.rigA_veh_engine || data.rig1_veh_engine,
+        engineno: data.rigA_veh_engine || data.rig1_veh_engine,
+        rigacompmodel: data.rigA_comp_model || data.rig1_comp_model,
+        rig1compmodel: data.rigA_comp_model || data.rig1_comp_model,
+        rigacompcap: data.rigA_comp_cap || data.rig1_comp_cap,
+        rig1compcap: data.rigA_comp_cap || data.rig1_comp_cap,
+        rigagentype: data.rigA_gen_type || data.rig1_gen_type,
+        rig1gentype: data.rigA_gen_type || data.rig1_gen_type,
+        rigagenmodel: data.rigA_gen_model || data.rig1_gen_model,
+        rig1genmodel: data.rigA_gen_model || data.rig1_gen_model,
+        rigagencap: data.rigA_gen_cap || data.rig1_gen_cap,
+        rig1gencap: data.rigA_gen_cap || data.rig1_gen_cap,
+        rigawelldepth: data.rigA_well_depth || data.rig1_well_depth,
+        rig1welldepth: data.rigA_well_depth || data.rig1_well_depth,
+        maxdepth: data.rigA_well_depth || data.rig1_well_depth,
+        rigawelldia: data.rigA_well_dia || data.rig1_well_dia,
+        rig1welldia: data.rigA_well_dia || data.rig1_well_dia,
+        maxdia: data.rigA_well_dia || data.rig1_well_dia,
+        rigaopname: data.rigA_op_name || data.rig1_op_name,
+        rig1opname: data.rigA_op_name || data.rig1_op_name,
+        operatorname: data.rigA_op_name || data.rig1_op_name,
+        rigaopage: data.rigA_op_age || data.rig1_op_age,
+        rig1opage: data.rigA_op_age || data.rig1_op_age,
+        rigaopexp: data.rigA_op_exp || data.rig1_op_exp,
+        rig1opexp: data.rigA_op_exp || data.rig1_op_exp,
+        rigaopidno: data.rigA_op_id_no || data.rig1_op_id_no,
+        rig1opidno: data.rigA_op_id_no || data.rig1_op_id_no,
+
+        appno: data.receipt_app_no || data.fileNo || data.applicationNo,
+        fileno: data.receipt_app_no || data.fileNo,
+        applicationno: data.receipt_app_no || data.fileNo,
+        receiptappno: data.receipt_app_no || data.fileNo,
+        receiptapplicantname: data.receipt_applicant_name || data.ownerA_name,
+        receiptdaterecd: data.receipt_date_recd || data.receivedDate,
+        receiptfeeamount: data.receipt_paid_amount || data.office_paid_amount || data.feeAmount,
+        receiptpaidamount: data.receipt_paid_amount || data.office_paid_amount,
+        feeamount: data.receipt_paid_amount || data.office_paid_amount,
+        paidamount: data.receipt_paid_amount || data.office_paid_amount,
+        receiptchallanno: data.receipt_challan_no || data.office_feeChallan,
+        challanno: data.receipt_challan_no || data.office_feeChallan,
+        receiptpaiddate: data.receipt_paid_date || data.paymentDate,
+        feedate: data.receipt_paid_date || data.paymentDate,
+        paiddate: data.receipt_paid_date || data.paymentDate,
+        officerecommendation: data.office_recommendation || data.recommendation,
+        officeriginspecteddate: data.office_rig_inspected_date || data.inspectedDate,
+      };
+
+      for (const [k, v] of Object.entries(aliasMap)) {
+        if (norm === k || norm.includes(k) || k.includes(norm)) {
+          if (v !== undefined && v !== null && v !== "") {
+            return v;
+          }
+        }
+      }
+
+      // 4. Substring / Keyword Fallback across normalized data entries
+      for (const [k, v] of Object.entries(normalizedData)) {
+        if (v !== undefined && v !== null && v !== "") {
+          if (norm.includes(k) || k.includes(norm)) {
+            return v;
+          }
+        }
+      }
+
+      return undefined;
+    };
+
+    for (const field of fields) {
+      const name = field.getName();
+      const val = resolveValue(name);
+      if (val !== undefined && val !== null && val !== "") {
+        try {
+          if (field instanceof PDFTextField) {
+            field.setText(safeString(val));
+            filledCount++;
+          } else if (field instanceof PDFCheckBox) {
+            if (val === true || val === "true" || val === "yes" || val === "1") {
+              field.check();
+            } else {
+              field.uncheck();
+            }
+            filledCount++;
+          }
+        } catch (setErr) {
+          console.warn(`Could not set value on PDF field "${name}":`, setErr);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("AcroForm populating error:", err);
+  }
+  return filledCount;
+}
+
+/**
  * Builds the official 5-Page New Rig Registration native vector AcroForm PDF.
  */
 export async function createOfficialRigRegistrationAcroFormPdf(
   data: Record<string, any>,
   activeTemplate?: MasterPdfTemplate | null
 ): Promise<Uint8Array> {
+  // 1. If an active master template was uploaded by Super Admin, use it!
+  if (activeTemplate && activeTemplate.base64Pdf) {
+    try {
+      const customTemplateBytes = base64ToArrayBuffer(activeTemplate.base64Pdf);
+      const pdfDoc = await PDFDocument.load(customTemplateBytes);
+      const form = pdfDoc.getForm();
+      const fields = form.getFields();
+
+      // If the template contains interactive AcroForm fields, populate them directly
+      if (fields && fields.length > 0) {
+        const filled = await populatePdfAcroFormFields(pdfDoc, data);
+        if (filled > 0) {
+          return await pdfDoc.save();
+        }
+      }
+
+      // If it's a flat scanned master PDF with 0 fields or 0 filled, overlay vector data
+      return await generateRigRegistrationPdfOverlay(data, customTemplateBytes);
+    } catch (tplErr) {
+      console.warn("Could not load custom template, falling back to built-in generator:", tplErr);
+    }
+  }
+
+  // 2. Try default template file in /templates/rig-registration-template.pdf if available
   try {
-    const customTemplateBytes = activeTemplate && activeTemplate.base64Pdf 
-      ? base64ToArrayBuffer(activeTemplate.base64Pdf) 
-      : undefined;
-    
-    // Generates high-fidelity PDF overlaid onto custom or built-in official template
-    const pdfBytes = await generateRigRegistrationPdfOverlay(data, customTemplateBytes);
+    const pdfBytes = await generateRigRegistrationPdfOverlay(data);
     return pdfBytes;
   } catch (err) {
-    console.warn("Could not load custom template overlay, falling back to built-in vector generator:", err);
+    console.warn("Could not load default template overlay, using vector generator:", err);
   }
 
   // Built-in 5-Page High-Fidelity Vector AcroForm Generator
@@ -542,16 +784,35 @@ export async function createOfficialRigRenewalAcroFormPdf(
   data: Record<string, any>,
   activeTemplate?: MasterPdfTemplate | null
 ): Promise<Uint8Array> {
+  // 1. If an active master template was uploaded by Super Admin, use it!
+  if (activeTemplate && activeTemplate.base64Pdf) {
+    try {
+      const customTemplateBytes = base64ToArrayBuffer(activeTemplate.base64Pdf);
+      const pdfDoc = await PDFDocument.load(customTemplateBytes);
+      const form = pdfDoc.getForm();
+      const fields = form.getFields();
+
+      // If the template contains interactive AcroForm fields, populate them directly
+      if (fields && fields.length > 0) {
+        const filled = await populatePdfAcroFormFields(pdfDoc, data);
+        if (filled > 0) {
+          return await pdfDoc.save();
+        }
+      }
+
+      // If it's a flat scanned master PDF with 0 fields or 0 filled, overlay vector data
+      return await generateRigRenewalPdfOverlay(data, customTemplateBytes);
+    } catch (tplErr) {
+      console.warn("Could not load custom renewal template, falling back to built-in generator:", tplErr);
+    }
+  }
+
+  // 2. Try default template file in /templates/rig-renewal-template.pdf if available
   try {
-    const customTemplateBytes = activeTemplate && activeTemplate.base64Pdf 
-      ? base64ToArrayBuffer(activeTemplate.base64Pdf) 
-      : undefined;
-    
-    // Generates high-fidelity PDF overlaid onto custom or built-in official template
-    const pdfBytes = await generateRigRenewalPdfOverlay(data, customTemplateBytes);
+    const pdfBytes = await generateRigRenewalPdfOverlay(data);
     return pdfBytes;
   } catch (err) {
-    console.warn("Could not load custom renewal template overlay, using default vector generator:", err);
+    console.warn("Could not load default renewal template overlay, using default vector generator:", err);
   }
 
   // Built-in 5-Page Rig Renewal Vector AcroForm Generator
@@ -876,4 +1137,42 @@ export async function createOfficialRigRenewalAcroFormPdf(
  */
 export function downloadPdfBytes(pdfBytes: Uint8Array, fileName: string) {
   download(pdfBytes, fileName, "application/pdf");
+}
+
+/**
+ * Triggers direct browser printing of pure PDF stream without HTML web page distortion.
+ */
+export function printPdfBytesDirectly(pdfBytes: Uint8Array): void {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const blobUrl = URL.createObjectURL(blob);
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.src = blobUrl;
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.warn("Direct iframe print failed, falling back to window.open:", err);
+        window.open(blobUrl, "_blank");
+      } finally {
+        setTimeout(() => {
+          try {
+            document.body.removeChild(iframe);
+          } catch {}
+          URL.revokeObjectURL(blobUrl);
+        }, 60000);
+      }
+    }, 400);
+  };
 }

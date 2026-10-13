@@ -18,6 +18,16 @@ export default function Error({
 
   useEffect(() => {
     console.error("Unhandled error:", error);
+    const msg = error?.message || "";
+    if (error?.name === "ChunkLoadError" || msg.includes("Loading chunk") || msg.includes("failed to load chunk")) {
+      const key = "chunk_reload_" + (typeof window !== "undefined" ? window.location.pathname : "");
+      const last = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!last || now - parseInt(last, 10) > 8000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (

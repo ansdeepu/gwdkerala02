@@ -36,6 +36,7 @@ import { Progress } from '@/components/ui/progress';
 import GoogleDriveSetupDialog from '@/components/shared/GoogleDriveSetupDialog';
 import AndroidAppDownloadCard from '@/components/settings/AndroidAppDownloadCard';
 import CentralGoogleDriveCard from '@/components/settings/CentralGoogleDriveCard';
+
 import { getGoogleDriveScriptUrl, getGoogleDriveStorageQuota, type DriveStorageQuota } from '@/lib/googleDriveUploadClient';
 
 const districts = ["Directorate TVM", "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha", "Kottayam", "Idukki", "Ernakulam", "Thrissur", "Palakkad", "Malappuram", "Kozhikode", "Wayanad", "Kannur", "Kasaragod", "Lab TVM", "Lab EKM", "Lab KKD"];
@@ -637,6 +638,7 @@ export default function SettingsPage() {
             <AndroidAppDownloadCard />
 
             <CentralGoogleDriveCard className="lg:col-span-2 shadow-sm border-primary/20" />
+
         </div>
 
         <GoogleDriveSetupDialog

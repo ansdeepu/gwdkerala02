@@ -85,12 +85,57 @@ export default function RootLayout({
                 if (typeof window !== 'undefined') {
                   const originalError = console.error;
                   console.error = function(...args) {
-                    if (typeof args[0] === 'string' && (args[0].includes('Failed to fetch RSC payload') || args[0].includes('Falling back to browser navigation'))) {
-                      console.warn(...args);
+                    var fullText = '';
+                    try {
+                      fullText = args.map(function(a) {
+                        return (a && (a.message || a.stack || (typeof a === 'string' ? a : ''))) || '';
+                      }).join(' ');
+                    } catch(e) {}
+                    if (
+                      fullText.indexOf('Failed to fetch RSC payload') !== -1 ||
+                      fullText.indexOf('Falling back to browser navigation') !== -1 ||
+                      fullText.indexOf('ChunkLoadError') !== -1 ||
+                      fullText.indexOf('Loading chunk') !== -1 ||
+                      fullText.indexOf('hydration') !== -1 ||
+                      fullText.indexOf('Hydration') !== -1
+                    ) {
                       return;
                     }
                     originalError.apply(console, args);
                   };
+
+                  window.addEventListener('error', function(event) {
+                    var msg = (event && (event.message || (event.error && (event.error.message || event.error.stack)))) || '';
+                    if (typeof msg === 'string' && (
+                      msg.indexOf('ChunkLoadError') !== -1 ||
+                      msg.indexOf('Loading chunk') !== -1 ||
+                      msg.indexOf('failed to load chunk') !== -1 ||
+                      msg.indexOf('Failed to fetch RSC payload') !== -1 ||
+                      msg.indexOf('hydration') !== -1 ||
+                      msg.indexOf('Hydration') !== -1
+                    )) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      return true;
+                    }
+                  }, true);
+
+                  window.addEventListener('unhandledrejection', function(event) {
+                    var reason = event && event.reason;
+                    var msg = (reason && (reason.message || reason.stack || reason.toString())) || '';
+                    if (typeof msg === 'string' && (
+                      msg.indexOf('ChunkLoadError') !== -1 ||
+                      msg.indexOf('Loading chunk') !== -1 ||
+                      msg.indexOf('failed to load chunk') !== -1 ||
+                      msg.indexOf('Failed to fetch RSC payload') !== -1 ||
+                      msg.indexOf('hydration') !== -1 ||
+                      msg.indexOf('Hydration') !== -1
+                    )) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      return true;
+                    }
+                  }, true);
                 }
               })();
             `,
