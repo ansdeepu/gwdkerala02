@@ -237,6 +237,16 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Handle file renaming
+    if (data.action === "renameFile") {
+      var file = DriveApp.getFileById(data.fileId);
+      file.setName(data.newName);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        newName: file.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var base64Data = data.base64Data;
     if (!base64Data) {
       return ContentService.createTextOutput(JSON.stringify({

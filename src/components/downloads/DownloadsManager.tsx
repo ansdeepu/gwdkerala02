@@ -153,11 +153,13 @@ export function DownloadsManager() {
     setDeletingId(file.id);
     try {
       const scriptUrl = await getGoogleDriveScriptUrl();
+      // Pass dummy base64Data to bypass validation in GAS
       const res = await fetch('/api/drive-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId: file.id,
+          base64Data: "R1dF", 
           customScriptUrl: scriptUrl,
         }),
       });
@@ -177,6 +179,31 @@ export function DownloadsManager() {
       alert('Delete error: ' + (err?.message || 'Failed to delete file.'));
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleRename = async (file: any, newName: string) => {
+    try {
+      const scriptUrl = await getGoogleDriveScriptUrl();
+      const res = await fetch('/api/drive-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'renameFile',
+          fileId: file.id,
+          newName: newName,
+          customScriptUrl: scriptUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatusMessage({ type: 'success', text: `Renamed to "${data.newName}".` });
+        await fetchFiles();
+      } else {
+        alert('Rename failed: ' + data.error);
+      }
+    } catch (err: any) {
+      alert('Rename error: ' + err.message);
     }
   };
 
@@ -334,20 +361,34 @@ export function DownloadsManager() {
                         </Button>
                       )}
                       {isSuperAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(file)}
-                          disabled={deletingId === file.id}
-                          className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                          title="Delete Document"
-                        >
-                          {deletingId === file.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newName = prompt("Enter new name:", file.title);
+                              if (newName && newName !== file.title) handleRename(file, newName);
+                            }}
+                            className="h-8 px-2 text-xs"
+                            title="Rename Document"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(file)}
+                            disabled={deletingId === file.id}
+                            className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            title="Delete Document"
+                          >
+                            {deletingId === file.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>

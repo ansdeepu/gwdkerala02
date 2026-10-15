@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch(targetScriptUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deleteFile", fileId }),
+      body: JSON.stringify({ action: "deleteFile", fileId, base64Data: "R1dF" }),
       redirect: "follow",
     });
 
