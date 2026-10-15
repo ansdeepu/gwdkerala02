@@ -102,7 +102,7 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent className="text-sm text-amber-900/80 space-y-3">
                 <ul className="list-disc pl-5 space-y-2">
-                    <li><strong>Sub-Office Setup:</strong> Super Admins can create new office locations. This automatically provisions three core accounts: Admin, Scientist, and Engineer with a default password of &quot;123456&quot;.</li>
+                    <li><strong>Sub-Office Setup:</strong> Super Admins can create new office locations. This automatically provisions three core accounts: Admin, Scientist, and Engineer with initial credentials.</li>
                     <li><strong>Global Data:</strong> Super Admins manage departmental drilling rates and global user accounts across the entire state.</li>
                     <li><strong>Transfer Approval:</strong> When an Office Admin initiates a staff transfer, it must be approved by the Super Admin to move the record to the target office.</li>
                 </ul>
@@ -184,10 +184,13 @@ export default function HelpPage() {
             </AccordionItem>
 
             <AccordionItem value="gallery">
-              <AccordionTrigger>Image & Video Gallery</AccordionTrigger>
-              <AccordionContent>
-                <p className="text-sm text-muted-foreground">
-                    Users can attach media links to specific work sites. This allows for visual monitoring of project progress. Direct links to images (from sites like Postimages) and video embeds (from YouTube/Vimeo) are supported.
+              <AccordionTrigger>Image &amp; Video Gallery</AccordionTrigger>
+              <AccordionContent className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Allows officers and field staff to directly upload site photos and operational videos (under <strong>25 MB</strong> per file) directly from their phone, tablet, or workstation.
+                </p>
+                <p>
+                  All uploaded media is automatically synchronized and stored into the departmental Google Drive (<code>keralagwd@gmail.com</code>), neatly organized under <code>GWD_Site_Media / [District Office] / [File No - Site Name]</code>. Embedded video players and photo galleries provide one-click visual monitoring of drilling, yield testing, and installation works. External links (YouTube, Vimeo, Postimages) also remain supported.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -205,6 +208,66 @@ export default function HelpPage() {
                 <p className="text-sm text-muted-foreground">A specialized module for check dams, recharge pits, and ponds. Includes bulk Excel import/export capabilities specifically designed for large-scale ARS data sets.</p>
               </AccordionContent>
             </AccordionItem>
+
+            <AccordionItem value="status-mapping">
+              <AccordionTrigger className="font-semibold text-primary">
+                Automatic Work Status &amp; File Status Population (e.g. Tendered &rarr; Tender Process)
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  To ensure departmental records remain strictly synchronized across all offices, the dashboard includes an <strong>automated status reconciliation engine</strong>. When you update the <strong>Work Status</strong> of individual sites under a file, the overarching <strong>File Status</strong> is automatically calculated and updated:
+                </p>
+
+                <div className="rounded-lg border overflow-hidden my-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 bg-muted/70 font-semibold p-2.5 text-xs text-foreground border-b">
+                    <div>Calculated File Status</div>
+                    <div>Triggering Site Work Status(es)</div>
+                    <div>Lifecycle Description</div>
+                  </div>
+                  <div className="divide-y text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-3 p-2.5 bg-blue-50/50 dark:bg-blue-950/20 items-center gap-1">
+                      <span className="font-bold text-blue-700 dark:text-blue-400">Tender Process</span>
+                      <span className="font-medium text-foreground">Tendered, Selection Notice Issued, Work Order Issued</span>
+                      <span className="text-muted-foreground">
+                        Automatically populated when any active site is set to <strong>Tendered</strong> or linked with an e-Tender. The file transitions to the e-Tender lifecycle.
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 p-2.5 items-center gap-1">
+                      <span className="font-bold text-amber-700 dark:text-amber-400">File Under Process</span>
+                      <span className="font-medium text-foreground">Under Process, TS Pending, Tender Pending, Additional Fund Awaited, Pending, VES Pending</span>
+                      <span className="text-muted-foreground">
+                        Pre-execution stages including initial hydrogeological feasibility surveys, estimate preparation, and administrative sanctions.
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 p-2.5 items-center gap-1">
+                      <span className="font-bold text-purple-700 dark:text-purple-400">Work Initiated</span>
+                      <span className="font-medium text-foreground">Work in Progress, Department Rig Allotted, Work Initiated</span>
+                      <span className="text-muted-foreground">
+                        Triggered when drilling commences, departmental rig is deployed, or on-site physical implementation starts.
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 p-2.5 items-center gap-1">
+                      <span className="font-bold text-indigo-700 dark:text-indigo-400">Partially Completed</span>
+                      <span className="font-medium text-foreground">Mixed combination of completed and ongoing/pending sites</span>
+                      <span className="text-muted-foreground">
+                        Automatically assigned when multi-borewell or multi-site files have some sites finished while other sites are still pending or underway.
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 p-2.5 items-center gap-1">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400">Fully Completed</span>
+                      <span className="font-medium text-foreground">Work Completed (all active sites)</span>
+                      <span className="text-muted-foreground">
+                        Automatically closes the operational lifecycle once all designated works are successfully completed.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-md border">
+                  <strong>Key Takeaway:</strong> When a site&apos;s status is set to <strong>&quot;Tendered&quot;</strong>, the file automatically updates to <strong>&quot;Tender Process&quot;</strong>. You do not need to manually change both fields; the dashboard maintains cross-module integrity with e-Tender and Progress Reports automatically.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>
@@ -218,18 +281,23 @@ export default function HelpPage() {
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="faq-images">
-              <AccordionTrigger className="text-primary font-bold">How do I save images for Staff or Work Sites?</AccordionTrigger>
+              <AccordionTrigger className="text-primary font-bold">How do I upload photos and videos to the Media Gallery?</AccordionTrigger>
               <AccordionContent className="space-y-4 text-sm text-muted-foreground text-justify">
-                <p>Direct file uploading is not supported to ensure database performance. You must provide a <strong>direct public link</strong> to your image.</p>
-                <div className="p-4 rounded-lg bg-secondary/30 border space-y-2">
-                    <p className="font-semibold text-primary flex items-center gap-2"><ImageUp className="h-4 w-4"/> Recommended Workflow (using Postimages):</p>
-                    <ol className="list-decimal pl-5 space-y-1">
-                        <li>Visit <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">Postimages.org</a>.</li>
-                        <li>Upload your photo (select &quot;Do not resize&quot; for best quality).</li>
-                        <li>Once uploaded, copy the <strong>&quot;Direct Link&quot;</strong> (it must end in <code>.jpg</code> or <code>.png</code>).</li>
-                        <li>Paste this link into the Photo URL field in the dashboard. A preview will appear if the link is valid.</li>
+                <p>
+                  Direct device uploads are supported for both site photos and field videos (up to <strong>25 MB</strong> per file). All media is securely synchronized and stored into the department&apos;s centralized Google Drive (<code>keralagwd@gmail.com</code>).
+                </p>
+                <div className="p-4 rounded-lg bg-secondary/30 border space-y-2.5">
+                    <p className="font-semibold text-primary flex items-center gap-2"><ImageUp className="h-4 w-4"/> Recommended Direct Upload Workflow:</p>
+                    <ol className="list-decimal pl-5 space-y-1.5 text-xs">
+                        <li>Open the work site record in <strong>Deposit Works</strong>, <strong>Plan Fund</strong>, or <strong>ARS</strong> and navigate to the site&apos;s <strong>Media Gallery</strong>.</li>
+                        <li>Click <strong>&quot;Upload Photo&quot;</strong> or <strong>&quot;Upload Video&quot;</strong> and select any file below <strong>25 MB</strong> from your phone, camera, or computer.</li>
+                        <li>The dashboard automatically compresses photos for quick loading, encodes videos, and syncs them directly into your district office&apos;s folder.</li>
+                        <li>Photos preview instantly and videos play directly within the integrated media viewer.</li>
                     </ol>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  <em>Note:</em> For staff profile photos, direct uploads from the Establishment form are similarly supported up to 25 MB. Pre-hosted external URLs (such as YouTube/Vimeo embeds or direct image links) continue to be accepted as an alternative.
+                </p>
               </AccordionContent>
             </AccordionItem>
             
@@ -254,6 +322,18 @@ export default function HelpPage() {
               <AccordionTrigger>How does the LSG and Constituency mapping work?</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground">
                 Admins can import an Excel mapping file in <strong>Settings</strong>. Once mapped, selecting an LSG in any project form will automatically filter the &quot;Constituency&quot; dropdown to show only the LACs associated with that LSG.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="faq-status-sync">
+              <AccordionTrigger>Why does File Status automatically change to &quot;Tender Process&quot;?</AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  The dashboard maintains cross-system data consistency between project files and the e-Tender module. When you mark any active site&apos;s Work Status as <strong>&quot;Tendered&quot;</strong> (or when an e-Tender is published for that site), the overarching file status automatically changes to <strong>&quot;Tender Process&quot;</strong>.
+                </p>
+                <p>
+                  This automatic synchronization ensures that notice boards, district progress reports, and file tracking lists stay aligned in real-time without requiring duplicate manual edits.
+                </p>
               </AccordionContent>
             </AccordionItem>
           </Accordion>

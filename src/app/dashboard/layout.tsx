@@ -401,7 +401,7 @@ function InnerDashboardLayout({ children }: { children: React.ReactNode }) {
             </header>
             <main className={cn(
               "flex-1 overflow-x-hidden overflow-y-auto bg-background",
-              !isDashboardPage ? "p-6 pt-4" : "p-0"
+              !isDashboardPage ? "p-6 pt-8" : "p-0"
             )}>
               {!isDashboardPage && (
                 <Suspense fallback={null}>
