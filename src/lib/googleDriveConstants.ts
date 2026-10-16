@@ -247,6 +247,17 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Handle file deletion (moves to Trash in Google Drive)
+    if (data.action === "deleteFile" || data.action === "delete") {
+      var fileToDelete = DriveApp.getFileById(data.fileId);
+      fileToDelete.setTrashed(true);
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        action: "deleteFile",
+        fileId: data.fileId
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var base64Data = data.base64Data;
     if (!base64Data) {
       return ContentService.createTextOutput(JSON.stringify({

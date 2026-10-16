@@ -4,9 +4,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, Download, Trash2, RefreshCw, FileText, ExternalLink, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Loader2,
+  Upload,
+  Download,
+  Trash2,
+  RefreshCw,
+  FileText,
+  ExternalLink,
+  AlertCircle,
+  CheckCircle2,
+  Pencil,
+  ArrowUp,
+  ArrowDown
+} from 'lucide-react';
 import { getGoogleDriveScriptUrl } from '@/lib/googleDriveUploadClient';
 import { UploadDocumentDialog } from './UploadDocumentDialog';
+
+const LOCAL_STORAGE_ORDER_KEY = "gwd_documents_order_arrangement";
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -34,7 +52,41 @@ export function DownloadsManager() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Rename Dialog states
+  const [renameTargetFile, setRenameTargetFile] = useState<any | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+
   const isSuperAdmin = user?.role === 'superAdmin';
+
+  const applySavedOrder = (rawFiles: any[]) => {
+    try {
+      const savedOrderJson = localStorage.getItem(LOCAL_STORAGE_ORDER_KEY);
+      if (!savedOrderJson) return rawFiles;
+      const orderIds: string[] = JSON.parse(savedOrderJson);
+      if (!Array.isArray(orderIds)) return rawFiles;
+
+      const orderMap = new Map<string, number>();
+      orderIds.forEach((id, index) => orderMap.set(id, index));
+
+      return [...rawFiles].sort((a, b) => {
+        const orderA = orderMap.has(a.id) ? (orderMap.get(a.id) as number) : 9999;
+        const orderB = orderMap.has(b.id) ? (orderMap.get(b.id) as number) : 9999;
+        return orderA - orderB;
+      });
+    } catch {
+      return rawFiles;
+    }
+  };
+
+  const saveOrderToStorage = (orderedFiles: any[]) => {
+    try {
+      const ids = orderedFiles.map((f) => f.id);
+      localStorage.setItem(LOCAL_STORAGE_ORDER_KEY, JSON.stringify(ids));
+    } catch (e) {
+      console.warn("Could not persist document order arrangement:", e);
+    }
+  };
 
   const fetchFiles = useCallback(async () => {
     setIsLoading(true);
@@ -59,12 +111,13 @@ export function DownloadsManager() {
 
       const data = await res.json();
       if (data.success) {
-        // Filter out any diagnostic test files that were created during upload pipeline testing
+        // Filter out any internal diagnostic test files
         const testFileNames = ['doc1.txt', 'sample_doc.txt', 'hello.txt', 'test_doc.txt'];
         const cleanFiles = (data.files || []).filter(
           (f: any) => !testFileNames.includes((f.title || '').trim().toLowerCase())
         );
-        setFiles(cleanFiles);
+        const ordered = applySavedOrder(cleanFiles);
+        setFiles(ordered);
       } else {
         console.warn('Could not list folder media:', data.error);
         setFiles([]);
@@ -89,11 +142,9 @@ export function DownloadsManager() {
     setStatusMessage(null);
 
     try {
-      // 1. Read file as base64 safely via Promise
       const base64Data = await readFileAsBase64(file);
       const scriptUrl = await getGoogleDriveScriptUrl();
 
-      // 2. Call backend proxy route
       const res = await fetch('/api/drive-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,13 +204,11 @@ export function DownloadsManager() {
     setDeletingId(file.id);
     try {
       const scriptUrl = await getGoogleDriveScriptUrl();
-      // Pass dummy base64Data to bypass validation in GAS
       const res = await fetch('/api/drive-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId: file.id,
-          base64Data: "R1dF", 
           customScriptUrl: scriptUrl,
         }),
       });
@@ -182,7 +231,22 @@ export function DownloadsManager() {
     }
   };
 
-  const handleRename = async (file: any, newName: string) => {
+  const handleOpenRename = (file: any) => {
+    setRenameTargetFile(file);
+    setNewTitle(file.title || '');
+  };
+
+  const handleConfirmRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameTargetFile || !newTitle.trim()) return;
+
+    const trimmedNewTitle = newTitle.trim();
+    if (trimmedNewTitle === renameTargetFile.title) {
+      setRenameTargetFile(null);
+      return;
+    }
+
+    setIsRenaming(true);
     try {
       const scriptUrl = await getGoogleDriveScriptUrl();
       const res = await fetch('/api/drive-upload', {
@@ -190,21 +254,46 @@ export function DownloadsManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'renameFile',
-          fileId: file.id,
-          newName: newName,
+          fileId: renameTargetFile.id,
+          newName: trimmedNewTitle,
           customScriptUrl: scriptUrl,
         }),
       });
+
       const data = await res.json();
       if (data.success) {
-        setStatusMessage({ type: 'success', text: `Renamed to "${data.newName}".` });
+        setStatusMessage({
+          type: 'success',
+          text: `Document renamed to "${data.newName || trimmedNewTitle}".`,
+        });
+        setRenameTargetFile(null);
         await fetchFiles();
       } else {
-        alert('Rename failed: ' + data.error);
+        alert('Rename failed: ' + (data.error || 'Unknown error'));
       }
     } catch (err: any) {
-      alert('Rename error: ' + err.message);
+      console.error('Rename error:', err);
+      alert('Rename error: ' + (err?.message || 'Failed to rename file.'));
+    } finally {
+      setIsRenaming(false);
     }
+  };
+
+  // Arrangement: Move document Up or Down
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= files.length) return;
+
+    const updated = [...files];
+    const [movedItem] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, movedItem);
+
+    setFiles(updated);
+    saveOrderToStorage(updated);
+    setStatusMessage({
+      type: 'success',
+      text: `Arrangement updated: "${movedItem.title}" moved ${direction}.`,
+    });
   };
 
   return (
@@ -270,6 +359,64 @@ export function DownloadsManager() {
         />
       )}
 
+      {/* Rename Document Dialog Modal */}
+      <Dialog open={!!renameTargetFile} onOpenChange={(open) => { if (!open && !isRenaming) setRenameTargetFile(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Pencil className="h-4 w-4 text-primary" />
+              Rename Document
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Change the display title of this official document in Google Drive.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmRename} className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="rename-input" className="text-xs font-semibold">
+                Document Name *
+              </Label>
+              <Input
+                id="rename-input"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter new document title"
+                disabled={isRenaming}
+                autoFocus
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRenameTargetFile(null)}
+                disabled={isRenaming}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isRenaming || !newTitle.trim() || newTitle.trim() === renameTargetFile?.title}
+                className="gap-1.5"
+              >
+                {isRenaming ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save New Name'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 border rounded-xl bg-card">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -304,6 +451,7 @@ export function DownloadsManager() {
             <TableHeader className="bg-muted/40">
               <TableRow>
                 <TableHead className="w-[50px]">#</TableHead>
+                {isSuperAdmin && <TableHead className="w-[80px] text-center">Arrange</TableHead>}
                 <TableHead>Document Name</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -314,6 +462,35 @@ export function DownloadsManager() {
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {idx + 1}
                   </TableCell>
+
+                  {/* Super Admin Move Up / Move Down buttons */}
+                  {isSuperAdmin && (
+                    <TableCell className="text-center p-1">
+                      <div className="inline-flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={idx === 0}
+                          onClick={() => handleMove(idx, 'up')}
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          title="Move Up"
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={idx === files.length - 1}
+                          onClick={() => handleMove(idx, 'down')}
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          title="Move Down"
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
+
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -322,6 +499,7 @@ export function DownloadsManager() {
                       </span>
                     </div>
                   </TableCell>
+
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {file.viewUrl && (
@@ -360,19 +538,18 @@ export function DownloadsManager() {
                           </a>
                         </Button>
                       )}
+
                       {isSuperAdmin && (
                         <>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              const newName = prompt("Enter new name:", file.title);
-                              if (newName && newName !== file.title) handleRename(file, newName);
-                            }}
-                            className="h-8 px-2 text-xs"
+                            onClick={() => handleOpenRename(file)}
+                            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
                             title="Rename Document"
                           >
-                            <FileText className="h-3.5 w-3.5" />
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Rename</span>
                           </Button>
                           <Button
                             variant="ghost"

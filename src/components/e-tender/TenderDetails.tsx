@@ -835,7 +835,7 @@ export default function TenderDetails() {
                             <CardContent className="p-6 pt-0">
                                 <div className="mt-4 pt-4 border-t space-y-2">
                                     {corrigendumFields.map((corrigendum, index) => (
-                                        <div key={corrigendum.id} className="p-4 border rounded-md bg-secondary/30 relative group">
+                                        <div key={`${corrigendum.id}-${index}`} className="p-4 border rounded-md bg-secondary/30 relative group">
                                             <div className="absolute top-2 right-2 flex items-center gap-1">
                                                 {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditCorrigendumClick(corrigendum, index)}><Edit className="h-4 w-4"/></Button>}
                                                 {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => handleRemoveCorrigendum(index)}><Trash2 className="h-4 w-4"/></Button>}
@@ -884,7 +884,7 @@ export default function TenderDetails() {
                               <CardContent className="p-6 pt-0">
                                   <div className="mt-4 pt-4 border-t space-y-2">
                                       {retenderFields.map((retender, index) => (
-                                          <div key={retender.id} className="p-4 border rounded-md bg-secondary/30 relative group">
+                                          <div key={`${retender.id}-${index}`} className="p-4 border rounded-md bg-secondary/30 relative group">
                                               <div className="absolute top-2 right-2 flex items-center gap-1">
                                                   {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditRetenderClick(retender, index)}><Edit className="h-4 w-4"/></Button>}
                                                   {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => setRetenderToDelete({ id: retender.id, index })}><Trash2 className="h-4 w-4"/></Button>}
@@ -992,7 +992,7 @@ export default function TenderDetails() {
                                         const masterBidder = allBidders?.find(b => b.name === bidder.name);
                                         const bidderEmail = bidder.email || masterBidder?.email;
                                         return (
-                                            <div key={bidder.id} className="p-3 border rounded-md bg-secondary/30 relative">
+                                            <div key={`${bidder.id}-${index}`} className="p-3 border rounded-md bg-secondary/30 relative">
                                                 <div className="flex items-start justify-between mb-2">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <h5 className="font-bold text-sm">Bidder #{index + 1}: {bidder.name}</h5>

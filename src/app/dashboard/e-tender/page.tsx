@@ -411,10 +411,10 @@ function WorkOrderDataDialog({ isOpen, onOpenChange, tenders }: { isOpen: boolea
                 </TableHeader>
                 <TableBody>
                     {data.length > 0 ? (
-                        data.map(row => {
+                        data.map((row, rIdx) => {
                             const isPurchaseCompleted = isPurchaseTab && row.purchaseStatus === 'Completed';
                             return (
-                                <TableRow key={row.id} className={cn(
+                                <TableRow key={`${row.id}-${row.slNo}-${rIdx}`} className={cn(
                                     ((row.isOverdue && activeTab === 'ongoingWorks') || isPurchaseCompleted) && "text-destructive font-bold", 
                                     "text-[11px]"
                                 )}>
@@ -1857,7 +1857,7 @@ export default function ETenderListPage() {
                                   }
 
                                   return (
-                                      <TableRow key={t.id || index} className={cn(isCompleted && "text-destructive font-bold")}>
+                                      <TableRow key={`${t.id || 'tender'}-${t.eTenderNo || ''}-${index}`} className={cn(isCompleted && "text-destructive font-bold")}>
                                         <TableCell className="whitespace-nowrap font-mono text-xs">{t.eTenderNo}</TableCell>
                                         <TableCell className="text-xs leading-tight">{t.nameOfWork}</TableCell>
                                         
@@ -2034,7 +2034,7 @@ export default function ETenderListPage() {
                             const pg = t.performanceGuaranteeAmountSubmitted;
                             const apg = t.additionalPerformanceGuaranteeAmountSubmitted;
                             return (
-                              <TableRow key={t.id || index}>
+                              <TableRow key={`${t.id || 'guarantee'}-${t.eTenderNo || ''}-${index}`}>
                                 <TableCell className="text-xs">{index + 1}</TableCell>
                                 <TableCell className="whitespace-nowrap font-mono text-xs">{t.eTenderNo || "N/A"}</TableCell>
                                 <TableCell className="text-xs leading-tight">{t.nameOfWork || "N/A"}</TableCell>

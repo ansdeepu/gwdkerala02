@@ -297,7 +297,11 @@ export function useFileEntries() {
                 
                 let origSite = existingSiteDetails.find((s: any) => incSite.id && s.id && s.id === incSite.id);
                 if (!origSite && incName) {
-                    origSite = existingSiteDetails.find((s: any) => cleanStr(s.nameOfSite || s.name || '') === incName);
+                    const incPurpose = cleanStr(incSite.purpose || '');
+                    origSite = existingSiteDetails.find((s: any) => 
+                        cleanStr(s.nameOfSite || s.name || '') === incName &&
+                        (!incPurpose || !s.purpose || cleanStr(s.purpose) === incPurpose)
+                    );
                 }
                 if (!origSite) {
                     origSite = existingSiteDetails[idx] || {};

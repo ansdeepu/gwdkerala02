@@ -224,13 +224,48 @@ export const isSiteTargetedByTender = (
     const siteId = site?.id || (fileNo ? `${fileNo}_${idx}` : undefined);
     const siteName = (site?.nameOfSite || '').trim().toLowerCase();
     const sitePurpose = (site?.purpose || '').trim().toLowerCase();
+    const siteStatus = (site?.workStatus || '').trim().toLowerCase();
+
+    // Protection: Work Completed sites should never be targeted by a different/new tender
+    const isCompleted = siteStatus === 'work completed' || siteStatus === 'completed';
+    const normTenderNo = site?.tenderNo?.trim().toUpperCase();
+    const thisTenderNo = tender?.eTenderNo?.trim().toUpperCase();
+    if (isCompleted && (!normTenderNo || !thisTenderNo || normTenderNo !== thisTenderNo)) {
+        return false;
+    }
 
     if (hasExplicitSelection) {
-        // 1. Exact siteId match in selectedSiteIds
+        // Purpose specificity check: If linkedSites contains entries for this site name with a different purpose,
+        // and NONE with this site's purpose, do not target this site (e.g. Pumping Scheme tender vs BWC site)
+        if (linkedSites.length > 0 && sitePurpose) {
+            const sameNameInLinked = linkedSites.filter((ls: any) => {
+                const lsFile = ls.fileNo;
+                const lsName = (ls.nameOfSite || '').trim().toLowerCase();
+                return (!lsFile || (fileNo && matchFileNo(lsFile, fileNo))) && (!lsName || lsName === siteName);
+            });
+            if (sameNameInLinked.length > 0) {
+                const hasMatchingPurpose = sameNameInLinked.some((ls: any) => {
+                    const lsPurpose = (ls.purpose || '').trim().toLowerCase();
+                    return !lsPurpose || lsPurpose === sitePurpose;
+                });
+                if (!hasMatchingPurpose) {
+                    return false;
+                }
+            }
+        }
+
+        // 1. Unique composite ID match: e.g. "1193_2026__idx0__pumping_scheme"
+        const cleanFile = fileNo ? fileNo.trim().toUpperCase().replace(/[/\\?%*:|"<>]/g, '_') : '';
+        const cleanPurpose = sitePurpose.replace(/[^a-z0-9]/g, '_');
+        const uniqueId = (cleanFile && typeof idx === 'number') ? `${cleanFile}__idx${idx}__${cleanPurpose}` : '';
+        if (uniqueId && selectedSiteIds.includes(uniqueId)) return true;
+        if (uniqueId && linkedSites.some((ls: any) => ls.siteId === uniqueId)) return true;
+
+        // 2. Exact siteId match in selectedSiteIds
         if (siteId && selectedSiteIds.includes(siteId)) return true;
         if (site?.id && selectedSiteIds.includes(site.id)) return true;
 
-        // 2. Exact match in linkedSites by siteId
+        // 3. Exact match in linkedSites by siteId
         if (linkedSites.some((ls: any) => 
             (siteId && ls.siteId === siteId) || 
             (site?.id && (ls.siteId === site.id || ls.id === site.id))
@@ -238,7 +273,7 @@ export const isSiteTargetedByTender = (
             return true;
         }
 
-        // 3. Normalized index match across file prefixes: e.g. "1320/2026_0" matching "KLM/1320/2026" index 0
+        // 4. Normalized index match across file prefixes: e.g. "1320/2026_0" matching "KLM/1320/2026" index 0
         const matchesIndexPattern = (idStr?: string) => {
             if (!idStr || typeof idStr !== 'string') return false;
             if (typeof idx !== 'number' || idx < 0) return false;
@@ -251,7 +286,7 @@ export const isSiteTargetedByTender = (
         if (selectedSiteIds.some(matchesIndexPattern)) return true;
         if (linkedSites.some((ls: any) => matchesIndexPattern(ls.siteId) || matchesIndexPattern(ls.id))) return true;
 
-        // 4. File No + Site Name + Purpose match in linkedSites
+        // 5. File No + Site Name + Purpose match in linkedSites
         if (fileNo && siteName && linkedSites.some((ls: any) => {
             const lsFile = ls.fileNo;
             const lsName = (ls.nameOfSite || '').trim().toLowerCase();
@@ -274,8 +309,8 @@ export const isSiteTargetedByTender = (
     if (isFileMatch) return true;
 
     // Or if the tender number matches and is valid
-    const normTenderNo = site?.tenderNo?.trim().toUpperCase();
-    if (normTenderNo && normTenderNo !== '_CLEAR_' && normTenderNo !== 'QUOTATION' && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === normTenderNo) {
+    const siteTenderNo = site?.tenderNo?.trim().toUpperCase();
+    if (siteTenderNo && siteTenderNo !== '_CLEAR_' && siteTenderNo !== 'QUOTATION' && tender.eTenderNo && tender.eTenderNo.trim().toUpperCase() === siteTenderNo) {
         return true;
     }
 

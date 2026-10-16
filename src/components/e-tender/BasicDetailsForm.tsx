@@ -445,25 +445,45 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
             nameOfSite: string;
             purpose?: string;
             workStatus?: string;
+            isDisabled: boolean;
         }> = [];
+
+        const currentSelected = Array.isArray(selectedSiteIds) ? selectedSiteIds : [];
 
         matchingFiles.forEach(file => {
             if (Array.isArray(file.siteDetails)) {
                 file.siteDetails.forEach((site, idx) => {
-                    const sId = site.id || `${file.fileNo}_${idx}`;
+                    const status = site.workStatus || 'Pending';
+                    const lowerStatus = status.toLowerCase();
+                    const siteName = (site.nameOfSite || `Site ${idx + 1}`).trim();
+                    const purpose = (site.purpose || 'N/A').trim();
+                    const cleanPurpose = purpose.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+                    // Composite purpose-aware site ID to prevent ambiguity when same site name has different purposes
+                    const sId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}_${cleanPurpose}`;
+                    const legacySId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}`;
+
+                    const tenderNoMatch = tender.eTenderNo ? (site.tenderNo || '').trim().toUpperCase() === tender.eTenderNo.trim().toUpperCase() : false;
+                    const isSelected = currentSelected.includes(sId) || currentSelected.includes(legacySId) || currentSelected.includes(site.id || '') || tenderNoMatch;
+
+                    // Disable if Work Completed and not selected in this tender
+                    const isCompleted = lowerStatus === 'work completed';
+                    const isDisabled = isCompleted && !isSelected;
+
                     sitesList.push({
                         fileNo: file.fileNo || '',
                         siteId: sId,
-                        nameOfSite: site.nameOfSite || `Site ${idx + 1}`,
-                        purpose: site.purpose || 'N/A',
-                        workStatus: site.workStatus || 'Pending'
+                        nameOfSite: siteName,
+                        purpose: purpose,
+                        workStatus: status,
+                        isDisabled: isDisabled
                     });
                 });
             }
         });
 
         return sitesList;
-    }, [matchingFiles]);
+    }, [matchingFiles, selectedSiteIds, tender.eTenderNo]);
 
     const calculateFees = useCallback(() => {
         const amount = (typeof estimateAmount !== 'number' || isNaN(estimateAmount) || estimateAmount === null) ? 0 : estimateAmount;
@@ -728,25 +748,30 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                                         {availableSites.map(site => {
                                             const isSelected = currentSelected.includes(site.siteId);
+                                            // Explicitly force enabled for any site associated with tender files
+                                            const isClickable = true; 
+
                                             return (
                                                 <label
                                                     key={site.siteId}
-                                                    className={`flex items-start gap-2.5 p-2 rounded border text-xs cursor-pointer transition-colors ${
+                                                    className={`flex items-start gap-2.5 p-2 rounded border text-xs transition-colors cursor-pointer ${
                                                         isSelected
                                                             ? 'bg-primary/5 border-primary/40 font-medium'
-                                                            : 'bg-background hover:bg-muted/40 border-border text-muted-foreground'
+                                                            : 'bg-background border-border text-muted-foreground hover:bg-muted/40'
                                                     }`}
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={isSelected}
+                                                        disabled={false}
                                                         className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
                                                         onChange={(e) => {
                                                             let updated: string[];
                                                             if (e.target.checked) {
                                                                 updated = [...new Set([...currentSelected, site.siteId])];
                                                             } else {
-                                                                updated = currentSelected.filter(id => id !== site.siteId);
+                                                                // Filter out both siteId and matching index-based formats
+                                                                updated = currentSelected.filter(id => id !== site.siteId && !id.endsWith(`_${site.siteId}`));
                                                             }
                                                             setValue('selectedSiteIds', updated, { shouldDirty: true, shouldValidate: true });
                                                         }}
