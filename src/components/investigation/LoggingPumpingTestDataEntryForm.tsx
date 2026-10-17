@@ -1742,18 +1742,15 @@ export default function LoggingPumpingTestDataEntryFormComponent({ fileNoToEdit,
                     ? data.workVideos 
                     : (originalData?.workVideos || []),
             };
-            if (originalData.index !== undefined) updateSite(originalData.index, mergedSiteData); else appendSite(mergedSiteData);
+            if (originalData.index !== undefined) {
+                updateSite(originalData.index, mergedSiteData);
+            } else {
+                appendSite(mergedSiteData);
+            }
             setIsManualDirty(true);
             closeDialog();
 
-            const currentSites = getValues('siteDetails') || [];
-            const newSites = [...currentSites];
-            if (originalData.index !== undefined) {
-                newSites[originalData.index] = mergedSiteData;
-            } else {
-                newSites.push(mergedSiteData);
-            }
-            setValue('siteDetails', newSites, { shouldDirty: true });
+            const newSites = getValues('siteDetails') || [];
 
             if (autoSaveTimerRef.current) {
                 clearTimeout(autoSaveTimerRef.current);

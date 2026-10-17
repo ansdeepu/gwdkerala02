@@ -2028,19 +2028,16 @@ export default function DataEntryFormComponent({ fileNoToEdit, initialData, supe
                     ? data.workVideos 
                     : (originalData?.workVideos || []),
             };
-            if (originalData.index !== undefined) updateSite(originalData.index, mergedSiteData); else appendSite(mergedSiteData);
+            if (originalData.index !== undefined) {
+                updateSite(originalData.index, mergedSiteData);
+            } else {
+                appendSite(mergedSiteData);
+            }
             setIsManualDirty(true);
             closeDialog();
 
             // Direct persistence for existing files to guarantee drilling details & completion dates are saved immediately
-            const currentSites = getValues('siteDetails') || [];
-            const newSites = [...currentSites];
-            if (originalData.index !== undefined) {
-                newSites[originalData.index] = mergedSiteData;
-            } else {
-                newSites.push(mergedSiteData);
-            }
-            setValue('siteDetails', newSites, { shouldDirty: true });
+            const newSites = getValues('siteDetails') || [];
 
             if (fileIdToEdit) {
                 if (autoSaveTimerRef.current) {

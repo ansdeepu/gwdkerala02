@@ -329,16 +329,7 @@ export function useFileEntries() {
                 return mergedSite;
             });
 
-            if (incomingSiteDetails.length < existingSiteDetails.length) {
-                existingSiteDetails.forEach((origS: any) => {
-                    const origId = origS.id;
-                    const origNameClean = (origS.nameOfSite || origS.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                    const existsInFinal = finalSiteDetails.some((f: any) => (origId && f.id === origId) || ((origS.nameOfSite || origS.name) && (f.nameOfSite || f.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === origNameClean));
-                    if (!existsInFinal) {
-                        finalSiteDetails.push(origS);
-                    }
-                });
-            }
+            // Removed the problematic re-adding logic
         }
 
         const payload = { 

@@ -344,10 +344,36 @@ export const getAutoResolvedTenderStatus = (tender: any): string => {
         return 'Tender Cancelled';
     }
 
-    // 2. Retender
+    // 2. Retender / Retender Schedule
     const hasRetenderCorrigendum = corrigendums.some((c: any) => c?.corrigendumType === 'Retender');
-    if (hasRetenderCorrigendum || retenders.length > 0 || tender.presentStatus === 'Retender') {
-        return 'Retender';
+    const hasRetenders = retenders.length > 0;
+
+    if (hasRetenderCorrigendum || hasRetenders || tender.presentStatus === 'Retender') {
+        if (hasRetenders) {
+            const latestRetender = retenders[retenders.length - 1];
+            const pubDateVal = latestRetender?.dateTimeOfPublishingRetender;
+
+            if (isDatePopulated(pubDateVal)) {
+                let pubDate: Date | null = null;
+                if (pubDateVal instanceof Date) {
+                    pubDate = pubDateVal;
+                } else if (typeof pubDateVal === 'object' && typeof pubDateVal.toDate === 'function') {
+                    pubDate = pubDateVal.toDate();
+                } else {
+                    pubDate = new Date(String(pubDateVal));
+                }
+
+                if (pubDate && !isNaN(pubDate.getTime()) && pubDate.getTime() > Date.now()) {
+                    // Actual date & time of publishing has NOT arrived yet -> Status is 'Retender'
+                    return 'Retender';
+                }
+                // Actual date & time has arrived: Status automatically changes to routine flow below!
+            } else {
+                return 'Retender';
+            }
+        } else {
+            return 'Retender';
+        }
     }
 
     // 3. Work Order Issued or Supply Order Issued
@@ -364,6 +390,26 @@ export const getAutoResolvedTenderStatus = (tender: any): string => {
     const hasSelectionNoticeDate = isDatePopulated(tender.selectionNoticeDate);
     if (hasSelectionNoticeDate) {
         return 'Selection Notice Issued';
+    }
+
+    // 5. Bid Opened / Tender Process for Retender
+    if (hasRetenders) {
+        const latestRetender = retenders[retenders.length - 1];
+        const openingVal = latestRetender?.dateOfOpeningTender;
+        if (isDatePopulated(openingVal)) {
+            let opDate: Date | null = null;
+            if (openingVal instanceof Date) {
+                opDate = openingVal;
+            } else if (typeof openingVal === 'object' && typeof openingVal.toDate === 'function') {
+                opDate = openingVal.toDate();
+            } else {
+                opDate = new Date(String(openingVal));
+            }
+            if (opDate && !isNaN(opDate.getTime()) && opDate.getTime() <= Date.now()) {
+                return 'Bid Opened';
+            }
+        }
+        return 'Tender Process';
     }
 
     // 5. Bid Opened

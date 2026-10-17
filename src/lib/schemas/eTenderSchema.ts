@@ -202,6 +202,7 @@ export type Corrigendum = z.infer<typeof CorrigendumSchema>;
 export const RetenderDetailsSchema = z.object({
     id: z.string(),
     retenderDate: z.any().optional().nullable(),
+    dateTimeOfPublishingRetender: z.any().optional().nullable(),
     lastDateOfReceipt: z.any().optional().nullable(),
     dateOfOpeningTender: z.any().optional().nullable(),
 });

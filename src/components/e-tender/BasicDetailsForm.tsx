@@ -463,8 +463,12 @@ export default function BasicDetailsForm({ onSubmit, onCancel, isSubmitting, ini
                     const sId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}_${cleanPurpose}`;
                     const legacySId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}`;
 
-                    const tenderNoMatch = tender.eTenderNo ? (site.tenderNo || '').trim().toUpperCase() === tender.eTenderNo.trim().toUpperCase() : false;
-                    const isSelected = currentSelected.includes(sId) || currentSelected.includes(legacySId) || currentSelected.includes(site.id || '') || tenderNoMatch;
+                    let isSelected = false;
+                    if (currentSelected.length > 0) {
+                        isSelected = currentSelected.includes(sId) || currentSelected.includes(legacySId);
+                    } else if (tender.eTenderNo && site.tenderNo) {
+                        isSelected = (site.tenderNo || '').trim().toUpperCase() === tender.eTenderNo.trim().toUpperCase();
+                    }
 
                     // Disable if Work Completed and not selected in this tender
                     const isCompleted = lowerStatus === 'work completed';

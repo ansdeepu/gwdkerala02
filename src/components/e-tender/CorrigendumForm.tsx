@@ -57,52 +57,70 @@ const DateTimePicker12h = ({
             return;
         }
         const hour24 = ampm === 'PM' ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
-        const date = new Date(newDate);
-        date.setHours(hour24, m, 0, 0);
-        onChange(date);
+        const parts = newDate.split('-');
+        if (parts.length === 3) {
+            const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), hour24, m, 0, 0);
+            onChange(date);
+        } else {
+            const date = new Date(newDate);
+            date.setHours(hour24, m, 0, 0);
+            onChange(date);
+        }
     };
 
     const handleTimeChange = (newH: number, newM: number, newAmpm: string) => {
         if (!datePart) return;
         const hour24 = newAmpm === 'PM' ? (newH === 12 ? 12 : newH + 12) : (newH === 12 ? 0 : newH);
-        const date = new Date(datePart);
-        date.setHours(hour24, newM, 0, 0);
-        onChange(date);
+        const parts = datePart.split('-');
+        if (parts.length === 3) {
+            const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), hour24, newM, 0, 0);
+            onChange(date);
+        } else {
+            const date = new Date(datePart);
+            date.setHours(hour24, newM, 0, 0);
+            onChange(date);
+        }
     };
 
     return (
         <FormItem className="space-y-1">
             <FormLabel>{label}</FormLabel>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 flex-nowrap">
                 <FormControl>
                     <Input 
                         type="date" 
-                        className="w-[150px]" 
+                        className="w-[150px] shrink-0" 
                         value={datePart} 
                         onChange={(e) => handleDateChange(e.target.value)}
                         disabled={disabled}
                     />
                 </FormControl>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                     <Select 
+                        key={`hour-${h}`}
                         value={String(h)} 
-                        onValueChange={(val) => handleTimeChange(parseInt(val), m, ampm)}
+                        onValueChange={(val) => handleTimeChange(parseInt(val, 10), m, ampm)}
                         disabled={disabled || !datePart}
                     >
-                        <SelectTrigger className="w-[65px] h-10"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[65px] h-10 shrink-0">
+                            <SelectValue placeholder="10" />
+                        </SelectTrigger>
                         <SelectContent className="max-h-60">
                             {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(hour => (
                                 <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                    <span className="font-bold">:</span>
+                    <span className="font-bold px-0.5 shrink-0">:</span>
                     <Select 
+                        key={`min-${m}`}
                         value={String(m).padStart(2, '0')} 
-                        onValueChange={(val) => handleTimeChange(h, parseInt(val), ampm)}
+                        onValueChange={(val) => handleTimeChange(h, parseInt(val, 10), ampm)}
                         disabled={disabled || !datePart}
                     >
-                        <SelectTrigger className="w-[65px] h-10"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[65px] h-10 shrink-0">
+                            <SelectValue placeholder="00" />
+                        </SelectTrigger>
                         <SelectContent className="max-h-60">
                             {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(min => (
                                 <SelectItem key={min} value={min}>{min}</SelectItem>
@@ -110,11 +128,14 @@ const DateTimePicker12h = ({
                         </SelectContent>
                     </Select>
                     <Select 
+                        key={`ampm-${ampm}`}
                         value={ampm} 
                         onValueChange={(val) => handleTimeChange(h, m, val)}
                         disabled={disabled || !datePart}
                     >
-                        <SelectTrigger className="w-[75px] h-10"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[75px] h-10 shrink-0">
+                            <SelectValue placeholder="AM" />
+                        </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="AM">AM</SelectItem>
                             <SelectItem value="PM">PM</SelectItem>
@@ -142,8 +163,8 @@ export default function CorrigendumForm({ onSubmit, onCancel, isSubmitting, init
                 ...initialData,
                 corrigendumType: initialData.corrigendumType || undefined,
                 corrigendumDate: formatDateForInput(initialData.corrigendumDate),
-                lastDateOfReceipt: initialData.lastDateOfReceipt,
-                dateOfOpeningTender: initialData.dateOfOpeningTender,
+                lastDateOfReceipt: initialData.lastDateOfReceipt ? toDateOrNull(initialData.lastDateOfReceipt) : null,
+                dateOfOpeningTender: initialData.dateOfOpeningTender ? toDateOrNull(initialData.dateOfOpeningTender) : null,
                 reason: initialData.reason || '',
             });
         } else {
@@ -177,7 +198,7 @@ export default function CorrigendumForm({ onSubmit, onCancel, isSubmitting, init
                                 )}/>
                             </div>
                             {watchedType === 'Date Extension' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <FormField 
                                         name="lastDateOfReceipt" 
                                         control={control} 

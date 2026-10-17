@@ -144,7 +144,7 @@ export default function TenderDetails() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const { tender, initialTender, updateTender } = useTenderData();
     const { addTender, updateTender: saveTenderToDb } = useE_tenders();
-    const { allStaffMembers, officeAddress, allBidders } = useDataStore();
+    const { allStaffMembers, officeAddress, allBidders, allFileEntries } = useDataStore();
     const [activeModal, setActiveModal] = useState<ModalType>(null);
     const [modalData, setModalData] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,6 +169,74 @@ export default function TenderDetails() {
 
     const watchedPresentStatus = watch('presentStatus');
     const watchedRemarks = watch('remarks');
+    const watchedSelectedSiteIds = watch('selectedSiteIds') || tender.selectedSiteIds || [];
+    const watchedFileNo = watch('fileNo');
+    const watchedFileNo2 = watch('fileNo2');
+    const watchedFileNo3 = watch('fileNo3');
+    const watchedFileNo4 = watch('fileNo4');
+    const watchedETenderNo = watch('eTenderNo');
+
+    const selectedSitesForDisplay = useMemo(() => {
+        const fileNos = [watchedFileNo, watchedFileNo2, watchedFileNo3, watchedFileNo4]
+            .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+            .map(f => f.trim().toUpperCase());
+
+        if (fileNos.length === 0 || !allFileEntries) return [];
+
+        const stripOfficePrefix = (str: string) => str.replace(/^[A-Z][A-Z0-9_]*\//, '');
+        const matchFn = (dbFn?: string | null, searchFn?: string | null) => {
+            if (!dbFn || !searchFn) return false;
+            const c1 = stripOfficePrefix(dbFn.trim().toUpperCase());
+            const c2 = stripOfficePrefix(searchFn.trim().toUpperCase());
+            return c1 === c2;
+        };
+
+        const matching = allFileEntries.filter(entry =>
+            fileNos.some(fn => matchFn(entry.fileNo, fn))
+        );
+
+        const currentSelected = Array.isArray(watchedSelectedSiteIds) ? watchedSelectedSiteIds : [];
+        const normETenderNo = (watchedETenderNo || '').trim().toUpperCase();
+
+        const list: Array<{
+            siteId: string;
+            fileNo: string;
+            nameOfSite: string;
+            purpose: string;
+            workStatus: string;
+        }> = [];
+
+        matching.forEach(file => {
+            if (Array.isArray(file.siteDetails)) {
+                file.siteDetails.forEach((site: any, idx: number) => {
+                    const siteName = (site.nameOfSite || `Site ${idx + 1}`).trim();
+                    const purpose = (site.purpose || 'N/A').trim();
+                    const cleanPurpose = purpose.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    const sId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}_${cleanPurpose}`;
+                    const legacySId = `${file.fileNo || 'FILE'}_${idx}_${site.id || 'site'}`;
+
+                    let isSelected = false;
+                    if (currentSelected.length > 0) {
+                        isSelected = currentSelected.includes(sId) || currentSelected.includes(legacySId);
+                    } else if (normETenderNo && site.tenderNo) {
+                        isSelected = (site.tenderNo || '').trim().toUpperCase() === normETenderNo;
+                    }
+
+                    if (isSelected) {
+                        list.push({
+                            siteId: sId,
+                            fileNo: file.fileNo || '',
+                            nameOfSite: siteName,
+                            purpose: purpose,
+                            workStatus: site.workStatus || 'Pending',
+                        });
+                    }
+                });
+            }
+        });
+
+        return list;
+    }, [watchedFileNo, watchedFileNo2, watchedFileNo3, watchedFileNo4, allFileEntries, watchedSelectedSiteIds, watchedETenderNo]);
 
     const isFormDirty = useMemo(() => {
         if (isSectionEdited) return true;
@@ -230,6 +298,7 @@ export default function TenderDetails() {
               retenders: (updatedData.retenders || []).map(r => ({
                 ...r,
                 retenderDate: toDateOrNull(r.retenderDate),
+                dateTimeOfPublishingRetender: toDateOrNull(r.dateTimeOfPublishingRetender),
                 lastDateOfReceipt: toDateOrNull(r.lastDateOfReceipt),
                 dateOfOpeningTender: toDateOrNull(r.dateOfOpeningTender),
               })),
@@ -247,7 +316,7 @@ export default function TenderDetails() {
                 await saveTenderToDb(tender.id, dataForSave);
                 updateTender(dataForSave);
                 setIsSectionEdited(false);
-                reset(updatedData); // Reset to clear isDirty flag
+                reset(dataForSave); // Reset to clear isDirty flag with sanitized data
             }
         } catch (error: any) {
             console.error("Save Error:", error);
@@ -772,6 +841,42 @@ export default function TenderDetails() {
                                             <DetailRow label="File No. 3" value={watch('fileNo3') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo3')}` : null} />
                                             <DetailRow label="File No. 4" value={watch('fileNo4') ? `${officeAddress?.officeCode || 'GKT'}/${watch('fileNo4')}` : null} />
                                         </div>
+
+                                        {/* Selection of sites in Select Sites for Tender */}
+                                        <div className="p-4 border rounded-md bg-slate-50 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <dt className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                    <span>Selected Sites for Tender</span>
+                                                    <Badge variant="secondary" className="text-xs font-mono">
+                                                        {selectedSitesForDisplay.length} Selected
+                                                    </Badge>
+                                                </dt>
+                                            </div>
+                                            {selectedSitesForDisplay.length > 0 ? (
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                                                    {selectedSitesForDisplay.map((s, idx) => (
+                                                        <div key={s.siteId || idx} className="p-2.5 rounded border bg-background text-xs space-y-1 shadow-2xs">
+                                                            <div className="flex items-start justify-between gap-1">
+                                                                <span className="font-semibold text-foreground truncate">{s.nameOfSite}</span>
+                                                                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                    {s.fileNo}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-1">
+                                                                <span><strong>Purpose:</strong> {s.purpose}</span>
+                                                                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 shrink-0", getStatusBadgeClass(s.workStatus as any))}>
+                                                                    {s.workStatus}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground italic py-1">
+                                                    No specific sites selected for this tender yet.
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                      <div className="space-y-2">
                                         <h4 className="text-sm font-medium text-muted-foreground">Work & Location</h4>
@@ -890,8 +995,9 @@ export default function TenderDetails() {
                                                   {!isReadOnly && <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => setRetenderToDelete({ id: retender.id, index })}><Trash2 className="h-4 w-4"/></Button>}
                                               </div>
                                               <h4 className="text-sm font-semibold text-primary mb-2">Retender No. {index + 1}</h4>
-                                              <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3 mt-1">
+                                              <dl className="grid grid-cols-1 md:grid-cols-4 gap-x-4 gap-y-3 mt-1">
                                                   <DetailRow label="Retender Date" value={retender.retenderDate} />
+                                                  <DetailRow label="Date & Time of Publishing" value={retender.dateTimeOfPublishingRetender} isReceiptFormat={true} />
                                                   <DetailRow label="New Last Date & Time" value={retender.lastDateOfReceipt} isReceiptFormat={true} />
                                                   <DetailRow label="New Opening Date & Time" value={retender.dateOfOpeningTender} isOpeningFormat={true}/>
                                               </dl>
